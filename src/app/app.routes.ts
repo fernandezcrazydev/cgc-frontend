@@ -25,6 +25,12 @@ export const routes: Routes = [
         loadComponent: () => import('./features/shell/views/grupos').then((m) => m.Grupos),
       },
       {
+        path: 'grupos/:id',
+        title: 'Grupo · NEXUS//FORGE',
+        loadComponent: () =>
+          import('./features/shell/views/grupo-detalle').then((m) => m.GrupoDetalle),
+      },
+      {
         path: 'ajustes',
         title: 'Ajustes · NEXUS//FORGE',
         loadComponent: () => import('./features/shell/views/ajustes').then((m) => m.Ajustes),

@@ -10,6 +10,7 @@ import {
   Notification,
   NotificationKind,
 } from '../../core/lobby';
+import { GroupStore } from '../../core/group-store';
 import { NfButton, NfWindow } from '../../ui';
 
 /**
@@ -27,6 +28,7 @@ import { NfButton, NfWindow } from '../../ui';
 export class Shell {
   readonly nav = NAV;
   readonly user = CURRENT_USER;
+  readonly groups = inject(GroupStore);
 
   readonly mobileLeft = NAV.slice(0, 2);
   readonly mobileRight = NAV.slice(2);
@@ -34,6 +36,35 @@ export class Shell {
   readonly isMobile = signal(false);
   readonly pageTitle = signal('Inicio');
   readonly confirmLogout = signal(false);
+
+  // ── Groups (sidebar dropdown + mobile sheet) ──────────────────────
+  readonly groupsExpanded = signal(true);
+  readonly showGroupSheet = signal(false);
+
+  toggleGroups(): void {
+    this.groupsExpanded.update((v) => !v);
+  }
+
+  /** Sidebar item / sheet entry: mark active AND open its detail view. */
+  selectGroup(id: string): void {
+    this.groups.select(id);
+    this.showGroupSheet.set(false);
+    this.router.navigate(['/app', 'grupos', id]);
+  }
+
+  /** Header group block: open the switcher on mobile, jump to detail on desktop. */
+  onHeaderGroup(): void {
+    const current = this.groups.selected();
+    if (this.isMobile()) {
+      this.showGroupSheet.set(true);
+    } else if (current) {
+      this.router.navigate(['/app', 'grupos', current.id]);
+    }
+  }
+
+  closeGroupSheet(): void {
+    this.showGroupSheet.set(false);
+  }
 
   // ── Notifications (top-right bell + dropdown panel) ───────────────
   readonly notifications = signal<Notification[]>(NOTIFICATIONS);
@@ -86,7 +117,9 @@ export class Shell {
       .subscribe((url) => {
         const seg = url.split('/').filter(Boolean).pop() ?? 'inicio';
         const item = this.nav.find((n) => n.path === seg);
-        this.pageTitle.set(item?.title ?? 'Inicio');
+        // A group detail route (/app/grupos/:id) still belongs to the "Grupos" section.
+        const title = item?.title ?? (this.groups.byId(seg) ? 'Grupos' : 'Inicio');
+        this.pageTitle.set(title);
       });
   }
 

@@ -13,14 +13,61 @@
 
       <nav class="shell__nav">
         @for (item of nav; track item.id) {
-          <a
-            class="shell__nav-item"
-            [routerLink]="['/app', item.path]"
-            routerLinkActive="is-active"
-          >
-            <span class="shell__nav-glyph">{{ item.glyph }}</span>
-            {{ item.label }}
-          </a>
+          @if (item.id === 'grupos') {
+            <div class="shell__nav-group">
+              <button
+                type="button"
+                class="shell__nav-item shell__nav-item--toggle"
+                [class.is-open]="groupsExpanded()"
+                [attr.aria-expanded]="groupsExpanded()"
+                (click)="toggleGroups()"
+              >
+                <span class="shell__nav-glyph">{{ item.glyph }}</span>
+                {{ item.label }}
+                <span class="shell__nav-caret">▾</span>
+              </button>
+
+              <div class="shell__groupwrap" [class.is-open]="groupsExpanded()" [attr.aria-hidden]="!groupsExpanded()">
+                <div class="shell__grouplist">
+                  @for (g of groups.groups(); track g.id) {
+                    <button
+                      type="button"
+                      class="shell__groupitem"
+                      [class.is-active]="g.id === groups.selectedId()"
+                      [style.--grp-c1]="g.c1"
+                      [style.--grp-c2]="g.c2"
+                      [attr.tabindex]="groupsExpanded() ? null : -1"
+                      (click)="selectGroup(g.id)"
+                    >
+                      <span class="shell__groupitem-avatar">{{ g.initials }}</span>
+                      <span class="shell__groupitem-meta">
+                        <span class="shell__groupitem-name">{{ g.name }}</span>
+                        <span class="shell__groupitem-sub nf-mono">{{ g.members }} ▪ {{ g.role }}</span>
+                      </span>
+                    </button>
+                  } @empty {
+                    <div class="shell__grouplist-empty nf-mono">// SIN GRUPOS</div>
+                  }
+                  <a
+                    class="shell__grouplist-all nf-mono"
+                    [routerLink]="['/app', 'grupos']"
+                    [attr.tabindex]="groupsExpanded() ? null : -1"
+                  >
+                    ＋ GESTIONAR GRUPOS
+                  </a>
+                </div>
+              </div>
+            </div>
+          } @else {
+            <a
+              class="shell__nav-item"
+              [routerLink]="['/app', item.path]"
+              routerLinkActive="is-active"
+            >
+              <span class="shell__nav-glyph">{{ item.glyph }}</span>
+              {{ item.label }}
+            </a>
+          }
         }
       </nav>
 
@@ -39,11 +86,34 @@
 
   <!-- main column -->
   <div class="shell__main">
-    <header class="shell__header">
-      @if (isMobile()) {
-        <div class="shell__logo shell__logo--sm"><span class="shell__diamond"></span></div>
+    <header
+      class="shell__header"
+      [class.shell__header--group]="groups.selected()"
+      [style.--grp-c1]="groups.selected()?.c1"
+      [style.--grp-c2]="groups.selected()?.c2"
+    >
+      @if (groups.selected(); as g) {
+        <button
+          type="button"
+          class="shell__groupbar"
+          [class.is-tappable]="isMobile()"
+          (click)="onHeaderGroup()"
+        >
+          <span class="shell__groupbar-avatar">{{ g.initials }}</span>
+          <span class="shell__groupbar-meta">
+            <span class="shell__groupbar-name">{{ g.name }}</span>
+            <span class="shell__groupbar-section nf-mono">// {{ pageTitle() }}</span>
+          </span>
+          @if (isMobile()) {
+            <span class="shell__groupbar-caret">▾</span>
+          }
+        </button>
+      } @else {
+        @if (isMobile()) {
+          <div class="shell__logo shell__logo--sm"><span class="shell__diamond"></span></div>
+        }
+        <h2 class="shell__title">{{ pageTitle() }}</h2>
       }
-      <h2 class="shell__title">{{ pageTitle() }}</h2>
       <div class="shell__header-right">
         @if (!isMobile()) {
           <span class="shell__ping nf-mono"><span class="shell__ping-dot"></span>LAN · 12ms</span>
@@ -98,6 +168,42 @@
         </a>
       }
     </nav>
+  }
+
+  <!-- mobile group switcher (bottom sheet) -->
+  @if (showGroupSheet()) {
+    <div class="shell__sheet-overlay" (click)="closeGroupSheet()">
+      <div class="shell__sheet" (click)="$event.stopPropagation()">
+        <div class="shell__sheet-handle"></div>
+        <div class="shell__sheet-head nf-mono">// TUS GRUPOS</div>
+        <div class="shell__sheet-list">
+          @for (g of groups.groups(); track g.id) {
+            <button
+              type="button"
+              class="shell__groupitem shell__groupitem--lg"
+              [class.is-active]="g.id === groups.selectedId()"
+              [style.--grp-c1]="g.c1"
+              [style.--grp-c2]="g.c2"
+              (click)="selectGroup(g.id)"
+            >
+              <span class="shell__groupitem-avatar">{{ g.initials }}</span>
+              <span class="shell__groupitem-meta">
+                <span class="shell__groupitem-name">{{ g.name }}</span>
+                <span class="shell__groupitem-sub nf-mono">{{ g.members }} ▪ {{ g.role }}</span>
+              </span>
+              @if (g.id === groups.selectedId()) {
+                <span class="shell__groupitem-check">◉</span>
+              }
+            </button>
+          } @empty {
+            <div class="shell__grouplist-empty nf-mono">// SIN GRUPOS</div>
+          }
+        </div>
+        <a class="shell__sheet-all nf-mono" [routerLink]="['/app', 'grupos']" (click)="closeGroupSheet()">
+          ＋ GESTIONAR GRUPOS
+        </a>
+      </div>
+    </div>
   }
 
   <!-- notifications dropdown panel -->

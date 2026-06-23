@@ -34,6 +34,22 @@ export interface NavItem {
   path: string;
 }
 
+export type GroupRole = 'OWNER' | 'MIEMBRO';
+
+export interface Group {
+  /** Stable slug used in the URL (`/app/grupos/:id`). */
+  id: string;
+  name: string;
+  /** Short mono subtitle, e.g. "LAN · COMPETITIVO". */
+  tag: string;
+  initials: string;
+  role: GroupRole;
+  members: number;
+  /** Banner gradient stops (avatar + header tint). */
+  c1: string;
+  c2: string;
+}
+
 /** Kinds map to a glyph (see NOTIF_GLYPH); `accent` is a palette token for tint + dot. */
 export type NotificationKind = 'invite' | 'join' | 'result' | 'system';
 
@@ -66,6 +82,13 @@ export const NAV: NavItem[] = [
   { id: 'historial', glyph: '▣', label: 'HISTORIAL', short: 'HISTORIAL', title: 'Historial', path: 'historial' },
   { id: 'grupos',    glyph: '◆', label: 'GRUPOS',    short: 'GRUPOS',    title: 'Grupos',    path: 'grupos'    },
   { id: 'ajustes',   glyph: '▦', label: 'AJUSTES',   short: 'AJUSTES',   title: 'Ajustes',   path: 'ajustes'   },
+];
+
+export const GROUPS: Group[] = [
+  { id: 'lan-challenger', name: 'LAN Challenger S14', tag: 'LAN · COMPETITIVO', initials: 'LC', role: 'OWNER',   members: 8,  c1: 'hsl(320,90%,64%)', c2: 'hsl(280,78%,34%)' },
+  { id: 'scrim-squad',    name: 'Scrim Squad',        tag: 'PRÁCTICA · 5v5',    initials: 'SS', role: 'MIEMBRO', members: 12, c1: 'hsl(190,90%,62%)', c2: 'hsl(205,78%,32%)' },
+  { id: 'night-owls',     name: 'Night Owls',         tag: 'CASUAL · NOCTURNO', initials: 'NO', role: 'OWNER',   members: 5,  c1: 'hsl(150,90%,60%)', c2: 'hsl(160,78%,30%)' },
+  { id: 'arcane-five',    name: 'Arcane Five',         tag: 'RANKED · FLEX',     initials: 'A5', role: 'MIEMBRO', members: 9,  c1: 'hsl(48,95%,62%)',  c2: 'hsl(38,80%,32%)'  },
 ];
 
 export const STATS: StatCard[] = [
