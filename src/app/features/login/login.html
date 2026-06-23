@@ -1,0 +1,87 @@
+<div class="login">
+  <!-- neon sun -->
+  <div class="login__sun" aria-hidden="true"></div>
+  <!-- perspective grid floor -->
+  <div class="login__grid" aria-hidden="true"></div>
+
+  <!-- floating card -->
+  <div class="login__card">
+    <nf-window title="acceso.exe" accent="cyan" bodyPadding="0">
+      <div class="login__pad">
+
+        <!-- logo lockup -->
+        <div class="login__brand">
+          <div class="login__logo">
+            <span class="login__diamond"></span>
+          </div>
+          <div>
+            <div class="login__wordmark">NEXUS<span class="login__slash">//</span>FORGE</div>
+            <div class="login__tag nf-mono">CUSTOM MATCH BUILDER</div>
+          </div>
+        </div>
+
+        <div class="login__eyebrow nf-mono">// ACCESO AL SISTEMA</div>
+
+        @if (isSuccess()) {
+          <!-- success -->
+          <div class="login__success">
+            <div class="login__check">✓</div>
+            <h1 class="login__title">Sesión iniciada</h1>
+            <p class="login__lead">Cuenta de Riot verificada. Entrando al lobby…</p>
+            <div class="login__status nf-mono">
+              <span class="login__status-dot"></span>
+              CONECTADO · {{ riotTag }}
+            </div>
+          </div>
+        }
+
+        @if (isAuth()) {
+          <!-- auth (idle / connecting) -->
+          <h1 class="login__title">Bienvenido de nuevo</h1>
+          <p class="login__lead">
+            Inicia sesión con tu cuenta de Riot para crear partidas personalizadas y reunir a tu lobby.
+          </p>
+
+          <button
+            type="button"
+            class="login__riot"
+            [disabled]="isConnecting()"
+            (click)="onRiot()"
+          >
+            @if (isConnecting()) {
+              <span class="login__spinner"></span>
+              <span>CONECTANDO…</span>
+            } @else {
+              <span class="login__riot-mark">R</span>
+              <span>INICIAR SESIÓN CON RIOT</span>
+              <span class="login__riot-arrow">►</span>
+            }
+          </button>
+
+          <div class="login__divider">
+            <span class="login__rule"></span>
+            <span class="login__or nf-mono">O</span>
+            <span class="login__rule"></span>
+          </div>
+
+          <button
+            type="button"
+            class="login__guest"
+            [disabled]="isConnecting()"
+            (click)="onGuest()"
+          >
+            CONTINUAR COMO INVITADO
+          </button>
+        }
+
+        <div class="login__footer">
+          <p class="login__terms nf-mono">
+            AL CONTINUAR ACEPTAS LOS TÉRMINOS DE SERVICIO Y LA POLÍTICA DE PRIVACIDAD.
+            NO AFILIADO OFICIALMENTE CON RIOT GAMES.
+          </p>
+        </div>
+
+      </div>
+    </nf-window>
+  </div>
+</div>

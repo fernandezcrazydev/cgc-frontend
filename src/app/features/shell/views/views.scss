@@ -1,0 +1,179 @@
+/* Shared styles for the app-shell views. */
+
+.view { animation: nf-fade 0.3s ease-out; }
+
+.view__head { margin-bottom: 26px; }
+.view__eyebrow { font-size: 11px; letter-spacing: 3px; color: var(--nf-cyan); margin-bottom: 10px; }
+.view__title {
+  margin: 0 0 8px;
+  font-weight: 800;
+  font-size: clamp(24px, 5vw, 32px);
+  color: var(--nf-text);
+  letter-spacing: -0.5px;
+}
+.view__lead { margin: 0; color: var(--nf-text-mid); font-size: 14.5px; line-height: 1.6; }
+.view__label { font-size: 11px; letter-spacing: 2px; color: var(--nf-text-dim); margin-bottom: 12px; }
+.view__intro { margin: 0 0 22px; color: var(--nf-text-mid); font-size: 14px; line-height: 1.6; }
+
+/* ---- stats (inicio) ---- */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 14px;
+  margin: 0 0 26px;
+}
+.stat {
+  background: var(--nf-surface-2);
+  border: 1.5px solid var(--nf-border);
+  border-radius: 6px;
+  padding: 18px 20px;
+}
+.stat__label { font-size: 10px; letter-spacing: 2px; color: var(--nf-text-dim); margin-bottom: 10px; }
+.stat__value { font-weight: 700; font-size: 30px; line-height: 1; }
+
+.actions { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 30px; }
+
+/* ---- recent matches list (inicio) ---- */
+.matches {
+  background: var(--nf-surface-2);
+  border: 1.5px solid var(--nf-border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.match {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 15px 18px;
+  border-bottom: 1px solid var(--nf-border);
+  transition: background 0.15s;
+}
+.match:last-child { border-bottom: none; }
+.match:hover { background: rgba(54, 224, 255, 0.05); }
+.match__avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 5px;
+  border: 1.5px solid var(--nf-border);
+  flex: none;
+}
+.match__meta { flex: 1; min-width: 0; }
+.match__name {
+  font-size: 13px;
+  color: var(--nf-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.match__mode { font-size: 10px; letter-spacing: 1px; color: var(--nf-text-dim); margin-top: 3px; }
+
+/* ---- partidas cards ---- */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+}
+.pm-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.pm-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 5px;
+  border: 1.5px solid var(--nf-border);
+  flex: none;
+}
+.pm-mode { font-weight: 700; font-size: 14px; color: var(--nf-text); }
+.pm-players { font-size: 10px; letter-spacing: 1px; color: var(--nf-text-dim); margin-top: 3px; }
+.pm-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+
+/* ---- champions grid ---- */
+.champ-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(108px, 1fr));
+  gap: 14px;
+}
+.champ {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--nf-surface-2);
+  border: 2px solid var(--nf-border);
+  border-radius: 6px;
+  padding: 10px;
+  cursor: pointer;
+  transition: transform 0.14s, box-shadow 0.14s, border-color 0.14s;
+}
+.champ:hover {
+  transform: translate(-1px, -1px);
+  border-color: var(--nf-pink);
+  box-shadow: 4px 4px 0 rgba(255, 95, 210, 0.4);
+}
+.champ__art {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.champ__hatch {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(45deg, rgba(0, 0, 0, 0.16) 0 6px, transparent 6px 12px);
+}
+.champ__initials {
+  position: absolute;
+  left: 7px;
+  bottom: 6px;
+  font-family: var(--nf-mono);
+  font-weight: 700;
+  font-size: 13px;
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.55);
+}
+.champ__name { font-weight: 700; font-size: 12.5px; color: var(--nf-text); }
+.champ__role { font-size: 9px; letter-spacing: 1px; color: var(--nf-text-dim); margin-top: 2px; }
+
+/* ---- ajustes ---- */
+.settings-eyebrow { font-size: 11px; letter-spacing: 2px; color: var(--nf-cyan); margin-bottom: 18px; }
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--nf-border);
+}
+.setting-row--last { border-bottom: none; padding: 18px 0 6px; }
+.setting-title { font-weight: 700; font-size: 14px; color: var(--nf-text); }
+.setting-sub { font-size: 10px; letter-spacing: 0.5px; color: var(--nf-text-dim); margin-top: 3px; }
+
+/* ---- crear form ---- */
+.form-grid { display: flex; flex-direction: column; gap: 18px; }
+.field { display: flex; flex-direction: column; gap: 8px; }
+.field__label { font-size: 10px; letter-spacing: 2px; color: var(--nf-text-dim); }
+.field__input {
+  width: 100%;
+  padding: 12px 14px;
+  font-family: var(--nf-font);
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--nf-text);
+  background: var(--nf-inset);
+  border: 2px solid var(--nf-border);
+  border-radius: 4px;
+  box-sizing: border-box;
+  transition: border-color 0.16s, box-shadow 0.16s;
+}
+.field__input::placeholder { color: var(--nf-text-dim); }
+.field__input:focus {
+  outline: none;
+  border-color: var(--nf-cyan);
+  box-shadow: 0 0 12px rgba(54, 224, 255, 0.3);
+}
+.form-foot { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 22px; }
+.form-note {
+  margin: 16px 0 0;
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  line-height: 1.7;
+  color: var(--nf-text-dim);
+}
+.max-520 { max-width: 520px; }

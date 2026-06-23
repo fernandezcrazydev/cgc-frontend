@@ -1,0 +1,37 @@
+/* NEXUS//FORGE · Badge (global, ViewEncapsulation.None) */
+
+.nf-badge {
+  --badge-color: var(--nf-cyan);
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 3px 9px;
+  border-radius: var(--nf-radius-sm);
+  border: var(--bw-1) solid color-mix(in srgb, var(--badge-color) 45%, transparent);
+  background: color-mix(in srgb, var(--badge-color) 10%, transparent);
+  color: var(--badge-color);
+}
+
+.nf-badge--green { --badge-color: var(--nf-green); }
+.nf-badge--yellow { --badge-color: var(--nf-yellow); }
+.nf-badge--cyan { --badge-color: var(--nf-cyan); }
+.nf-badge--pink { --badge-color: var(--nf-pink); }
+.nf-badge--red { --badge-color: var(--nf-red); }
+.nf-badge--purple { --badge-color: var(--nf-purple); }
+
+.nf-badge__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--badge-color);
+  box-shadow: 0 0 8px var(--badge-color);
+  flex: none;
+}
+.nf-badge__dot--blink { animation: nf-blink 1.4s infinite; }
+
+.nf-badge__label {
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  line-height: 1;
+}

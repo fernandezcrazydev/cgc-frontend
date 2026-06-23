@@ -1,0 +1,46 @@
+/* NEXUS//FORGE · Select (global, ViewEncapsulation.None) */
+
+.nf-select {
+  position: relative;
+  display: inline-flex;
+  width: 100%;
+}
+
+.nf-select__field {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  padding: 11px 36px 11px 14px;
+  font-family: var(--nf-font);
+  font-weight: var(--fw-bold);
+  font-size: 13px;
+  letter-spacing: 1px;
+  color: var(--nf-text);
+  background: var(--nf-inset);
+  border: var(--bw-2) solid var(--nf-border);
+  border-radius: var(--nf-radius);
+  cursor: pointer;
+  transition: border-color 0.16s, box-shadow 0.16s;
+}
+.nf-select__field:hover {
+  border-color: var(--nf-border-strong);
+}
+.nf-select__field:focus {
+  outline: none;
+  border-color: var(--nf-cyan);
+  box-shadow: 0 0 12px rgba(54, 224, 255, 0.35);
+}
+.nf-select__field option {
+  background: var(--nf-surface);
+  color: var(--nf-text);
+}
+
+.nf-select__caret {
+  position: absolute;
+  right: 13px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 12px;
+  color: var(--nf-cyan);
+  pointer-events: none;
+}

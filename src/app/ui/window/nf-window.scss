@@ -1,0 +1,70 @@
+/* NEXUS//FORGE · Window (global, ViewEncapsulation.None) */
+
+.nf-window {
+  display: flex;
+  flex-direction: column;
+  background: var(--nf-surface);
+  border: var(--bw-2) solid var(--nf-border-strong);
+  border-radius: var(--nf-radius-lg);
+  box-shadow: var(--nf-shadow-card);
+  overflow: hidden;
+}
+
+/* ---- title bar: cyan→pink gradient ---- */
+.nf-window__bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 13px;
+  background: linear-gradient(90deg, var(--nf-cyan), var(--nf-pink));
+  border-bottom: var(--bw-2) solid rgba(0, 0, 0, 0.25);
+}
+.nf-window--pink .nf-window__bar {
+  background: linear-gradient(90deg, var(--nf-pink), var(--nf-purple));
+}
+
+.nf-window__lights {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex: none;
+}
+.nf-window__light {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(0, 0, 0, 0.35);
+}
+.nf-window__light--red { background: #ff5f6d; }
+.nf-window__light--yellow { background: #ffe14d; }
+.nf-window__light--green { background: #5fffa0; }
+
+.nf-window__title {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  letter-spacing: 1px;
+  color: var(--nf-void);
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nf-window__controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+}
+.nf-window__ctrl {
+  width: 13px;
+  height: 13px;
+  border-radius: 2px;
+  background: rgba(12, 1, 24, 0.55);
+  border: 1.5px solid rgba(0, 0, 0, 0.3);
+}
+
+.nf-window__body {
+  background: var(--nf-surface);
+}

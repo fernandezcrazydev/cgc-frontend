@@ -1,0 +1,161 @@
+<div class="shell">
+
+  <!-- desktop sidebar -->
+  @if (!isMobile()) {
+    <aside class="shell__sidebar">
+      <div class="shell__brand">
+        <div class="shell__logo"><span class="shell__diamond"></span></div>
+        <div>
+          <div class="shell__wordmark">NEXUS<span class="shell__slash">//</span>FORGE</div>
+          <div class="shell__tag nf-mono">CUSTOM MATCH BUILDER</div>
+        </div>
+      </div>
+
+      <nav class="shell__nav">
+        @for (item of nav; track item.id) {
+          <a
+            class="shell__nav-item"
+            [routerLink]="['/app', item.path]"
+            routerLinkActive="is-active"
+          >
+            <span class="shell__nav-glyph">{{ item.glyph }}</span>
+            {{ item.label }}
+          </a>
+        }
+      </nav>
+
+      <div class="shell__sidefoot">
+        <a class="shell__profile" [routerLink]="['/app', 'ajustes']">
+          <div class="shell__avatar">{{ user.initials }}</div>
+          <div class="shell__user-meta">
+            <div class="shell__user-name">{{ user.name }}</div>
+            <div class="shell__profile-cta nf-mono">VER PERFIL ►</div>
+          </div>
+        </a>
+        <button type="button" class="shell__logout" (click)="confirmLogout.set(true)">CERRAR SESIÓN</button>
+      </div>
+    </aside>
+  }
+
+  <!-- main column -->
+  <div class="shell__main">
+    <header class="shell__header">
+      @if (isMobile()) {
+        <div class="shell__logo shell__logo--sm"><span class="shell__diamond"></span></div>
+      }
+      <h2 class="shell__title">{{ pageTitle() }}</h2>
+      <div class="shell__header-right">
+        @if (!isMobile()) {
+          <span class="shell__ping nf-mono"><span class="shell__ping-dot"></span>LAN · 12ms</span>
+        }
+        <button
+          type="button"
+          class="shell__bell"
+          [class.is-active]="showNotifications() || hasUnread()"
+          [attr.aria-label]="'Notificaciones' + (hasUnread() ? ' (' + unreadCount() + ' sin leer)' : '')"
+          [attr.aria-expanded]="showNotifications()"
+          (click)="toggleNotifications()"
+        >
+          <svg width="16" height="18" viewBox="0 0 16 18" fill="none" aria-hidden="true">
+            <path d="M8 2C5.24 2 3 4.24 3 7V13H13V7C13 4.24 10.76 2 8 2Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" />
+            <line x1="1.5" y1="13" x2="14.5" y2="13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+            <path d="M6 13C6 14.1 6.9 15 8 15C9.1 15 10 14.1 10 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+          </svg>
+          @if (hasUnread()) {
+            <span class="shell__bell-badge nf-mono">{{ unreadCount() }}</span>
+          }
+        </button>
+        <div class="shell__avatar shell__avatar--cyan">{{ user.initials }}</div>
+      </div>
+    </header>
+
+    <main class="shell__content" [class.shell__content--mobile]="isMobile()">
+      <router-outlet />
+    </main>
+  </div>
+
+  <!-- mobile bottom nav -->
+  @if (isMobile()) {
+    <nav class="shell__bottomnav">
+      @for (item of mobileLeft; track item.id) {
+        <a
+          class="shell__bottomnav-item"
+          [routerLink]="['/app', item.path]"
+          routerLinkActive="is-active"
+        >
+          <span class="shell__bottomnav-glyph">{{ item.glyph }}</span>
+          <span class="shell__bottomnav-label">{{ item.short }}</span>
+        </a>
+      }
+      @for (item of mobileRight; track item.id) {
+        <a
+          class="shell__bottomnav-item"
+          [routerLink]="['/app', item.path]"
+          routerLinkActive="is-active"
+        >
+          <span class="shell__bottomnav-glyph">{{ item.glyph }}</span>
+          <span class="shell__bottomnav-label">{{ item.short }}</span>
+        </a>
+      }
+    </nav>
+  }
+
+  <!-- notifications dropdown panel -->
+  @if (showNotifications()) {
+    <div class="shell__notif-overlay" (click)="closeNotifications()">
+      <div class="shell__notif" (click)="$event.stopPropagation()">
+        <nf-window title="notifications.exe" accent="pink" bodyPadding="0">
+          <div class="shell__notif-sub">
+            <span class="shell__notif-eyebrow nf-mono">// ACTIVIDAD RECIENTE</span>
+            <button type="button" class="shell__notif-clear nf-mono" (click)="clearNotifications($event)">
+              LIMPIAR ×
+            </button>
+          </div>
+
+          <div class="shell__notif-list">
+            @for (n of notifications(); track n.id) {
+              <div class="shell__notif-item" [class.is-unread]="n.unread" [style.--notif-accent]="n.accent">
+                <div class="shell__notif-icon">{{ glyphFor(n.kind) }}</div>
+                <div class="shell__notif-text">
+                  <div class="shell__notif-title nf-mono">{{ n.title }}</div>
+                  <div class="shell__notif-msg nf-mono">{{ n.message }}</div>
+                  <div class="shell__notif-time nf-mono">{{ n.time }}</div>
+                </div>
+                @if (n.unread) {
+                  <span class="shell__notif-dot"></span>
+                }
+              </div>
+            } @empty {
+              <div class="shell__notif-empty">
+                <div class="shell__notif-empty-glyph">◎</div>
+                <div class="shell__notif-empty-label nf-mono">// BANDEJA VACÍA</div>
+              </div>
+            }
+          </div>
+
+          <div class="shell__notif-foot">
+            <span class="nf-mono">VER HISTORIAL COMPLETO ►</span>
+          </div>
+        </nf-window>
+      </div>
+    </div>
+  }
+
+  <!-- logout confirmation modal -->
+  @if (confirmLogout()) {
+    <div class="shell__overlay" (click)="confirmLogout.set(false)">
+      <div class="shell__dialog" (click)="$event.stopPropagation()">
+        <nf-window title="cerrar_sesion.exe" accent="pink" bodyPadding="24px">
+          <p class="shell__dialog-msg">
+            ¿Seguro que quieres <strong>cerrar sesión</strong>? Tendrás que volver a iniciar sesión para acceder.
+          </p>
+          <div class="shell__dialog-actions">
+            <button nfButton variant="ghost" size="md" (click)="confirmLogout.set(false)">CANCELAR</button>
+            <button nfButton variant="danger" size="md" (click)="logout()">CERRAR SESIÓN</button>
+          </div>
+        </nf-window>
+      </div>
+    </div>
+  }
+
+</div>

@@ -1,0 +1,38 @@
+/* NEXUS//FORGE · Toggle (global, ViewEncapsulation.None) */
+
+.nf-toggle {
+  --toggle-accent: var(--nf-cyan);
+  position: relative;
+  width: 48px;
+  height: 28px;
+  padding: 0;
+  border-radius: var(--nf-radius);
+  border: var(--bw-2) solid var(--nf-border);
+  background: var(--nf-inset);
+  cursor: pointer;
+  transition: border-color 0.16s, background 0.16s, box-shadow 0.16s;
+}
+.nf-toggle--pink { --toggle-accent: var(--nf-pink); }
+
+.nf-toggle--on {
+  border-color: var(--toggle-accent);
+  background: color-mix(in srgb, var(--toggle-accent) 18%, var(--nf-inset));
+  box-shadow: 0 0 12px color-mix(in srgb, var(--toggle-accent) 50%, transparent);
+}
+
+.nf-toggle__knob {
+  position: absolute;
+  top: 50%;
+  left: 3px;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  border-radius: 3px;
+  background: var(--nf-text-dim);
+  transition: left 0.16s, background 0.16s, box-shadow 0.16s;
+}
+.nf-toggle--on .nf-toggle__knob {
+  left: 23px;
+  background: var(--toggle-accent);
+  box-shadow: 0 0 10px var(--toggle-accent);
+}

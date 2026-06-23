@@ -1,0 +1,37 @@
+/* ============================================================
+   NEXUS//FORGE · EFFECTS — shadows, glows, animations
+   The signature look: thick 2px borders + HARD offset shadows
+   (no blur) in cyan/pink, plus neon glows.
+   ============================================================ */
+
+:root {
+  --nf-shadow-cyan: 4px 4px 0 var(--nf-cyan);
+  --nf-shadow-pink: 4px 4px 0 var(--nf-pink);
+  --nf-shadow-card: 6px 6px 0 rgba(169, 107, 255, 0.45);
+  --nf-glow-pink: 0 0 18px rgba(255, 95, 210, 0.45);
+
+  /* aliases */
+  --shadow-hard-cyan: var(--nf-shadow-cyan);
+  --shadow-hard-pink: var(--nf-shadow-pink);
+  --shadow-card: var(--nf-shadow-card);
+  --glow-pink: var(--nf-glow-pink);
+}
+
+/* ---- Keyframes (global; pseudo-states & animations can't be scoped) ---- */
+@keyframes nf-pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+@keyframes nf-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
+@keyframes nf-spin { to { transform: rotate(360deg); } }
+@keyframes nf-bar { 0% { transform: translateX(-120%); } 100% { transform: translateX(420%); } }
+@keyframes nf-toast { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+@keyframes nf-glow {
+  0%, 100% { box-shadow: var(--nf-shadow-cyan), 0 0 14px rgba(255, 95, 210, 0.4); }
+  50% { box-shadow: var(--nf-shadow-cyan), 0 0 26px rgba(255, 95, 210, 0.8); }
+}
+
+/* ---- Login / hero motion (from Login.dc.html) ---- */
+@keyframes nf-grid-move { to { background-position: 0 46px, 0 0; } }
+@keyframes nf-sun-rise { from { transform: translate(-50%, -46%); } to { transform: translate(-50%, -52%); } }
+@keyframes nf-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+@keyframes nf-spin-r { to { transform: rotate(360deg); } }
+@keyframes nf-pop { from { transform: scale(0.7); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes nf-fade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }

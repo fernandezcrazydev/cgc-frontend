@@ -1,0 +1,50 @@
+/* ============================================================
+   NEXUS//FORGE · COLOR TOKENS
+   Vaporwave neon palette over a deep-violet "void".
+   Values are authoritative — taken verbatim from styles.scss.
+   ============================================================ */
+
+:root {
+  /* ---- Surfaces (dark → light) ---- */
+  --nf-void: #0c0118;          /* page base, darkest        */
+  --nf-inset: #10021f;         /* sunken: inputs, tracks    */
+  --nf-surface: #180a2c;       /* window body / panel       */
+  --nf-surface-2: #160a28;     /* raised card / panel       */
+  --nf-elevated: #1f0c3d;      /* hover / gradient top      */
+
+  /* ---- Neon brand palette ---- */
+  --nf-pink: #ff5fd2;          /* primary  · hot pink            */
+  --nf-pink-strong: #e0319f;   /* primary pressed / gradient end */
+  --nf-cyan: #36e0ff;          /* secondary · electric cyan      */
+  --nf-purple: #a96bff;        /* tertiary  · synth violet       */
+  --nf-yellow: #ffe14d;        /* accent    · sun yellow         */
+  --nf-green: #5fffa0;         /* success   · acid green         */
+  --nf-red: #ff5f6d;           /* danger    · neon red           */
+
+  /* ---- Team sides ---- */
+  --nf-team-blue: #36e0ff;
+  --nf-team-red: #ff5f6d;
+
+  /* ---- Text ---- */
+  --nf-text: #f3e9ff;          /* primary copy   */
+  --nf-text-mid: #b79fd6;      /* secondary copy */
+  --nf-text-dim: #7a5fa8;      /* muted / labels */
+
+  /* ---- Lines (cyan-tinted hairlines; pink for accents) ---- */
+  --nf-border: rgba(54, 224, 255, 0.2);
+  --nf-border-strong: rgba(54, 224, 255, 0.4);
+  --nf-border-pink: rgba(255, 95, 210, 0.35);
+
+  /* ---- Semantic aliases ---- */
+  --color-bg: var(--nf-void);
+  --color-surface: var(--nf-surface);
+  --color-surface-raised: var(--nf-surface-2);
+  --color-primary: var(--nf-pink);
+  --color-secondary: var(--nf-cyan);
+  --color-accent: var(--nf-yellow);
+  --color-danger: var(--nf-red);
+  --color-success: var(--nf-green);
+  --color-text: var(--nf-text);
+  --color-text-muted: var(--nf-text-dim);
+  --color-border: var(--nf-border);
+}

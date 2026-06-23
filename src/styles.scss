@@ -1,0 +1,11 @@
+/* ============================================================
+   CGC FRONTEND — global entry point.
+   NEXUS//FORGE design-system tokens + base styles.
+   Webfonts (Manrope + Share Tech Mono) are linked in index.html.
+   ============================================================ */
+
+@import './styles/tokens/colors.css';
+@import './styles/tokens/typography.css';
+@import './styles/tokens/spacing.css';
+@import './styles/tokens/effects.css';
+@import './styles/tokens/base.css';
