@@ -75,6 +75,8 @@ export const CURRENT_USER = {
   name: 'N1ghtfang',
   initials: 'N1',
   tag: 'N1ghtfang#LAN',
+  /** Player region shown in the sidebar (no latency, just the server). */
+  region: 'LAN',
 };
 
 export const NAV: NavItem[] = [
