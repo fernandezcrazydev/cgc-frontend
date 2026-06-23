@@ -177,3 +177,135 @@
   color: var(--nf-text-dim);
 }
 .max-520 { max-width: 520px; }
+
+/* ---- grupos: cards grid ---- */
+.group-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 16px;
+}
+.group-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--nf-surface-2);
+  border: 1.5px solid var(--nf-border);
+  border-radius: 8px;
+  overflow: hidden;
+  text-decoration: none;
+  transition: transform 0.14s, box-shadow 0.14s, border-color 0.14s;
+}
+.group-card:hover {
+  transform: translate(-1px, -1px);
+  border-color: color-mix(in srgb, var(--grp-c1) 55%, transparent);
+  box-shadow: 4px 4px 0 color-mix(in srgb, var(--grp-c1) 35%, transparent);
+}
+.group-card.is-active {
+  border-color: color-mix(in srgb, var(--grp-c1) 70%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--grp-c1) 50%, transparent);
+}
+.group-card__banner {
+  position: relative;
+  height: 64px;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--grp-c1) 80%, transparent), color-mix(in srgb, var(--grp-c2) 80%, transparent));
+}
+.group-card__banner::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(45deg, rgba(0, 0, 0, 0.14) 0 6px, transparent 6px 12px);
+}
+.group-card__avatar {
+  position: absolute;
+  left: 16px;
+  bottom: -18px;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 9px;
+  background: linear-gradient(135deg, var(--grp-c1), var(--grp-c2));
+  border: 2px solid var(--nf-surface-2);
+  font-family: var(--nf-mono);
+  font-weight: 700;
+  font-size: 15px;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+.group-card__body { padding: 26px 16px 16px; }
+.group-card__top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.group-card__name { font-weight: 700; font-size: 15px; color: var(--nf-text); }
+.group-card__tag { margin-top: 6px; font-size: 10px; letter-spacing: 1.5px; color: var(--nf-text-dim); }
+.group-card__foot { margin-top: 14px; font-size: 10px; letter-spacing: 1.5px; color: var(--nf-cyan); }
+
+/* ---- grupo detalle: hero + members ---- */
+.group-hero {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 22px;
+  margin-bottom: 26px;
+  border-radius: 10px;
+  border: 1.5px solid color-mix(in srgb, var(--grp-c1) 40%, var(--nf-border));
+  background:
+    linear-gradient(120deg, color-mix(in srgb, var(--grp-c1) 26%, transparent), transparent 60%),
+    var(--nf-surface-2);
+}
+.group-hero__avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  flex: none;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--grp-c1), var(--grp-c2));
+  border: 2px solid color-mix(in srgb, var(--grp-c1) 60%, #fff);
+  box-shadow: 0 0 20px color-mix(in srgb, var(--grp-c1) 45%, transparent);
+  font-family: var(--nf-mono);
+  font-weight: 700;
+  font-size: 22px;
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+.group-hero__meta { min-width: 0; }
+.group-hero__tag { font-size: 10px; letter-spacing: 2px; color: var(--nf-text-dim); }
+.group-hero__name {
+  margin: 6px 0 10px;
+  font-weight: 800;
+  font-size: clamp(22px, 5vw, 30px);
+  color: #fff;
+  letter-spacing: -0.5px;
+}
+.group-hero__badges { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.group-hero__count { font-size: 10px; letter-spacing: 1.5px; color: var(--nf-cyan); }
+
+.members { display: flex; flex-direction: column; }
+.member {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--nf-border);
+}
+.member:last-child { border-bottom: none; }
+.member__avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex: none;
+  border-radius: 6px;
+  border: 1.5px solid var(--nf-border);
+  font-family: var(--nf-mono);
+  font-weight: 700;
+  font-size: 11px;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+.member__meta { flex: 1; min-width: 0; }
+.member__name { font-size: 13px; color: var(--nf-text); }
+.member__role { font-size: 9.5px; letter-spacing: 1.5px; color: var(--nf-text-dim); margin-top: 3px; }
