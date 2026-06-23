@@ -15,6 +15,14 @@ import { NfPagination } from '../../../ui';
         <p class="view__lead">Tus últimas partidas disputadas. Pulsa una para ver el detalle completo.</p>
       </div>
 
+      <div class="scope-note" role="note">
+        <span class="scope-note__icon" aria-hidden="true">◆</span>
+        <p class="scope-note__text">
+          Estás viendo tu <strong>historial personal</strong> de todos los grupos, no el del grupo seleccionado.
+          La columna <strong>◆ grupo</strong> indica a qué grupo pertenece cada partida.
+        </p>
+      </div>
+
       <div class="mh-list">
         @for (m of pageItems(); track m.id) {
           <a

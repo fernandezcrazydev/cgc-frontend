@@ -13,6 +13,9 @@ import { rankingFor, sparkPoints, RankEntry } from '../../../core/group-ranking'
   template: `
     <div class="view">
       @if (group(); as g) {
+        <a class="view-back nf-mono" [routerLink]="['/app', 'grupos', g.id]">
+          <span class="view-back__arrow" aria-hidden="true">←</span> {{ g.name }}
+        </a>
         <div class="view__head">
           <div class="view__eyebrow nf-mono">// RANKING DEL GRUPO</div>
           <h1 class="view__title">{{ g.name }}</h1>
@@ -57,10 +60,6 @@ import { rankingFor, sparkPoints, RankEntry } from '../../../core/group-ranking'
               </div>
             </div>
           }
-        </div>
-
-        <div class="actions">
-          <button nfButton variant="ghost" size="md" [routerLink]="['/app', 'grupos', g.id]">← VOLVER AL GRUPO</button>
         </div>
       } @else {
         <div class="view__head">

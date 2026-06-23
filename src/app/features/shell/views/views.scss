@@ -22,6 +22,34 @@
 .view__label { font-size: 11px; letter-spacing: 2px; color: var(--nf-text-dim); margin-bottom: 12px; }
 .view__intro { margin: 0 0 22px; color: var(--nf-text-mid); font-size: 14px; line-height: 1.6; }
 
+/* back link / breadcrumb: sits above the head so "go back" is where users expect it */
+.view-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 18px;
+  padding: 9px 16px 9px 13px;
+  font-size: 13px;
+  letter-spacing: 1px;
+  color: var(--nf-text-mid);
+  text-decoration: none;
+  background: var(--nf-surface-2);
+  border: 1px solid var(--nf-border);
+  border-radius: 6px;
+  transition: color 0.14s, border-color 0.14s, background 0.14s;
+}
+.view-back:hover {
+  color: var(--nf-text);
+  border-color: var(--nf-border-strong);
+  background: color-mix(in srgb, var(--nf-cyan) 8%, var(--nf-surface-2));
+}
+.view-back__arrow {
+  font-size: 16px;
+  line-height: 1;
+  transition: transform 0.14s;
+}
+.view-back:hover .view-back__arrow { transform: translateX(-3px); }
+
 /* ---- stats (inicio) ---- */
 .stats {
   display: grid;
@@ -360,6 +388,38 @@
 .member__role { font-size: 9.5px; letter-spacing: 1.5px; color: var(--nf-text-dim); margin-top: 3px; }
 
 /* ============ HISTORIAL — LoL-style match rows ============ */
+/* scope disclaimer: clarifies this is the user's personal history, not the group's */
+.scope-note {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 20px;
+  padding: 12px 16px;
+  background: color-mix(in srgb, var(--nf-cyan) 7%, var(--nf-surface-2));
+  border: 1px solid color-mix(in srgb, var(--nf-cyan) 26%, transparent);
+  border-left: 3px solid var(--nf-cyan);
+  border-radius: 6px;
+}
+.scope-note__icon {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--nf-cyan) 16%, transparent);
+  color: var(--nf-cyan);
+  font-size: 13px;
+}
+.scope-note__text {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--nf-text-mid);
+}
+.scope-note__text strong { color: var(--nf-text); font-weight: 700; }
+
 .mh-list { display: flex; flex-direction: column; gap: 12px; }
 .mh-row {
   display: grid;
@@ -442,16 +502,64 @@
 .mh-when__cta { font-size: 9.5px; letter-spacing: 1.5px; color: var(--nf-text-dim); opacity: 0.7; transition: color 0.14s, opacity 0.14s; }
 
 @media (max-width: 760px) {
+  /* card layout: champ + result header, big KDA/stats, full-width items, footer CTA */
   .mh-row {
-    grid-template-columns: 1fr 1fr;
-    gap: 14px 18px;
-    padding: 14px 16px;
-    border-left-width: 4px;
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      'champ  result'
+      'kda    stats'
+      'items  items'
+      'when   when';
+    align-items: start;
+    gap: 16px;
+    padding: 16px;
+    border-left-width: 5px;
   }
-  .mh-result { padding-left: 0; }
-  .mh-champ { grid-column: 1 / -1; order: -1; }
-  .mh-items { grid-column: 1 / -1; grid-template-columns: repeat(6, 26px); }
-  .mh-when { align-items: flex-start; text-align: left; }
+
+  .mh-champ { grid-area: champ; }
+  .mh-champ__icon { width: 52px; height: 52px; font-size: 16px; }
+  /* let the name wrap so it uses the space instead of truncating */
+  .mh-champ__name { font-size: 16px; white-space: normal; }
+  .mh-champ__group { font-size: 11px; white-space: normal; }
+
+  .mh-result {
+    grid-area: result;
+    align-items: flex-end;
+    padding-left: 0;
+    text-align: right;
+  }
+  .mh-result__label { font-size: 14px; }
+  .mh-result__mode,
+  .mh-result__time { font-size: 10.5px; }
+
+  .mh-kda { grid-area: kda; }
+  .mh-kda__line { font-size: 21px; }
+  .mh-kda__ratio { font-size: 11px; }
+
+  .mh-stats { grid-area: stats; align-items: flex-end; gap: 7px; }
+  .mh-stat { font-size: 13px; }
+
+  /* stretch items across the full row width instead of fixed 26px squares */
+  .mh-items {
+    grid-area: items;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 6px;
+  }
+  .mh-item { width: 100%; height: auto; aspect-ratio: 1; }
+
+  .mh-when {
+    grid-area: when;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    margin-top: 2px;
+    padding-top: 14px;
+    border-top: 1px solid var(--nf-border);
+    text-align: left;
+  }
+  .mh-when__date { font-size: 12px; }
+  .mh-when__cta { font-size: 11px; color: var(--nf-cyan); opacity: 1; }
 }
 
 /* ============ PARTIDA DETALLE ============ */

@@ -13,6 +13,9 @@ import { matchesByGroup, kdaRatio, shortGold } from '../../../core/match-history
   template: `
     <div class="view">
       @if (group(); as g) {
+        <a class="view-back nf-mono" [routerLink]="['/app', 'grupos', g.id]">
+          <span class="view-back__arrow" aria-hidden="true">←</span> {{ g.name }}
+        </a>
         <div class="view__head">
           <div class="view__eyebrow nf-mono">// HISTORIAL DEL GRUPO</div>
           <h1 class="view__title">{{ g.name }}</h1>
@@ -87,10 +90,6 @@ import { matchesByGroup, kdaRatio, shortGold } from '../../../core/match-history
             <p class="empty-state__hint">Este grupo aún no ha disputado ninguna partida.</p>
           </div>
         }
-
-        <div class="actions">
-          <button nfButton variant="ghost" size="md" [routerLink]="['/app', 'grupos', g.id]">← VOLVER AL GRUPO</button>
-        </div>
       } @else {
         <div class="view__head">
           <div class="view__eyebrow nf-mono">// ERROR 404</div>
