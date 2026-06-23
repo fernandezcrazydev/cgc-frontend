@@ -161,7 +161,7 @@
 .shell__groupitem-name {
   display: block;
   font-weight: 700;
-  font-size: 12.5px;
+  font-size: 13.5px;
   color: var(--nf-text);
   white-space: nowrap;
   overflow: hidden;
@@ -169,10 +169,10 @@
 }
 .shell__groupitem-sub {
   display: block;
-  margin-top: 2px;
-  font-size: 9px;
-  letter-spacing: 1px;
-  color: var(--nf-text-dim);
+  margin-top: 3px;
+  font-size: 10.5px;
+  letter-spacing: 0.6px;
+  color: var(--nf-text-mid);
 }
 .shell__groupitem.is-active .shell__groupitem-name { color: #fff; }
 .shell__groupitem-check { flex: none; color: var(--grp-c1); font-size: 13px; }
@@ -180,8 +180,8 @@
 .shell__grouplist-all {
   display: block;
   margin-top: 4px;
-  padding: 8px 9px;
-  font-size: 9.5px;
+  padding: 9px 9px;
+  font-size: 11px;
   letter-spacing: 1.5px;
   color: var(--nf-cyan);
   text-decoration: none;
@@ -200,6 +200,17 @@
   margin-top: auto;
   padding: 14px;
   border-top: 1px solid var(--nf-border);
+}
+/* player region badge inline with the name (green dot + region, no latency) */
+.shell__region {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: 6px;
+  font-size: 10.5px;
+  letter-spacing: 1px;
+  color: var(--nf-text-mid);
+  vertical-align: middle;
 }
 /* clickable profile strip (port of the sidebar "User strip" in Pantalla principal.dc.html) */
 .shell__profile {
@@ -239,21 +250,20 @@
   flex: none;
   transition: border-color 0.16s, box-shadow 0.16s;
 }
-.shell__avatar--cyan { border-color: var(--nf-cyan); }
 .shell__user-meta { min-width: 0; }
 .shell__user-name {
   font-weight: 700;
-  font-size: 12.5px;
+  font-size: 13.5px;
   color: var(--nf-text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .shell__profile-cta {
-  font-size: 9px;
-  letter-spacing: 1.5px;
-  color: var(--nf-text-dim);
-  margin-top: 3px;
+  font-size: 10.5px;
+  letter-spacing: 1px;
+  color: var(--nf-text-mid);
+  margin-top: 4px;
   transition: color 0.16s;
 }
 
@@ -388,14 +398,6 @@
 }
 .shell__groupbar-caret { flex: none; font-size: 11px; color: var(--nf-text-dim); }
 .shell__header-right { margin-left: auto; display: flex; align-items: center; gap: 14px; }
-.shell__ping {
-  font-size: 10px;
-  letter-spacing: 1.5px;
-  color: var(--nf-text-dim);
-  display: flex;
-  align-items: center;
-  gap: 7px;
-}
 .shell__ping-dot {
   width: 7px;
   height: 7px;

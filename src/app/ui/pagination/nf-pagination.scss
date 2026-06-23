@@ -1,0 +1,78 @@
+/* NEXUS//FORGE · Pagination (global, ViewEncapsulation.None) */
+
+.nf-pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 22px;
+}
+
+.nf-pager__summary {
+  font-size: 12px;
+  letter-spacing: 1px;
+  color: var(--nf-text);
+}
+.nf-pager__of {
+  color: var(--nf-text-dim);
+}
+
+.nf-pager__controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.nf-pager__btn {
+  min-width: 34px;
+  height: 34px;
+  padding: 0 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--nf-mono);
+  font-size: 13px;
+  font-weight: var(--fw-bold);
+  letter-spacing: 1px;
+  color: var(--nf-text);
+  background: var(--nf-inset);
+  border: var(--bw-2) solid var(--nf-border);
+  border-radius: var(--nf-radius);
+  cursor: pointer;
+  transition: border-color 0.16s, color 0.16s, box-shadow 0.16s, transform 0.16s;
+}
+.nf-pager__btn:hover:not(:disabled):not(.is-active) {
+  border-color: var(--nf-border-strong);
+  transform: translateY(-1px);
+}
+.nf-pager__btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.nf-pager__btn.is-active {
+  color: var(--nf-void);
+  background: var(--nf-cyan);
+  border-color: var(--nf-cyan);
+  box-shadow: 0 0 12px rgba(54, 224, 255, 0.4);
+  cursor: default;
+}
+
+.nf-pager__btn--nav {
+  font-size: 11px;
+}
+
+.nf-pager__gap {
+  min-width: 22px;
+  text-align: center;
+  color: var(--nf-text-dim);
+  font-size: 13px;
+  letter-spacing: 1px;
+}
+
+@media (max-width: 560px) {
+  .nf-pager {
+    justify-content: center;
+  }
+}

@@ -20,6 +20,12 @@ export const routes: Routes = [
         loadComponent: () => import('./features/shell/views/historial').then((m) => m.Historial),
       },
       {
+        path: 'historial/:id',
+        title: 'Partida · NEXUS//FORGE',
+        loadComponent: () =>
+          import('./features/shell/views/partida-detalle').then((m) => m.PartidaDetalle),
+      },
+      {
         path: 'grupos',
         title: 'Grupos · NEXUS//FORGE',
         loadComponent: () => import('./features/shell/views/grupos').then((m) => m.Grupos),
@@ -29,6 +35,24 @@ export const routes: Routes = [
         title: 'Grupo · NEXUS//FORGE',
         loadComponent: () =>
           import('./features/shell/views/grupo-detalle').then((m) => m.GrupoDetalle),
+      },
+      {
+        path: 'grupos/:id/ranking',
+        title: 'Ranking · NEXUS//FORGE',
+        loadComponent: () =>
+          import('./features/shell/views/grupo-ranking').then((m) => m.GrupoRanking),
+      },
+      {
+        path: 'grupos/:id/estadisticas',
+        title: 'Estadísticas · NEXUS//FORGE',
+        loadComponent: () =>
+          import('./features/shell/views/grupo-estadisticas').then((m) => m.GrupoEstadisticas),
+      },
+      {
+        path: 'grupos/:id/historial',
+        title: 'Historial del grupo · NEXUS//FORGE',
+        loadComponent: () =>
+          import('./features/shell/views/grupo-historial').then((m) => m.GrupoHistorial),
       },
       {
         path: 'ajustes',

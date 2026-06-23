@@ -40,6 +40,9 @@ interface Member {
 
         <div class="actions">
           <button nfButton variant="primary" size="md" [routerLink]="['/app', 'inicio']">CREAR PARTIDA ►</button>
+          <button nfButton variant="secondary" size="md" [routerLink]="['/app', 'grupos', g.id, 'ranking']">RANKING</button>
+          <button nfButton variant="secondary" size="md" [routerLink]="['/app', 'grupos', g.id, 'estadisticas']">ESTADÍSTICAS</button>
+          <button nfButton variant="secondary" size="md" [routerLink]="['/app', 'grupos', g.id, 'historial']">HISTORIAL</button>
           <button nfButton variant="ghost" size="md" [routerLink]="['/app', 'grupos']">← TODOS LOS GRUPOS</button>
         </div>
 

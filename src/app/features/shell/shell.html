@@ -75,7 +75,10 @@
         <a class="shell__profile" [routerLink]="['/app', 'ajustes']">
           <div class="shell__avatar">{{ user.initials }}</div>
           <div class="shell__user-meta">
-            <div class="shell__user-name">{{ user.name }}</div>
+            <div class="shell__user-name">
+              {{ user.name }}
+              <span class="shell__region nf-mono"><span class="shell__ping-dot"></span>{{ user.region }}</span>
+            </div>
             <div class="shell__profile-cta nf-mono">VER PERFIL ►</div>
           </div>
         </a>
@@ -115,9 +118,6 @@
         <h2 class="shell__title">{{ pageTitle() }}</h2>
       }
       <div class="shell__header-right">
-        @if (!isMobile()) {
-          <span class="shell__ping nf-mono"><span class="shell__ping-dot"></span>LAN · 12ms</span>
-        }
         <button
           type="button"
           class="shell__bell"
@@ -135,7 +135,6 @@
             <span class="shell__bell-badge nf-mono">{{ unreadCount() }}</span>
           }
         </button>
-        <div class="shell__avatar shell__avatar--cyan">{{ user.initials }}</div>
       </div>
     </header>
 
