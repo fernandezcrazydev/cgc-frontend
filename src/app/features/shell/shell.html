@@ -236,17 +236,27 @@
 
           <div class="shell__notif-list">
             @for (n of notifications(); track n.id) {
-              <div class="shell__notif-item" [class.is-unread]="n.unread" [style.--notif-accent]="n.accent">
+              <button
+                type="button"
+                class="shell__notif-item"
+                [class.is-unread]="n.unread"
+                [class.is-clickable]="n.groupInvite"
+                [style.--notif-accent]="n.accent"
+                (click)="onNotificationClick(n)"
+              >
                 <div class="shell__notif-icon">{{ glyphFor(n.kind) }}</div>
                 <div class="shell__notif-text">
                   <div class="shell__notif-title nf-mono">{{ n.title }}</div>
                   <div class="shell__notif-msg nf-mono">{{ n.message }}</div>
                   <div class="shell__notif-time nf-mono">{{ n.time }}</div>
+                  @if (n.groupInvite) {
+                    <div class="shell__notif-cta nf-mono">REVISAR INVITACIÓN ►</div>
+                  }
                 </div>
                 @if (n.unread) {
                   <span class="shell__notif-dot"></span>
                 }
-              </div>
+              </button>
             } @empty {
               <div class="shell__notif-empty">
                 <div class="shell__notif-empty-glyph">◎</div>
@@ -262,6 +272,63 @@
       </div>
     </div>
   }
+
+  <!-- group invitation review modal -->
+  @if (reviewInvite(); as inv) {
+    <div class="shell__overlay" (click)="closeInviteReview()">
+      <div class="shell__dialog shell__dialog--invite" (click)="$event.stopPropagation()">
+        <nf-window title="invitacion_grupo.exe" accent="pink" bodyPadding="0">
+          <div class="shell__invite">
+            <div class="shell__invite-hero" [style.--grp-c1]="inv.c1" [style.--grp-c2]="inv.c2">
+              <span class="shell__invite-avatar">{{ inv.initials }}</span>
+              <div class="shell__invite-headmeta">
+                <div class="shell__invite-tag nf-mono">{{ inv.tag }}</div>
+                <div class="shell__invite-name">{{ inv.groupName }}</div>
+                <div class="shell__invite-count nf-mono">◉ {{ inv.members }} MIEMBROS · {{ inv.region }}</div>
+              </div>
+            </div>
+
+            <div class="shell__invite-facts">
+              <div class="shell__invite-fact">
+                <span class="shell__invite-fact-label nf-mono">TE INVITA</span>
+                <span class="shell__invite-fact-value nf-mono">{{ inv.invitedBy }}</span>
+              </div>
+              <div class="shell__invite-fact">
+                <span class="shell__invite-fact-label nf-mono">ADMIN</span>
+                <span class="shell__invite-fact-value nf-mono">{{ inv.admin }}</span>
+              </div>
+            </div>
+
+            <div class="shell__invite-rosterhead nf-mono">// MIEMBROS ACTUALES</div>
+            <div class="shell__invite-roster">
+              @for (m of inv.roster; track m.tag) {
+                <div class="shell__invite-member">
+                  <span
+                    class="shell__invite-member-avatar"
+                    [style.background]="'radial-gradient(circle at 32% 26%, hsl(' + m.hue + ',90%,64%), hsl(' + m.hue + ',78%,30%))'"
+                  >{{ m.initials }}</span>
+                  <span class="shell__invite-member-name nf-mono">{{ m.name }}</span>
+                  @if (m.owner) {
+                    <nf-badge color="pink">OWNER</nf-badge>
+                  } @else {
+                    <span class="shell__invite-member-role nf-mono">{{ m.role }}</span>
+                  }
+                </div>
+              }
+            </div>
+
+            <div class="shell__invite-actions">
+              <button nfButton variant="ghost" size="md" (click)="declineInvite()">RECHAZAR</button>
+              <button nfButton variant="primary" size="md" (click)="acceptInvite()">UNIRME AL GRUPO ►</button>
+            </div>
+          </div>
+        </nf-window>
+      </div>
+    </div>
+  }
+
+  <!-- transient toasts -->
+  <nf-toast-host />
 
   <!-- logout confirmation modal -->
   @if (confirmLogout()) {

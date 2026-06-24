@@ -6,3 +6,4 @@ export * from './toggle/nf-toggle';
 export * from './select/nf-select';
 export * from './pagination/nf-pagination';
 export * from './avatar-picker/nf-avatar-picker';
+export * from './toast/nf-toast';

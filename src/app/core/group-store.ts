@@ -1,5 +1,53 @@
 import { Injectable, computed, signal } from '@angular/core';
-import { GROUPS, Group } from './lobby';
+import { CURRENT_USER, GROUPS, Group, GroupInvitePayload, Member } from './lobby';
+
+/** Deterministic name pool used to seed mock rosters for the seed groups. */
+const MEMBER_POOL = [
+  'Pix3lQueen', 'Cr1msonByte', 'D4rkFl4me', 'V0idWalker', 'NeonRift',
+  'GlitchKid', 'St0rmcaller', 'HexHunter', 'AshenWolf', 'LumeCore',
+  'Zer0Cool', 'ByteSiren',
+];
+
+const ROSTER_ROLES = ['CAPITÁN', 'TOP', 'JUNGLA', 'MID', 'ADC', 'SUPPORT', 'SUPLENTE'];
+
+/** "EUW · COMPETITIVO" → "EUW". Falls back to LAN when the tag has no region. */
+function regionFromTag(tag: string): string {
+  return tag.split('·')[0].trim().toUpperCase() || 'LAN';
+}
+
+/** Build a deterministic mock roster of `count` members for a seed group. */
+function seedRoster(group: Group): Member[] {
+  const region = regionFromTag(group.tag);
+  return Array.from({ length: group.members }, (_, i) => {
+    const name = MEMBER_POOL[i % MEMBER_POOL.length];
+    return {
+      name,
+      tag: `${name}#${region}`,
+      initials: name.slice(0, 2).toUpperCase(),
+      role: i === 0 ? 'CAPITÁN · ' + group.role : ROSTER_ROLES[i % ROSTER_ROLES.length],
+      owner: i === 0,
+      hue: (i * 47) % 360,
+    };
+  });
+}
+
+/** The member entry for the current user as the owner of a freshly made group. */
+function ownerMember(): Member {
+  return {
+    name: CURRENT_USER.name,
+    tag: CURRENT_USER.tag,
+    initials: CURRENT_USER.initials,
+    role: 'CAPITÁN · OWNER',
+    owner: true,
+    hue: 320,
+  };
+}
+
+/** Result of attempting to invite a tag to a group. */
+export type InviteResult = { ok: true } | { ok: false; reason: 'invalid' | 'already-member' | 'already-pending' };
+
+/** Accepts "Nombre#REGION" with a 2-16 char name and a 2-5 char region. */
+const TAG_RE = /^.{2,16}#[A-Za-z0-9]{2,5}$/;
 
 /** Fields the user supplies when creating a group; the rest is derived. */
 export interface NewGroupInput {
@@ -35,12 +83,109 @@ export class GroupStore {
     () => this.groups().find((g) => g.id === this._selectedId()) ?? null,
   );
 
+  /** Live roster per group id (source of truth for membership). */
+  private readonly rosters = signal<Record<string, Member[]>>(
+    Object.fromEntries(GROUPS.map((g) => [g.id, seedRoster(g)])),
+  );
+
+  /** Pending outgoing invites per group id, stored as Riot-style tags. */
+  private readonly pendingInvites = signal<Record<string, string[]>>({});
+
   select(id: string): void {
     this._selectedId.set(id);
   }
 
   byId(id: string): Group | undefined {
     return this.groups().find((g) => g.id === id);
+  }
+
+  /** Reactive read of a group's members; empty array for unknown ids. */
+  rosterOf(id: string): Member[] {
+    return this.rosters()[id] ?? [];
+  }
+
+  /** Reactive read of a group's pending invite tags. */
+  pendingOf(id: string): string[] {
+    return this.pendingInvites()[id] ?? [];
+  }
+
+  /**
+   * Invite a tag to a group. Validates the "Nombre#REGION" shape and rejects
+   * tags that already belong to a member or already have a pending invite
+   * (both case-insensitive). On success the tag is appended to the pending list
+   * — the person becomes a real member only once they accept (backend pending).
+   */
+  inviteMember(id: string, rawTag: string): InviteResult {
+    const tag = rawTag.trim();
+    if (!TAG_RE.test(tag)) return { ok: false, reason: 'invalid' };
+    const norm = tag.toLowerCase();
+    if (this.rosterOf(id).some((m) => m.tag.toLowerCase() === norm)) {
+      return { ok: false, reason: 'already-member' };
+    }
+    if (this.pendingOf(id).some((t) => t.toLowerCase() === norm)) {
+      return { ok: false, reason: 'already-pending' };
+    }
+    this.pendingInvites.update((map) => ({ ...map, [id]: [...(map[id] ?? []), tag] }));
+    return { ok: true };
+  }
+
+  /** Revoke a pending invite. */
+  cancelInvite(id: string, tag: string): void {
+    this.pendingInvites.update((map) => ({
+      ...map,
+      [id]: (map[id] ?? []).filter((t) => t !== tag),
+    }));
+  }
+
+  /**
+   * Remove a member from a group by name and keep the group's `members` count in
+   * sync. Owners cannot be removed (the UI never offers it).
+   */
+  removeMember(id: string, name: string): void {
+    this.rosters.update((map) => {
+      const next = (map[id] ?? []).filter((m) => m.owner || m.name !== name);
+      return { ...map, [id]: next };
+    });
+    this.syncCount(id);
+  }
+
+  /**
+   * Accept a group invitation: register the group (if unknown) with the current
+   * user added to its roster, then select it. Returns the joined group.
+   */
+  joinFromInvite(invite: GroupInvitePayload): Group {
+    const existing = this.byId(invite.groupId);
+    const me = { ...ownerMember(), role: 'MIEMBRO', owner: false, hue: 200 };
+    if (!existing) {
+      const roster = [...invite.roster, me];
+      const group: Group = {
+        id: invite.groupId,
+        name: invite.groupName,
+        tag: invite.tag,
+        initials: invite.initials,
+        role: 'MIEMBRO',
+        members: roster.length,
+        c1: invite.c1,
+        c2: invite.c2,
+      };
+      this.groups.update((list) => [...list, group]);
+      this.rosters.update((map) => ({ ...map, [group.id]: roster }));
+      this._selectedId.set(group.id);
+      return group;
+    }
+    // Already known: just make sure we're on the roster.
+    if (!this.rosterOf(invite.groupId).some((m) => m.tag === me.tag)) {
+      this.rosters.update((map) => ({ ...map, [invite.groupId]: [...(map[invite.groupId] ?? []), me] }));
+      this.syncCount(invite.groupId);
+    }
+    this._selectedId.set(existing.id);
+    return existing;
+  }
+
+  /** Force a group's `members` count to match its roster length. */
+  private syncCount(id: string): void {
+    const count = this.rosterOf(id).length;
+    this.groups.update((list) => list.map((g) => (g.id === id ? { ...g, members: count } : g)));
   }
 
   /**
@@ -64,6 +209,8 @@ export class GroupStore {
       avatar: input.avatar ?? undefined,
     };
     this.groups.update((list) => [...list, group]);
+    // A brand-new group starts with just its creator on the roster.
+    this.rosters.update((map) => ({ ...map, [group.id]: [ownerMember()] }));
     this._selectedId.set(group.id);
     return group;
   }

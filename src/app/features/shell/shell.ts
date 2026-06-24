@@ -4,6 +4,7 @@ import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } fro
 import { filter, map, startWith } from 'rxjs';
 import {
   CURRENT_USER,
+  GroupInvitePayload,
   NAV,
   NOTIF_GLYPH,
   NOTIFICATIONS,
@@ -11,7 +12,8 @@ import {
   NotificationKind,
 } from '../../core/lobby';
 import { GroupStore } from '../../core/group-store';
-import { NfButton, NfWindow } from '../../ui';
+import { ToastService } from '../../core/toast';
+import { NfBadge, NfButton, NfToastHost, NfWindow } from '../../ui';
 
 /**
  * NEXUS//FORGE app shell — desktop sidebar + sticky header + mobile bottom nav,
@@ -21,7 +23,7 @@ import { NfButton, NfWindow } from '../../ui';
 @Component({
   selector: 'app-shell',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, NfWindow, NfButton],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, NfWindow, NfButton, NfBadge, NfToastHost],
   templateUrl: './shell.html',
   styleUrl: './shell.scss',
 })
@@ -29,6 +31,7 @@ export class Shell {
   readonly nav = NAV;
   readonly user = CURRENT_USER;
   readonly groups = inject(GroupStore);
+  private readonly toasts = inject(ToastService);
 
   readonly mobileLeft = NAV.slice(0, 2);
   readonly mobileRight = NAV.slice(2);
@@ -92,6 +95,47 @@ export class Shell {
   clearNotifications(event: Event): void {
     event.stopPropagation();
     this.notifications.set([]);
+  }
+
+  // ── Group invitation review modal ─────────────────────────────────
+  readonly reviewInvite = signal<GroupInvitePayload | null>(null);
+  /** Id of the notification that opened the review modal, removed on response. */
+  private reviewNotifId: number | null = null;
+
+  /** Click a notification: group invites open the review modal; the rest are no-ops for now. */
+  onNotificationClick(n: Notification): void {
+    if (!n.groupInvite) return;
+    this.reviewNotifId = n.id;
+    this.reviewInvite.set(n.groupInvite);
+    this.showNotifications.set(false);
+  }
+
+  closeInviteReview(): void {
+    this.reviewInvite.set(null);
+    this.reviewNotifId = null;
+  }
+
+  acceptInvite(): void {
+    const invite = this.reviewInvite();
+    if (!invite) return;
+    const group = this.groups.joinFromInvite(invite);
+    this.dismissReviewNotif();
+    this.closeInviteReview();
+    this.toasts.success(`Invitación aceptada · Te uniste a ${group.name}`);
+    this.router.navigate(['/app', 'grupos', group.id]);
+  }
+
+  declineInvite(): void {
+    const invite = this.reviewInvite();
+    this.dismissReviewNotif();
+    this.closeInviteReview();
+    this.toasts.info(`Invitación a ${invite?.groupName ?? 'grupo'} rechazada`);
+  }
+
+  /** Drop the notification that triggered the review once it's been answered. */
+  private dismissReviewNotif(): void {
+    const id = this.reviewNotifId;
+    if (id != null) this.notifications.update((list) => list.filter((n) => n.id !== id));
   }
 
   private readonly router = inject(Router);

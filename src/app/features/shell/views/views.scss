@@ -391,6 +391,97 @@
 .member__name { font-size: 13px; color: var(--nf-text); }
 .member__role { font-size: 9.5px; letter-spacing: 1.5px; color: var(--nf-text-dim); margin-top: 3px; }
 
+/* members section header (label + invite button) */
+.view__label-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.view__label-row .view__label { margin-bottom: 0; }
+
+/* remove member / cancel invite button */
+.member__remove {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 5px;
+  border: 1.5px solid var(--nf-border);
+  background: var(--nf-inset);
+  color: var(--nf-text-dim);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  transition: color 0.16s, border-color 0.16s, background 0.16s;
+}
+.member__remove:hover {
+  color: var(--nf-red);
+  border-color: var(--nf-red);
+  background: color-mix(in srgb, var(--nf-red) 16%, transparent);
+}
+
+/* pending invites sub-list */
+.members__pending-head {
+  padding: 11px 16px 9px;
+  font-size: 9.5px;
+  letter-spacing: 2px;
+  color: var(--nf-text-dim);
+  border-top: 1px solid var(--nf-border);
+  background: color-mix(in srgb, var(--nf-yellow) 6%, transparent);
+}
+.member--pending .member__name { color: var(--nf-text-dim); }
+.member__avatar--pending {
+  background: var(--nf-inset);
+  border-style: dashed;
+  color: var(--nf-text-dim);
+  text-shadow: none;
+}
+
+/* inline field error (invite modal) */
+.field__error { font-size: 10px; letter-spacing: 0.5px; color: var(--nf-red); }
+
+/* invite sent confirmation */
+.invite-result {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+  padding: 14px 0 6px;
+}
+.invite-result__glyph {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  font-size: 26px;
+  color: var(--nf-green);
+  border: 2px solid var(--nf-green);
+  background: color-mix(in srgb, var(--nf-green) 14%, transparent);
+}
+.invite-result__msg { margin: 0; font-size: 13px; line-height: 1.6; color: var(--nf-text); }
+
+/* remove member confirmation copy */
+.remove-msg { margin: 0 0 14px; font-size: 14px; line-height: 1.6; color: var(--nf-text); }
+.remove-warn {
+  margin-bottom: 4px;
+  padding: 12px 14px;
+  font-size: 10px;
+  letter-spacing: 0.4px;
+  line-height: 1.7;
+  color: var(--nf-text);
+  border: 1.5px solid color-mix(in srgb, var(--nf-red) 50%, var(--nf-border));
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--nf-red) 12%, transparent);
+}
+.remove-warn strong { color: var(--nf-red); }
+
 /* ============ HISTORIAL — LoL-style match rows ============ */
 /* scope disclaimer: clarifies this is the user's personal history, not the group's */
 .scope-note {
