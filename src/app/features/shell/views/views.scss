@@ -364,14 +364,44 @@
 .group-hero__count { font-size: 10px; letter-spacing: 1.5px; color: var(--nf-cyan); }
 
 .members { display: flex; flex-direction: column; }
+
+/* roster row wrapper: header (clickable) + optional detail panel */
+.member-row:not(:last-child) { border-bottom: 1px solid var(--nf-border); }
+.member-row--open { background: color-mix(in srgb, var(--nf-cyan) 4%, transparent); }
+
 .member {
   display: flex;
   align-items: center;
   gap: 13px;
   padding: 13px 16px;
-  border-bottom: 1px solid var(--nf-border);
 }
-.member:last-child { border-bottom: none; }
+/* pending items keep their own separators (no .member-row wrapper) */
+.member--pending:not(:last-child) { border-bottom: 1px solid var(--nf-border); }
+
+/* clickable roster rows */
+.member-row > .member {
+  cursor: pointer;
+  transition: background 0.16s;
+}
+.member-row > .member:hover { background: color-mix(in srgb, var(--nf-cyan) 7%, transparent); }
+.member-row > .member:focus-visible {
+  outline: none;
+  background: color-mix(in srgb, var(--nf-cyan) 9%, transparent);
+  box-shadow: inset 2px 0 0 var(--nf-cyan);
+}
+
+.member__chevron {
+  flex: none;
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--nf-text-dim);
+  transition: transform 0.2s, color 0.16s;
+}
+.member-row > .member:hover .member__chevron { color: var(--nf-cyan); }
+.member-row--open .member__chevron { transform: rotate(180deg); color: var(--nf-cyan); }
+/* when a chevron is present, badge/remove button shouldn't push to the edge via margin-auto */
+.member__chevron ~ .nf-badge,
+.member__chevron ~ .member__remove { margin-left: 0; }
 .member__avatar {
   display: flex;
   align-items: center;
@@ -390,6 +420,95 @@
 .member__meta { flex: 1; min-width: 0; }
 .member__name { font-size: 13px; color: var(--nf-text); }
 .member__role { font-size: 9.5px; letter-spacing: 1.5px; color: var(--nf-text-dim); margin-top: 3px; }
+
+/* ── expanded member detail panel ─────────────────────────────────────── */
+.member-detail {
+  padding: 16px;
+  background: color-mix(in srgb, var(--nf-bg) 55%, transparent);
+  border-top: 1px solid var(--nf-border);
+  animation: member-detail-in 0.18s ease;
+}
+@keyframes member-detail-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.member-detail__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.member-detail__tag { font-size: 16px; font-weight: 700; color: #fff; letter-spacing: -0.3px; }
+
+.member-detail__tags {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 22px;
+  margin-bottom: 14px;
+}
+.member-detail__group { display: flex; align-items: center; gap: 9px; }
+.member-detail__label {
+  font-size: 11.5px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--nf-text-dim);
+}
+.champ-icons { display: flex; gap: 6px; }
+.champ-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 6px;
+  border: 1.5px solid var(--nf-border);
+  font-family: var(--nf-mono);
+  font-weight: 700;
+  font-size: 11px;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* head-to-head highlight cards */
+.matchup-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.matchup {
+  padding: 11px 13px;
+  border-radius: 8px;
+  border: 1px solid var(--nf-border);
+  background: var(--nf-inset);
+  border-left-width: 3px;
+}
+.matchup--duo { border-left-color: var(--nf-green); }
+.matchup--victim { border-left-color: var(--nf-cyan); }
+.matchup--nightmare { border-left-color: var(--nf-red); }
+.matchup__label {
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  color: var(--nf-text-dim);
+  margin-bottom: 7px;
+}
+.matchup__name {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--nf-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.matchup__stat { font-size: 12px; letter-spacing: 0.3px; color: var(--nf-text-dim); margin-top: 5px; }
+.matchup--duo .matchup__stat { color: var(--nf-green); }
+.matchup--victim .matchup__stat { color: var(--nf-cyan); }
+.matchup--nightmare .matchup__stat { color: var(--nf-red); }
+
+@media (max-width: 640px) {
+  .matchup-grid { grid-template-columns: 1fr; }
+}
 
 /* members section header (label + invite button) */
 .view__label-row {

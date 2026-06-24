@@ -7,6 +7,7 @@ import { NfAvatarPicker, NfBadge, NfButton, NfSelect, NfWindow } from '../../../
 import { GroupStore } from '../../../core/group-store';
 import { ToastService } from '../../../core/toast';
 import { Group, Member, REGION_OPTIONS } from '../../../core/lobby';
+import { MemberDetail, memberDetail, opggUrl } from '../../../core/member-detail';
 
 @Component({
   selector: 'app-grupo-detalle',
@@ -53,24 +54,94 @@ import { Group, Member, REGION_OPTIONS } from '../../../core/lobby';
         <nf-window title="miembros.exe" accent="cyan" bodyPadding="0">
           <div class="members">
             @for (m of members(); track m.tag) {
-              <div class="member">
+              <div class="member-row" [class.member-row--open]="expandedTag() === m.tag">
                 <div
-                  class="member__avatar"
-                  [style.background]="'radial-gradient(circle at 32% 26%, hsl(' + m.hue + ',90%,64%), hsl(' + m.hue + ',78%,30%))'"
-                >{{ m.initials }}</div>
-                <div class="member__meta">
-                  <div class="member__name nf-mono">{{ m.name }}</div>
-                  <div class="member__role nf-mono">{{ m.role }}</div>
+                  class="member"
+                  role="button"
+                  tabindex="0"
+                  [attr.aria-expanded]="expandedTag() === m.tag"
+                  (click)="toggleMember(m)"
+                  (keydown.enter)="toggleMember(m)"
+                  (keydown.space)="$event.preventDefault(); toggleMember(m)"
+                >
+                  <div
+                    class="member__avatar"
+                    [style.background]="'radial-gradient(circle at 32% 26%, hsl(' + m.hue + ',90%,64%), hsl(' + m.hue + ',78%,30%))'"
+                  >{{ m.initials }}</div>
+                  <div class="member__meta">
+                    <div class="member__name nf-mono">{{ m.name }}</div>
+                    <div class="member__role nf-mono">{{ m.role }}</div>
+                  </div>
+                  <span class="member__chevron" aria-hidden="true">▾</span>
+                  @if (m.owner) {
+                    <nf-badge color="pink">OWNER</nf-badge>
+                  } @else if (g.role === 'OWNER') {
+                    <button
+                      type="button"
+                      class="member__remove"
+                      [attr.aria-label]="'Eliminar a ' + m.name"
+                      (click)="$event.stopPropagation(); askRemove(m)"
+                    >×</button>
+                  }
                 </div>
-                @if (m.owner) {
-                  <nf-badge color="pink">OWNER</nf-badge>
-                } @else if (g.role === 'OWNER') {
-                  <button
-                    type="button"
-                    class="member__remove"
-                    [attr.aria-label]="'Eliminar a ' + m.name"
-                    (click)="askRemove(m)"
-                  >×</button>
+
+                @if (expandedTag() === m.tag && expandedDetail(); as d) {
+                  <div class="member-detail">
+                    <div class="member-detail__head">
+                      <div class="member-detail__tag nf-mono">{{ m.tag }}</div>
+                      <button
+                        nfButton
+                        variant="secondary"
+                        size="sm"
+                        (click)="openOpgg(m.tag, $event)"
+                      >Ver en OP.GG ↗</button>
+                    </div>
+
+                    <div class="member-detail__tags">
+                      <div class="member-detail__group">
+                        <span class="member-detail__label nf-mono">Campeones</span>
+                        <div class="champ-icons">
+                          @for (c of d.champions; track c.name) {
+                            <span
+                              class="champ-icon"
+                              [style.background]="'linear-gradient(135deg, ' + c.c1 + ', ' + c.c2 + ')'"
+                              [title]="c.name + ' · ' + c.role"
+                            >{{ c.initials }}</span>
+                          }
+                        </div>
+                      </div>
+                      <div class="member-detail__group">
+                        <span class="member-detail__label nf-mono">Roles</span>
+                        @for (r of d.roles; track r) {
+                          <nf-badge color="yellow">⚡ {{ r }}</nf-badge>
+                        }
+                      </div>
+                    </div>
+
+                    <div class="matchup-grid">
+                      <div class="matchup matchup--duo">
+                        <div class="matchup__label nf-mono">🤝 Mejor dúo</div>
+                        <div class="matchup__name nf-mono">{{ d.bestDuo.tag }}</div>
+                        <div class="matchup__stat nf-mono">
+                          {{ d.bestDuo.wr }}% · {{ d.bestDuo.wins }} wins / {{ d.bestDuo.games }} games
+                        </div>
+                      </div>
+                      <div class="matchup matchup--victim">
+                        <div class="matchup__label nf-mono">💀 Víctima favorita</div>
+                        <div class="matchup__name nf-mono">{{ d.favoriteVictim.tag }}</div>
+                        <div class="matchup__stat nf-mono">
+                          {{ d.favoriteVictim.wr }}% · {{ d.favoriteVictim.wins }} wins / {{ d.favoriteVictim.games }} games
+                        </div>
+                      </div>
+                      <div class="matchup matchup--nightmare">
+                        <div class="matchup__label nf-mono">👹 Su peor pesadilla</div>
+                        <div class="matchup__name nf-mono">{{ d.worstNightmare.tag }}</div>
+                        <div class="matchup__stat nf-mono">
+                          {{ d.worstNightmare.wr }}% · {{ d.worstNightmare.wins }} wins / {{ d.worstNightmare.games }} games
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 }
               </div>
             }
@@ -257,6 +328,29 @@ export class GrupoDetalle {
     const g = this.group();
     return g ? this.groups.pendingOf(g.id) : [];
   });
+
+  // --- Member detail dropdown ----------------------------------------------
+  /** Tag of the member whose detail panel is expanded, or null when collapsed. */
+  readonly expandedTag = signal<string | null>(null);
+
+  /** Lazily-derived details for the currently expanded member. */
+  readonly expandedDetail = computed<MemberDetail | null>(() => {
+    const tag = this.expandedTag();
+    if (!tag) return null;
+    const m = this.members().find((x) => x.tag === tag);
+    return m ? memberDetail(m, this.members()) : null;
+  });
+
+  /** Toggle a member's detail panel (one open at a time). */
+  toggleMember(m: Member): void {
+    this.expandedTag.update((t) => (t === m.tag ? null : m.tag));
+  }
+
+  /** Open the member's OP.GG profile in a new tab (without toggling the panel). */
+  openOpgg(tag: string, ev: Event): void {
+    ev.stopPropagation();
+    window.open(opggUrl(tag), '_blank', 'noopener');
+  }
 
   // --- Edit modal -----------------------------------------------------------
   readonly regionOptions = REGION_OPTIONS;

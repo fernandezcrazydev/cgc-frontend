@@ -40,7 +40,7 @@ export interface RankEntry {
 }
 
 /** Tiny seeded PRNG (mulberry32) so the board is stable across renders. */
-function seeded(seed: number): () => number {
+export function seeded(seed: number): () => number {
   let t = seed >>> 0;
   return () => {
     t += 0x6d2b79f5;
@@ -51,7 +51,7 @@ function seeded(seed: number): () => number {
 }
 
 /** Hash a string to a stable 32-bit seed. */
-function hash(str: string): number {
+export function hash(str: string): number {
   let h = 2166136261;
   for (let i = 0; i < str.length; i++) {
     h ^= str.charCodeAt(i);
