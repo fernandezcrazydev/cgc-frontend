@@ -39,7 +39,13 @@
                       [attr.tabindex]="groupsExpanded() ? null : -1"
                       (click)="selectGroup(g.id)"
                     >
-                      <span class="shell__groupitem-avatar">{{ g.initials }}</span>
+                      <span class="shell__groupitem-avatar">
+                        @if (g.avatar) {
+                          <img class="shell__avatar-img" [src]="g.avatar" alt="" />
+                        } @else {
+                          {{ g.initials }}
+                        }
+                      </span>
                       <span class="shell__groupitem-meta">
                         <span class="shell__groupitem-name">{{ g.name }}</span>
                         <span class="shell__groupitem-sub nf-mono">{{ g.members }} ▪ {{ g.role }}</span>
@@ -99,10 +105,15 @@
         <button
           type="button"
           class="shell__groupbar"
-          [class.is-tappable]="isMobile()"
           (click)="onHeaderGroup()"
         >
-          <span class="shell__groupbar-avatar">{{ g.initials }}</span>
+          <span class="shell__groupbar-avatar">
+            @if (g.avatar) {
+              <img class="shell__avatar-img" [src]="g.avatar" alt="" />
+            } @else {
+              {{ g.initials }}
+            }
+          </span>
           <span class="shell__groupbar-meta">
             <span class="shell__groupbar-name">{{ g.name }}</span>
             <span class="shell__groupbar-section nf-mono">// {{ pageTitle() }}</span>
@@ -185,7 +196,13 @@
               [style.--grp-c2]="g.c2"
               (click)="selectGroup(g.id)"
             >
-              <span class="shell__groupitem-avatar">{{ g.initials }}</span>
+              <span class="shell__groupitem-avatar">
+                @if (g.avatar) {
+                  <img class="shell__avatar-img" [src]="g.avatar" alt="" />
+                } @else {
+                  {{ g.initials }}
+                }
+              </span>
               <span class="shell__groupitem-meta">
                 <span class="shell__groupitem-name">{{ g.name }}</span>
                 <span class="shell__groupitem-sub nf-mono">{{ g.members }} ▪ {{ g.role }}</span>

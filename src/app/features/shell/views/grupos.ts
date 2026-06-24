@@ -1,14 +1,14 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { NfBadge, NfButton, NfSelect, NfWindow } from '../../../ui';
+import { NfAvatarPicker, NfBadge, NfButton, NfSelect, NfWindow } from '../../../ui';
 import { GroupStore } from '../../../core/group-store';
 import { REGION_OPTIONS } from '../../../core/lobby';
 
 @Component({
   selector: 'app-grupos',
   standalone: true,
-  imports: [RouterLink, FormsModule, NfBadge, NfButton, NfSelect, NfWindow],
+  imports: [RouterLink, FormsModule, NfAvatarPicker, NfBadge, NfButton, NfSelect, NfWindow],
   template: `
     <div class="view">
       <div class="view__head view__head--row">
@@ -36,7 +36,13 @@ import { REGION_OPTIONS } from '../../../core/lobby';
             (click)="groups.select(g.id)"
           >
             <div class="group-card__banner">
-              <span class="group-card__avatar">{{ g.initials }}</span>
+              <span class="group-card__avatar">
+                @if (g.avatar) {
+                  <img class="group-card__avatar-img" [src]="g.avatar" alt="" />
+                } @else {
+                  {{ g.initials }}
+                }
+              </span>
             </div>
             <div class="group-card__body">
               <div class="group-card__top">
@@ -54,8 +60,17 @@ import { REGION_OPTIONS } from '../../../core/lobby';
     @if (creating()) {
       <div class="modal-overlay" (click)="closeCreate()">
         <div class="modal" (click)="$event.stopPropagation()">
-          <nf-window title="nuevo_grupo.exe" accent="cyan" bodyPadding="22px">
+          <nf-window title="nuevo_grupo.exe" accent="cyan" bodyPadding="22px 22px 28px">
             <div class="settings-eyebrow nf-mono">// CREAR NUEVO GRUPO</div>
+
+            <div class="field" style="margin-bottom: 18px">
+              <label class="field__label nf-mono">FOTO DEL GRUPO</label>
+              <nf-avatar-picker
+                [value]="avatar()"
+                [initials]="previewInitials()"
+                (valueChange)="avatar.set($event)"
+              />
+            </div>
 
             <div class="form-grid">
               <div class="field">
@@ -66,7 +81,8 @@ import { REGION_OPTIONS } from '../../../core/lobby';
                   type="text"
                   placeholder="LAN Challenger S14"
                   autocomplete="off"
-                  [(ngModel)]="name"
+                  [ngModel]="name()"
+                  (ngModelChange)="name.set($event)"
                   (keydown.enter)="create()"
                 />
               </div>
@@ -97,14 +113,23 @@ export class Grupos {
   readonly regionOptions = REGION_OPTIONS;
 
   readonly creating = signal(false);
-  name = '';
+  readonly name = signal('');
   readonly region = signal('EUW');
+  readonly avatar = signal<string | null>(null);
 
-  readonly canCreate = computed(() => this.name.trim().length > 0);
+  readonly canCreate = computed(() => this.name().trim().length > 0);
+
+  /** Live initials for the picker fallback while typing the name. */
+  readonly previewInitials = computed(() => {
+    const words = this.name().trim().split(/\s+/).filter(Boolean);
+    const letters = words.length >= 2 ? words[0][0] + words[1][0] : this.name().trim().slice(0, 2);
+    return letters.toUpperCase() || 'GR';
+  });
 
   openCreate(): void {
-    this.name = '';
+    this.name.set('');
     this.region.set('EUW');
+    this.avatar.set(null);
     this.creating.set(true);
   }
 
@@ -115,8 +140,9 @@ export class Grupos {
   create(): void {
     if (!this.canCreate()) return;
     const group = this.groups.add({
-      name: this.name,
+      name: this.name(),
       region: this.region(),
+      avatar: this.avatar(),
     });
     this.creating.set(false);
     this.router.navigate(['/app', 'grupos', group.id]);

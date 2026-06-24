@@ -1,9 +1,11 @@
-import { Component, computed, effect, inject } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
-import { NfBadge, NfButton, NfWindow } from '../../../ui';
+import { NfAvatarPicker, NfBadge, NfButton, NfSelect, NfWindow } from '../../../ui';
 import { GroupStore } from '../../../core/group-store';
+import { Group, REGION_OPTIONS } from '../../../core/lobby';
 
 const MEMBER_POOL = [
   'Pix3lQueen', 'Cr1msonByte', 'D4rkFl4me', 'V0idWalker', 'NeonRift',
@@ -22,12 +24,18 @@ interface Member {
 @Component({
   selector: 'app-grupo-detalle',
   standalone: true,
-  imports: [RouterLink, NfBadge, NfButton, NfWindow],
+  imports: [RouterLink, FormsModule, NfAvatarPicker, NfBadge, NfButton, NfSelect, NfWindow],
   template: `
     <div class="view">
       @if (group(); as g) {
         <div class="group-hero" [style.--grp-c1]="g.c1" [style.--grp-c2]="g.c2">
-          <span class="group-hero__avatar">{{ g.initials }}</span>
+          <span class="group-hero__avatar">
+            @if (g.avatar) {
+              <img class="group-hero__avatar-img" [src]="g.avatar" alt="" />
+            } @else {
+              {{ g.initials }}
+            }
+          </span>
           <div class="group-hero__meta">
             <div class="group-hero__tag nf-mono">{{ g.tag }}</div>
             <h1 class="group-hero__name">{{ g.name }}</h1>
@@ -40,6 +48,9 @@ interface Member {
 
         <div class="actions">
           <button nfButton variant="primary" size="md" [routerLink]="['/app', 'inicio']">CREAR PARTIDA ►</button>
+          @if (g.role === 'OWNER') {
+            <button nfButton variant="secondary" size="md" (click)="openEdit()">✎ EDITAR GRUPO</button>
+          }
           <button nfButton variant="secondary" size="md" [routerLink]="['/app', 'grupos', g.id, 'ranking']">RANKING</button>
           <button nfButton variant="secondary" size="md" [routerLink]="['/app', 'grupos', g.id, 'estadisticas']">ESTADÍSTICAS</button>
           <button nfButton variant="secondary" size="md" [routerLink]="['/app', 'grupos', g.id, 'historial']">HISTORIAL</button>
@@ -75,6 +86,54 @@ interface Member {
         <button nfButton variant="secondary" size="md" [routerLink]="['/app', 'grupos']">← VOLVER A GRUPOS</button>
       }
     </div>
+
+    @if (editing(); as g) {
+      <div class="modal-overlay" (click)="closeEdit()">
+        <div class="modal" (click)="$event.stopPropagation()">
+          <nf-window title="editar_grupo.exe" accent="pink" bodyPadding="22px 22px 28px">
+            <div class="settings-eyebrow nf-mono">// EDITAR GRUPO</div>
+
+            <div class="field" style="margin-bottom: 18px">
+              <label class="field__label nf-mono">FOTO DEL GRUPO</label>
+              <nf-avatar-picker
+                [value]="editAvatar()"
+                [initials]="g.initials"
+                [c1]="g.c1"
+                [c2]="g.c2"
+                (valueChange)="editAvatar.set($event)"
+              />
+            </div>
+
+            <div class="form-grid">
+              <div class="field">
+                <label class="field__label nf-mono" for="edit-group-name">NOMBRE DEL GRUPO</label>
+                <input
+                  id="edit-group-name"
+                  class="field__input"
+                  type="text"
+                  autocomplete="off"
+                  [ngModel]="editName()"
+                  (ngModelChange)="editName.set($event)"
+                  (keydown.enter)="saveEdit()"
+                />
+              </div>
+
+              <div class="field">
+                <label class="field__label nf-mono">REGIÓN</label>
+                <nf-select [options]="regionOptions" [value]="editRegion()" (valueChange)="editRegion.set($event)" />
+              </div>
+            </div>
+
+            <div class="form-foot">
+              <button nfButton variant="primary" size="md" [disabled]="!canSaveEdit()" (click)="saveEdit()">
+                GUARDAR CAMBIOS ►
+              </button>
+              <button nfButton variant="ghost" size="md" (click)="closeEdit()">CANCELAR</button>
+            </div>
+          </nf-window>
+        </div>
+      </div>
+    }
   `,
   styleUrl: './views.scss',
 })
@@ -108,6 +167,42 @@ export class GrupoDetalle {
       };
     });
   });
+
+  // --- Edit modal -----------------------------------------------------------
+  readonly regionOptions = REGION_OPTIONS;
+
+  /** The group currently being edited, or null when the modal is closed. */
+  readonly editing = signal<Group | null>(null);
+  readonly editName = signal('');
+  readonly editRegion = signal('');
+  readonly editAvatar = signal<string | null>(null);
+
+  readonly canSaveEdit = computed(() => this.editName().trim().length > 0);
+
+  openEdit(): void {
+    const g = this.group();
+    if (!g) return;
+    this.editName.set(g.name);
+    // The tag is "<REGION> · <SUFFIX>"; recover the region from the first part.
+    this.editRegion.set(g.tag.split('·')[0].trim() || 'EUW');
+    this.editAvatar.set(g.avatar ?? null);
+    this.editing.set(g);
+  }
+
+  closeEdit(): void {
+    this.editing.set(null);
+  }
+
+  saveEdit(): void {
+    const g = this.editing();
+    if (!g || !this.canSaveEdit()) return;
+    this.groups.update(g.id, {
+      name: this.editName(),
+      region: this.editRegion(),
+      avatar: this.editAvatar(),
+    });
+    this.editing.set(null);
+  }
 
   constructor() {
     // Keep the shell header/sidebar in sync on deep-link or when switching groups.

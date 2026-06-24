@@ -1,0 +1,90 @@
+/* NEXUS//FORGE · Avatar Picker (global, ViewEncapsulation.None) */
+
+.nf-avatarpicker {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.nf-avatarpicker__preview {
+  position: relative;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  border-radius: 14px;
+  overflow: hidden;
+  background: linear-gradient(135deg, var(--grp-c1), var(--grp-c2));
+  border: var(--bw-2) solid color-mix(in srgb, var(--grp-c1) 55%, #fff 0%);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--grp-c1) 40%, transparent);
+}
+
+.nf-avatarpicker__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.nf-avatarpicker__initials {
+  font-weight: var(--fw-bold);
+  font-size: 22px;
+  color: #fff;
+}
+
+.nf-avatarpicker__controls {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.nf-avatarpicker__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 9px 16px;
+  font-size: 11px;
+  font-weight: var(--fw-bold);
+  letter-spacing: 1.5px;
+  color: var(--nf-text);
+  background: var(--nf-inset);
+  border: var(--bw-2) solid var(--nf-border);
+  border-radius: var(--nf-radius);
+  cursor: pointer;
+  transition: border-color 0.16s, box-shadow 0.16s, color 0.16s;
+}
+.nf-avatarpicker__btn:hover {
+  border-color: var(--nf-cyan);
+  color: var(--nf-cyan);
+  box-shadow: 0 0 12px rgba(54, 224, 255, 0.3);
+}
+.nf-avatarpicker__btn--ghost {
+  background: transparent;
+}
+.nf-avatarpicker__btn--ghost:hover {
+  border-color: var(--nf-pink);
+  color: var(--nf-pink);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--nf-pink) 30%, transparent);
+}
+
+.nf-avatarpicker__input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.nf-avatarpicker__hint {
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  color: var(--nf-text-dim);
+}
+
+.nf-avatarpicker__error {
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  color: var(--nf-pink);
+}

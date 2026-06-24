@@ -151,12 +151,14 @@
   flex: none;
   border-radius: 6px;
   background: linear-gradient(135deg, var(--grp-c1), var(--grp-c2));
+  overflow: hidden;
   font-family: var(--nf-mono);
   font-weight: 700;
   font-size: 11px;
   color: #fff;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
 }
+.shell__avatar-img { width: 100%; height: 100%; object-fit: cover; }
 .shell__groupitem-meta { min-width: 0; flex: 1; }
 .shell__groupitem-name {
   display: block;
@@ -353,11 +355,11 @@
   background: transparent;
   border: 1px solid transparent;
   border-radius: 9px;
-  cursor: default;
+  cursor: pointer;
   text-align: left;
+  transition: background 0.14s, border-color 0.14s;
 }
-.shell__groupbar.is-tappable { cursor: pointer; }
-.shell__groupbar.is-tappable:hover {
+.shell__groupbar:hover {
   background: rgba(255, 255, 255, 0.04);
   border-color: color-mix(in srgb, var(--grp-c1) 35%, transparent);
 }
@@ -372,6 +374,7 @@
   background: linear-gradient(135deg, var(--grp-c1), var(--grp-c2));
   border: 1.5px solid color-mix(in srgb, var(--grp-c1) 60%, #fff 0%);
   box-shadow: 0 0 14px color-mix(in srgb, var(--grp-c1) 45%, transparent);
+  overflow: hidden;
   font-family: var(--nf-mono);
   font-weight: 700;
   font-size: 14px;

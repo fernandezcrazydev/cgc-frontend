@@ -48,6 +48,8 @@ export interface Group {
   /** Banner gradient stops (avatar + header tint). */
   c1: string;
   c2: string;
+  /** Optional group photo as a data URL; falls back to initials when absent. */
+  avatar?: string;
 }
 
 /** Kinds map to a glyph (see NOTIF_GLYPH); `accent` is a palette token for tint + dot. */

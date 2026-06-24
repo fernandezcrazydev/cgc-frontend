@@ -6,6 +6,15 @@ export interface NewGroupInput {
   name: string;
   /** Server region, e.g. "EUW" / "BR" / "NA". */
   region: string;
+  /** Optional group photo as a data URL. */
+  avatar?: string | null;
+}
+
+/** Fields the user can change when editing an existing group. */
+export interface EditGroupInput {
+  name: string;
+  region: string;
+  avatar?: string | null;
 }
 
 /**
@@ -52,10 +61,36 @@ export class GroupStore {
       role: 'OWNER',
       members: 1,
       ...this.banner(),
+      avatar: input.avatar ?? undefined,
     };
     this.groups.update((list) => [...list, group]);
     this._selectedId.set(group.id);
     return group;
+  }
+
+  /**
+   * Update an existing group's editable fields (name, region subtitle and
+   * photo). Returns the updated group, or undefined if the id is unknown.
+   * Passing `avatar: null` clears the photo back to the initials fallback.
+   */
+  update(id: string, input: EditGroupInput): Group | undefined {
+    const name = input.name.trim();
+    const region = input.region.trim().toUpperCase() || 'LAN';
+    let updated: Group | undefined;
+    this.groups.update((list) =>
+      list.map((g) => {
+        if (g.id !== id) return g;
+        updated = {
+          ...g,
+          name,
+          tag: `${region} · PERSONALIZADO`,
+          initials: this.initialsOf(name),
+          avatar: input.avatar === null ? undefined : input.avatar ?? g.avatar,
+        };
+        return updated;
+      }),
+    );
+    return updated;
   }
 
   /** Two-letter avatar from the group name (first letters of the first words). */
