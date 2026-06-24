@@ -92,7 +92,7 @@ import { Group, Member, REGION_OPTIONS } from '../../../core/lobby';
                       type="button"
                       class="member__remove"
                       [attr.aria-label]="'Cancelar invitación a ' + tag"
-                      (click)="groups.cancelInvite(g.id, tag)"
+                      (click)="cancelInvite(tag)"
                     >×</button>
                   }
                 </div>
@@ -327,6 +327,13 @@ export class GrupoDetalle {
       return;
     }
     this.inviteError.set(this.inviteErrorMessage(result.reason));
+  }
+
+  cancelInvite(tag: string): void {
+    const g = this.group();
+    if (!g) return;
+    this.groups.cancelInvite(g.id, tag);
+    this.toasts.info(`Invitación a ${tag} cancelada`);
   }
 
   inviteAnother(): void {
