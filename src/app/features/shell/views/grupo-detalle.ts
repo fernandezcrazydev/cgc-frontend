@@ -35,7 +35,7 @@ import { MemberDetail, memberDetail, opggUrl } from '../../../core/member-detail
         </div>
 
         <div class="actions">
-          <button nfButton variant="primary" size="md" [routerLink]="['/app', 'inicio']">CREAR PARTIDA ►</button>
+          <button nfButton variant="primary" size="md" [routerLink]="['/app', 'grupos', g.id, 'crear-partida']">CREAR PARTIDA ►</button>
           @if (g.role === 'OWNER') {
             <button nfButton variant="accent" size="md" (click)="openEdit()">✎ EDITAR GRUPO</button>
           }
@@ -53,7 +53,7 @@ import { MemberDetail, memberDetail, opggUrl } from '../../../core/member-detail
         </div>
         <nf-window title="miembros.exe" accent="cyan" bodyPadding="0">
           <div class="members">
-            @for (m of members(); track m.tag) {
+            @for (m of members(); track m.tag; let last = $last) {
               <div class="member-row" [class.member-row--open]="expandedTag() === m.tag">
                 <div
                   class="member"
@@ -75,13 +75,38 @@ import { MemberDetail, memberDetail, opggUrl } from '../../../core/member-detail
                   <span class="member__chevron" aria-hidden="true">▾</span>
                   @if (m.owner) {
                     <nf-badge color="pink">OWNER</nf-badge>
-                  } @else if (g.role === 'OWNER') {
-                    <button
-                      type="button"
-                      class="member__remove"
-                      [attr.aria-label]="'Eliminar a ' + m.name"
-                      (click)="$event.stopPropagation(); askRemove(m)"
-                    >×</button>
+                  } @else {
+                    @if (m.admin) {
+                      <nf-badge color="cyan">ADMIN</nf-badge>
+                    }
+                    @if (g.role === 'OWNER') {
+                      <div class="member__menu-wrap">
+                        <button
+                          type="button"
+                          class="member__menu-btn"
+                          [class.member__menu-btn--active]="menuTag() === m.tag"
+                          [attr.aria-label]="'Opciones de ' + m.name"
+                          [attr.aria-expanded]="menuTag() === m.tag"
+                          (click)="$event.stopPropagation(); toggleMenu(m)"
+                        >⋮</button>
+                        @if (menuTag() === m.tag) {
+                          <div
+                            class="member__menu"
+                            [class.member__menu--up]="last"
+                            (click)="$event.stopPropagation()"
+                          >
+                            <button type="button" class="member__menu-item" (click)="askPromote(m)">
+                              {{ m.admin ? '↓ Quitar administrador' : '↑ Ascender a administrador' }}
+                            </button>
+                            <button
+                              type="button"
+                              class="member__menu-item member__menu-item--danger"
+                              (click)="askRemove(m)"
+                            >✕ Eliminar miembro del grupo</button>
+                          </div>
+                        }
+                      </div>
+                    }
                   }
                 </div>
 
@@ -299,6 +324,42 @@ import { MemberDetail, memberDetail, opggUrl } from '../../../core/member-detail
         </div>
       </div>
     }
+
+    @if (promoting(); as m) {
+      <div class="modal-overlay" (click)="cancelPromote()">
+        <div class="modal" (click)="$event.stopPropagation()">
+          <nf-window [title]="m.admin ? 'quitar_admin.exe' : 'ascender_admin.exe'" accent="cyan" bodyPadding="24px">
+            <div class="settings-eyebrow nf-mono">
+              // {{ m.admin ? 'QUITAR ADMINISTRADOR' : 'ASCENDER A ADMINISTRADOR' }}
+            </div>
+            <p class="remove-msg">
+              @if (m.admin) {
+                ¿Seguro que quieres quitarle el rol de administrador a <strong>{{ m.name }}</strong>?
+              } @else {
+                ¿Seguro que quieres ascender a <strong>{{ m.name }}</strong> a administrador del grupo?
+              }
+            </p>
+            <div class="remove-warn nf-mono">
+              @if (m.admin) {
+                ⚠ Dejará de poder gestionar a los miembros e invitaciones del grupo.
+              } @else {
+                ⚠ Podrá gestionar a los miembros e invitaciones del grupo, igual que tú.
+              }
+            </div>
+            <div class="form-foot">
+              <button nfButton variant="ghost" size="md" (click)="cancelPromote()">CANCELAR</button>
+              <button nfButton variant="primary" size="md" (click)="confirmPromote()">
+                {{ m.admin ? 'QUITAR ADMINISTRADOR' : 'ASCENDER ►' }}
+              </button>
+            </div>
+          </nf-window>
+        </div>
+      </div>
+    }
+
+    @if (menuTag()) {
+      <div class="menu-backdrop" (click)="closeMenu()"></div>
+    }
   `,
   styleUrl: './views.scss',
 })
@@ -447,10 +508,23 @@ export class GrupoDetalle {
     }
   }
 
+  // --- Member actions menu (kebab) ------------------------------------------
+  /** Tag of the member whose actions menu is open, or null when closed. */
+  readonly menuTag = signal<string | null>(null);
+
+  toggleMenu(m: Member): void {
+    this.menuTag.update((t) => (t === m.tag ? null : m.tag));
+  }
+
+  closeMenu(): void {
+    this.menuTag.set(null);
+  }
+
   // --- Remove member modal --------------------------------------------------
   readonly removing = signal<Member | null>(null);
 
   askRemove(m: Member): void {
+    this.closeMenu();
     this.removing.set(m);
   }
 
@@ -466,6 +540,33 @@ export class GrupoDetalle {
       this.toasts.info(`${m.name} fue eliminado del grupo`);
     }
     this.removing.set(null);
+  }
+
+  // --- Promote / demote admin modal -----------------------------------------
+  readonly promoting = signal<Member | null>(null);
+
+  askPromote(m: Member): void {
+    this.closeMenu();
+    this.promoting.set(m);
+  }
+
+  cancelPromote(): void {
+    this.promoting.set(null);
+  }
+
+  confirmPromote(): void {
+    const g = this.group();
+    const m = this.promoting();
+    if (g && m) {
+      const makeAdmin = !m.admin;
+      this.groups.setAdmin(g.id, m.name, makeAdmin);
+      this.toasts.success(
+        makeAdmin
+          ? `${m.name} ahora es administrador del grupo`
+          : `${m.name} ya no es administrador del grupo`,
+      );
+    }
+    this.promoting.set(null);
   }
 
   constructor() {

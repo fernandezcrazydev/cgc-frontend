@@ -150,6 +150,17 @@ export class GroupStore {
   }
 
   /**
+   * Promote or demote a member's administrator status by name. The owner is
+   * never affected (the UI never offers it for the owner).
+   */
+  setAdmin(id: string, name: string, admin: boolean): void {
+    this.rosters.update((map) => ({
+      ...map,
+      [id]: (map[id] ?? []).map((m) => (!m.owner && m.name === name ? { ...m, admin } : m)),
+    }));
+  }
+
+  /**
    * Accept a group invitation: register the group (if unknown) with the current
    * user added to its roster, then select it. Returns the joined group.
    */
@@ -199,8 +210,8 @@ export class GroupStore {
     const group: Group = {
       id: this.uniqueId(name),
       name,
-      // No tag field in the form anymore; the region doubles as the card subtitle.
-      tag: `${region} · PERSONALIZADO`,
+      // No tag field in the form anymore; the region is the card subtitle.
+      tag: region,
       initials: this.initialsOf(name),
       // The creator is always the owner of the group they create.
       role: 'OWNER',
@@ -230,7 +241,7 @@ export class GroupStore {
         updated = {
           ...g,
           name,
-          tag: `${region} · PERSONALIZADO`,
+          tag: region,
           initials: this.initialsOf(name),
           avatar: input.avatar === null ? undefined : input.avatar ?? g.avatar,
         };

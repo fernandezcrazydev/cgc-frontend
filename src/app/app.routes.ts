@@ -37,6 +37,12 @@ export const routes: Routes = [
           import('./features/shell/views/grupo-detalle').then((m) => m.GrupoDetalle),
       },
       {
+        path: 'grupos/:id/crear-partida',
+        title: 'Crear partida · NEXUS//FORGE',
+        loadComponent: () =>
+          import('./features/shell/views/grupo-crear-partida').then((m) => m.GrupoCrearPartida),
+      },
+      {
         path: 'grupos/:id/ranking',
         title: 'Ranking · NEXUS//FORGE',
         loadComponent: () =>

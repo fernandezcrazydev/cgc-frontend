@@ -18,7 +18,6 @@ import { rankingFor, sparkPoints, RankEntry } from '../../../core/group-ranking'
         </a>
         <div class="view__head">
           <div class="view__eyebrow nf-mono">// RANKING DEL GRUPO</div>
-          <h1 class="view__title">{{ g.name }}</h1>
           <p class="view__lead">Clasificación de los miembros del grupo ordenada por rating.</p>
         </div>
 
