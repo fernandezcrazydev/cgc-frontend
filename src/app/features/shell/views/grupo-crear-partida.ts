@@ -244,7 +244,7 @@ type CreateMode = 'manual' | 'open';
                 <nf-badge [color]="openFull() ? 'green' : 'yellow'">{{ openCount() }}/{{ MAX }}</nf-badge>
               </div>
 
-              <div class="cp-seats">
+              <div class="cp-seats" [class.is-complete]="openFull()">
                 @for (slot of seatSlots(); track $index) {
                   @if (slot; as m) {
                     <div class="cp-seat" [class.cp-seat--captain]="m.owner">
@@ -285,7 +285,10 @@ type CreateMode = 'manual' | 'open';
                     MAQUETA · EN REAL, LOS MIEMBROS RECIBIRÍAN UNA NOTIFICACIÓN Y SE APUNTARÍAN DESDE SU CUENTA.
                   </p>
                 } @else {
-                  <div class="cp-room__ready nf-mono">✓ SALA COMPLETA · LISTA PARA CONFIGURAR Y LANZAR</div>
+                  <div class="cp-room__ready nf-mono">
+                    <span class="cp-room__ready-glyph">✓</span>
+                    SALA COMPLETA · LISTA PARA CONFIGURAR Y LANZAR
+                  </div>
                 }
               </div>
             </nf-window>
@@ -293,9 +296,14 @@ type CreateMode = 'manual' | 'open';
             <div class="cp-foot">
               <button nfButton variant="ghost" size="md" (click)="resetMode()">← MODO</button>
               <div class="cp-foot__status nf-mono">{{ openCount() }}/{{ MAX }} APUNTADOS</div>
-              <button nfButton variant="primary" size="md" [disabled]="!openFull()">
-                CONTINUAR A RESTRICCIONES ►
-              </button>
+              <button
+                nfButton
+                variant="primary"
+                size="md"
+                class="cp-cta"
+                [class.cp-cta--ready]="openFull()"
+                [disabled]="!openFull()"
+              >CONTINUAR A RESTRICCIONES ►</button>
             </div>
           }
         </div>
