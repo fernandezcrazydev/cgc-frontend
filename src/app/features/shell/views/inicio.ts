@@ -44,7 +44,6 @@ import { CURRENT_USER, MATCHES, STATS } from '../../../core/lobby';
       </div>
     </div>
   `,
-  styleUrl: './views.scss',
 })
 export class Inicio {
   readonly user = CURRENT_USER;

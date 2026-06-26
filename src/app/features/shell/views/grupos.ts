@@ -104,7 +104,6 @@ import { REGION_OPTIONS } from '../../../core/lobby';
       </div>
     }
   `,
-  styleUrl: './views.scss',
 })
 export class Grupos {
   readonly groups = inject(GroupStore);

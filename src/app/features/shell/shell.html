@@ -149,6 +149,18 @@
       </div>
     </header>
 
+    <!-- pending open-room banner: jump straight into the sala still filling up -->
+    @if (pendingRoom(); as r) {
+      <button type="button" class="shell__pending" (click)="openPendingRoom(r)">
+        <span class="shell__pending-pulse" aria-hidden="true"></span>
+        <span class="shell__pending-text">
+          <span class="shell__pending-title nf-mono">SALA ABIERTA · {{ r.seats.length }}/{{ r.capacity }} APUNTADOS</span>
+          <span class="shell__pending-sub nf-mono">Sala {{ r.code }} esperando jugadores — toca para entrar</span>
+        </span>
+        <span class="shell__pending-cta nf-mono">ENTRAR ►</span>
+      </button>
+    }
+
     <main class="shell__content" [class.shell__content--mobile]="isMobile()">
       <router-outlet />
     </main>
@@ -185,6 +197,16 @@
     <div class="shell__sheet-overlay" (click)="closeGroupSheet()">
       <div class="shell__sheet" (click)="$event.stopPropagation()">
         <div class="shell__sheet-handle"></div>
+        @if (pendingRoom(); as r) {
+          <button type="button" class="shell__sheet-pending" (click)="openPendingRoom(r)">
+            <span class="shell__pending-pulse" aria-hidden="true"></span>
+            <span class="shell__pending-text">
+              <span class="shell__pending-title nf-mono">SALA ABIERTA · {{ r.seats.length }}/{{ r.capacity }}</span>
+              <span class="shell__pending-sub nf-mono">Sala {{ r.code }} esperando jugadores</span>
+            </span>
+            <span class="shell__pending-cta nf-mono">ENTRAR ►</span>
+          </button>
+        }
         <div class="shell__sheet-head nf-mono">// TUS GRUPOS</div>
         <div class="shell__sheet-list">
           @for (g of groups.groups(); track g.id) {

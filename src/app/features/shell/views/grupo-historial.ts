@@ -100,7 +100,6 @@ import { matchesByGroup, kdaRatio, shortGold } from '../../../core/match-history
       }
     </div>
   `,
-  styleUrl: './views.scss',
 })
 export class GrupoHistorial {
   private readonly route = inject(ActivatedRoute);

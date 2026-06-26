@@ -70,7 +70,6 @@ import { rankingFor, sparkPoints, RankEntry } from '../../../core/group-ranking'
       }
     </div>
   `,
-  styleUrl: './views.scss',
 })
 export class GrupoRanking {
   private readonly route = inject(ActivatedRoute);

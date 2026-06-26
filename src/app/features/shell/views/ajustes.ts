@@ -44,7 +44,6 @@ import { REGION_OPTIONS } from '../../../core/lobby';
       </nf-window>
     </div>
   `,
-  styleUrl: './views.scss',
 })
 export class Ajustes {
   readonly regionOptions = REGION_OPTIONS;

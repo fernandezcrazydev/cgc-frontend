@@ -92,7 +92,6 @@ import { NfPagination } from '../../../ui';
       />
     </div>
   `,
-  styleUrl: './views.scss',
 })
 export class Historial {
   readonly matches = MATCH_HISTORY;

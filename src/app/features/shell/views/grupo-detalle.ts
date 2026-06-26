@@ -5,6 +5,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
 import { NfAvatarPicker, NfBadge, NfButton, NfSelect, NfWindow } from '../../../ui';
 import { GroupStore } from '../../../core/group-store';
+import { MatchStore } from '../../../core/match-store';
 import { ToastService } from '../../../core/toast';
 import { Group, Member, REGION_OPTIONS } from '../../../core/lobby';
 import { MemberDetail, memberDetail, opggUrl } from '../../../core/member-detail';
@@ -36,6 +37,16 @@ import { MemberDetail, memberDetail, opggUrl } from '../../../core/member-detail
 
         <div class="actions">
           <button nfButton variant="primary" size="md" [routerLink]="['/app', 'grupos', g.id, 'crear-partida']">CREAR PARTIDA ►</button>
+          <button
+            nfButton
+            variant="accent"
+            size="md"
+            class="actions__matches"
+            [class.actions__matches--live]="activeMatches().length"
+            [routerLink]="['/app', 'grupos', g.id, 'partidas']"
+          >
+            ◉ PARTIDAS ACTIVAS@if (activeMatches().length) {<span class="actions__count nf-mono">{{ activeMatches().length }}</span>}
+          </button>
           @if (g.role === 'OWNER') {
             <button nfButton variant="accent" size="md" (click)="openEdit()">✎ EDITAR GRUPO</button>
           }
@@ -361,11 +372,11 @@ import { MemberDetail, memberDetail, opggUrl } from '../../../core/member-detail
       <div class="menu-backdrop" (click)="closeMenu()"></div>
     }
   `,
-  styleUrl: './views.scss',
 })
 export class GrupoDetalle {
   private readonly route = inject(ActivatedRoute);
   readonly groups = inject(GroupStore);
+  private readonly matches = inject(MatchStore);
   private readonly toasts = inject(ToastService);
 
   private readonly id = toSignal(
@@ -388,6 +399,12 @@ export class GrupoDetalle {
   readonly pending = computed<string[]>(() => {
     const g = this.group();
     return g ? this.groups.pendingOf(g.id) : [];
+  });
+
+  /** Active match rooms (waiting + live) for the active group. */
+  readonly activeMatches = computed(() => {
+    const g = this.group();
+    return g ? this.matches.activeOf(g.id) : [];
   });
 
   // --- Member detail dropdown ----------------------------------------------

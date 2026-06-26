@@ -239,7 +239,6 @@ type StatTab = 'resumen' | 'jugadores' | 'premios';
       }
     </div>
   `,
-  styleUrl: './views.scss',
 })
 export class GrupoEstadisticas {
   private readonly route = inject(ActivatedRoute);

@@ -23,7 +23,6 @@ import { CHAMPIONS } from '../../../core/lobby';
       </div>
     </div>
   `,
-  styleUrl: './views.scss',
 })
 export class Campeones {
   readonly champions = CHAMPIONS;

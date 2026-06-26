@@ -81,7 +81,6 @@ import { matchById, kdaRatio } from '../../../core/match-history';
       }
     </div>
   `,
-  styleUrl: './views.scss',
 })
 export class PartidaDetalle {
   private readonly route = inject(ActivatedRoute);

@@ -507,6 +507,63 @@
   animation: nf-pulse 2s infinite;
 }
 
+/* ---- pending open-room banner (under the header) ---- */
+.shell__pending {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 18px;
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--nf-yellow) 18%, transparent), transparent 62%),
+    rgba(12, 1, 24, 0.9);
+  border: none;
+  border-bottom: 1px solid color-mix(in srgb, var(--nf-yellow) 35%, var(--nf-border));
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.14s;
+}
+.shell__pending:hover {
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--nf-yellow) 28%, transparent), transparent 62%),
+    rgba(12, 1, 24, 0.9);
+}
+.shell__pending-pulse {
+  width: 10px;
+  height: 10px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--nf-yellow);
+  box-shadow: 0 0 10px var(--nf-yellow);
+  animation: nf-pulse 1.6s infinite;
+}
+.shell__pending-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.shell__pending-title { font-size: 11px; letter-spacing: 1.5px; font-weight: 700; color: var(--nf-yellow); }
+.shell__pending-sub {
+  font-size: 10.5px;
+  letter-spacing: 0.4px;
+  color: var(--nf-text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.shell__pending-cta { margin-left: auto; flex: none; font-size: 11px; letter-spacing: 1.5px; color: var(--nf-yellow); }
+
+/* sheet variant (top of the mobile group switcher) */
+.shell__sheet-pending {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 12px;
+  background: color-mix(in srgb, var(--nf-yellow) 10%, var(--nf-surface-2));
+  border: 1.5px solid color-mix(in srgb, var(--nf-yellow) 45%, transparent);
+  border-radius: 10px;
+  cursor: pointer;
+  text-align: left;
+}
+
 /* ---- notification bell ---- */
 .shell__bell {
   position: relative;

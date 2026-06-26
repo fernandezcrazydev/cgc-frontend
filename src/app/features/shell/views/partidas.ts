@@ -28,7 +28,6 @@ import { MATCHES } from '../../../core/lobby';
       </div>
     </div>
   `,
-  styleUrl: './views.scss',
 })
 export class Partidas {
   readonly matches = MATCHES;

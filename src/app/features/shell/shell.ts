@@ -12,6 +12,7 @@ import {
   NotificationKind,
 } from '../../core/lobby';
 import { GroupStore } from '../../core/group-store';
+import { MatchStore, MatchRoom } from '../../core/match-store';
 import { ToastService } from '../../core/toast';
 import { NfBadge, NfButton, NfToastHost, NfWindow } from '../../ui';
 
@@ -31,7 +32,23 @@ export class Shell {
   readonly nav = NAV;
   readonly user = CURRENT_USER;
   readonly groups = inject(GroupStore);
+  private readonly matches = inject(MatchStore);
   private readonly toasts = inject(ToastService);
+
+  /**
+   * The selected group's open room still waiting for players, if any. Surfaced as
+   * a pending-room banner so members can jump in without hunting for the notification.
+   */
+  readonly pendingRoom = computed<MatchRoom | null>(() => {
+    const g = this.groups.selected();
+    return g ? this.matches.waitingOf(g.id)[0] ?? null : null;
+  });
+
+  /** Jump into the pending room's lobby (also closes the mobile group sheet). */
+  openPendingRoom(room: MatchRoom): void {
+    this.showGroupSheet.set(false);
+    this.router.navigate(['/app', 'grupos', room.groupId, 'partidas', room.id]);
+  }
 
   readonly mobileLeft = NAV.slice(0, 2);
   readonly mobileRight = NAV.slice(2);
