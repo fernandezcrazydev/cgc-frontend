@@ -78,7 +78,7 @@
       </nav>
 
       <div class="shell__sidefoot">
-        <a class="shell__profile" [routerLink]="['/app', 'ajustes']">
+        <a class="shell__profile" [routerLink]="['/app', 'perfil']">
           <div class="shell__avatar">{{ user.initials }}</div>
           <div class="shell__user-meta">
             <div class="shell__user-name">
@@ -129,6 +129,18 @@
         <h2 class="shell__title">{{ pageTitle() }}</h2>
       }
       <div class="shell__header-right">
+        <button
+          type="button"
+          class="shell__feedback"
+          aria-label="Enviar sugerencia o reportar un bug"
+          (click)="openFeedback()"
+        >
+          <svg width="17" height="17" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+            <path d="M2.5 3.5H15.5V12.5H8L4 15.5V12.5H2.5V3.5Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" />
+            <line x1="5.5" y1="7" x2="12.5" y2="7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+            <line x1="5.5" y1="9.5" x2="10" y2="9.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+          </svg>
+        </button>
         <button
           type="button"
           class="shell__bell"
@@ -342,6 +354,67 @@
             <div class="shell__invite-actions">
               <button nfButton variant="ghost" size="md" (click)="declineInvite()">RECHAZAR</button>
               <button nfButton variant="primary" size="md" (click)="acceptInvite()">UNIRME AL GRUPO ►</button>
+            </div>
+          </div>
+        </nf-window>
+      </div>
+    </div>
+  }
+
+  <!-- feedback / bug report modal -->
+  @if (showFeedback()) {
+    <div class="shell__overlay" (click)="closeFeedback()">
+      <div class="shell__dialog" (click)="$event.stopPropagation()">
+        <nf-window title="feedback.exe" accent="cyan" bodyPadding="22px">
+          <div class="shell__fb">
+            <div class="shell__fb-eyebrow nf-mono">// AYÚDANOS A MEJORAR</div>
+            <p class="shell__fb-lead">¿Algo no funciona o se te ocurre una mejora? Cuéntanoslo.</p>
+
+            <div class="shell__fb-seg" role="radiogroup" aria-label="Tipo de feedback">
+              <button
+                type="button"
+                class="shell__fb-segbtn nf-mono"
+                role="radio"
+                [class.is-active]="feedbackType() === 'bug'"
+                [attr.aria-checked]="feedbackType() === 'bug'"
+                (click)="feedbackType.set('bug')"
+              >🐛 BUG</button>
+              <button
+                type="button"
+                class="shell__fb-segbtn nf-mono"
+                role="radio"
+                [class.is-active]="feedbackType() === 'suggestion'"
+                [attr.aria-checked]="feedbackType() === 'suggestion'"
+                (click)="feedbackType.set('suggestion')"
+              >💡 SUGERENCIA</button>
+            </div>
+
+            <label class="shell__fb-label nf-mono" for="fb-msg">MENSAJE</label>
+            <textarea
+              id="fb-msg"
+              #fbMsg
+              class="shell__fb-textarea"
+              rows="4"
+              maxlength="600"
+              [placeholder]="feedbackType() === 'bug' ? 'Describe qué ha pasado y cómo reproducirlo…' : 'Cuéntanos tu idea…'"
+              [value]="feedbackMessage()"
+              (input)="feedbackMessage.set(fbMsg.value)"
+            ></textarea>
+
+            <label class="shell__fb-label nf-mono" for="fb-email">EMAIL <span class="shell__fb-opt">(opcional · por si queremos responderte)</span></label>
+            <input
+              id="fb-email"
+              #fbEmail
+              class="shell__fb-input nf-mono"
+              type="email"
+              placeholder="tu@email.com"
+              [value]="feedbackEmail()"
+              (input)="feedbackEmail.set(fbEmail.value)"
+            />
+
+            <div class="shell__dialog-actions shell__fb-actions">
+              <button nfButton variant="ghost" size="md" (click)="closeFeedback()">CANCELAR</button>
+              <button nfButton variant="primary" size="md" [disabled]="!feedbackMessage().trim()" (click)="submitFeedback()">ENVIAR ►</button>
             </div>
           </div>
         </nf-window>

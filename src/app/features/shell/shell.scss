@@ -316,6 +316,71 @@
 }
 .shell__dialog-actions > * { flex: 1; }
 
+/* ---- feedback / bug report modal form ---- */
+.shell__fb { display: flex; flex-direction: column; }
+.shell__fb-eyebrow { font-size: 11px; letter-spacing: 2px; color: var(--nf-cyan); margin-bottom: 8px; }
+.shell__fb-lead { margin: 0 0 18px; font-size: 13px; line-height: 1.55; color: var(--nf-text-mid); }
+.shell__fb-seg {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+.shell__fb-segbtn {
+  padding: 10px 8px;
+  font-size: 12px;
+  letter-spacing: 1px;
+  color: var(--nf-text-dim);
+  background: var(--nf-surface-2);
+  border: 1.5px solid var(--nf-border);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: color 0.14s, border-color 0.14s, background 0.14s;
+}
+.shell__fb-segbtn:hover { color: var(--nf-text); border-color: var(--nf-border-strong); }
+.shell__fb-segbtn.is-active {
+  color: var(--nf-cyan);
+  border-color: var(--nf-cyan);
+  background: color-mix(in srgb, var(--nf-cyan) 12%, transparent);
+}
+.shell__fb-label {
+  display: block;
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: var(--nf-text-dim);
+  margin-bottom: 7px;
+}
+.shell__fb-opt { letter-spacing: 0.5px; text-transform: none; opacity: 0.8; }
+.shell__fb-textarea,
+.shell__fb-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 11px 13px;
+  font-size: 13px;
+  color: var(--nf-text);
+  background: var(--nf-surface-2);
+  border: 1.5px solid var(--nf-border);
+  border-radius: 6px;
+  outline: none;
+  transition: border-color 0.14s, box-shadow 0.14s;
+}
+.shell__fb-textarea {
+  margin-bottom: 16px;
+  resize: vertical;
+  min-height: 88px;
+  line-height: 1.5;
+  font-family: inherit;
+}
+.shell__fb-input { margin-bottom: 4px; }
+.shell__fb-textarea:focus,
+.shell__fb-input:focus {
+  border-color: var(--nf-cyan);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--nf-cyan) 16%, transparent);
+}
+.shell__fb-textarea::placeholder,
+.shell__fb-input::placeholder { color: var(--nf-text-dim); }
+.shell__fb-actions { margin-top: 20px; }
+
 /* ---- group invitation review modal ---- */
 .shell__dialog--invite { max-width: 460px; }
 .shell__invite { display: flex; flex-direction: column; }
@@ -600,6 +665,25 @@
   text-align: center;
   box-shadow: 0 0 8px rgba(255, 95, 210, 0.8);
   pointer-events: none;
+}
+
+/* ---- feedback / bug report trigger (discreet, cyan accent) ---- */
+.shell__feedback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 7px 9px;
+  background: transparent;
+  border: 1.5px solid var(--nf-border);
+  border-radius: 5px;
+  color: var(--nf-text-dim);
+  cursor: pointer;
+  transition: color 0.14s, border-color 0.14s, background 0.14s;
+}
+.shell__feedback:hover {
+  color: var(--nf-cyan);
+  border-color: var(--nf-cyan);
+  background: color-mix(in srgb, var(--nf-cyan) 8%, transparent);
 }
 
 /* ---- notification dropdown panel ---- */

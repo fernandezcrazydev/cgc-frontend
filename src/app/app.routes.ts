@@ -73,6 +73,11 @@ export const routes: Routes = [
           import('./features/shell/views/grupo-historial').then((m) => m.GrupoHistorial),
       },
       {
+        path: 'perfil',
+        title: 'Perfil · NEXUS//FORGE',
+        loadComponent: () => import('./features/shell/views/perfil').then((m) => m.Perfil),
+      },
+      {
         path: 'ajustes',
         title: 'Ajustes · NEXUS//FORGE',
         loadComponent: () => import('./features/shell/views/ajustes').then((m) => m.Ajustes),

@@ -2,7 +2,7 @@ import { Component, computed, effect, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
-import { NfBadge, NfButton, NfWindow } from '../../../ui';
+import { NfBadge, NfBadgeColor, NfButton, NfWindow } from '../../../ui';
 import { GroupStore } from '../../../core/group-store';
 import { MatchStore, MatchRoom } from '../../../core/match-store';
 
@@ -44,15 +44,13 @@ import { MatchStore, MatchRoom } from '../../../core/match-store';
                   </div>
                 </div>
                 <div class="pm-foot">
-                  <nf-badge [color]="r.status === 'live' ? 'green' : 'yellow'" [dot]="true">
-                    {{ r.status === 'live' ? 'EN CURSO' : 'PENDIENTE' }}
-                  </nf-badge>
+                  <nf-badge [color]="statusColor(r)" [dot]="true">{{ statusLabel(r) }}</nf-badge>
                   <button
                     nfButton
                     variant="ghost"
                     size="sm"
                     [routerLink]="['/app', 'grupos', g.id, 'partidas', r.id]"
-                  >{{ r.status === 'live' ? 'VER PARTIDA ►' : 'VER SALA ►' }}</button>
+                  >{{ ctaLabel(r) }}</button>
                 </div>
               </nf-window>
             }
@@ -105,7 +103,20 @@ export class GrupoPartidas {
   });
 
   modeLabel(r: MatchRoom): string {
+    if (r.status === 'drafting') return 'CONFIGURANDO · 5v5';
     return r.mode === 'open' ? 'SALA ABIERTA · 5v5' : 'PARTIDA MANUAL · 5v5';
+  }
+
+  statusLabel(r: MatchRoom): string {
+    return r.status === 'live' ? 'EN CURSO' : r.status === 'drafting' ? 'CONFIGURANDO' : 'PENDIENTE';
+  }
+
+  statusColor(r: MatchRoom): NfBadgeColor {
+    return r.status === 'live' ? 'green' : r.status === 'drafting' ? 'purple' : 'yellow';
+  }
+
+  ctaLabel(r: MatchRoom): string {
+    return r.status === 'live' ? 'VER PARTIDA ►' : r.status === 'drafting' ? 'VER EN DIRECTO ►' : 'VER SALA ►';
   }
 
   constructor() {

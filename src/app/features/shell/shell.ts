@@ -155,6 +155,31 @@ export class Shell {
     if (id != null) this.notifications.update((list) => list.filter((n) => n.id !== id));
   }
 
+  // ── Feedback / bug report modal ───────────────────────────────────
+  readonly showFeedback = signal(false);
+  readonly feedbackType = signal<'bug' | 'suggestion'>('suggestion');
+  readonly feedbackMessage = signal('');
+  readonly feedbackEmail = signal('');
+
+  openFeedback(): void {
+    this.showFeedback.set(true);
+  }
+
+  closeFeedback(): void {
+    this.showFeedback.set(false);
+  }
+
+  /** Mock submit (no backend yet): confirm with a toast and reset the form. */
+  submitFeedback(): void {
+    if (!this.feedbackMessage().trim()) return;
+    const kind = this.feedbackType() === 'bug' ? 'reporte de bug' : 'sugerencia';
+    this.showFeedback.set(false);
+    this.feedbackMessage.set('');
+    this.feedbackEmail.set('');
+    this.feedbackType.set('suggestion');
+    this.toasts.success(`¡Gracias! Tu ${kind} se ha enviado.`);
+  }
+
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
 

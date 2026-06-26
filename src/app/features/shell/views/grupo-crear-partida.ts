@@ -1,14 +1,20 @@
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
 import { NfBadge, NfButton, NfWindow } from '../../../ui';
 import { GroupStore } from '../../../core/group-store';
-import { MatchStore } from '../../../core/match-store';
+import { MatchStore, DraftSnapshot, DraftRaw, RoomTeams, RoomTeamSlot } from '../../../core/match-store';
 import { CHAMPIONS, Champion, Member } from '../../../core/lobby';
 import { memberDetail } from '../../../core/member-detail';
-import { hash, seeded } from '../../../core/group-ranking';
+import {
+  matchmake,
+  internalElo,
+  MatchmakePlayer,
+  MatchmakeRule,
+  MatchmakeSlot,
+} from '../../../core/matchmaking';
 
 /** A single step in the create-match wizard. */
 interface WizardStep {
@@ -57,28 +63,35 @@ interface GeneratedTeams {
   total: number;
 }
 
-/** Tiny seeded RNG (mulberry32) so "rebalancear" gives a different valid split. */
-function mulberry32(seed: number): () => number {
-  let a = seed >>> 0 || 1;
-  return () => {
-    a = (a + 0x6d2b79f5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
 /**
- * Create-match wizard for a group. It forks on a mode-select screen:
+ * Create-match wizard for a group. Forks on a mode-select screen (Paso 0):
  *
- * - MANUAL: the captain picks exactly 10 players from the roster, then sets
- *   line/player/champion restrictions (steps 2-5 stubbed).
- * - OPEN: the captain publishes a room that group members join from their own
- *   accounts. Restrictions are configured later, once the room fills, because
- *   per-player rules need the final 10 to be known. The waiting room here is a
- *   mock that fills via a "simulate join" button until launch is enabled.
+ * - MANUAL: the admin picks exactly 10 players, then configures restrictions
+ *   across 5 steps:
+ *     1. PARTICIPANTES  — pick the 10 (search + role filters, exact-10 gate).
+ *     2. LÍNEAS         — per-player allowed roles; chips pre-filled from profile.
+ *                         Live feasibility check (bipartite matching, 2 per role).
+ *     3. DUOS/TRÍOS/VS  — together / versus (A-vs-B sides) / lane-duel rules,
+ *                         with contradiction + shared-line validation.
+ *     4. PERSONAJES     — reserve a champion per player (= OTP + un-bannable).
+ *     5. LANZAR         — generated Blue/Red split + elo balance bar, then launch.
+ * - OPEN: the admin publishes a room and group members join from their own
+ *   accounts; restrictions are configured later, once it fills (the final 10
+ *   must be known first).
  *
- * Team split (Blue vs Red) is decided by the internal matchmaking algorithm.
+ * STATE OWNERSHIP (important): the wizard's state is NOT private. As soon as the
+ * admin enters manual mode a `drafting` room is created in MatchStore, and an
+ * effect() streams a DraftSnapshot of every change into it, so non-admins can
+ * follow the configuration live (see grupo-sala's follower view). On launch the
+ * SAME room is promoted to `live`. If the admin leaves mid-way the draft is kept
+ * for resume (the wizard rehydrates from `draft.raw`); it's auto-pruned after 24h.
+ *
+ * BACKEND INTEGRATION POINTS (all mocked here):
+ * - `generated()` is a stand-in for the real matchmaking algorithm (role assign
+ *   + balanced team split); swap its body for the backend result.
+ * - `elo()` fakes an internal rating per player (seeded); replace with real data.
+ * - the loaders (`generating` / `launching`) fake backend latency via setTimeout.
+ * - real cross-user live sync needs a realtime channel behind MatchStore.
  */
 @Component({
   selector: 'app-grupo-crear-partida',
@@ -92,9 +105,16 @@ function mulberry32(seed: number): () => number {
             <div class="cp-head__titles">
               <h1 class="view__title">Crear partida</h1>
             </div>
-            <a class="view-back cp-back" [routerLink]="['/app', 'grupos', g.id]">
-              <span class="view-back__arrow">←</span> VOLVER AL GRUPO
-            </a>
+            <div class="cp-head__actions">
+              @if (mode() === 'manual') {
+                <button type="button" class="cp-discard nf-mono" (click)="discarding.set(true)">
+                  ✕ DESCARTAR
+                </button>
+              }
+              <a class="view-back cp-back" [routerLink]="['/app', 'grupos', g.id]">
+                <span class="view-back__arrow">←</span> VOLVER AL GRUPO
+              </a>
+            </div>
           </div>
 
           @if (roster().length < MAX) {
@@ -136,8 +156,8 @@ function mulberry32(seed: number): () => number {
                 <span class="cp-mode__cta nf-mono">ELEGIR ►</span>
               </button>
             </div>
-          } @else if (mode() === 'manual') {
-            <!-- ===== MODO MANUAL · wizard ===== -->
+          } @else if (showStepWizard()) {
+            <!-- ===== STEP WIZARD · manual, or open mode once the room is full ===== -->
             <div class="cp-steps">
               @for (s of steps; track s.n; let last = $last) {
                 <button
@@ -522,22 +542,31 @@ function mulberry32(seed: number): () => number {
                 }
 
                 @case (5) {
-                  @if (launched()) {
+                  @if (launching()) {
                     <div class="cp-pad">
-                      <div class="cp-launched">
-                        <div class="cp-launched__glyph">🚀</div>
-                        <div class="cp-launched__title nf-mono">PARTIDA LANZADA</div>
-                        <p class="cp-launched__hint">
-                          El reparto está listo. En real, cada jugador recibiría el lobby para entrar.
-                        </p>
-                        <div class="cp-launched__actions">
-                          <button nfButton variant="primary" size="md" [routerLink]="['/app', 'grupos', g.id, 'partidas']">
-                            VER PARTIDAS ►
-                          </button>
-                          <button nfButton variant="ghost" size="md" [routerLink]="['/app', 'grupos', g.id]">
-                            VOLVER AL GRUPO
-                          </button>
+                      <div class="cp-loader">
+                        <div class="cp-loader__spinner" aria-hidden="true"></div>
+                        <div class="cp-loader__title nf-mono">LANZANDO PARTIDA…</div>
+                        <div class="cp-loader__log">
+                          <div class="cp-loader__line nf-mono" style="--d:0s">› creando la sala</div>
+                          <div class="cp-loader__line nf-mono" style="--d:.4s">› asignando equipos azul / rojo</div>
+                          <div class="cp-loader__line nf-mono" style="--d:.8s">› notificando a los jugadores</div>
                         </div>
+                        <div class="cp-loader__bar"><div class="cp-loader__bar-fill"></div></div>
+                      </div>
+                    </div>
+                  } @else if (generating()) {
+                    <div class="cp-pad">
+                      <div class="cp-loader">
+                        <div class="cp-loader__spinner" aria-hidden="true"></div>
+                        <div class="cp-loader__title nf-mono">EMPAREJANDO…</div>
+                        <div class="cp-loader__log">
+                          <div class="cp-loader__line nf-mono" style="--d:0s">› analizando líneas y roles</div>
+                          <div class="cp-loader__line nf-mono" style="--d:.35s">› equilibrando el elo de los equipos</div>
+                          <div class="cp-loader__line nf-mono" style="--d:.7s">› aplicando reglas (duos / vs)</div>
+                          <div class="cp-loader__line nf-mono" style="--d:1.05s">› generando el reparto</div>
+                        </div>
+                        <div class="cp-loader__bar"><div class="cp-loader__bar-fill"></div></div>
                       </div>
                     </div>
                   } @else {
@@ -646,7 +675,7 @@ function mulberry32(seed: number): () => number {
               }
             </nf-window>
 
-            @if (!launched()) {
+            @if (!launching()) {
               <div class="cp-foot">
                 <button nfButton variant="ghost" size="md" (click)="back()">
                   {{ step() === 1 ? '← MODO' : '← ATRÁS' }}
@@ -740,10 +769,30 @@ function mulberry32(seed: number): () => number {
                 class="cp-cta"
                 [class.cp-cta--ready]="openFull()"
                 [disabled]="!openFull()"
+                (click)="continueToRestrictions()"
               >CONTINUAR A RESTRICCIONES ►</button>
             </div>
           }
         </div>
+
+        @if (discarding()) {
+          <div class="modal-overlay" (click)="discarding.set(false)">
+            <div class="modal" (click)="$event.stopPropagation()">
+              <nf-window title="descartar_borrador.exe" accent="pink" bodyPadding="24px">
+                <div class="settings-eyebrow nf-mono">// DESCARTAR BORRADOR</div>
+                <p class="remove-msg">¿Seguro que quieres descartar esta partida a medias?</p>
+                <div class="remove-warn nf-mono">
+                  ⚠ Se borrará la configuración y la sala dejará de aparecer en el grupo.
+                  Esto no se puede deshacer. (Si solo quieres seguir luego, sal con “Volver al grupo”.)
+                </div>
+                <div class="form-foot">
+                  <button nfButton variant="ghost" size="md" (click)="discarding.set(false)">CANCELAR</button>
+                  <button nfButton variant="danger" size="md" (click)="discardDraft()">DESCARTAR</button>
+                </div>
+              </nf-window>
+            </div>
+          </div>
+        }
       } @else {
         <div class="view__head">
           <div class="view__eyebrow nf-mono">// ERROR 404</div>
@@ -756,6 +805,7 @@ function mulberry32(seed: number): () => number {
 })
 export class GrupoCrearPartida {
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   readonly groups = inject(GroupStore);
   private readonly matches = inject(MatchStore);
 
@@ -813,22 +863,71 @@ export class GrupoCrearPartida {
   // --- Mode selection (Paso 0) ----------------------------------------------
   readonly mode = signal<CreateMode | null>(null);
 
+  /**
+   * Open mode has two phases: `filling` (the waiting room collects sign-ups) and
+   * `configuring` (once full, the admin runs the SAME restriction steps 2-5 as
+   * manual mode, on the 10 players who joined).
+   */
+  readonly openPhase = signal<'filling' | 'configuring'>('filling');
+
+  /** The step wizard (breadcrumb + steps) renders for manual, or open-configuring. */
+  readonly showStepWizard = computed(
+    () => this.mode() === 'manual' || (this.mode() === 'open' && this.openPhase() === 'configuring'),
+  );
+
   chooseMode(m: CreateMode): void {
-    if (m === 'open') {
-      // The captain (group owner) opens a persistent room and takes the first seat.
-      const g = this.group();
-      const captain = this.roster()[0];
-      if (g && captain) this.roomId.set(this.matches.openRoom(g.id, captain).id);
+    // Both modes create a persistent room the group can follow: an open room that
+    // fills up, or a "drafting" room the admin configures live. Seat 0 = captain.
+    const g = this.group();
+    const captain = this.roster()[0];
+    if (g && captain) {
+      const room = m === 'open' ? this.matches.openRoom(g.id, captain) : this.matches.startDraft(g.id, captain);
+      this.roomId.set(room.id);
+      // Resuming an abandoned draft: rehydrate the wizard from its raw state.
+      if (m === 'manual' && room.draft?.raw.selectedTags.length) this.hydrateFromDraft(room.draft.raw);
     }
+    if (m === 'open') this.openPhase.set('filling');
     this.mode.set(m);
   }
 
+  /** Once the open room is full, carry its 10 players into the restriction steps. */
+  continueToRestrictions(): void {
+    if (!this.openFull()) return;
+    this.selected.set(new Set(this.seats().map((m) => m.tag)));
+    this.step.set(2);
+    this.openPhase.set('configuring');
+  }
+
+  /** Restore the wizard's signals from a persisted draft (resume after leaving). */
+  private hydrateFromDraft(raw: DraftRaw): void {
+    this.selected.set(new Set(raw.selectedTags));
+    this.lineRoles.set({ ...raw.lineRoles });
+    this.rules.set(raw.rules.map((r) => ({ ...r })));
+    this.ruleSeq = raw.rules.reduce((max, r) => Math.max(max, r.id), 0);
+    this.reserved.set({ ...raw.reserved });
+    this.step.set(raw.step || 1);
+  }
+
   resetMode(): void {
-    // Backing out of the open room cancels it (the captain explicitly leaves).
     const id = this.roomId();
-    if (id) this.matches.remove(id);
+    // Open rooms are cancelled when you back out. Manual drafts are KEPT so the
+    // admin can resume later (auto-pruned after 24h) — see MatchStore.startDraft.
+    if (id && this.mode() === 'open') this.matches.remove(id);
     this.roomId.set(null);
     this.mode.set(null);
+  }
+
+  // --- Discard the in-progress draft (explicit, vs. leaving to resume later) --
+  readonly discarding = signal(false);
+
+  /** Permanently delete the draft room and leave (distinct from "leave & resume"). */
+  discardDraft(): void {
+    const id = this.roomId();
+    const g = this.group();
+    if (id) this.matches.remove(id);
+    this.roomId.set(null);
+    this.discarding.set(false);
+    this.router.navigate(['/app', 'grupos', g ? g.id : '']);
   }
 
   // --- Wizard navigation (manual mode) ---------------------------------------
@@ -840,11 +939,20 @@ export class GrupoCrearPartida {
   );
 
   goStep(n: number): void {
-    if (n <= this.step()) this.step.set(n);
+    if (n > this.step()) return;
+    // In open mode, "step 1 / participants" is the fill phase, not the picker.
+    if (this.mode() === 'open' && this.openPhase() === 'configuring' && n === 1) {
+      this.openPhase.set('filling');
+      return;
+    }
+    this.step.set(n);
   }
 
   next(): void {
-    if (this.canStepContinue() && this.step() < this.steps.length) this.step.update((s) => s + 1);
+    if (!this.canStepContinue() || this.step() >= this.steps.length) return;
+    const target = this.step() + 1;
+    this.step.set(target);
+    if (target === this.steps.length) this.runGeneration(); // matchmaking loader
   }
 
   /** Footer primary action: advance, or launch on the final step. */
@@ -853,10 +961,23 @@ export class GrupoCrearPartida {
     else this.next();
   }
 
-  /** On step 1, "back" returns to the mode chooser; otherwise to the previous step. */
+  /**
+   * "Back": in open-configuring, step 2 returns to the waiting room (fill phase);
+   * in manual, step 1 returns to the mode chooser; otherwise the previous step.
+   */
   back(): void {
-    if (this.step() === 1) this.resetMode();
-    else this.step.update((s) => s - 1);
+    clearTimeout(this.genTimer);
+    this.generating.set(false);
+    if (this.mode() === 'open' && this.openPhase() === 'configuring') {
+      if (this.step() <= 2) this.openPhase.set('filling');
+      else this.step.update((s) => s - 1);
+      return;
+    }
+    if (this.step() === 1) {
+      this.resetMode();
+      return;
+    }
+    this.step.update((s) => s - 1);
   }
 
   /** Whether the current step is complete enough to advance. */
@@ -865,7 +986,8 @@ export class GrupoCrearPartida {
     if (this.step() === 2) return this.lineMatch().ok; // can't advance with an impossible 5v5
     if (this.step() === 3) return this.ruleErrors().length === 0; // no contradictory rules
     if (this.step() === 4) return this.champErrors().length === 0; // no duplicate reservations
-    return true; // step 5 is a stub for now
+    if (this.step() === 5) return !this.generating() && !this.launching(); // wait for matchmaking
+    return true;
   });
 
   // --- Manual mode: participant picker ---------------------------------------
@@ -1377,130 +1499,53 @@ export class GrupoCrearPartida {
   // --- Step 5: generated teams + launch --------------------------------------
   /** Bumped by "rebalancear" to reshuffle into a different valid split. */
   readonly teamSeed = signal(1);
-  readonly launched = signal(false);
+  /** Simulated backend latency: matchmaking the split / creating the lobby. */
+  readonly generating = signal(false);
+  readonly launching = signal(false);
+  private genTimer?: ReturnType<typeof setTimeout>;
+  private launchTimer?: ReturnType<typeof setTimeout>;
+
+  /** Show the matchmaking loader briefly, as the backend would take a moment. */
+  private runGeneration(): void {
+    clearTimeout(this.genTimer);
+    this.generating.set(true);
+    this.genTimer = setTimeout(() => this.generating.set(false), 1300);
+  }
 
   readonly customLineCount = computed(
     () => this.selectedMembers().filter((m) => this.isCustom(m.tag)).length,
   );
 
-  /** Stable internal elo per player (480-800), seeded by tag like the ranking. */
-  private readonly eloByTag = computed(() => {
-    const map = new Map<string, number>();
-    for (const m of this.roster()) map.set(m.tag, 480 + Math.floor(seeded(hash(m.tag))() * 321));
-    return map;
-  });
-
   elo(tag: string): number {
-    return this.eloByTag().get(tag) ?? 0;
+    return internalElo(tag);
   }
 
-  /** Assign every player a role (2 per role) via bipartite matching, seeded order. */
-  private assignRoles(players: { tag: string; roles: Set<string> }[]): Map<string, string> | null {
-    const slots: string[] = [];
-    for (const r of this.lineRolesList) slots.push(r.key, r.key);
-    const slotToPlayer: number[] = new Array(slots.length).fill(-1);
-
-    const tryAssign = (pi: number, seen: boolean[]): boolean => {
-      for (let s = 0; s < slots.length; s++) {
-        if (seen[s] || !players[pi].roles.has(slots[s])) continue;
-        seen[s] = true;
-        if (slotToPlayer[s] === -1 || tryAssign(slotToPlayer[s], seen)) {
-          slotToPlayer[s] = pi;
-          return true;
-        }
-      }
-      return false;
-    };
-
-    for (let pi = 0; pi < players.length; pi++) tryAssign(pi, new Array(slots.length).fill(false));
-
-    const map = new Map<string, string>();
-    slots.forEach((role, s) => {
-      const pi = slotToPlayer[s];
-      if (pi >= 0) map.set(players[pi].tag, role);
-    });
-    return map.size === players.length ? map : null;
-  }
-
-  /** Count how many step-3 rules a given team assignment satisfies. */
-  private scoreRules(teamOf: Map<string, 'blue' | 'red'>): number {
-    let score = 0;
-    for (const r of this.rules()) {
-      if (r.kind === 'together') {
-        if (new Set(r.a.map((t) => teamOf.get(t))).size === 1) score++;
-      } else {
-        const ta = new Set(r.a.map((t) => teamOf.get(t)));
-        const tb = new Set(r.b.map((t) => teamOf.get(t)));
-        if (ta.size === 1 && tb.size === 1 && [...ta][0] !== [...tb][0]) score++;
-      }
-    }
-    return score;
-  }
-
-  /** Build the Blue-vs-Red preview for the current seed (black-box stand-in). */
+  /** Build the Blue-vs-Red preview for the current seed (shared matchmaking module). */
   readonly generated = computed<GeneratedTeams>(() => {
     const members = this.selectedMembers();
     const empty: GeneratedTeams = { blue: [], red: [], satisfied: 0, total: this.rules().length };
     if (members.length < this.MAX) return empty;
 
-    // Seeded shuffle so each "rebalancear" explores a different valid layout.
-    const rng = mulberry32(Math.imul(this.teamSeed(), 0x9e3779b1));
-    const order = [...members];
-    for (let i = order.length - 1; i > 0; i--) {
-      const j = Math.floor(rng() * (i + 1));
-      [order[i], order[j]] = [order[j], order[i]];
-    }
+    const players: MatchmakePlayer[] = members.map((m) => ({
+      tag: m.tag,
+      roles: this.effectiveRolesOf(m.tag),
+      elo: this.elo(m.tag),
+    }));
+    const rules: MatchmakeRule[] = this.rules().map((r) => ({ kind: r.kind, a: r.a, b: r.b }));
+    const res = matchmake(players, rules, this.teamSeed());
+    if (!res) return empty;
 
-    const roleMap = this.assignRoles(order.map((m) => ({ tag: m.tag, roles: new Set(this.effectiveRolesOf(m.tag)) })));
-    if (!roleMap) return empty;
-
-    const roleKeys = this.lineRolesList.map((r) => r.key);
-    const pairByRole = new Map<string, Member[]>();
-    for (const m of members) {
-      const role = roleMap.get(m.tag) as string;
-      pairByRole.set(role, [...(pairByRole.get(role) ?? []), m]);
-    }
-
-    // Brute force all 2^5 ways to split the role pairs. Pick the split that
-    // satisfies the most rules, breaking ties toward the most balanced elo.
-    let best: Map<string, 'blue' | 'red'> | null = null;
-    let bestScore = -1;
-    let bestDiff = Infinity;
-    for (let mask = 0; mask < 32; mask++) {
-      const teamOf = new Map<string, 'blue' | 'red'>();
-      let blueElo = 0;
-      let redElo = 0;
-      roleKeys.forEach((role, i) => {
-        const pair = pairByRole.get(role) ?? [];
-        const firstBlue = (mask >> i) & 1;
-        if (pair[0]) {
-          teamOf.set(pair[0].tag, firstBlue ? 'blue' : 'red');
-          (firstBlue ? (blueElo += this.elo(pair[0].tag)) : (redElo += this.elo(pair[0].tag)));
-        }
-        if (pair[1]) {
-          teamOf.set(pair[1].tag, firstBlue ? 'red' : 'blue');
-          (firstBlue ? (redElo += this.elo(pair[1].tag)) : (blueElo += this.elo(pair[1].tag)));
-        }
-      });
-      const score = this.scoreRules(teamOf);
-      const diff = Math.abs(blueElo - redElo);
-      if (score > bestScore || (score === bestScore && diff < bestDiff)) {
-        bestScore = score;
-        bestDiff = diff;
-        best = teamOf;
-      }
-    }
-    if (!best) return empty;
-
-    const blue: TeamSlot[] = [];
-    const red: TeamSlot[] = [];
-    for (const r of this.lineRolesList) {
-      for (const m of pairByRole.get(r.key) ?? []) {
-        const slot: TeamSlot = { roleKey: r.key, roleLabel: r.label, member: m, champ: this.reservedOf(m.tag) };
-        (best.get(m.tag) === 'blue' ? blue : red).push(slot);
-      }
-    }
-    return { blue, red, satisfied: bestScore, total: this.rules().length };
+    const byTag = new Map(members.map((m) => [m.tag, m]));
+    const toSlot = (s: MatchmakeSlot): TeamSlot => {
+      const m = byTag.get(s.tag) as Member;
+      return { roleKey: s.roleKey, roleLabel: this.roleShort(s.roleKey), member: m, champ: this.reservedOf(m.tag) };
+    };
+    return {
+      blue: res.slots.filter((s) => s.team === 'blue').map(toSlot),
+      red: res.slots.filter((s) => s.team === 'red').map(toSlot),
+      satisfied: res.satisfied,
+      total: res.total,
+    };
   });
 
   /** Aggregate elo per team plus the tilt of the scale, for the balance bar. */
@@ -1522,15 +1567,41 @@ export class GrupoCrearPartida {
 
   reroll(): void {
     this.teamSeed.update((s) => s + 1);
+    this.runGeneration();
   }
 
   /**
-   * Launch the match. For now this just flips to the success state; wiring it to
-   * MatchStore (a live manual room with the generated teams) is the integration
-   * point once the store models team/role/champ assignments.
+   * Launch the match: simulate a short backend round-trip (creating the lobby),
+   * then persist a live manual room and redirect to its lobby placeholder.
    */
   launch(): void {
-    this.launched.set(true);
+    if (this.launching()) return;
+    const g = this.group();
+    const id = this.roomId();
+    if (!g || !id) return;
+    clearTimeout(this.launchTimer);
+    this.launching.set(true);
+    this.launchTimer = setTimeout(() => {
+      // Promote the same drafting room to live with the generated lineup frozen on,
+      // then redirect to its lobby.
+      this.matches.promoteToLive(id, this.toRoomTeams());
+      this.router.navigate(['/app', 'grupos', g.id, 'partidas', id]);
+    }, 1700);
+  }
+
+  /** Convert the generated preview into the display-ready lineup stored on the room. */
+  private toRoomTeams(): RoomTeams {
+    const g = this.generated();
+    const conv = (s: TeamSlot): RoomTeamSlot => ({
+      roleKey: s.roleKey,
+      roleLabel: s.roleLabel,
+      member: s.member,
+      elo: this.elo(s.member.tag),
+      champ: s.champ
+        ? { name: s.champ.name, initials: s.champ.initials, c1: s.champ.c1, c2: s.champ.c2 }
+        : null,
+    });
+    return { blue: g.blue.map(conv), red: g.red.map(conv) };
   }
 
   // --- Open mode: waiting room (persisted in MatchStore) ---------------------
@@ -1570,11 +1641,58 @@ export class GrupoCrearPartida {
     this.matches.removeSeat(id, m.tag);
   }
 
+  /** Display-ready snapshot of the current config, streamed to followers. */
+  private buildSnapshot(): DraftSnapshot {
+    const players = this.selectedMembers();
+    return {
+      step: this.step(),
+      participants: players,
+      lines: players.map((m) => ({
+        tag: m.tag,
+        name: m.name,
+        initials: m.initials,
+        hue: m.hue,
+        roles: this.selectionOf(m.tag).map((r) => this.roleShort(r)),
+      })),
+      rules: this.rules().map((r) => ({
+        kind: r.kind,
+        aNames: r.a.map((t) => this.nameOf(t)),
+        bNames: r.b.map((t) => this.nameOf(t)),
+      })),
+      reserved: Object.entries(this.reserved()).map(([tag, name]) => {
+        const c = this.champByName(name);
+        return {
+          tag,
+          name: this.nameOf(tag),
+          champ: name,
+          champInitials: c?.initials ?? '',
+          champC1: c?.c1 ?? '',
+          champC2: c?.c2 ?? '',
+        };
+      }),
+      // Raw editor state so the wizard can resume this draft losslessly later.
+      raw: {
+        step: this.step(),
+        selectedTags: [...this.selected()],
+        lineRoles: this.lineRoles(),
+        rules: this.rules().map((r) => ({ id: r.id, kind: r.kind, a: r.a, b: r.b })),
+        reserved: this.reserved(),
+      },
+    };
+  }
+
   constructor() {
     // Keep the shell header/sidebar in sync with the active group on deep-link.
     effect(() => {
       const id = this.id();
       if (id && this.groups.byId(id)) this.groups.select(id);
+    });
+
+    // Stream the manual draft live so non-admins can follow it in the room.
+    effect(() => {
+      if (this.mode() !== 'manual') return;
+      const id = this.roomId();
+      if (id) this.matches.syncDraft(id, this.buildSnapshot());
     });
   }
 }
