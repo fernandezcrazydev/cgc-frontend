@@ -261,6 +261,10 @@ import { matchmake, internalElo, MatchmakePlayer, MatchmakeSlot } from '../../..
                         <span class="res__path-ico">♻</span>
                         <span class="res__path-txt"><b>Rebalancear</b><small>mismos jugadores, nuevas posiciones</small></span>
                       </button>
+                      <button type="button" class="res__path" (click)="reconfigure(r)">
+                        <span class="res__path-ico">⚙</span>
+                        <span class="res__path-txt"><b>Reconfigurar</b><small>añadir restricciones en el wizard</small></span>
+                      </button>
                       <button type="button" class="res__path" (click)="openSwap(r)">
                         <span class="res__path-ico">🔀</span>
                         <span class="res__path-txt"><b>Cambiar jugadores</b><small>entran/salen del grupo</small></span>
@@ -426,6 +430,20 @@ import { matchmake, internalElo, MatchmakePlayer, MatchmakeSlot } from '../../..
                 </div>
               </div>
             }
+          }
+
+          @if (rebalancing()) {
+            <div class="modal-overlay">
+              <div class="cp-loader">
+                <div class="cp-loader__spinner" aria-hidden="true"></div>
+                <div class="cp-loader__title nf-mono">REBALANCEANDO…</div>
+                <div class="cp-loader__log">
+                  <div class="cp-loader__line nf-mono" style="--d:0s">› recalculando posiciones</div>
+                  <div class="cp-loader__line nf-mono" style="--d:.35s">› equilibrando los equipos</div>
+                </div>
+                <div class="cp-loader__bar"><div class="cp-loader__bar-fill"></div></div>
+              </div>
+            </div>
           }
 
           @if (confirmWin(); as side) {
@@ -725,16 +743,34 @@ export class GrupoSala {
     return new Map([...t.blue, ...t.red].map((s) => [s.member.tag, s.champ] as const));
   }
 
-  /** Vía 2: same players, NEW positions — re-emparejar automáticamente. */
+  /** True while the (simulated-latency) re-matchmaking loader is showing. */
+  readonly rebalancing = signal(false);
+
+  /** Run matchmaking with a short loading delay, then swap in the new lineup. */
+  private runRebalance(roomId: string, players: Member[], champ: Map<string, RoomTeamSlot['champ']>): void {
+    this.rebalancing.set(true);
+    setTimeout(() => {
+      const teams = this.rebuildTeams(players, champ, Date.now());
+      if (teams) this.matches.setTeams(roomId, teams);
+      this.celebrating.set(false);
+      this.rebalancing.set(false);
+    }, 1300);
+  }
+
+  /** Vía 2: same players, NEW positions — re-emparejar automáticamente (con carga). */
   rebalance(r: MatchRoom): void {
     const t = r.teams;
     if (!t) return;
-    const players = [...t.blue, ...t.red].map((s) => s.member);
-    const teams = this.rebuildTeams(players, this.champMap(t), Date.now());
-    if (teams) {
-      this.celebrating.set(false);
-      this.matches.setTeams(r.id, teams);
-    }
+    this.runRebalance(r.id, [...t.blue, ...t.red].map((s) => s.member), this.champMap(t));
+  }
+
+  /** Vía 2 alt: reopen the wizard for these 10 players to add restrictions, applying
+   *  to THIS same room (?reconfigure=roomId) instead of creating a new match. */
+  reconfigure(r: MatchRoom): void {
+    const g = this.group();
+    this.router.navigate(['/app', 'grupos', g ? g.id : '', 'crear-partida'], {
+      queryParams: { reconfigure: r.id },
+    });
   }
 
   // Vía 3: swap players (some leave, others from the group join), then re-pair.
@@ -762,12 +798,8 @@ export class GrupoSala {
   }
   confirmSwap(r: MatchRoom): void {
     if (this.swapRoster().length !== 10 || !r.teams) return;
-    const teams = this.rebuildTeams(this.swapRoster(), this.champMap(r.teams), Date.now());
-    if (teams) {
-      this.swapping.set(false);
-      this.celebrating.set(false);
-      this.matches.setTeams(r.id, teams);
-    }
+    this.swapping.set(false);
+    this.runRebalance(r.id, this.swapRoster(), this.champMap(r.teams));
   }
 
   /** Cancelled / remake — no winner, no MMR. */

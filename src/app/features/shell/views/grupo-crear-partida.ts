@@ -106,7 +106,7 @@ interface GeneratedTeams {
               <h1 class="view__title">Crear partida</h1>
             </div>
             <div class="cp-head__actions">
-              @if (mode() === 'manual') {
+              @if (mode() === 'manual' && !reconfigureRoomId()) {
                 <button type="button" class="cp-discard nf-mono" (click)="discarding.set(true)">
                   ✕ DESCARTAR
                 </button>
@@ -864,6 +864,16 @@ export class GrupoCrearPartida {
   readonly mode = signal<CreateMode | null>(null);
 
   /**
+   * Reconfigure mode (Vía 2 "con restricciones"): reached from the sala with
+   * ?reconfigure=<roomId>. Pre-loads the room's 10 players + reserved champs and
+   * jumps to the restriction steps; on launch it UPDATES that room's lineup
+   * (setTeams) instead of creating a new draft/match.
+   */
+  readonly reconfigureRoomId = signal<string | null>(
+    this.route.snapshot.queryParamMap.get('reconfigure'),
+  );
+
+  /**
    * Open mode has two phases: `filling` (the waiting room collects sign-ups) and
    * `configuring` (once full, the admin runs the SAME restriction steps 2-5 as
    * manual mode, on the 10 players who joined).
@@ -968,6 +978,13 @@ export class GrupoCrearPartida {
   back(): void {
     clearTimeout(this.genTimer);
     this.generating.set(false);
+    // Reconfigure: there's no mode chooser/draft — backing out returns to the sala.
+    const rc = this.reconfigureRoomId();
+    if (rc) {
+      if (this.step() <= 2) this.exitReconfigure(rc);
+      else this.step.update((s) => s - 1);
+      return;
+    }
     if (this.mode() === 'open' && this.openPhase() === 'configuring') {
       if (this.step() <= 2) this.openPhase.set('filling');
       else this.step.update((s) => s - 1);
@@ -978,6 +995,11 @@ export class GrupoCrearPartida {
       return;
     }
     this.step.update((s) => s - 1);
+  }
+
+  private exitReconfigure(roomId: string): void {
+    const g = this.group();
+    this.router.navigate(['/app', 'grupos', g ? g.id : '', 'partidas', roomId]);
   }
 
   /** Whether the current step is complete enough to advance. */
@@ -1577,14 +1599,20 @@ export class GrupoCrearPartida {
   launch(): void {
     if (this.launching()) return;
     const g = this.group();
-    const id = this.roomId();
-    if (!g || !id) return;
+    if (!g) return;
+    const rc = this.reconfigureRoomId();
+    // Reconfigure: update the existing room's lineup (no new room), then go back.
+    const id = rc ?? this.roomId();
+    if (!id) return;
     clearTimeout(this.launchTimer);
     this.launching.set(true);
     this.launchTimer = setTimeout(() => {
-      // Promote the same drafting room to live with the generated lineup frozen on,
-      // then redirect to its lobby.
-      this.matches.promoteToLive(id, this.toRoomTeams());
+      if (rc) {
+        this.matches.setTeams(rc, this.toRoomTeams());
+      } else {
+        // Promote the same drafting room to live with the generated lineup frozen on.
+        this.matches.promoteToLive(id, this.toRoomTeams());
+      }
       this.router.navigate(['/app', 'grupos', g.id, 'partidas', id]);
     }, 1700);
   }
@@ -1688,11 +1716,36 @@ export class GrupoCrearPartida {
       if (id && this.groups.byId(id)) this.groups.select(id);
     });
 
-    // Stream the manual draft live so non-admins can follow it in the room.
+    // Stream the manual draft live so non-admins can follow it in the room. (Skipped
+    // in reconfigure mode, which has no draft room and roomId stays null.)
     effect(() => {
       if (this.mode() !== 'manual') return;
       const id = this.roomId();
       if (id) this.matches.syncDraft(id, this.buildSnapshot());
     });
+
+    this.initReconfigure();
+  }
+
+  /**
+   * When opened with ?reconfigure=<roomId>, pre-load that room's 10 players and
+   * reserved champions, skip the mode chooser and jump straight to the restriction
+   * steps. Launch then updates that room (see launch()).
+   */
+  private initReconfigure(): void {
+    const rc = this.reconfigureRoomId();
+    if (!rc) return;
+    const room = this.matches.byId(rc);
+    if (!room?.teams) {
+      this.reconfigureRoomId.set(null); // stale link → behave like a normal create
+      return;
+    }
+    const slots = [...room.teams.blue, ...room.teams.red];
+    this.selected.set(new Set(slots.map((s) => s.member.tag)));
+    const reserved: Record<string, string> = {};
+    for (const s of slots) if (s.champ) reserved[s.member.tag] = s.champ.name;
+    this.reserved.set(reserved);
+    this.mode.set('manual');
+    this.step.set(2);
   }
 }
