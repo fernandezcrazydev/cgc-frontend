@@ -8,6 +8,7 @@ import { GroupStore } from '../../../core/group-store';
 import { MatchStore, DraftSnapshot, DraftRaw, RoomTeams, RoomTeamSlot } from '../../../core/match-store';
 import { CHAMPIONS, Champion, Member } from '../../../core/lobby';
 import { memberDetail } from '../../../core/member-detail';
+import { MemberBadge, badgesFor } from '../../../core/group-badges';
 import {
   matchmake,
   internalElo,
@@ -606,15 +607,26 @@ interface GeneratedTeams {
                           <div class="cp-slot">
                             <span class="cp-slot__role nf-mono">{{ s.roleLabel }}</span>
                             <span class="cp-pick__avatar" [style.background]="avatarBg(s.member.hue)">{{ s.member.initials }}</span>
-                            <span class="cp-slot__name nf-mono">{{ s.member.name }}</span>
-                            <span class="cp-slot__elo nf-mono" title="Elo interno">◆ {{ elo(s.member.tag) }}</span>
+                            <div class="cp-slot__main">
+                              <div class="cp-slot__line">
+                                <span class="cp-slot__name nf-mono">{{ s.member.name }}</span>
+                                <span class="cp-slot__elo nf-mono" title="Elo interno">◆ {{ elo(s.member.tag) }}</span>
+                              </div>
+                              @if (badgesOf(s.member.name); as bs) {
+                                @if (bs.length) {
+                                  <span class="mbadges mbadges--inline">
+                                    @for (b of bs; track b.id) {
+                                      <span class="mbadge" [attr.data-color]="b.color" [title]="b.title + ' · ' + b.detail">{{ b.glyph }}</span>
+                                    }
+                                  </span>
+                                }
+                              }
+                            </div>
                             @if (s.champ; as c) {
-                              <span class="cp-slot__champ">
+                              <span class="cp-slot__champ" title="Campeón reservado para este jugador">
                                 <span class="cp-slot__champ-icon" [style.background]="champGradient(c)">{{ c.initials }}</span>
                                 <span class="cp-slot__champ-name nf-mono">{{ c.name }}</span>
                               </span>
-                            } @else {
-                              <span class="cp-slot__champ cp-slot__champ--none nf-mono">— libre</span>
                             }
                           </div>
                         }
@@ -626,15 +638,26 @@ interface GeneratedTeams {
                           <div class="cp-slot">
                             <span class="cp-slot__role nf-mono">{{ s.roleLabel }}</span>
                             <span class="cp-pick__avatar" [style.background]="avatarBg(s.member.hue)">{{ s.member.initials }}</span>
-                            <span class="cp-slot__name nf-mono">{{ s.member.name }}</span>
-                            <span class="cp-slot__elo nf-mono" title="Elo interno">◆ {{ elo(s.member.tag) }}</span>
+                            <div class="cp-slot__main">
+                              <div class="cp-slot__line">
+                                <span class="cp-slot__name nf-mono">{{ s.member.name }}</span>
+                                <span class="cp-slot__elo nf-mono" title="Elo interno">◆ {{ elo(s.member.tag) }}</span>
+                              </div>
+                              @if (badgesOf(s.member.name); as bs) {
+                                @if (bs.length) {
+                                  <span class="mbadges mbadges--inline">
+                                    @for (b of bs; track b.id) {
+                                      <span class="mbadge" [attr.data-color]="b.color" [title]="b.title + ' · ' + b.detail">{{ b.glyph }}</span>
+                                    }
+                                  </span>
+                                }
+                              }
+                            </div>
                             @if (s.champ; as c) {
-                              <span class="cp-slot__champ">
+                              <span class="cp-slot__champ" title="Campeón reservado para este jugador">
                                 <span class="cp-slot__champ-icon" [style.background]="champGradient(c)">{{ c.initials }}</span>
                                 <span class="cp-slot__champ-name nf-mono">{{ c.name }}</span>
                               </span>
-                            } @else {
-                              <span class="cp-slot__champ cp-slot__champ--none nf-mono">— libre</span>
                             }
                           </div>
                         }
@@ -681,14 +704,24 @@ interface GeneratedTeams {
                   {{ step() === 1 ? '← MODO' : '← ATRÁS' }}
                 </button>
                 <div class="cp-foot__status nf-mono">
-                  @if (step() === 1) {
-                    {{ count() }}/{{ MAX }} SELECCIONADOS
-                  } @else if (step() === 2) {
-                    {{ lineMatch().ok ? 'LÍNEAS OK ✓' : 'REVISA LAS LÍNEAS ✗' }}
-                  } @else if (step() === 3) {
-                    {{ rules().length }} REGLA{{ rules().length === 1 ? '' : 'S' }}{{ ruleErrors().length ? ' · REVISA ✗' : '' }}
-                  } @else if (step() === 4) {
-                    {{ reservedCount() }} RESERVADO{{ reservedCount() === 1 ? '' : 'S' }}{{ champErrors().length ? ' · REVISA ✗' : '' }}
+                  <span class="cp-foot__status-text">
+                    @if (step() === 1) {
+                      {{ count() }}/{{ MAX }} SELECCIONADOS
+                    } @else if (step() === 2) {
+                      {{ lineMatch().ok ? 'LÍNEAS OK ✓' : 'REVISA LAS LÍNEAS ✗' }}
+                    } @else if (step() === 3) {
+                      {{ rules().length }} REGLA{{ rules().length === 1 ? '' : 'S' }}{{ ruleErrors().length ? ' · REVISA ✗' : '' }}
+                    } @else if (step() === 4) {
+                      {{ reservedCount() }} RESERVADO{{ reservedCount() === 1 ? '' : 'S' }}{{ champErrors().length ? ' · REVISA ✗' : '' }}
+                    }
+                  </span>
+                  @if (step() < steps.length && canSkipToLaunch()) {
+                    <button
+                      type="button"
+                      class="cp-foot__skip nf-mono"
+                      title="Saltar las restricciones (son opcionales) e ir directo a lanzar"
+                      (click)="skipToLaunch()"
+                    >⏩ SALTAR Y LANZAR</button>
                   }
                 </div>
                 <button
@@ -718,6 +751,15 @@ interface GeneratedTeams {
                       <span class="cp-seat__meta">
                         <span class="cp-seat__name nf-mono">{{ m.name }}</span>
                         <span class="cp-seat__role nf-mono">{{ m.owner ? 'CAPITÁN · ABRIÓ LA SALA' : 'APUNTADO' }}</span>
+                        @if (badgesOf(m.name); as bs) {
+                          @if (bs.length) {
+                            <div class="mbadges mbadges--tight">
+                              @for (b of bs; track b.id) {
+                                <span class="mbadge" [attr.data-color]="b.color" [title]="b.title + ' · ' + b.detail">{{ b.glyph }}</span>
+                              }
+                            </div>
+                          }
+                        }
                       </span>
                       @if (!m.owner) {
                         <button
@@ -972,6 +1014,27 @@ export class GrupoCrearPartida {
   }
 
   /**
+   * Can the user skip the optional restriction steps and jump straight to LANZAR?
+   * Only when the lineup is complete and the config-so-far is launch-valid: lines
+   * feasible (defaults to profile roles), and no contradictory rules / duplicate
+   * champ reservations. Steps left untouched keep their valid empty defaults.
+   */
+  readonly canSkipToLaunch = computed(
+    () =>
+      this.count() === this.MAX &&
+      this.lineMatch().ok &&
+      this.ruleErrors().length === 0 &&
+      this.champErrors().length === 0,
+  );
+
+  /** Jump past the (optional) restriction steps directly to the launch step. */
+  skipToLaunch(): void {
+    if (!this.canSkipToLaunch() || this.step() >= this.steps.length) return;
+    this.step.set(this.steps.length);
+    this.runGeneration(); // matchmaking loader, same as reaching it via "Siguiente"
+  }
+
+  /**
    * "Back": in open-configuring, step 2 returns to the waiting room (fill phase);
    * in manual, step 1 returns to the mode chooser; otherwise the previous step.
    */
@@ -1053,6 +1116,16 @@ export class GrupoCrearPartida {
 
   avatarBg(hue: number): string {
     return `radial-gradient(circle at 32% 26%, hsl(${hue},90%,64%), hsl(${hue},78%,30%))`;
+  }
+
+  /** Name → accolade badges for this group's roster, shared with ranking/member list. */
+  readonly badges = computed(() => {
+    const g = this.group();
+    return g ? badgesFor(g.id, this.groups.rosterOf(g.id)) : new Map<string, MemberBadge[]>();
+  });
+
+  badgesOf(name: string): MemberBadge[] {
+    return this.badges().get(name) ?? [];
   }
 
   toggle(m: Member): void {

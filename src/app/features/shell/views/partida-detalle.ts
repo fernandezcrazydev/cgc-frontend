@@ -68,7 +68,7 @@ import { matchById, kdaRatio } from '../../../core/match-history';
           </div>
         </nf-window>
 
-        <div class="actions">
+        <div class="actions md-actions">
           <button nfButton variant="ghost" size="md" [routerLink]="['/app', 'historial']">← VOLVER AL HISTORIAL</button>
         </div>
       } @else {

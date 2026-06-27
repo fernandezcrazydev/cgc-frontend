@@ -14,9 +14,10 @@ import {
   RoomTeams,
   RoomTeamSlot,
 } from '../../../core/match-store';
-import { Member } from '../../../core/lobby';
+import { CURRENT_USER, Member } from '../../../core/lobby';
 import { memberDetail } from '../../../core/member-detail';
 import { matchmake, internalElo, MatchmakePlayer, MatchmakeSlot } from '../../../core/matchmaking';
+import { MemberBadge, badgesFor } from '../../../core/group-badges';
 
 /**
  * Detail of a single match room, rendered per status:
@@ -28,7 +29,14 @@ import { matchmake, internalElo, MatchmakePlayer, MatchmakeSlot } from '../../..
  *
  * Reached from the group's active-match list or the pending-room banner. The live
  * config is streamed in by the create-match wizard (see grupo-crear-partida).
- * BACKEND NOTE: real cross-user updates need a realtime subscription in MatchStore.
+ *
+ * REALTIME / PERMISSIONS (deferred, model only — see `canManage` + `confirmPreview`):
+ * any relaunch (revancha / rebalanceo / cambio de jugadores) first lands in a LOCAL
+ * `previewTeams` so the admin can review (and re-rebalancear) the paso-5 preview
+ * privately; only "LANZAR" writes to MatchStore via `setTeams`, which is what should
+ * fan out to spectators. BACKEND NOTE: real cross-user updates need a realtime
+ * subscription (SSE) in MatchStore; once it exists, gate the action UI behind
+ * `canManage` so non-admins get this view read-only and just watch it update live.
  */
 @Component({
   selector: 'app-grupo-sala',
@@ -178,6 +186,15 @@ import { matchmake, internalElo, MatchmakePlayer, MatchmakeSlot } from '../../..
                             <span class="lm-champ--none">sin campeón</span>
                           }
                         </span>
+                        @if (badgesOf(lane.blue.member.name); as bs) {
+                          @if (bs.length) {
+                            <div class="mbadges mbadges--tight">
+                              @for (b of bs; track b.id) {
+                                <span class="mbadge" [attr.data-color]="b.color" [title]="b.title + ' · ' + b.detail">{{ b.glyph }}</span>
+                              }
+                            </div>
+                          }
+                        }
                       </div>
                     </div>
 
@@ -194,6 +211,15 @@ import { matchmake, internalElo, MatchmakePlayer, MatchmakeSlot } from '../../..
                             <span class="lm-champ--none">sin campeón</span>
                           }
                         </span>
+                        @if (badgesOf(lane.red.member.name); as bs) {
+                          @if (bs.length) {
+                            <div class="mbadges mbadges--tight">
+                              @for (b of bs; track b.id) {
+                                <span class="mbadge" [attr.data-color]="b.color" [title]="b.title + ' · ' + b.detail">{{ b.glyph }}</span>
+                              }
+                            </div>
+                          }
+                        }
                       </div>
                       <span class="lm-av" [style.background]="avatarBg(lane.red.member.hue)">{{ lane.red.member.initials }}</span>
                     </div>
@@ -270,7 +296,7 @@ import { matchmake, internalElo, MatchmakePlayer, MatchmakeSlot } from '../../..
                         <span class="res__path-txt"><b>Cambiar jugadores</b><small>entran/salen del grupo</small></span>
                       </button>
                     </div>
-                    <button type="button" class="res__close nf-mono" (click)="closeRoom(r)">⏹ CERRAR LA SALA</button>
+                    <button type="button" class="res__close nf-mono" (click)="confirmClose.set(true)">⏹ CERRAR LA SALA</button>
                   </div>
                 }
               } @else if (resolvingImport()) {
@@ -355,6 +381,15 @@ import { matchmake, internalElo, MatchmakePlayer, MatchmakeSlot } from '../../..
                       <span class="cp-seat__meta">
                         <span class="cp-seat__name nf-mono">{{ m.name }}</span>
                         <span class="cp-seat__role nf-mono">{{ m.owner ? 'CAPITÁN · ABRIÓ LA SALA' : 'APUNTADO' }}</span>
+                        @if (badgesOf(m.name); as bs) {
+                          @if (bs.length) {
+                            <div class="mbadges mbadges--tight">
+                              @for (b of bs; track b.id) {
+                                <span class="mbadge" [attr.data-color]="b.color" [title]="b.title + ' · ' + b.detail">{{ b.glyph }}</span>
+                              }
+                            </div>
+                          }
+                        }
                       </span>
                       @if (!m.owner && r.status === 'waiting') {
                         <button
@@ -422,6 +457,15 @@ import { matchmake, internalElo, MatchmakePlayer, MatchmakeSlot } from '../../..
                       <div class="vic__winner">
                         <span class="vic__av" [style.background]="avatarBg(w.member.hue)">{{ w.member.initials }}</span>
                         <span class="vic__name nf-mono">{{ w.member.name }}</span>
+                        @if (badgesOf(w.member.name); as bs) {
+                          @if (bs.length) {
+                            <div class="mbadges mbadges--tight">
+                              @for (b of bs; track b.id) {
+                                <span class="mbadge" [attr.data-color]="b.color" [title]="b.title + ' · ' + b.detail">{{ b.glyph }}</span>
+                              }
+                            </div>
+                          }
+                        }
                         <span class="vic__delta nf-mono">{{ mmrOf(res, w.member.tag) }} <small>MMR</small></span>
                       </div>
                     }
@@ -446,6 +490,113 @@ import { matchmake, internalElo, MatchmakePlayer, MatchmakeSlot } from '../../..
             </div>
           }
 
+          @if (previewTeams(); as pt) {
+            @if (!rebalancing()) {
+              <div class="modal-overlay">
+                <div class="modal modal--wide" (click)="$event.stopPropagation()">
+                  <nf-window title="preview_partida.exe" accent="cyan" bodyPadding="24px">
+                    <div class="settings-eyebrow nf-mono">// REVISA EL REPARTO ANTES DE LANZAR</div>
+                    <p class="remove-msg">
+                      Así quedan los equipos. Si no te convence, vuelve a rebalancear; cuando estés
+                      conforme, lánzala.
+                    </p>
+
+                    <div class="cp-balance">
+                      <div class="cp-balance__head nf-mono">
+                        <span class="cp-balance__team cp-balance__team--blue">AZUL <b>{{ teamElo(pt).blue }}</b></span>
+                        <span class="cp-balance__verdict" [attr.data-side]="verdict(pt).side">
+                          @if (verdict(pt).side === 'even') {
+                            ⚖ {{ verdict(pt).text }}
+                          } @else {
+                            {{ verdict(pt).text }} {{ verdict(pt).side === 'blue' ? 'AZUL ◀' : '▶ ROJO' }}
+                          }
+                        </span>
+                        <span class="cp-balance__team cp-balance__team--red"><b>{{ teamElo(pt).red }}</b> ROJO</span>
+                      </div>
+                      <div class="cp-balance__bar">
+                        <div class="cp-balance__fill" [style.width.%]="teamElo(pt).blueShare * 100"></div>
+                        <div class="cp-balance__mid" aria-hidden="true"></div>
+                      </div>
+                    </div>
+
+                    <div class="cp-teams">
+                      <div class="cp-team cp-team--blue">
+                        <div class="cp-team__head nf-mono"><span class="cp-team__dot"></span> EQUIPO AZUL</div>
+                        @for (s of pt.blue; track s.member.tag) {
+                          <div class="cp-slot">
+                            <span class="cp-slot__role nf-mono">{{ s.roleLabel }}</span>
+                            <span class="cp-pick__avatar" [style.background]="avatarBg(s.member.hue)">{{ s.member.initials }}</span>
+                            <div class="cp-slot__main">
+                              <div class="cp-slot__line">
+                                <span class="cp-slot__name nf-mono">{{ s.member.name }}</span>
+                                <span class="cp-slot__elo nf-mono" title="Elo interno">◆ {{ s.elo }}</span>
+                              </div>
+                              @if (badgesOf(s.member.name); as bs) {
+                                @if (bs.length) {
+                                  <span class="mbadges mbadges--inline">
+                                    @for (b of bs; track b.id) {
+                                      <span class="mbadge" [attr.data-color]="b.color" [title]="b.title + ' · ' + b.detail">{{ b.glyph }}</span>
+                                    }
+                                  </span>
+                                }
+                              }
+                            </div>
+                            @if (s.champ; as c) {
+                              <span class="cp-slot__champ">
+                                <span class="cp-slot__champ-icon" [style.background]="'linear-gradient(135deg,' + c.c1 + ',' + c.c2 + ')'">{{ c.initials }}</span>
+                                <span class="cp-slot__champ-name nf-mono">{{ c.name }}</span>
+                              </span>
+                            }
+                          </div>
+                        }
+                      </div>
+
+                      <div class="cp-team cp-team--red">
+                        <div class="cp-team__head nf-mono"><span class="cp-team__dot"></span> EQUIPO ROJO</div>
+                        @for (s of pt.red; track s.member.tag) {
+                          <div class="cp-slot">
+                            <span class="cp-slot__role nf-mono">{{ s.roleLabel }}</span>
+                            <span class="cp-pick__avatar" [style.background]="avatarBg(s.member.hue)">{{ s.member.initials }}</span>
+                            <div class="cp-slot__main">
+                              <div class="cp-slot__line">
+                                <span class="cp-slot__name nf-mono">{{ s.member.name }}</span>
+                                <span class="cp-slot__elo nf-mono" title="Elo interno">◆ {{ s.elo }}</span>
+                              </div>
+                              @if (badgesOf(s.member.name); as bs) {
+                                @if (bs.length) {
+                                  <span class="mbadges mbadges--inline">
+                                    @for (b of bs; track b.id) {
+                                      <span class="mbadge" [attr.data-color]="b.color" [title]="b.title + ' · ' + b.detail">{{ b.glyph }}</span>
+                                    }
+                                  </span>
+                                }
+                              }
+                            </div>
+                            @if (s.champ; as c) {
+                              <span class="cp-slot__champ">
+                                <span class="cp-slot__champ-icon" [style.background]="'linear-gradient(135deg,' + c.c1 + ',' + c.c2 + ')'">{{ c.initials }}</span>
+                                <span class="cp-slot__champ-name nf-mono">{{ c.name }}</span>
+                              </span>
+                            }
+                          </div>
+                        }
+                      </div>
+                    </div>
+
+                    <div class="cp-teams__foot">
+                      <button type="button" class="cp-reroll nf-mono" (click)="rebalancePreview()">↻ REBALANCEAR</button>
+                    </div>
+
+                    <div class="form-foot">
+                      <button nfButton variant="ghost" size="md" (click)="cancelPreview()">CANCELAR</button>
+                      <button nfButton variant="primary" size="md" (click)="confirmPreview()">LANZAR PARTIDA ►</button>
+                    </div>
+                  </nf-window>
+                </div>
+              </div>
+            }
+          }
+
           @if (confirmWin(); as side) {
             <div class="modal-overlay" (click)="confirmWin.set(null)">
               <div class="modal" (click)="$event.stopPropagation()">
@@ -460,6 +611,26 @@ import { matchmake, internalElo, MatchmakePlayer, MatchmakeSlot } from '../../..
                   <div class="form-foot">
                     <button nfButton variant="ghost" size="md" (click)="confirmWin.set(null)">CANCELAR</button>
                     <button nfButton variant="primary" size="md" (click)="confirmWinNow(r)">CONFIRMAR ►</button>
+                  </div>
+                </nf-window>
+              </div>
+            </div>
+          }
+
+          @if (confirmClose()) {
+            <div class="modal-overlay" (click)="confirmClose.set(false)">
+              <div class="modal" (click)="$event.stopPropagation()">
+                <nf-window [title]="'cerrar_sala.exe'" accent="pink" bodyPadding="24px">
+                  <div class="settings-eyebrow nf-mono">// CERRAR LA SALA</div>
+                  <p class="remove-msg">
+                    ¿Seguro que quieres <strong>CERRAR LA SALA</strong>? Se terminará la sesión.
+                  </p>
+                  <div class="remove-warn nf-mono">
+                    ⚠ La sala se eliminará para todos los jugadores. Esta acción no se puede deshacer.
+                  </div>
+                  <div class="form-foot">
+                    <button nfButton variant="ghost" size="md" (click)="confirmClose.set(false)">CANCELAR</button>
+                    <button nfButton variant="danger" size="md" (click)="closeRoom(r)">CERRAR SALA ►</button>
                   </div>
                 </nf-window>
               </div>
@@ -521,6 +692,29 @@ export class GrupoSala {
     return !!r && r.seats.length >= r.capacity;
   });
 
+  /**
+   * Whether the current user may CONTROL this room (rebalancear, marcar resultado,
+   * cambiar jugadores, cerrarla) vs. solo verla EN DIRECTO como espectador.
+   *
+   * Wired but intentionally NOT enforced in the template yet: while there's no real
+   * auth we keep every action visible so the demo stays usable. When auth + SSE land,
+   * gate the action UI behind this — admins keep the buttons, everyone else gets the
+   * live lineup read-only (same idea as the `drafting` follower view above). The
+   * candidate lineup the admin is previewing (`previewTeams`) is component-local on
+   * purpose, so it never reaches spectators; only a committed `setTeams()` does.
+   *
+   * Real rule: the room captain (`openedBy`) plus the group's owner/admins.
+   * BACKEND NOTE: identity is server-side — this client gate is only for UX.
+   */
+  readonly canManage = computed(() => {
+    const g = this.group();
+    const r = this.room();
+    if (!g || !r) return false;
+    if (r.openedBy === CURRENT_USER.name) return true;
+    const me = this.groups.rosterOf(g.id).find((m) => m.tag === CURRENT_USER.tag);
+    return !!me && (me.owner || !!me.admin);
+  });
+
   /** Exactly `capacity` slots: a member when filled, null when still open. */
   readonly seatSlots = computed<(Member | null)[]>(() => {
     const r = this.room();
@@ -538,6 +732,16 @@ export class GrupoSala {
 
   avatarBg(hue: number): string {
     return `radial-gradient(circle at 32% 26%, hsl(${hue},90%,64%), hsl(${hue},78%,30%))`;
+  }
+
+  /** Name → accolade badges for this group's roster, shared with ranking/member list. */
+  readonly badges = computed(() => {
+    const g = this.group();
+    return g ? badgesFor(g.id, this.groups.rosterOf(g.id)) : new Map<string, MemberBadge[]>();
+  });
+
+  badgesOf(name: string): MemberBadge[] {
+    return this.badges().get(name) ?? [];
   }
 
   /** The frozen Blue/Red lineup of a live match, or null (waiting/no teams). */
@@ -573,6 +777,8 @@ export class GrupoSala {
   readonly celebrating = signal(false);
   /** Pending manual-win confirmation ('blue'/'red') or null. Manual = ADMIN ONLY. */
   readonly confirmWin = signal<'blue' | 'red' | null>(null);
+  /** Pending "close the room" confirmation. Closing ends the session for everyone. */
+  readonly confirmClose = signal(false);
   /** Import conflicts awaiting resolution (mock of the desktop scraper upload). */
   readonly importConflicts = signal<ImportConflict[]>([]);
   readonly resolvingImport = signal(false);
@@ -746,15 +952,54 @@ export class GrupoSala {
   /** True while the (simulated-latency) re-matchmaking loader is showing. */
   readonly rebalancing = signal(false);
 
-  /** Run matchmaking with a short loading delay, then swap in the new lineup. */
+  // --- Preview (paso 5 del wizard) antes de lanzar de verdad -----------------
+  /**
+   * Candidate Blue/Red lineup awaiting the admin's OK. Every relaunch (revancha,
+   * rebalanceo, cambio de jugadores) lands HERE first — the same preview as paso 5
+   * del wizard — so nothing goes live until "LANZAR". From the preview you can
+   * rebalancear cuantas veces quieras, o cancelar y quedarte como estabas.
+   */
+  readonly previewTeams = signal<RoomTeams | null>(null);
+  /** Players + reserved champs the preview was built from, so "rebalancear" can re-run. */
+  private previewPlayers: Member[] = [];
+  private previewChamp = new Map<string, RoomTeamSlot['champ']>();
+  private previewRoomId = '';
+
+  /** Run matchmaking with a short loading delay, then SHOW the preview (no launch yet). */
   private runRebalance(roomId: string, players: Member[], champ: Map<string, RoomTeamSlot['champ']>): void {
+    this.previewRoomId = roomId;
+    this.previewPlayers = players;
+    this.previewChamp = champ;
     this.rebalancing.set(true);
     setTimeout(() => {
       const teams = this.rebuildTeams(players, champ, Date.now());
-      if (teams) this.matches.setTeams(roomId, teams);
+      if (teams) this.previewTeams.set(teams);
       this.celebrating.set(false);
       this.rebalancing.set(false);
     }, 1300);
+  }
+
+  /** Try another split for the SAME players, without leaving the preview. */
+  rebalancePreview(): void {
+    this.runRebalance(this.previewRoomId, this.previewPlayers, this.previewChamp);
+  }
+
+  /**
+   * Accept the previewed lineup: COMMIT it to the room and start the match. This is
+   * the only write here that other users should see — `setTeams` lands in MatchStore
+   * and the sala re-renders reactively for everyone (today in one browser; over SSE
+   * across users once MatchStore broadcasts). The candidate preview never propagates.
+   */
+  confirmPreview(): void {
+    const teams = this.previewTeams();
+    if (!teams || !this.previewRoomId) return;
+    this.matches.setTeams(this.previewRoomId, teams);
+    this.previewTeams.set(null);
+  }
+
+  /** Dismiss the preview without launching — leave the room exactly as it was. */
+  cancelPreview(): void {
+    this.previewTeams.set(null);
   }
 
   /** Vía 2: same players, NEW positions — re-emparejar automáticamente (con carga). */
@@ -817,15 +1062,21 @@ export class GrupoSala {
     this.matches.clearResult(r.id);
   }
 
-  /** Vía 1: rematch with the same teams and positions. */
+  /** Vía 1: rematch with the same teams and positions — straight to the preview. */
   rematchSame(r: MatchRoom): void {
+    const t = r.teams;
+    if (!t) return;
     this.celebrating.set(false);
-    this.matches.clearResult(r.id);
+    this.previewRoomId = r.id;
+    this.previewPlayers = [...t.blue, ...t.red].map((s) => s.member);
+    this.previewChamp = this.champMap(t);
+    this.previewTeams.set(t);
   }
 
   /** Vía 4 (the missing one): end the session and remove the room. */
   closeRoom(r: MatchRoom): void {
     const g = this.group();
+    this.confirmClose.set(false);
     this.matches.remove(r.id);
     this.router.navigate(['/app', 'grupos', g ? g.id : '', 'partidas']);
   }

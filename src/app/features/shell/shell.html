@@ -144,8 +144,8 @@
         <button
           type="button"
           class="shell__bell"
-          [class.is-active]="showNotifications() || hasUnread()"
-          [attr.aria-label]="'Notificaciones' + (hasUnread() ? ' (' + unreadCount() + ' sin leer)' : '')"
+          [class.is-active]="showNotifications() || notifs.hasUnread()"
+          [attr.aria-label]="'Notificaciones' + (notifs.hasUnread() ? ' (' + notifs.unreadCount() + ' sin leer)' : '')"
           [attr.aria-expanded]="showNotifications()"
           (click)="toggleNotifications()"
         >
@@ -154,8 +154,8 @@
             <line x1="1.5" y1="13" x2="14.5" y2="13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
             <path d="M6 13C6 14.1 6.9 15 8 15C9.1 15 10 14.1 10 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
           </svg>
-          @if (hasUnread()) {
-            <span class="shell__bell-badge nf-mono">{{ unreadCount() }}</span>
+          @if (notifs.hasUnread()) {
+            <span class="shell__bell-badge nf-mono">{{ notifs.unreadCount() }}</span>
           }
         </button>
       </div>
@@ -269,7 +269,7 @@
           </div>
 
           <div class="shell__notif-list">
-            @for (n of notifications(); track n.id) {
+            @for (n of notifs.notifications(); track n.id) {
               <button
                 type="button"
                 class="shell__notif-item"

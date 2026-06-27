@@ -7,12 +7,12 @@ import {
   GroupInvitePayload,
   NAV,
   NOTIF_GLYPH,
-  NOTIFICATIONS,
   Notification,
   NotificationKind,
 } from '../../core/lobby';
 import { GroupStore } from '../../core/group-store';
 import { MatchStore, MatchRoom } from '../../core/match-store';
+import { NotificationStore } from '../../core/notification-store';
 import { ToastService } from '../../core/toast';
 import { NfBadge, NfButton, NfToastHost, NfWindow } from '../../ui';
 
@@ -33,6 +33,7 @@ export class Shell {
   readonly user = CURRENT_USER;
   readonly groups = inject(GroupStore);
   private readonly matches = inject(MatchStore);
+  readonly notifs = inject(NotificationStore);
   private readonly toasts = inject(ToastService);
 
   /**
@@ -87,10 +88,9 @@ export class Shell {
   }
 
   // ── Notifications (top-right bell + dropdown panel) ───────────────
-  readonly notifications = signal<Notification[]>(NOTIFICATIONS);
+  // State lives in NotificationStore so the bell and the home "Requiere tu
+  // atención" panel stay in sync; the shell only owns the panel's open/close.
   readonly showNotifications = signal(false);
-  readonly unreadCount = computed(() => this.notifications().filter((n) => n.unread).length);
-  readonly hasUnread = computed(() => this.unreadCount() > 0);
 
   glyphFor(kind: NotificationKind): string {
     return NOTIF_GLYPH[kind];
@@ -100,9 +100,7 @@ export class Shell {
   toggleNotifications(): void {
     const willOpen = !this.showNotifications();
     this.showNotifications.set(willOpen);
-    if (willOpen) {
-      this.notifications.update((list) => list.map((n) => ({ ...n, unread: false })));
-    }
+    if (willOpen) this.notifs.markAllRead();
   }
 
   closeNotifications(): void {
@@ -111,7 +109,7 @@ export class Shell {
 
   clearNotifications(event: Event): void {
     event.stopPropagation();
-    this.notifications.set([]);
+    this.notifs.clear();
   }
 
   // ── Group invitation review modal ─────────────────────────────────
@@ -152,7 +150,7 @@ export class Shell {
   /** Drop the notification that triggered the review once it's been answered. */
   private dismissReviewNotif(): void {
     const id = this.reviewNotifId;
-    if (id != null) this.notifications.update((list) => list.filter((n) => n.id !== id));
+    if (id != null) this.notifs.dismiss(id);
   }
 
   // ── Feedback / bug report modal ───────────────────────────────────

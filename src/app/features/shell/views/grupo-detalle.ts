@@ -3,12 +3,22 @@ import { FormsModule } from '@angular/forms';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
-import { NfAvatarPicker, NfBadge, NfButton, NfSelect, NfWindow } from '../../../ui';
+import { NfAvatarPicker, NfBadge, NfBadgeColor, NfButton, NfSelect, NfWindow } from '../../../ui';
 import { GroupStore } from '../../../core/group-store';
 import { MatchStore } from '../../../core/match-store';
 import { ToastService } from '../../../core/toast';
-import { Group, Member, REGION_OPTIONS } from '../../../core/lobby';
+import { CURRENT_USER, Group, Member, REGION_OPTIONS } from '../../../core/lobby';
 import { MemberDetail, memberDetail, opggUrl } from '../../../core/member-detail';
+import { MemberBadge, badgesFor } from '../../../core/group-badges';
+import {
+  Perk,
+  PerkTone,
+  PERK_CATALOG,
+  PERK_COLOR,
+  PERK_TONES,
+  PERK_TONE_LABEL,
+  perksFromIds,
+} from '../../../core/perks';
 
 @Component({
   selector: 'app-grupo-detalle',
@@ -82,6 +92,15 @@ import { MemberDetail, memberDetail, opggUrl } from '../../../core/member-detail
                   <div class="member__meta">
                     <div class="member__name nf-mono">{{ m.name }}</div>
                     <div class="member__role nf-mono">{{ m.role }}</div>
+                    @if (badgesOf(m.name); as bs) {
+                      @if (bs.length) {
+                        <div class="mbadges">
+                          @for (b of bs; track b.id) {
+                            <span class="mbadge" [attr.data-color]="b.color" [title]="b.title + ' · ' + b.detail">{{ b.glyph }}</span>
+                          }
+                        </div>
+                      }
+                    }
                   </div>
                   <span class="member__chevron" aria-hidden="true">▾</span>
                   @if (m.owner) {
@@ -152,6 +171,25 @@ import { MemberDetail, memberDetail, opggUrl } from '../../../core/member-detail
                           <nf-badge color="yellow">⚡ {{ r }}</nf-badge>
                         }
                       </div>
+                      @if (perksFor(m.tag); as ps) {
+                        @if (ps.length || canEditPerks()) {
+                          <div class="member-detail__group member-detail__group--perks">
+                            <span class="member-detail__label nf-mono">Perks</span>
+                            @for (p of ps; track p.id) {
+                              <nf-badge [color]="perkColor(p.tone)">{{ p.glyph }} {{ p.label }}</nf-badge>
+                            } @empty {
+                              <span class="member-detail__empty nf-mono">sin perks aún</span>
+                            }
+                            @if (canEditPerks()) {
+                              <button
+                                type="button"
+                                class="member-detail__perk-edit nf-mono"
+                                (click)="openPerks(m, $event)"
+                              >✎ editar</button>
+                            }
+                          </div>
+                        }
+                      }
                     </div>
 
                     <div class="matchup-grid">
@@ -368,6 +406,48 @@ import { MemberDetail, memberDetail, opggUrl } from '../../../core/member-detail
       </div>
     }
 
+    @if (editingPerks(); as m) {
+      <div class="modal-overlay" (click)="closePerks()">
+        <div class="modal" (click)="$event.stopPropagation()">
+          <nf-window title="perks_jugador.exe" accent="cyan" bodyPadding="22px 22px 26px">
+            <div class="settings-eyebrow nf-mono">// PERKS · {{ m.name }}</div>
+            <p class="remove-msg">
+              Marca el estilo de juego de <strong>{{ m.name }}</strong> en este grupo. Lo verán
+              todos los miembros; solo owner y administradores pueden editarlo.
+            </p>
+
+            @for (tone of perkTones; track tone) {
+              <div class="perks-edit">
+                <div class="perks-edit__heading nf-mono" [attr.data-tone]="tone">
+                  {{ perkToneLabel(tone) }}
+                </div>
+                <div class="perks-edit__chips">
+                  @for (p of perksOfTone(tone); track p.id) {
+                    <button
+                      type="button"
+                      class="perk-chip"
+                      [attr.data-tone]="tone"
+                      [class.perk-chip--on]="isPerkOn(m.tag, p.id)"
+                      [attr.aria-pressed]="isPerkOn(m.tag, p.id)"
+                      (click)="togglePerk(m.tag, p.id)"
+                    >
+                      <span class="perk-chip__glyph" aria-hidden="true">{{ p.glyph }}</span>
+                      <span class="perk-chip__label nf-mono">{{ p.label }}</span>
+                      <span class="perk-chip__mark" aria-hidden="true">{{ isPerkOn(m.tag, p.id) ? '✓' : '+' }}</span>
+                    </button>
+                  }
+                </div>
+              </div>
+            }
+
+            <div class="form-foot">
+              <button nfButton variant="primary" size="md" (click)="closePerks()">LISTO</button>
+            </div>
+          </nf-window>
+        </div>
+      </div>
+    }
+
     @if (menuTag()) {
       <div class="menu-backdrop" (click)="closeMenu()"></div>
     }
@@ -400,6 +480,73 @@ export class GrupoDetalle {
     const g = this.group();
     return g ? this.groups.pendingOf(g.id) : [];
   });
+
+  /** Name → accolade badges for the roster, shared with the group ranking. */
+  readonly badges = computed(() => {
+    const g = this.group();
+    return g ? badgesFor(g.id, this.members()) : new Map<string, MemberBadge[]>();
+  });
+
+  badgesOf(name: string): MemberBadge[] {
+    return this.badges().get(name) ?? [];
+  }
+
+  // --- Player perks (owner/admin-curated gamestyle labels) ------------------
+  readonly perkTones = PERK_TONES;
+
+  /**
+   * Whether the current user may EDIT perks: the group owner, or an admin. Mirrors
+   * the rule that already governs managing members/invites. Read access is open to
+   * everyone; this only gates the editor. BACKEND NOTE: revalidated server-side.
+   */
+  readonly canEditPerks = computed(() => {
+    const g = this.group();
+    if (!g) return false;
+    if (g.role === 'OWNER') return true;
+    const me = this.members().find((m) => m.tag === CURRENT_USER.tag);
+    return !!me && (me.owner || !!me.admin);
+  });
+
+  /** Resolved perks pinned on a member, for the read-only badges. */
+  perksFor(tag: string): Perk[] {
+    const g = this.group();
+    return g ? perksFromIds(this.groups.perksOf(g.id, tag)) : [];
+  }
+
+  perkColor(tone: PerkTone): NfBadgeColor {
+    return PERK_COLOR[tone];
+  }
+
+  perkToneLabel(tone: PerkTone): string {
+    return PERK_TONE_LABEL[tone];
+  }
+
+  perksOfTone(tone: PerkTone): Perk[] {
+    return PERK_CATALOG.filter((p) => p.tone === tone);
+  }
+
+  isPerkOn(tag: string, perkId: string): boolean {
+    const g = this.group();
+    return !!g && this.groups.perksOf(g.id, tag).includes(perkId);
+  }
+
+  /** The member whose perks are being edited, or null when the modal is closed. */
+  readonly editingPerks = signal<Member | null>(null);
+
+  openPerks(m: Member, ev: Event): void {
+    ev.stopPropagation();
+    this.editingPerks.set(m);
+  }
+
+  closePerks(): void {
+    this.editingPerks.set(null);
+  }
+
+  togglePerk(tag: string, perkId: string): void {
+    const g = this.group();
+    if (!g || !this.canEditPerks()) return;
+    this.groups.togglePerk(g.id, tag, perkId);
+  }
 
   /** Active match rooms (waiting + live) for the active group. */
   readonly activeMatches = computed(() => {

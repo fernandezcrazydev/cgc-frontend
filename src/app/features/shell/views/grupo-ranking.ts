@@ -5,6 +5,7 @@ import { map } from 'rxjs';
 import { NfButton } from '../../../ui';
 import { GroupStore } from '../../../core/group-store';
 import { rankingFor, sparkPoints, RankEntry } from '../../../core/group-ranking';
+import { MemberBadge, badgesFor } from '../../../core/group-badges';
 
 @Component({
   selector: 'app-grupo-ranking',
@@ -47,6 +48,15 @@ import { rankingFor, sparkPoints, RankEntry } from '../../../core/group-ranking'
                   <span class="lb-record__dot">·</span>
                   <span class="lb-record__wr">{{ e.wr }}% WR</span>
                 </div>
+                @if (badgesOf(e.name); as bs) {
+                  @if (bs.length) {
+                    <div class="mbadges">
+                      @for (b of bs; track b.id) {
+                        <span class="mbadge" [attr.data-color]="b.color" [title]="b.title + ' · ' + b.detail">{{ b.glyph }}</span>
+                      }
+                    </div>
+                  }
+                }
               </div>
 
               <svg class="lb-spark" [class.is-down]="e.trend === 'down'" viewBox="0 0 120 32" preserveAspectRatio="none">
@@ -89,6 +99,16 @@ export class GrupoRanking {
     const g = this.group();
     return g ? rankingFor(g.id, g.members) : [];
   });
+
+  /** Name → accolade badges for the group, shared with the member list. */
+  readonly badges = computed(() => {
+    const g = this.group();
+    return g ? badgesFor(g.id, this.groups.rosterOf(g.id)) : new Map<string, MemberBadge[]>();
+  });
+
+  badgesOf(name: string): MemberBadge[] {
+    return this.badges().get(name) ?? [];
+  }
 
   spark(e: RankEntry): string {
     return sparkPoints(e.spark);

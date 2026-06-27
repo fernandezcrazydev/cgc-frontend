@@ -1,12 +1,6 @@
 /* Shared lobby data for the NEXUS//FORGE app shell (from Login.dc.html). */
 import { NfBadgeColor } from '../ui';
 
-export interface StatCard {
-  label: string;
-  value: string;
-  accent: string;
-}
-
 export interface MatchItem {
   name: string;
   mode: string;
@@ -134,13 +128,6 @@ export const GROUPS: Group[] = [
   { id: 'scrim-squad',    name: 'Scrim Squad',        tag: 'EUW', initials: 'SS', role: 'MIEMBRO', members: 12, c1: 'hsl(190,90%,62%)', c2: 'hsl(205,78%,32%)' },
   { id: 'night-owls',     name: 'Night Owls',         tag: 'NA',  initials: 'NO', role: 'OWNER',   members: 5,  c1: 'hsl(150,90%,60%)', c2: 'hsl(160,78%,30%)' },
   { id: 'arcane-five',    name: 'Arcane Five',         tag: 'KR',  initials: 'A5', role: 'MIEMBRO', members: 9,  c1: 'hsl(48,95%,62%)',  c2: 'hsl(38,80%,32%)'  },
-];
-
-export const STATS: StatCard[] = [
-  { label: 'PARTIDAS', value: '47', accent: 'var(--nf-cyan)' },
-  { label: 'VICTORIAS', value: '31', accent: 'var(--nf-green)' },
-  { label: 'WIN RATE', value: '66%', accent: 'var(--nf-pink)' },
-  { label: 'LP', value: '2480', accent: 'var(--nf-yellow)' },
 ];
 
 export const MATCHES: MatchItem[] = [

@@ -91,6 +91,12 @@ export class GroupStore {
   /** Pending outgoing invites per group id, stored as Riot-style tags. */
   private readonly pendingInvites = signal<Record<string, string[]>>({});
 
+  /**
+   * Perks pinned on each member, per group: `{ groupId: { memberTag: perkId[] } }`.
+   * Owner/admin-curated gamestyle labels (see core/perks.ts). Empty until set.
+   */
+  private readonly perks = signal<Record<string, Record<string, string[]>>>({});
+
   select(id: string): void {
     this._selectedId.set(id);
   }
@@ -135,6 +141,27 @@ export class GroupStore {
       ...map,
       [id]: (map[id] ?? []).filter((t) => t !== tag),
     }));
+  }
+
+  /** Reactive read of a member's perk ids in a group; empty when none set. */
+  perksOf(groupId: string, tag: string): string[] {
+    return this.perks()[groupId]?.[tag] ?? [];
+  }
+
+  /**
+   * Toggle a single perk on a member. The caller (UI) gates this behind the
+   * owner/admin check; BACKEND NOTE: identity/authorization is revalidated
+   * server-side once it exists — this is only for UX.
+   */
+  togglePerk(groupId: string, tag: string, perkId: string): void {
+    this.perks.update((map) => {
+      const forGroup = map[groupId] ?? {};
+      const current = forGroup[tag] ?? [];
+      const next = current.includes(perkId)
+        ? current.filter((p) => p !== perkId)
+        : [...current, perkId];
+      return { ...map, [groupId]: { ...forGroup, [tag]: next } };
+    });
   }
 
   /**
