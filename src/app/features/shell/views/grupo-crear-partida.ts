@@ -610,7 +610,6 @@ interface GeneratedTeams {
                             <div class="cp-slot__main">
                               <div class="cp-slot__line">
                                 <span class="cp-slot__name nf-mono">{{ s.member.name }}</span>
-                                <span class="cp-slot__elo nf-mono" title="Elo interno">◆ {{ elo(s.member.tag) }}</span>
                               </div>
                               @if (badgesOf(s.member.name); as bs) {
                                 @if (bs.length) {
@@ -622,6 +621,7 @@ interface GeneratedTeams {
                                 }
                               }
                             </div>
+                            <span class="cp-slot__elo nf-mono" title="Elo interno">◆ {{ elo(s.member.tag) }}</span>
                             @if (s.champ; as c) {
                               <span class="cp-slot__champ" title="Campeón reservado para este jugador">
                                 <span class="cp-slot__champ-icon" [style.background]="champGradient(c)">{{ c.initials }}</span>
@@ -641,7 +641,6 @@ interface GeneratedTeams {
                             <div class="cp-slot__main">
                               <div class="cp-slot__line">
                                 <span class="cp-slot__name nf-mono">{{ s.member.name }}</span>
-                                <span class="cp-slot__elo nf-mono" title="Elo interno">◆ {{ elo(s.member.tag) }}</span>
                               </div>
                               @if (badgesOf(s.member.name); as bs) {
                                 @if (bs.length) {
@@ -653,6 +652,7 @@ interface GeneratedTeams {
                                 }
                               }
                             </div>
+                            <span class="cp-slot__elo nf-mono" title="Elo interno">◆ {{ elo(s.member.tag) }}</span>
                             @if (s.champ; as c) {
                               <span class="cp-slot__champ" title="Campeón reservado para este jugador">
                                 <span class="cp-slot__champ-icon" [style.background]="champGradient(c)">{{ c.initials }}</span>
