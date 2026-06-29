@@ -2577,20 +2577,42 @@
   opacity: 0.55;
 }
 
-.lm-lanes { display: flex; flex-direction: column; }
+.lm-lanes { display: flex; flex-direction: column; position: relative; }
+/* central spine: a continuous vertical line the role pills sit on top of,
+   so both teams read as flanking a shared centre instead of drifting apart */
+.lm-lanes::before {
+  content: '';
+  position: absolute;
+  top: 10px;
+  bottom: 10px;
+  left: 50%;
+  width: 1.5px;
+  transform: translateX(-50%);
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    var(--nf-border) 12%,
+    var(--nf-border) 88%,
+    transparent
+  );
+  pointer-events: none;
+}
 .lm-lane {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  gap: 14px;
+  gap: 18px;
   padding: 14px 24px;
   border-bottom: 1px solid var(--nf-border);
   transition: background 0.14s;
 }
 .lm-lane:last-child { border-bottom: none; }
 .lm-lane:hover { background: color-mix(in srgb, var(--nf-cyan) 4%, transparent); }
+/* pull each roster in toward the centre pill; the empty space falls to the
+   outer edges, symmetric on both sides */
 .lm-side { display: flex; align-items: center; gap: 13px; min-width: 0; }
-.lm-side--red { flex-direction: row-reverse; }
+.lm-side--blue { justify-content: flex-end; }
+.lm-side--red { flex-direction: row-reverse; justify-content: flex-end; }
 .lm-av {
   display: flex;
   align-items: center;
@@ -2607,11 +2629,13 @@
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 .lm-meta { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
-.lm-side--red .lm-meta { align-items: flex-end; }
+.lm-side--blue .lm-meta { align-items: flex-end; text-align: right; }
+.lm-side--red .lm-meta { align-items: flex-start; text-align: left; }
+/* name + accolade badges share one row instead of the badges hanging below */
+.lm-name-row { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .lm-name { font-size: 15px; font-weight: 700; color: var(--nf-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .lm-elo { font-size: 11px; font-weight: 700; color: var(--nf-yellow); letter-spacing: 0.5px; }
 .lm-champ { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: var(--nf-text-mid); }
-.lm-side--red .lm-champ { flex-direction: row-reverse; }
 .lm-champ--none { color: var(--nf-text-dim); font-style: italic; }
 .lm-champ-ic {
   display: flex;
@@ -2628,14 +2652,17 @@
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 .lm-role {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 56px;
-  padding: 7px 10px;
+  min-width: 58px;
+  padding: 7px 12px;
   border-radius: 8px;
   border: 1.5px solid var(--nf-border);
   background: var(--nf-inset);
+  box-shadow: 0 0 0 4px var(--nf-surface);
   font-size: 11px;
   letter-spacing: 1.5px;
   font-weight: 700;

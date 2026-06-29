@@ -177,7 +177,18 @@ import { MemberBadge, badgesFor } from '../../../core/group-badges';
                     <div class="lm-side lm-side--blue">
                       <span class="lm-av" [style.background]="avatarBg(lane.blue.member.hue)">{{ lane.blue.member.initials }}</span>
                       <div class="lm-meta">
-                        <span class="lm-name nf-mono">{{ lane.blue.member.name }} <span class="lm-elo">◆ {{ lane.blue.elo }}</span></span>
+                        <span class="lm-name-row">
+                          <span class="lm-name nf-mono">{{ lane.blue.member.name }} <span class="lm-elo">◆ {{ lane.blue.elo }}</span></span>
+                          @if (badgesOf(lane.blue.member.name); as bs) {
+                            @if (bs.length) {
+                              <div class="mbadges mbadges--inline">
+                                @for (b of bs; track b.id) {
+                                  <span class="mbadge" [attr.data-color]="b.color" [title]="b.title + ' · ' + b.detail">{{ b.glyph }}</span>
+                                }
+                              </div>
+                            }
+                          }
+                        </span>
                         <span class="lm-champ nf-mono">
                           @if (lane.blue.champ; as c) {
                             <span class="lm-champ-ic" [style.background]="'linear-gradient(135deg,' + c.c1 + ',' + c.c2 + ')'">{{ c.initials }}</span>
@@ -186,15 +197,6 @@ import { MemberBadge, badgesFor } from '../../../core/group-badges';
                             <span class="lm-champ--none">sin campeón</span>
                           }
                         </span>
-                        @if (badgesOf(lane.blue.member.name); as bs) {
-                          @if (bs.length) {
-                            <div class="mbadges mbadges--tight">
-                              @for (b of bs; track b.id) {
-                                <span class="mbadge" [attr.data-color]="b.color" [title]="b.title + ' · ' + b.detail">{{ b.glyph }}</span>
-                              }
-                            </div>
-                          }
-                        }
                       </div>
                     </div>
 
@@ -202,7 +204,18 @@ import { MemberBadge, badgesFor } from '../../../core/group-badges';
 
                     <div class="lm-side lm-side--red">
                       <div class="lm-meta">
-                        <span class="lm-name nf-mono"><span class="lm-elo">{{ lane.red.elo }} ◆</span> {{ lane.red.member.name }}</span>
+                        <span class="lm-name-row">
+                          <span class="lm-name nf-mono"><span class="lm-elo">{{ lane.red.elo }} ◆</span> {{ lane.red.member.name }}</span>
+                          @if (badgesOf(lane.red.member.name); as bs) {
+                            @if (bs.length) {
+                              <div class="mbadges mbadges--inline">
+                                @for (b of bs; track b.id) {
+                                  <span class="mbadge" [attr.data-color]="b.color" [title]="b.title + ' · ' + b.detail">{{ b.glyph }}</span>
+                                }
+                              </div>
+                            }
+                          }
+                        </span>
                         <span class="lm-champ nf-mono">
                           @if (lane.red.champ; as c) {
                             <span class="lm-champ-ic" [style.background]="'linear-gradient(135deg,' + c.c1 + ',' + c.c2 + ')'">{{ c.initials }}</span>
@@ -211,15 +224,6 @@ import { MemberBadge, badgesFor } from '../../../core/group-badges';
                             <span class="lm-champ--none">sin campeón</span>
                           }
                         </span>
-                        @if (badgesOf(lane.red.member.name); as bs) {
-                          @if (bs.length) {
-                            <div class="mbadges mbadges--tight">
-                              @for (b of bs; track b.id) {
-                                <span class="mbadge" [attr.data-color]="b.color" [title]="b.title + ' · ' + b.detail">{{ b.glyph }}</span>
-                              }
-                            </div>
-                          }
-                        }
                       </div>
                       <span class="lm-av" [style.background]="avatarBg(lane.red.member.hue)">{{ lane.red.member.initials }}</span>
                     </div>
