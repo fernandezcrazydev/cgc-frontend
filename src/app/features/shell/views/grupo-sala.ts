@@ -205,7 +205,7 @@ import { MemberBadge, badgesFor } from '../../../core/group-badges';
                     <div class="lm-side lm-side--red">
                       <div class="lm-meta">
                         <span class="lm-name-row">
-                          <span class="lm-name nf-mono"><span class="lm-elo">{{ lane.red.elo }} ◆</span> {{ lane.red.member.name }}</span>
+                          <span class="lm-name nf-mono">{{ lane.red.member.name }} <span class="lm-elo">◆ {{ lane.red.elo }}</span></span>
                           @if (badgesOf(lane.red.member.name); as bs) {
                             @if (bs.length) {
                               <div class="mbadges mbadges--inline">
