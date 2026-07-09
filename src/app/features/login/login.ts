@@ -1,13 +1,15 @@
-import { Component, OnDestroy, computed, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { NfWindow } from '../../ui';
+import { Auth } from '../../core/auth';
 
-type LoginStatus = 'idle' | 'connecting' | 'success';
+type LoginStatus = 'checking' | 'idle' | 'connecting' | 'success' | 'error';
 
 /**
- * NEXUS//FORGE — Login ("Login con Riot Games").
- * Port of Login.dc.html: Riot sign-in with idle → connecting → success flow,
- * a "continue as guest" path, over the vaporwave neon-sun + perspective-grid hero.
+ * NEXUS//FORGE — Login ("Login con Discord").
+ * Authorization Code + PKCE contra nuestro backend: al cargar miramos si ya hay un
+ * token válido y, si lo hay, confirmamos con GET /api/v1/me y entramos al lobby.
+ * Si no, el botón lanza el flujo, que pasa por el backend y de ahí a Discord.
  */
 @Component({
   selector: 'app-login',
@@ -16,40 +18,57 @@ type LoginStatus = 'idle' | 'connecting' | 'success';
   templateUrl: './login.html',
   styleUrl: './login.scss',
 })
-export class Login implements OnDestroy {
-  readonly status = signal<LoginStatus>('idle');
-  readonly riotTag = 'N1ghtfang#LAN';
+export class Login implements OnInit, OnDestroy {
+  private readonly router = inject(Router);
+  private readonly auth = inject(Auth);
 
-  readonly isIdle = computed(() => this.status() === 'idle');
+  readonly status = signal<LoginStatus>('checking');
+  readonly userName = signal('');
+
+  readonly isChecking = computed(() => this.status() === 'checking');
   readonly isConnecting = computed(() => this.status() === 'connecting');
   readonly isSuccess = computed(() => this.status() === 'success');
-  readonly isAuth = computed(() => this.status() === 'idle' || this.status() === 'connecting');
+  readonly isError = computed(() => this.status() === 'error');
+  // Bloque de acceso: cuando no estamos comprobando ni ya dentro.
+  readonly showAuth = computed(
+    () => this.status() === 'idle' || this.isConnecting() || this.isError(),
+  );
 
-  private connectTimer?: ReturnType<typeof setTimeout>;
   private enterTimer?: ReturnType<typeof setTimeout>;
 
-  constructor(private readonly router: Router) {}
-
-  onRiot(): void {
-    if (this.status() !== 'idle') return;
-    this.status.set('connecting');
-    this.connectTimer = setTimeout(() => {
-      this.status.set('success');
-      this.enterTimer = setTimeout(() => this.enterApp(), 1100);
-    }, 1900);
+  ngOnInit(): void {
+    void this.checkSession();
   }
 
-  onGuest(): void {
+  /** Comprueba si ya hay un token válido y, en ese caso, entra al lobby. */
+  private async checkSession(): Promise<void> {
+    // Sin token no tiene sentido llamar a la API: siempre daría 401.
+    if (!(await this.auth.isAuthenticated())) {
+      this.status.set('idle');
+      return;
+    }
+
+    const user = await this.auth.fetchMe();
+    if (user) {
+      this.userName.set(this.auth.displayName(user));
+      this.status.set('success');
+      this.enterTimer = setTimeout(() => this.enterApp(), 1100);
+    } else {
+      this.status.set('idle');
+    }
+  }
+
+  onDiscord(): void {
     if (this.isConnecting()) return;
-    this.enterApp();
+    this.status.set('connecting');
+    this.auth.loginWithDiscord();
   }
 
   private enterApp(): void {
-    this.router.navigateByUrl('/app');
+    void this.router.navigateByUrl('/app');
   }
 
   ngOnDestroy(): void {
-    clearTimeout(this.connectTimer);
     clearTimeout(this.enterTimer);
   }
 }

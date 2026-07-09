@@ -2608,10 +2608,10 @@
 }
 .lm-lane:last-child { border-bottom: none; }
 .lm-lane:hover { background: color-mix(in srgb, var(--nf-cyan) 4%, transparent); }
-/* pull each roster in toward the centre pill; the empty space falls to the
-   outer edges, symmetric on both sides */
+/* both rosters anchor their avatar against the centre spine, names trailing
+   outward — so the two avatar stacks line up in fixed columns either side */
 .lm-side { display: flex; align-items: center; gap: 13px; min-width: 0; }
-.lm-side--blue { justify-content: flex-end; }
+.lm-side--blue { flex-direction: row-reverse; justify-content: flex-start; }
 .lm-side--red { flex-direction: row-reverse; justify-content: flex-end; }
 .lm-av {
   display: flex;

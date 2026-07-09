@@ -22,62 +22,65 @@
 
         <div class="login__eyebrow nf-mono">// ACCESO AL SISTEMA</div>
 
+        @if (isChecking()) {
+          <!-- verificando sesión existente -->
+          <div class="login__checking">
+            <span class="login__spinner"></span>
+            <span class="nf-mono">COMPROBANDO SESIÓN…</span>
+          </div>
+        }
+
         @if (isSuccess()) {
           <!-- success -->
           <div class="login__success">
             <div class="login__check">✓</div>
             <h1 class="login__title">Sesión iniciada</h1>
-            <p class="login__lead">Cuenta de Riot verificada. Entrando al lobby…</p>
+            <p class="login__lead">Iniciando sesión con Discord...</p>
             <div class="login__status nf-mono">
               <span class="login__status-dot"></span>
-              CONECTADO · {{ riotTag }}
+              CONECTADO@if (userName()) { · {{ userName() }} }
             </div>
           </div>
         }
 
-        @if (isAuth()) {
-          <!-- auth (idle / connecting) -->
+        @if (showAuth()) {
+          <!-- auth (idle / connecting / error) -->
           <h1 class="login__title">Bienvenido de nuevo</h1>
           <p class="login__lead">
-            Inicia sesión con tu cuenta de Riot para crear partidas personalizadas y reunir a tu lobby.
+            Inicia sesión con tu cuenta de Discord para crear partidas personalizadas y reunir a tu lobby.
           </p>
+
+          @if (isError()) {
+            <div class="login__error nf-mono" role="alert">
+              No se pudo verificar la sesión. Inténtalo de nuevo.
+            </div>
+          }
 
           <button
             type="button"
-            class="login__riot"
+            class="login__discord"
             [disabled]="isConnecting()"
-            (click)="onRiot()"
+            (click)="onDiscord()"
           >
             @if (isConnecting()) {
               <span class="login__spinner"></span>
               <span>CONECTANDO…</span>
             } @else {
-              <span class="login__riot-mark">R</span>
-              <span>INICIAR SESIÓN CON RIOT</span>
-              <span class="login__riot-arrow">►</span>
+              <span class="login__discord-mark" aria-hidden="true">
+                <svg viewBox="0 0 24 18" width="20" height="15" fill="currentColor">
+                  <path d="M20.32 1.5A19.7 19.7 0 0 0 15.44 0c-.21.38-.46.9-.63 1.3a18.3 18.3 0 0 0-5.62 0C9.02.9 8.76.38 8.55 0A19.7 19.7 0 0 0 3.66 1.5C.57 6.12-.27 10.62.15 15.06a19.9 19.9 0 0 0 6.04 3.06c.49-.67.92-1.38 1.3-2.13-.71-.27-1.4-.6-2.04-.99.17-.13.34-.26.5-.4a14.2 14.2 0 0 0 12.11 0c.16.14.33.27.5.4-.65.39-1.34.72-2.05.99.38.75.81 1.46 1.3 2.13a19.8 19.8 0 0 0 6.05-3.06c.5-5.15-.85-9.6-3.54-13.56ZM8.02 12.33c-1.18 0-2.15-1.08-2.15-2.4 0-1.32.95-2.41 2.15-2.41 1.2 0 2.17 1.09 2.15 2.4 0 1.33-.95 2.41-2.15 2.41Zm7.95 0c-1.18 0-2.15-1.08-2.15-2.4 0-1.32.95-2.41 2.15-2.41 1.2 0 2.17 1.09 2.15 2.4 0 1.33-.94 2.41-2.15 2.41Z"/>
+                </svg>
+              </span>
+              <span>INICIAR SESIÓN CON DISCORD</span>
+              <span class="login__discord-arrow">►</span>
             }
-          </button>
-
-          <div class="login__divider">
-            <span class="login__rule"></span>
-            <span class="login__or nf-mono">O</span>
-            <span class="login__rule"></span>
-          </div>
-
-          <button
-            type="button"
-            class="login__guest"
-            [disabled]="isConnecting()"
-            (click)="onGuest()"
-          >
-            CONTINUAR COMO INVITADO
           </button>
         }
 
         <div class="login__footer">
           <p class="login__terms nf-mono">
             AL CONTINUAR ACEPTAS LOS TÉRMINOS DE SERVICIO Y LA POLÍTICA DE PRIVACIDAD.
-            NO AFILIADO OFICIALMENTE CON RIOT GAMES.
+            NO AFILIADO OFICIALMENTE CON DISCORD.
           </p>
         </div>
 

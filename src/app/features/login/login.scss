@@ -125,19 +125,19 @@
   margin: 0 0 28px;
 }
 
-/* ---- Riot button (custom red CTA) ---- */
-.login__riot {
+/* ---- Discord button (blurple CTA) ---- */
+.login__discord {
   width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 12px;
   padding: 16px 20px;
-  background: #eb0029;
+  background: #5865f2;
   color: #fff;
-  border: 2px solid #ff3b59;
+  border: 2px solid #7f8bff;
   border-radius: 4px;
-  box-shadow: 4px 4px 0 #7a0016, 0 0 16px rgba(235, 0, 41, 0.35);
+  box-shadow: 4px 4px 0 #2b338c, 0 0 16px rgba(88, 101, 242, 0.35);
   font-family: var(--nf-font);
   font-weight: 800;
   font-size: 14px;
@@ -145,31 +145,48 @@
   cursor: pointer;
   transition: transform 0.14s, box-shadow 0.14s;
 }
-.login__riot:hover:not(:disabled) {
+.login__discord:hover:not(:disabled) {
   transform: translate(-1px, -1px);
-  box-shadow: 6px 6px 0 #7a0016, 0 0 22px rgba(235, 0, 41, 0.5);
+  box-shadow: 6px 6px 0 #2b338c, 0 0 22px rgba(88, 101, 242, 0.5);
 }
-.login__riot:active:not(:disabled) {
+.login__discord:active:not(:disabled) {
   transform: translate(1px, 1px);
-  box-shadow: 2px 2px 0 #7a0016;
+  box-shadow: 2px 2px 0 #2b338c;
 }
-.login__riot:disabled { opacity: 0.85; cursor: default; }
+.login__discord:disabled { opacity: 0.85; cursor: default; }
 
-.login__riot-mark {
-  width: 22px;
-  height: 22px;
-  border-radius: 4px;
-  background: #fff;
-  color: #eb0029;
+.login__discord-mark {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 800;
-  font-size: 13px;
-  font-family: var(--nf-mono);
+  color: #fff;
   flex: none;
 }
-.login__riot-arrow { margin-left: 2px; }
+.login__discord-arrow { margin-left: 2px; }
+
+/* ---- checking session ---- */
+.login__checking {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 0 8px;
+  color: var(--nf-text-dim);
+  font-size: 11px;
+  letter-spacing: 2px;
+}
+
+/* ---- error notice ---- */
+.login__error {
+  margin: 0 0 16px;
+  padding: 11px 14px;
+  border: 1px solid var(--nf-red, #ff3b59);
+  border-radius: 4px;
+  background: rgba(255, 59, 89, 0.1);
+  color: var(--nf-red, #ff6b82);
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  line-height: 1.5;
+}
 
 .login__spinner {
   width: 17px;
@@ -180,37 +197,6 @@
   animation: nf-spin-r 0.7s linear infinite;
   flex: none;
 }
-
-/* ---- divider ---- */
-.login__divider {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  margin: 22px 0;
-}
-.login__rule { flex: 1; height: 1px; background: var(--nf-border); }
-.login__or { font-size: 10px; letter-spacing: 2px; color: var(--nf-text-dim); }
-
-/* ---- guest button ---- */
-.login__guest {
-  width: 100%;
-  padding: 13px 20px;
-  background: transparent;
-  color: var(--nf-text-mid);
-  border: 2px solid var(--nf-border);
-  border-radius: 4px;
-  font-family: var(--nf-font);
-  font-weight: 700;
-  font-size: 12.5px;
-  letter-spacing: 1.5px;
-  cursor: pointer;
-  transition: color 0.16s, border-color 0.16s;
-}
-.login__guest:hover:not(:disabled) {
-  color: var(--nf-cyan);
-  border-color: var(--nf-border-strong);
-}
-.login__guest:disabled { opacity: 0.5; cursor: default; }
 
 /* ---- success state ---- */
 .login__success { padding: 8px 0 4px; }

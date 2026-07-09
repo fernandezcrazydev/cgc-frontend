@@ -4,6 +4,11 @@ import { Shell } from './features/shell/shell';
 
 export const routes: Routes = [
   { path: '', component: Login, title: 'Acceso · NEXUS//FORGE' },
+  // Debe ir antes del comodín '**'. Es la redirectUri registrada en el backend.
+  {
+    path: 'callback',
+    loadComponent: () => import('./features/auth/callback').then((m) => m.Callback),
+  },
   {
     path: 'app',
     component: Shell,
