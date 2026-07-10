@@ -78,16 +78,36 @@
       </nav>
 
       <div class="shell__sidefoot">
-        <a class="shell__profile" [routerLink]="['/app', 'perfil']">
-          <div class="shell__avatar">{{ user.initials }}</div>
-          <div class="shell__user-meta">
-            <div class="shell__user-name">
-              {{ user.name }}
-              <span class="shell__region nf-mono"><span class="shell__ping-dot"></span>{{ user.region }}</span>
+        @if (session.user(); as me) {
+          <a class="shell__profile" [routerLink]="['/app', 'perfil']">
+            <div class="shell__avatar">
+              @if (showAvatarImage()) {
+                <img
+                  class="shell__avatar-img"
+                  [src]="session.avatarUrl()"
+                  alt=""
+                  referrerpolicy="no-referrer"
+                  (error)="avatarBroken.set(true)"
+                />
+              } @else {
+                {{ session.initials() }}
+              }
             </div>
-            <div class="shell__profile-cta nf-mono">VER PERFIL ►</div>
+            <div class="shell__user-meta">
+              <div class="shell__user-name">{{ me.discordUsername }}</div>
+              <div class="shell__profile-cta nf-mono">VER PERFIL ►</div>
+            </div>
+          </a>
+        } @else {
+          <!-- Solo se ve en el hueco entre un token renovado y la respuesta de /me. -->
+          <div class="shell__profile shell__profile--loading" aria-hidden="true">
+            <div class="shell__avatar shell__skeleton"></div>
+            <div class="shell__user-meta">
+              <div class="shell__skeleton shell__skeleton--name"></div>
+              <div class="shell__skeleton shell__skeleton--cta"></div>
+            </div>
           </div>
-        </a>
+        }
         <button type="button" class="shell__logout" (click)="confirmLogout.set(true)">CERRAR SESIÓN</button>
       </div>
     </aside>

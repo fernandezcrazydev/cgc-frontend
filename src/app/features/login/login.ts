@@ -1,7 +1,7 @@
 import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { NfWindow } from '../../ui';
-import { Auth } from '../../core/auth';
+import { Auth, Session } from '../../core/auth';
 
 type LoginStatus = 'checking' | 'idle' | 'connecting' | 'success' | 'error';
 
@@ -21,6 +21,7 @@ type LoginStatus = 'checking' | 'idle' | 'connecting' | 'success' | 'error';
 export class Login implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly auth = inject(Auth);
+  private readonly session = inject(Session);
 
   readonly status = signal<LoginStatus>('checking');
   readonly userName = signal('');
@@ -48,9 +49,11 @@ export class Login implements OnInit, OnDestroy {
       return;
     }
 
-    const user = await this.auth.fetchMe();
+    // Precarga el perfil: cuando el authGuard lo pida al entrar en /app ya estará
+    // en memoria, así que el shell pinta el nombre real sin un segundo de vacío.
+    const user = await this.session.ensureLoaded();
     if (user) {
-      this.userName.set(this.auth.displayName(user));
+      this.userName.set(user.discordUsername);
       this.status.set('success');
       this.enterTimer = setTimeout(() => this.enterApp(), 1100);
     } else {

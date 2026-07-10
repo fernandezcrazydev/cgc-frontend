@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { authGuard } from './core/auth';
 import { Login } from './features/login/login';
 import { Shell } from './features/shell/shell';
 
@@ -12,6 +13,8 @@ export const routes: Routes = [
   {
     path: 'app',
     component: Shell,
+    // Sin token o sin perfil en BD no se entra: el shell asume un usuario real.
+    canActivate: [authGuard],
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'inicio' },
       {

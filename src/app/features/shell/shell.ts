@@ -1,15 +1,15 @@
-import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, computed, inject, linkedSignal, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { filter, map, startWith } from 'rxjs';
 import {
-  CURRENT_USER,
   GroupInvitePayload,
   NAV,
   NOTIF_GLYPH,
   Notification,
   NotificationKind,
 } from '../../core/lobby';
+import { Auth, Session } from '../../core/auth';
 import { GroupStore } from '../../core/group-store';
 import { MatchStore, MatchRoom } from '../../core/match-store';
 import { NotificationStore } from '../../core/notification-store';
@@ -30,7 +30,9 @@ import { NfBadge, NfButton, NfToastHost, NfWindow } from '../../ui';
 })
 export class Shell {
   readonly nav = NAV;
-  readonly user = CURRENT_USER;
+  /** El usuario real de la BD. El authGuard garantiza que ya está cargado. */
+  readonly session = inject(Session);
+  private readonly auth = inject(Auth);
   readonly groups = inject(GroupStore);
   private readonly matches = inject(MatchStore);
   readonly notifs = inject(NotificationStore);
@@ -207,8 +209,26 @@ export class Shell {
       });
   }
 
-  logout(): void {
+  // ── Avatar del usuario ────────────────────────────────────────────
+  /**
+   * El CDN de Discord puede devolver 404 si el usuario se cambia el avatar
+   * después de nuestro último login: la URL guardada en BD lleva el hash viejo.
+   * Si la imagen no carga, caemos a las iniciales.
+   *
+   * `linkedSignal` en vez de `signal`: se reinicia solo cuando cambia la URL, así
+   * un `session.reload()` con avatar nuevo vuelve a intentar pintar la imagen.
+   */
+  readonly avatarBroken = linkedSignal({
+    source: this.session.avatarUrl,
+    computation: () => false,
+  });
+
+  readonly showAvatarImage = computed(() => !!this.session.avatarUrl() && !this.avatarBroken());
+
+  /** Cierra sesión de verdad: revoca el token y limpia el perfil, luego navega. */
+  async logout(): Promise<void> {
     this.confirmLogout.set(false);
-    this.router.navigateByUrl('/');
+    await this.auth.logout();
+    await this.router.navigateByUrl('/');
   }
 }
