@@ -1,10 +1,26 @@
-import { Component, computed, inject } from '@angular/core';
-import { NfWindow, NfSegmented } from '../../../ui';
+import { Component, computed, inject, linkedSignal, signal } from '@angular/core';
+import { NfWindow, NfSegmented, NfButton, NfSelect } from '../../../ui';
 import { ThemeService, THEMES } from '../../../core/theme';
+import { Session } from '../../../core/auth';
 import { CURRENT_USER } from '../../../core/lobby';
 import { GroupStore } from '../../../core/group-store';
 import { opggUrl } from '../../../core/member-detail';
 import { buildPlayerProfile } from '../../../core/player-profile';
+
+/**
+ * Cuenta de Riot vinculada al usuario. Mockup de UI: hoy vive en una signal
+ * local del componente.
+ *
+ * BACKEND NOTE: la vinculación real la dueña el backend — `riotId` y `region`
+ * los devolverá `GET /api/v1/me` (o un endpoint de cuentas vinculadas) junto a
+ * la identidad Discord, y "vincular"/"desvincular" serán POST/DELETE. Al migrar,
+ * borrar la signal semilla y leer del store; nunca mantener mock y real a la vez.
+ */
+interface RiotLink {
+  /** Riot ID completo, formato `Nombre#TAG`. */
+  riotId: string;
+  region: string;
+}
 
 /**
  * Personal player profile — a cross-group career card. Every figure here is
@@ -16,7 +32,7 @@ import { buildPlayerProfile } from '../../../core/player-profile';
 @Component({
   selector: 'app-perfil',
   standalone: true,
-  imports: [NfWindow, NfSegmented],
+  imports: [NfWindow, NfSegmented, NfButton, NfSelect],
   template: `
     <div class="view">
       <div class="view__head" style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap">
@@ -42,21 +58,29 @@ import { buildPlayerProfile } from '../../../core/player-profile';
       </div>
 
       @if (profile(); as p) {
-        <!-- Hero: identity + headline win-rate ring -->
+        <!-- Hero: identity (Discord) + headline win-rate ring -->
         <section class="pf-hero">
-          <span class="pf-hero__avatar" [style.background]="grad(p.hue)">{{ p.initials }}</span>
+          <span class="pf-hero__avatar" [style.background]="grad(p.hue)">
+            @if (showAvatarImage()) {
+              <img
+                class="pf-hero__avatar-img"
+                [src]="session.avatarUrl()"
+                alt=""
+                referrerpolicy="no-referrer"
+                (error)="avatarBroken.set(true)"
+              />
+            } @else {
+              {{ session.initials() }}
+            }
+          </span>
           <div class="pf-hero__id">
-            <h1 class="pf-hero__name">{{ p.name }}</h1>
-            <div class="pf-hero__tag nf-mono">{{ p.tag }}</div>
+            <h1 class="pf-hero__name">{{ heroName() }}</h1>
+            <div class="pf-hero__tag nf-mono">// IDENTIDAD DISCORD</div>
             <div class="pf-hero__meta nf-mono">
-              <span class="pf-hero__chip"><span class="pf-ping"></span>{{ p.region }}</span>
               <span class="pf-hero__chip">◈ {{ p.mainRole }}</span>
               <span class="pf-hero__chip">◆ {{ p.groupCount }} GRUPOS</span>
               <span class="pf-hero__chip">◷ DESDE {{ p.memberSince }}</span>
             </div>
-            <a class="pf-hero__opgg nf-mono" [href]="opgg(p.tag)" target="_blank" rel="noopener">
-              VER EN OP.GG ►
-            </a>
           </div>
 
           <div class="pf-ring" [style.--wr]="p.wr" [class.pf-ring--lo]="p.wr < 50">
@@ -66,6 +90,68 @@ import { buildPlayerProfile } from '../../../core/player-profile';
             </div>
           </div>
         </section>
+
+        <!-- Cuenta de Riot vinculada (mockup) -->
+        <div class="view__label nf-mono">▸ CUENTA DE RIOT</div>
+        @if (riotAccount(); as riot) {
+          <div class="pf-riot pf-riot--linked">
+            <span class="pf-riot__logo nf-mono" aria-hidden="true">R</span>
+            <div class="pf-riot__meta">
+              <div class="pf-riot__id">{{ riot.riotId }}</div>
+              <div class="pf-riot__sub nf-mono">
+                <span class="pf-riot__chip"><span class="pf-ping"></span>{{ riot.region }}</span>
+                <span class="pf-riot__chip pf-riot__chip--ok">✓ VINCULADA</span>
+              </div>
+            </div>
+            <div class="pf-riot__actions">
+              <a class="pf-hero__opgg nf-mono" [href]="opgg(riot.riotId)" target="_blank" rel="noopener">
+                VER EN OP.GG ►
+              </a>
+              <button nfButton variant="ghost" size="sm" (click)="unlink()">DESVINCULAR</button>
+            </div>
+          </div>
+        } @else if (linking()) {
+          <div class="pf-riot pf-riot--form">
+            <div class="field">
+              <label class="field__label nf-mono" for="riot-id">RIOT ID</label>
+              <input
+                id="riot-id"
+                class="field__input"
+                type="text"
+                placeholder="Nombre#TAG"
+                autocomplete="off"
+                [value]="riotIdDraft()"
+                (input)="riotIdDraft.set($any($event.target).value)"
+              />
+            </div>
+            <div class="field">
+              <label class="field__label nf-mono">REGIÓN</label>
+              <nf-select
+                [options]="regions"
+                [value]="regionDraft()"
+                (valueChange)="regionDraft.set($event)"
+              />
+            </div>
+            <div class="pf-riot__formfoot">
+              <button nfButton variant="primary" size="sm" [disabled]="!linkValid()" (click)="confirmLink()">
+                VINCULAR ►
+              </button>
+              <button nfButton variant="ghost" size="sm" (click)="cancelLinking()">CANCELAR</button>
+            </div>
+          </div>
+        } @else {
+          <div class="pf-riot pf-riot--empty">
+            <div class="pf-riot__cta">
+              <div class="pf-riot__ctatitle">Sin cuenta de Riot vinculada</div>
+              <p class="pf-riot__ctatext">
+                Vincula tu cuenta para que tus estadísticas de invocador aparezcan en tu perfil.
+              </p>
+            </div>
+            <button nfButton variant="accent" size="md" (click)="startLinking()">
+              ＋ VINCULAR CUENTA DE RIOT
+            </button>
+          </div>
+        }
 
         <!-- Global record strip -->
         <div class="totals pf-totals">
@@ -206,6 +292,11 @@ import { buildPlayerProfile } from '../../../core/player-profile';
 })
 export class Perfil {
   private readonly groups = inject(GroupStore);
+  /** Identidad real del usuario (Discord). Singleton ya cargado por el shell vía
+   * `ensureLoaded()`: leer sus signals aquí NO dispara ninguna petición extra. */
+  protected readonly session = inject(Session);
+  /** Mock legacy: solo alimenta las estadísticas agregadas (placeholder). La
+   * identidad mostrada (nombre/avatar) viene de `session`, no de aquí. */
   private readonly user = CURRENT_USER;
 
   /** Selector de skin. El tema es estado de UI global (ThemeService). */
@@ -215,6 +306,55 @@ export class Perfil {
   readonly profile = computed(() =>
     buildPlayerProfile(this.user, this.groups.groups(), (id) => this.groups.rosterOf(id)),
   );
+
+  /** Nombre del hero: el de Discord, con las estadísticas mock como reserva. */
+  readonly heroName = computed(() => this.session.displayName() || this.profile()?.name || '');
+
+  /**
+   * El CDN de Discord puede devolver 404 si el usuario cambió su avatar tras
+   * nuestro último login. Si la imagen falla, caemos a las iniciales.
+   * `linkedSignal` para reintentar al cambiar la URL (p. ej. `session.reload()`).
+   */
+  readonly avatarBroken = linkedSignal({
+    source: this.session.avatarUrl,
+    computation: () => false,
+  });
+  readonly showAvatarImage = computed(() => !!this.session.avatarUrl() && !this.avatarBroken());
+
+  // ── Cuenta de Riot (mockup, sin backend) ──────────────────────────
+  /** Sembrada como "ya vinculada" para mostrar ese estado por defecto. */
+  readonly riotAccount = signal<RiotLink | null>({ riotId: 'N1ghtfang#LAN', region: 'LAN' });
+  readonly linking = signal(false);
+  readonly riotIdDraft = signal('');
+  readonly regionDraft = signal('LAN');
+  readonly regions = ['LAN', 'LAS', 'NA', 'EUW', 'EUNE', 'KR', 'BR', 'OCE', 'TR', 'RU', 'JP'];
+
+  /** Riot ID válido = `Nombre#TAG` con ambas partes no vacías. */
+  readonly linkValid = computed(() => /^.+#.+$/.test(this.riotIdDraft().trim()));
+
+  startLinking(): void {
+    this.riotIdDraft.set('');
+    this.regionDraft.set('LAN');
+    this.linking.set(true);
+  }
+
+  cancelLinking(): void {
+    this.linking.set(false);
+  }
+
+  confirmLink(): void {
+    if (!this.linkValid()) return;
+    // BACKEND NOTE: aquí irá el POST de vinculación; el backend validará el Riot
+    // ID contra la API de Riot y devolverá la cuenta canónica.
+    this.riotAccount.set({ riotId: this.riotIdDraft().trim(), region: this.regionDraft() });
+    this.linking.set(false);
+  }
+
+  unlink(): void {
+    // BACKEND NOTE: DELETE de la vinculación; refetch de estadísticas derivadas.
+    this.riotAccount.set(null);
+    this.linking.set(false);
+  }
 
   /** Avatar radial gradient from a hue, matching the roster/ranking look. */
   grad(hue: number): string {
