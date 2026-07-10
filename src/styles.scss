@@ -9,3 +9,6 @@
 @import './styles/tokens/spacing.css';
 @import './styles/tokens/effects.css';
 @import './styles/tokens/base.css';
+
+/* ---- Temas alternativos (skins). El default (nexus) vive en tokens/ arriba. ---- */
+@import './styles/themes/nocturne.css';

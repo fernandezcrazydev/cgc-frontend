@@ -7,3 +7,4 @@ export * from './select/nf-select';
 export * from './pagination/nf-pagination';
 export * from './avatar-picker/nf-avatar-picker';
 export * from './toast/nf-toast';
+export * from './segmented/nf-segmented';

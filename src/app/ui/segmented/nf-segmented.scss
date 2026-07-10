@@ -1,0 +1,39 @@
+/* NEXUS//FORGE · Segmented control (global, ViewEncapsulation.None) */
+
+.nf-seg {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  background: var(--nf-inset);
+  border: var(--bw-hair) solid var(--nf-border);
+  border-radius: var(--nf-radius);
+}
+
+.nf-seg__btn {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font-family: var(--nf-mono);
+  font-size: 12px;
+  font-weight: var(--fw-medium);
+  letter-spacing: var(--ls-wide);
+  color: var(--nf-text-mid);
+  padding: 5px 14px;
+  border-radius: calc(var(--nf-radius) - 2px);
+  transition: background 0.18s, color 0.18s;
+}
+
+.nf-seg__btn:hover:not(.nf-seg__btn--on) {
+  color: var(--nf-text);
+}
+
+.nf-seg__btn--on {
+  background: var(--nf-elevated);
+  color: var(--nf-text);
+}
+
+.nf-seg__btn:focus-visible {
+  outline: 2px solid var(--nf-cyan);
+  outline-offset: 1px;
+}

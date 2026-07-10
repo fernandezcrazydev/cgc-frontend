@@ -1,5 +1,6 @@
 import { Component, computed, inject } from '@angular/core';
-import { NfWindow } from '../../../ui';
+import { NfWindow, NfSegmented } from '../../../ui';
+import { ThemeService, THEMES } from '../../../core/theme';
 import { CURRENT_USER } from '../../../core/lobby';
 import { GroupStore } from '../../../core/group-store';
 import { opggUrl } from '../../../core/member-detail';
@@ -15,12 +16,20 @@ import { buildPlayerProfile } from '../../../core/player-profile';
 @Component({
   selector: 'app-perfil',
   standalone: true,
-  imports: [NfWindow],
+  imports: [NfWindow, NfSegmented],
   template: `
     <div class="view">
-      <div class="view__head">
-        <div class="view__eyebrow nf-mono">// PERFIL DE JUGADOR</div>
-        <p class="view__lead">Tu trayectoria combinada en todas las customs que has jugado.</p>
+      <div class="view__head" style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap">
+        <div>
+          <div class="view__eyebrow nf-mono">// PERFIL DE JUGADOR</div>
+          <p class="view__lead">Tu trayectoria combinada en todas las customs que has jugado.</p>
+        </div>
+        <nf-segmented
+          [options]="themeOptions"
+          [value]="theme.theme()"
+          (valueChange)="theme.set($event)"
+          ariaLabel="Tema visual"
+        />
       </div>
 
       <!-- Cross-group scope disclaimer -->
@@ -198,6 +207,10 @@ import { buildPlayerProfile } from '../../../core/player-profile';
 export class Perfil {
   private readonly groups = inject(GroupStore);
   private readonly user = CURRENT_USER;
+
+  /** Selector de skin. El tema es estado de UI global (ThemeService). */
+  protected readonly theme = inject(ThemeService);
+  protected readonly themeOptions = THEMES.map((t) => ({ value: t.id, label: t.label }));
 
   readonly profile = computed(() =>
     buildPlayerProfile(this.user, this.groups.groups(), (id) => this.groups.rosterOf(id)),
