@@ -1,0 +1,351 @@
+/* ============================================================
+   NOCTURNE · tema Apple-dark minimalista
+   ------------------------------------------------------------
+   Es una SKIN: redefine los tokens --nf-* bajo
+   :root[data-theme="nocturne"] y aplana los pocos efectos
+   "firma" que los componentes hardcodean fuera de token
+   (sombras duras, glow, translate en hover, tracking mono).
+
+   Nexus (el default) NO se toca: vive en styles/tokens/.
+   Cambiar de tema = poner/quitar el atributo data-theme.
+   ============================================================ */
+
+:root[data-theme='nocturne'] {
+  /* ---- Superficies: negro OLED + grises grafito (escala iOS) ---- */
+  --nf-void: #000000;
+  --nf-inset: #101012;
+  --nf-surface: #1c1c1e;
+  --nf-surface-2: #2c2c2e;
+  --nf-elevated: #3a3a3c;
+
+  /* ---- Paleta: acento azul sistema; resto = colores sistema Apple ---- */
+  --nf-pink: #0a84ff; /* primary → azul sistema        */
+  --nf-pink-strong: #0060df; /* primary pressed          */
+  --nf-cyan: #64d2ff; /* secondary → azul claro         */
+  --nf-purple: #5e5ce6; /* índigo                        */
+  --nf-yellow: #ffd60a; /* amarillo sistema              */
+  --nf-green: #30d158; /* verde sistema                  */
+  --nf-red: #ff453a; /* rojo sistema                     */
+
+  --nf-team-blue: #0a84ff;
+  --nf-team-red: #ff453a;
+
+  /* ---- Texto: blanco cálido + labels iOS (opacidad sobre negro) ----
+     Opacidades fijadas por contraste (auditoría WCAG 2 + APCA): las tres
+     capas pasan AA (>=4.5:1) sobre void/surface/surface-2, manteniendo la
+     jerarquía 0.55/0.72/1.0. text-dim @0.34 fallaba AA (~2.8:1); subido a
+     0.55 (~5:1). No bajar de estos valores sin re-auditar. */
+  --nf-text: #f5f5f7;
+  --nf-text-mid: rgba(235, 235, 245, 0.72);
+  --nf-text-dim: rgba(235, 235, 245, 0.55);
+
+  /* ---- Líneas: hairlines neutros (sin tinte cian) ---- */
+  --nf-border: rgba(255, 255, 255, 0.09);
+  --nf-border-strong: rgba(255, 255, 255, 0.16);
+  --nf-border-pink: rgba(10, 132, 255, 0.35);
+
+  /* ---- Efectos: sombras suaves difuminadas, sin glow ---- */
+  --nf-shadow-cyan: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --nf-shadow-pink: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --nf-shadow-card: 0 1px 2px rgba(0, 0, 0, 0.5), 0 12px 40px rgba(0, 0, 0, 0.35);
+  --nf-glow-pink: 0 0 0 rgba(0, 0, 0, 0);
+
+  /* ---- Tipografía: SF del sistema; se elimina el mono vaporwave ---- */
+  --nf-font: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text',
+    'Segoe UI', system-ui, sans-serif;
+  --nf-mono: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI',
+    system-ui, sans-serif;
+
+  /* Tracking: Apple va apretado, no ancho. Neutraliza las escalas "wide". */
+  --ls-wide: 0;
+  --ls-wider: 0;
+  --ls-widest: 0;
+  --ls-eyebrow: 0.02em;
+
+  /* ---- Radios: más redondeado (tarjetas iOS/macOS) ---- */
+  --nf-radius-sm: 8px;
+  --nf-radius: 10px;
+  --nf-radius-lg: 16px;
+
+  /* ---- Grosores de borde: hairline en vez del borde firma de 2px ---- */
+  --bw-hair: 0.5px;
+  --bw-1: 0.5px;
+  --bw-2: 0.5px;
+}
+
+/* ============================================================
+   Aplanado de efectos "firma" que NO son token
+   (selectores globales del UI kit, ViewEncapsulation.None).
+   ============================================================ */
+
+/* Fondo de página: quita el glow radial rosa del base. */
+:root[data-theme='nocturne'] body {
+  background: var(--nf-void);
+}
+
+/* ---- Botones: planos, sin mayúsculas ni tracking, sin sombra dura ---- */
+:root[data-theme='nocturne'] .nf-btn {
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: var(--fw-bold);
+  box-shadow: none !important;
+}
+:root[data-theme='nocturne'] .nf-btn:hover:not(:disabled) {
+  transform: none;
+  filter: brightness(1.08);
+}
+:root[data-theme='nocturne'] .nf-btn:active:not(:disabled) {
+  transform: none;
+  filter: brightness(0.94);
+}
+:root[data-theme='nocturne'] .nf-btn--danger {
+  color: #fff;
+}
+
+/* ---- Ventanas: barra de título plana (adiós gradiente cian→rosa) ---- */
+:root[data-theme='nocturne'] .nf-window__bar,
+:root[data-theme='nocturne'] .nf-window--pink .nf-window__bar {
+  background: var(--nf-surface-2);
+  border-bottom: var(--bw-hair) solid var(--nf-border);
+}
+:root[data-theme='nocturne'] .nf-window__title {
+  color: var(--nf-text);
+  letter-spacing: 0;
+  font-weight: 600;
+  text-transform: none;
+}
+/* Los puntos rojo/amarillo/verde de la barra ya evocan macOS: se conservan. */
+
+/* ---- Utilidad mono: cifras alineadas, sin tracking ---- */
+:root[data-theme='nocturne'] .nf-mono {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+
+/* ---- Cromo del navegador ---- */
+:root[data-theme='nocturne'] ::selection {
+  background: rgba(10, 132, 255, 0.35);
+}
+:root[data-theme='nocturne'] ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: transparent;
+}
+:root[data-theme='nocturne'] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+/* ---- Range input: pulgar azul sin glow neón ---- */
+:root[data-theme='nocturne'] .nf-range::-webkit-slider-thumb {
+  background: var(--nf-pink);
+  border-color: var(--nf-surface);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  border-radius: 50%;
+}
+:root[data-theme='nocturne'] .nf-range::-moz-range-thumb {
+  background: var(--nf-pink);
+  border-color: var(--nf-surface);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  border-radius: 50%;
+}
+
+/* ============================================================
+   Overrides de vistas (views.scss / shell.scss)
+   ============================================================ */
+
+/* ---- Tracking: Apple va apretado, no ancho ----
+   Decenas de labels/eyebrows/meta hardcodean letter-spacing en px. En vez de
+   listarlas una a una, se resetea a `normal` en cualquier elemento con clase.
+   El selector [class] tiene especificidad (0,2,0) → gana a los `.foo{...px}`
+   (0,1,0) sin recurrir a !important. Cosmético y global: exactamente el look. */
+:root[data-theme='nocturne'] [class] {
+  letter-spacing: normal;
+}
+
+/* Las pocas labels con mayúsculas por CSS (el resto van en mayúsculas en el
+   propio texto y eso no se toca: es una skin, no reescritura de copy). */
+:root[data-theme='nocturne'] .member-detail__label,
+:root[data-theme='nocturne'] .perks-edit__heading {
+  text-transform: none;
+}
+
+/* Eyebrows: en Nocturne son labels gris tenue, no cian. */
+:root[data-theme='nocturne'] .view__eyebrow,
+:root[data-theme='nocturne'] .settings-eyebrow {
+  color: var(--nf-text-dim);
+}
+
+/* ---- Hover: fuera el "hundir en la sombra dura" + translate ----
+   Se sustituye por una elevación suave (o nada). */
+:root[data-theme='nocturne'] .resume-hero:hover,
+:root[data-theme='nocturne'] .champ:hover,
+:root[data-theme='nocturne'] .group-card:hover,
+:root[data-theme='nocturne'] .group-card--new:hover,
+:root[data-theme='nocturne'] .mh-row:hover,
+:root[data-theme='nocturne'] .mh-row.is-win:hover,
+:root[data-theme='nocturne'] .mh-row.is-loss:hover,
+:root[data-theme='nocturne'] .cp-mode:hover {
+  transform: none;
+  box-shadow: var(--nf-shadow-card);
+}
+
+/* ---- Glows neón fuera (views) ---- */
+:root[data-theme='nocturne'] .hl__big {
+  filter: none;
+}
+:root[data-theme='nocturne'] .resume-hero__avatar,
+:root[data-theme='nocturne'] .group-hero__avatar {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+/* Foco de input: aro azul sistema en vez del glow cian. */
+:root[data-theme='nocturne'] .field__input:focus {
+  box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.35);
+}
+/* Segmentos/tabs internos: plano en vez del gradiente cian→rosa. */
+:root[data-theme='nocturne'] .seg__btn.is-active {
+  background: var(--nf-elevated);
+}
+
+/* ---- Texto oscuro sobre relleno neón → blanco (ahora el relleno es azul) ---- */
+:root[data-theme='nocturne'] .actions__count,
+:root[data-theme='nocturne'] .attn-count {
+  color: #fff;
+}
+
+/* Overlays de modales: negro neutro, no violeta. */
+:root[data-theme='nocturne'] .modal-overlay {
+  background: rgba(0, 0, 0, 0.6);
+}
+
+/* ============================================================
+   Shell (chrome que enmarca TODA vista: sidebar, header, nav,
+   avatar, fab, bottomnav, notificaciones). Sin esto, perfil se
+   vería dentro de un marco violeta neón.
+   ============================================================ */
+
+:root[data-theme='nocturne'] .shell {
+  background: var(--nf-void);
+}
+:root[data-theme='nocturne'] .shell__sidebar {
+  background: rgba(20, 20, 22, 0.72);
+}
+:root[data-theme='nocturne'] .shell__header {
+  background: rgba(10, 10, 11, 0.8);
+}
+
+/* Marca + avatar: gradiente índigo→azul (no rosa neón, sin glow). */
+:root[data-theme='nocturne'] .shell__logo,
+:root[data-theme='nocturne'] .shell__avatar {
+  background: linear-gradient(160deg, #5e5ce6, #0a84ff);
+  box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.18);
+}
+:root[data-theme='nocturne'] .shell__fab {
+  background: var(--nf-pink); /* remapeado a azul */
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5), 0 0 0 6px var(--nf-void);
+}
+:root[data-theme='nocturne'] .shell__bottomnav-item--center.is-active .shell__fab {
+  box-shadow: 0 8px 22px rgba(10, 132, 255, 0.45), 0 0 0 6px var(--nf-void);
+}
+
+/* Estados activos/hover: acento azul tenue en vez de rosa/cian. */
+:root[data-theme='nocturne'] .shell__nav-item.is-active,
+:root[data-theme='nocturne'] .shell__bottomnav-item.is-active .shell__bottomnav-glyph {
+  background: rgba(10, 132, 255, 0.16);
+}
+:root[data-theme='nocturne'] .shell__groupitem:hover,
+:root[data-theme='nocturne'] .shell__grouplist-all:hover,
+:root[data-theme='nocturne'] .shell__profile:hover,
+:root[data-theme='nocturne'] .shell__notif-item.is-clickable:hover,
+:root[data-theme='nocturne'] .shell__sheet-all:active {
+  background: rgba(255, 255, 255, 0.05);
+}
+:root[data-theme='nocturne'] .shell__profile:hover .shell__avatar {
+  box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.18);
+}
+
+/* Glows del bell/logo/notif fuera. */
+:root[data-theme='nocturne'] .shell__logo,
+:root[data-theme='nocturne'] .shell__bell.is-active,
+:root[data-theme='nocturne'] .shell__notif {
+  filter: none;
+}
+:root[data-theme='nocturne'] .shell__bell.is-active {
+  box-shadow: none;
+}
+:root[data-theme='nocturne'] .shell__bell-badge {
+  box-shadow: none;
+}
+
+/* Paneles flotantes y barras: grafito translúcido, no violeta. */
+:root[data-theme='nocturne'] .shell__bottomnav {
+  background: rgba(10, 10, 11, 0.9);
+}
+:root[data-theme='nocturne'] .shell__sheet {
+  background: rgba(24, 24, 26, 0.98);
+}
+:root[data-theme='nocturne'] .shell__notif-item {
+  border-bottom-color: rgba(255, 255, 255, 0.07);
+}
+:root[data-theme='nocturne'] .shell__notif-empty-glyph {
+  color: var(--nf-text-dim);
+}
+:root[data-theme='nocturne'] .shell__overlay,
+:root[data-theme='nocturne'] .shell__sheet-overlay {
+  background: rgba(0, 0, 0, 0.6);
+}
+
+/* ============================================================
+   Legibilidad (Apple usa cuerpos generosos)
+   ------------------------------------------------------------
+   La app tiene mucho texto a 9–10px, por debajo del mínimo de
+   ~11px de la propia guía. Aquí se sube ese suelo y se agranda
+   un punto el texto de lectura. Solo hacia arriba; el combinador
+   (0,2,0) gana a los px literales (0,1,0) sin !important.
+   ============================================================ */
+
+/* --- Suelo global de labels pequeñas (shell + vistas): mínimo 11px. --- */
+:root[data-theme='nocturne'] [class*='eyebrow'],
+:root[data-theme='nocturne'] [class*='__role'],
+:root[data-theme='nocturne'] [class*='__sub'],
+:root[data-theme='nocturne'] [class*='__meta'],
+:root[data-theme='nocturne'] [class*='__time'],
+:root[data-theme='nocturne'] [class*='__seats'],
+:root[data-theme='nocturne'] [class*='__count'],
+:root[data-theme='nocturne'] [class*='__mode'],
+:root[data-theme='nocturne'] [class*='__cap'] {
+  font-size: 11px;
+}
+
+/* --- Perfil (página de referencia): subidas precisas de cada tamaño. --- */
+:root[data-theme='nocturne'] .view__lead {
+  font-size: 15px;
+}
+:root[data-theme='nocturne'] .view__eyebrow,
+:root[data-theme='nocturne'] .view__label {
+  font-size: 12px;
+}
+:root[data-theme='nocturne'] .scope-note__text,
+:root[data-theme='nocturne'] .pf-hero__tag,
+:root[data-theme='nocturne'] .pf-hero__opgg,
+:root[data-theme='nocturne'] .hl__blurb,
+:root[data-theme='nocturne'] .empty-state__text {
+  font-size: 13px;
+}
+:root[data-theme='nocturne'] .pf-hero__chip,
+:root[data-theme='nocturne'] .pf-champ__role,
+:root[data-theme='nocturne'] .pf-champ__games,
+:root[data-theme='nocturne'] .pf-form__sub {
+  font-size: 11.5px;
+}
+:root[data-theme='nocturne'] .hl__eyebrow,
+:root[data-theme='nocturne'] .totals__lbl,
+:root[data-theme='nocturne'] .pf-form__cap,
+:root[data-theme='nocturne'] .pf-group__sub {
+  font-size: 12px;
+}
+:root[data-theme='nocturne'] .pf-champ__name,
+:root[data-theme='nocturne'] .pf-group__name {
+  font-size: 15px;
+}
+:root[data-theme='nocturne'] .pf-ring__lbl {
+  font-size: 10.5px;
+}

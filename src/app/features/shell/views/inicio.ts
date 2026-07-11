@@ -1,7 +1,8 @@
 import { Component, computed, inject } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { NfBadge, NfButton } from '../../../ui';
-import { CURRENT_USER, Group, Notification } from '../../../core/lobby';
+import { Session } from '../../../core/auth';
+import { Group, Notification } from '../../../core/lobby';
 import { GroupStore } from '../../../core/group-store';
 import { MatchRoom, MatchStore, RoomStatus } from '../../../core/match-store';
 import { NotificationStore } from '../../../core/notification-store';
@@ -40,9 +41,7 @@ const STATUS_ORDER: Record<RoomStatus, number> = { live: 0, waiting: 1, drafting
   template: `
     <div class="view">
       <div class="view__head">
-        <div class="view__eyebrow nf-mono">// PANEL DE CONTROL</div>
-        <h1 class="view__title">Hola, {{ user.name }}</h1>
-        <p class="view__lead">Tu lobby está listo. Retoma una partida o crea una nueva.</p>
+        <h1 class="view__title">Hola, {{ session.displayName() }}</h1>
       </div>
 
       <div class="actions">
@@ -152,7 +151,8 @@ export class Inicio {
   private readonly toasts = inject(ToastService);
   private readonly router = inject(Router);
 
-  readonly user = CURRENT_USER;
+  /** El usuario logueado (identidad real), no el mock legacy `CURRENT_USER`. */
+  readonly session = inject(Session);
 
   /** Active rooms across every group, ranked so the most pressing one leads. */
   readonly resume = computed<ResumeItem[]>(() => {
