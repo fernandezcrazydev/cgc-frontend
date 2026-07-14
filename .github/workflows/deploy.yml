@@ -1,0 +1,48 @@
+# Build y despliegue de la SPA. Ver docs/despliegue.md del repo cgc-backend.
+#
+# Desplegar el front es copiar ficheros a /srv/cgc/www, donde Caddy los sirve. No se
+# construye ninguna imagen y no se reinicia ningun contenedor: nadie pierde la sesion.
+name: deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: deploy-frontend
+  cancel-in-progress: false
+
+jobs:
+  build:
+    # Un PR puede modificar este mismo fichero. Si corriera en el runner self-hosted,
+    # cualquier colaborador podria ejecutar lo que quisiera en el mini PC antes de que
+    # nadie revisara nada. Los PR se construyen en runners de GitHub; la maquina de casa
+    # solo ejecuta lo que YA esta en main.
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-latest' || 'self-hosted' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci
+
+      # "production" es la defaultConfiguration del proyecto: es la que aplica el
+      # fileReplacements de environment.prod.ts. Sin ella, la SPA saldria apuntando a
+      # localhost:8080 y en produccion no habria login.
+      - run: npx ng build --configuration production
+
+      # TODO: los tests del front (vitest) no estan en el pipeline todavia. Mientras no
+      # lo esten, el build es lo unico que separa un error de produccion.
+
+      - name: Publicar en /srv/cgc/www
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          mkdir -p /srv/cgc/www
+          # rsync sobre el MISMO directorio, no un mv: Caddy tiene /srv/cgc/www montado
+          # como bind mount y un reemplazo de directorio lo dejaria sirviendo el inodo
+          # viejo, ya desenlazado. --delete se lleva los assets de la version anterior.
+          rsync -a --delete dist/cgc-frontend/browser/ /srv/cgc/www/
