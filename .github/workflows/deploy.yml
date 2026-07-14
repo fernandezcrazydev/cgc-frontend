@@ -14,7 +14,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  build:
+  ci:
     # Un PR puede modificar este mismo fichero. Si corriera en el runner self-hosted,
     # cualquier colaborador podria ejecutar lo que quisiera en el mini PC antes de que
     # nadie revisara nada. Los PR se construyen en runners de GitHub; la maquina de casa
@@ -30,13 +30,18 @@ jobs:
 
       - run: npm ci
 
+      # --watch=false no es opcional: sin el, vitest se queda esperando cambios y el job
+      # se cuelga hasta que GitHub lo mata a las 6 horas.
+      #
+      # Va antes del build a proposito: si los tests fallan, no se construye nada y por
+      # tanto no hay nada que publicar. Ese es el freno.
+      - name: Tests
+        run: npx ng test --watch=false
+
       # "production" es la defaultConfiguration del proyecto: es la que aplica el
       # fileReplacements de environment.prod.ts. Sin ella, la SPA saldria apuntando a
       # localhost:8080 y en produccion no habria login.
       - run: npx ng build --configuration production
-
-      # TODO: los tests del front (vitest) no estan en el pipeline todavia. Mientras no
-      # lo esten, el build es lo unico que separa un error de produccion.
 
       - name: Publicar en /srv/cgc/www
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
