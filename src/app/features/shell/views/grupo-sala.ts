@@ -660,7 +660,6 @@ import { MemberBadge, badgesFor } from '../../../core/group-badges';
       }
     </div>
   `,
-  styleUrl: './views.scss',
 })
 export class GrupoSala {
   private readonly route = inject(ActivatedRoute);
