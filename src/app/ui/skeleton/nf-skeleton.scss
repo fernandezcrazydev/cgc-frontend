@@ -1,0 +1,32 @@
+nf-skeleton { display: block; }
+
+.nf-skeleton {
+  display: block;
+  position: relative;
+  overflow: hidden;
+  background: var(--nf-inset);
+  border: 1px solid var(--nf-border);
+}
+
+/* Barrido de luz: comunica "esto está llegando", no "esto está roto". */
+.nf-skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--nf-cyan) 16%, transparent),
+    transparent
+  );
+  animation: nf-skeleton-sweep 1.3s ease-in-out infinite;
+}
+
+@keyframes nf-skeleton-sweep {
+  to { transform: translateX(100%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nf-skeleton::after { animation: none; }
+}

@@ -1,1 +1,8 @@
+@if (booting()) {
+  <div class="boot" role="status" aria-live="polite">
+    <div class="boot__logo nf-mono">NEXUS<span class="boot__slash">//</span>FORGE</div>
+    <div class="boot__bar"><span class="boot__fill"></span></div>
+    <div class="boot__text nf-mono">CARGANDO SESIÓN…</div>
+  </div>
+}
 <router-outlet />

@@ -35,6 +35,8 @@ export class Session {
   readonly displayName = computed(() => this._user()?.discordUsername ?? '');
   readonly initials = computed(() => initialsOf(this._user()?.discordUsername));
   readonly avatarUrl = computed(() => this._user()?.avatarUrl ?? null);
+  /** ISO-8601 tal cual lo manda el backend: formatear es cosa de la vista. */
+  readonly createdAt = computed(() => this._user()?.createdAt ?? null);
 
   /**
    * Devuelve el usuario, cargándolo si hace falta. Idempotente: una vez cargado

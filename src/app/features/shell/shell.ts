@@ -15,6 +15,7 @@ import { MatchStore, MatchRoom } from '../../core/match-store';
 import { NotificationStore } from '../../core/notification-store';
 import { ToastService } from '../../core/toast';
 import { NfBadge, NfButton, NfToastHost, NfWindow } from '../../ui';
+import { FeedbackDialog } from '../feedback/feedback-dialog';
 
 /**
  * NEXUS//FORGE app shell — desktop sidebar + sticky header + mobile bottom nav,
@@ -24,7 +25,16 @@ import { NfBadge, NfButton, NfToastHost, NfWindow } from '../../ui';
 @Component({
   selector: 'app-shell',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, NfWindow, NfButton, NfBadge, NfToastHost],
+  imports: [
+    RouterOutlet,
+    RouterLink,
+    RouterLinkActive,
+    NfWindow,
+    NfButton,
+    NfBadge,
+    NfToastHost,
+    FeedbackDialog,
+  ],
   templateUrl: './shell.html',
   styleUrl: './shell.scss',
 })
@@ -155,11 +165,9 @@ export class Shell {
     if (id != null) this.notifs.dismiss(id);
   }
 
-  // ── Feedback / bug report modal ───────────────────────────────────
+  // ── Reporte de bug / propuesta / incidencia ───────────────────────
+  // El formulario vive en `FeedbackDialog`: el shell solo lo abre y lo cierra.
   readonly showFeedback = signal(false);
-  readonly feedbackType = signal<'bug' | 'suggestion'>('suggestion');
-  readonly feedbackMessage = signal('');
-  readonly feedbackEmail = signal('');
 
   openFeedback(): void {
     this.showFeedback.set(true);
@@ -167,17 +175,6 @@ export class Shell {
 
   closeFeedback(): void {
     this.showFeedback.set(false);
-  }
-
-  /** Mock submit (no backend yet): confirm with a toast and reset the form. */
-  submitFeedback(): void {
-    if (!this.feedbackMessage().trim()) return;
-    const kind = this.feedbackType() === 'bug' ? 'reporte de bug' : 'sugerencia';
-    this.showFeedback.set(false);
-    this.feedbackMessage.set('');
-    this.feedbackEmail.set('');
-    this.feedbackType.set('suggestion');
-    this.toasts.success(`¡Gracias! Tu ${kind} se ha enviado.`);
   }
 
   private readonly router = inject(Router);

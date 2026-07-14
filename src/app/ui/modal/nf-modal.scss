@@ -1,0 +1,33 @@
+/* NEXUS//FORGE · Modal (global, ViewEncapsulation.None) */
+
+/* el host no participa en el layout: el diálogo es `fixed` sobre todo lo demás */
+.nf-modal-host { display: contents; }
+
+/* fondo: oscurece y difumina la vista de detrás */
+.nf-modal__overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  overflow-y: auto;
+  background: color-mix(in srgb, var(--nf-void) 72%, transparent);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: nf-fade 0.16s ease both;
+}
+
+.nf-modal {
+  /* `margin: auto` + overlay scrollable: centrado, pero si el contenido no cabe
+     se puede desplazar en vez de recortarse */
+  width: 100%;
+  margin: auto;
+  animation: nf-pop 0.18s ease both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nf-modal__overlay,
+  .nf-modal { animation: none; }
+}

@@ -939,15 +939,25 @@
 /* ============ HISTORIAL — LoL-style match rows ============ */
 /* scope disclaimer: clarifies this is the user's personal history, not the group's */
 .scope-note {
+  /* --sn-c: color del aviso; lo cambia cada variante */
+  --sn-c: var(--nf-cyan);
   display: flex;
   align-items: center;
   gap: 12px;
   margin: 0 0 20px;
   padding: 12px 16px;
-  background: color-mix(in srgb, var(--nf-cyan) 7%, var(--nf-surface-2));
-  border: 1px solid color-mix(in srgb, var(--nf-cyan) 26%, transparent);
-  border-left: 3px solid var(--nf-cyan);
+  background: color-mix(in srgb, var(--sn-c) 7%, var(--nf-surface-2));
+  border: 1px solid color-mix(in srgb, var(--sn-c) 26%, transparent);
+  border-left: 3px solid var(--sn-c);
   border-radius: 6px;
+}
+/* Advertencia (no es un error: es algo que el usuario debe saber antes de actuar).
+   Suele ir intercalada en un formulario, así que se separa del campo de arriba
+   con el mismo ritmo que `.form-foot`. */
+.scope-note--warn {
+  --sn-c: var(--nf-yellow);
+  align-items: flex-start;
+  margin-top: 22px;
 }
 .scope-note__icon {
   flex: none;
@@ -957,8 +967,8 @@
   width: 26px;
   height: 26px;
   border-radius: 5px;
-  background: color-mix(in srgb, var(--nf-cyan) 16%, transparent);
-  color: var(--nf-cyan);
+  background: color-mix(in srgb, var(--sn-c) 16%, transparent);
+  color: var(--sn-c);
   font-size: 13px;
 }
 .scope-note__text {
@@ -3283,6 +3293,8 @@
 }
 .pf-hero__tag { font-size: 12px; letter-spacing: 1px; color: var(--nf-text-dim); margin-bottom: 12px; }
 .pf-hero__meta { display: flex; flex-wrap: wrap; gap: 8px; }
+/* mismo alto y margen que .pf-hero__name, para que el nombre no dé un salto al llegar */
+.pf-hero__sk-name { margin: 4px 0 8px; }
 .pf-hero__chip {
   display: inline-flex;
   align-items: center;
@@ -3346,6 +3358,152 @@
   .pf-ring { order: -1; }
 }
 
+/* ── Roles preferidos (preferencia global de cuenta) ───────────────── */
+.pf-roles {
+  margin-bottom: 24px;
+  padding: 18px;
+  border-radius: 12px;
+  border: 1.5px solid var(--nf-border);
+  background: var(--nf-surface-2);
+}
+.pf-roles__actions { display: flex; flex: none; gap: 10px; }
+.pf-roles__grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+}
+
+/* Una casilla por rol: el botón grande alterna el rol, la estrella lo marca
+   como principal (solo existe si el rol está seleccionado). */
+.role-tile {
+  position: relative;
+  border-radius: 10px;
+  border: 1.5px solid var(--nf-border);
+  background: var(--nf-inset);
+  transition: border-color 0.14s, background 0.14s, box-shadow 0.14s;
+}
+.role-tile:hover { border-color: var(--nf-border-strong); }
+.role-tile--on {
+  border-color: var(--nf-cyan);
+  background: var(--nf-elevated);
+}
+.role-tile--primary {
+  border-color: var(--nf-pink);
+  box-shadow: var(--nf-glow-pink);
+}
+.role-tile__pick {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  padding: 16px 8px 14px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+}
+.role-tile__pick:focus-visible {
+  outline: 2px solid var(--nf-cyan);
+  outline-offset: 2px;
+}
+.role-tile__glyph {
+  font-size: 24px;
+  line-height: 1;
+  color: var(--nf-text-dim);
+  transition: color 0.14s;
+}
+.role-tile--on .role-tile__glyph { color: var(--nf-cyan); }
+.role-tile--primary .role-tile__glyph { color: var(--nf-pink); }
+.role-tile__code {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: var(--nf-text-mid);
+}
+.role-tile--on .role-tile__code { color: var(--nf-text); }
+.role-tile__name { font-size: 11px; color: var(--nf-text-dim); }
+
+.role-tile__star {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--nf-radius-sm);
+  background: transparent;
+  font-size: 13px;
+  line-height: 1;
+  color: var(--nf-text-dim);
+  cursor: pointer;
+  transition: color 0.14s, transform 0.14s;
+}
+.role-tile__star:hover { color: var(--nf-yellow); transform: scale(1.15); }
+.role-tile__star:focus-visible {
+  outline: 2px solid var(--nf-cyan);
+  outline-offset: 1px;
+}
+.role-tile--primary .role-tile__star {
+  color: var(--nf-yellow);
+  text-shadow: 0 0 8px var(--nf-yellow);
+  cursor: default;
+}
+
+.pf-roles__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px dashed var(--nf-border);
+}
+.pf-roles__flex { display: flex; align-items: center; gap: 12px; }
+.pf-roles__flexname { font-weight: 700; font-size: 14px; color: var(--nf-text); }
+.pf-roles__flexsub { font-size: 12px; color: var(--nf-text-dim); }
+.pf-roles__hint {
+  flex: 1;
+  min-width: 240px;
+  margin: 0;
+  text-align: right;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--nf-text-dim);
+}
+.pf-roles__hint strong { color: var(--nf-text-mid); font-weight: 700; }
+.pf-roles__warn {
+  flex: 1;
+  min-width: 240px;
+  margin: 0;
+  text-align: right;
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  color: var(--nf-yellow);
+}
+
+.pf-roles--error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  border-left: 2px solid var(--nf-red);
+}
+.pf-roles__errtext { margin: 0; font-size: 13px; color: var(--nf-text-dim); }
+
+@media (max-width: 720px) {
+  .pf-roles__grid { grid-template-columns: repeat(auto-fit, minmax(92px, 1fr)); }
+  .pf-roles__hint, .pf-roles__warn { text-align: left; }
+}
+
 /* ── Cuenta de Riot vinculada ──────────────────────────────────────── */
 .pf-riot {
   display: flex;
@@ -3359,7 +3517,6 @@
 }
 .pf-riot--linked { border-left: 2px solid var(--nf-green); }
 .pf-riot--empty { flex-wrap: wrap; }
-.pf-riot--form { flex-direction: column; align-items: stretch; gap: 16px; }
 .pf-riot__logo {
   display: flex;
   align-items: center;
@@ -3407,11 +3564,28 @@
 .pf-riot__cta { flex: 1; min-width: 220px; }
 .pf-riot__ctatitle { font-weight: 700; font-size: 15px; color: var(--nf-text); margin-bottom: 4px; }
 .pf-riot__ctatext { margin: 0; font-size: 13px; color: var(--nf-text-dim); }
-.pf-riot__formfoot { display: flex; flex-wrap: wrap; gap: 12px; }
 @media (max-width: 560px) {
   .pf-riot--linked { flex-wrap: wrap; }
   .pf-riot__actions { width: 100%; justify-content: space-between; }
 }
+
+/* cabecera del modal de vinculación: logo de Riot + explicación */
+.riot-link {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+.riot-link__text { margin: 0; font-size: 13px; line-height: 1.5; color: var(--nf-text-dim); }
+
+/* cuerpo de un diálogo de confirmación (acción destructiva) */
+.confirm__text {
+  margin: 0 0 22px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--nf-text-dim);
+}
+.confirm__text strong { color: var(--nf-text); word-break: break-word; }
 
 /* ---- Global record strip (6 cols) ---- */
 .pf-totals { grid-template-columns: repeat(6, 1fr); }

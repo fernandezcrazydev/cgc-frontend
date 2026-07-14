@@ -77,13 +77,28 @@ Checklist que TODO dominio migrado debe cubrir (no negociable; revisar una a una
   a pelo: con latencia real eso parpadea un 404 falso. Patrón:
   ```html
   @switch (store.status()) {
-    @case ('loading') { <skeleton/spinner> }
+    @case ('loading') { <nf-skeleton .../> }
     @case ('error')   { <error + botón reintentar> }
     @default {
       @if (entity(); as e) { ... } @else { <404 real> }
     }
   }
   ```
+- **Ningún dato de red aparece de golpe.** Todo lo que llega por HTTP —incluido un simple
+  badge o un nombre— se pinta con `<nf-skeleton>` mientras `status()` sea `loading`. Reglas:
+  - El skeleton tiene la **misma forma, tamaño y márgenes** que el contenido final: al llegar
+    el dato no salta nada de sitio (cero layout shift). Un skeleton que no reserva el hueco
+    exacto es peor que no ponerlo.
+  - Nunca rellenar el hueco con un valor de mentira mientras carga (iniciales `??`, `0`, `—`):
+    el usuario lee eso como dato real y luego lo ve cambiar.
+  - El contenedor que espera lleva `aria-busy="true"`; los skeletons son `aria-hidden`.
+  - Spinner solo para **acciones** en vuelo (botón en `pending`), nunca para bloques de
+    contenido; skeleton solo para **contenido**, nunca para acciones.
+  - Skeleton ≠ estado vacío: si el dato llega y no hay nada que enseñar, va el estado vacío
+    con CTA.
+  - El arranque (mientras `authGuard` espera a `/me` la raíz no tiene nada que pintar) lo
+    cubre el splash de `App` (`booting`). Si algún guard nuevo bloquea una ruta, comprueba
+    que no deja un blanco: o resuelve rápido, o la vista se pinta con skeletons.
 - Estado **vacío** con CTA (grupo sin partidas, historial vacío...) ≠ estado de error.
 - Cancelar/ignorar respuestas obsoletas al cambiar de ruta o de `:id` (switchMap sobre el param,
   o comprobar que el id de la respuesta sigue siendo el activo antes de escribir en la signal).
@@ -160,9 +175,10 @@ Cuando se acuerde uno, documentarlo aquí y borrar la línea de pendientes.
 
 ## UI kit y estilos
 
-- Primitivas en `src/app/ui/` (`NfButton`, `NfWindow`, `NfBadge`, `NfToggle`, `NfSelect`,
-  `NfPagination`, `NfAvatarPicker`, `NfToastHost`), exportadas por `ui/index.ts`. Antes de crear
-  markup ad-hoc (modales, paginación...), mira si existe o debe existir una primitiva `nf-*`.
+- Primitivas en `src/app/ui/` (`NfButton`, `NfWindow`, `NfModal`, `NfBadge`, `NfToggle`, `NfSelect`,
+  `NfSegmented`, `NfPagination`, `NfAvatarPicker`, `NfSkeleton`, `NfToastHost`), exportadas por
+  `ui/index.ts`. Antes de crear markup ad-hoc (modales, paginación...), mira si existe o debe
+  existir una primitiva `nf-*`.
 - Los componentes **consumen** tokens `var(--nf-*)`; solo `src/styles/tokens/` los declara.
 - Tipografía: Manrope para texto de lectura; Share Tech Mono solo como acento (labels, código,
   números). Nada por debajo de ~11px.
