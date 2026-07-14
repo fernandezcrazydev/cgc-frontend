@@ -41,8 +41,12 @@ jobs:
       - name: Publicar en /srv/cgc/www
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
+          # El directorio lo crea el deploy del backend antes de levantar el compose, y a
+          # proposito: si no existe al montar el bind mount, lo crea el demonio de Docker
+          # como ROOT y este rsync se come un "Permission denied" (ver despliegue.md).
           mkdir -p /srv/cgc/www
-          # rsync sobre el MISMO directorio, no un mv: Caddy tiene /srv/cgc/www montado
-          # como bind mount y un reemplazo de directorio lo dejaria sirviendo el inodo
-          # viejo, ya desenlazado. --delete se lleva los assets de la version anterior.
+
+          # rsync sobre el MISMO directorio, nunca un "mv": Caddy lo tiene montado como
+          # bind mount, y reemplazar el directorio lo dejaria sirviendo el inodo viejo, ya
+          # desenlazado. --delete se lleva los assets de la version anterior.
           rsync -a --delete dist/cgc-frontend/browser/ /srv/cgc/www/
