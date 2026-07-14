@@ -1,4 +1,4 @@
-/* Shared lobby data for the NEXUS//FORGE app shell (from Login.dc.html). */
+/* Shared lobby data for the Sale perso app shell (from Login.dc.html). */
 import { NfBadgeColor } from '../ui';
 
 export interface MatchItem {

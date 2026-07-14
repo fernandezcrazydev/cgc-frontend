@@ -6,7 +6,7 @@ import { Auth, Session } from '../../core/auth';
 type LoginStatus = 'checking' | 'idle' | 'connecting' | 'success' | 'error';
 
 /**
- * NEXUS//FORGE — Login ("Login con Discord").
+ * Sale perso — Login ("Login con Discord").
  * Authorization Code + PKCE contra nuestro backend: al cargar miramos si ya hay un
  * token válido y, si lo hay, confirmamos con GET /api/v1/me y entramos al lobby.
  * Si no, el botón lanza el flujo, que pasa por el backend y de ahí a Discord.

@@ -18,7 +18,7 @@ import { NfBadge, NfButton, NfToastHost, NfWindow } from '../../ui';
 import { FeedbackDialog } from '../feedback/feedback-dialog';
 
 /**
- * NEXUS//FORGE app shell — desktop sidebar + sticky header + mobile bottom nav,
+ * Sale perso app shell — desktop sidebar + sticky header + mobile bottom nav,
  * with a routed <router-outlet> for the five views. Port of the APP SHELL block
  * in Login.dc.html.
  */

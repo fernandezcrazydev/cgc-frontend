@@ -4,7 +4,7 @@ import { Login } from './features/login/login';
 import { Shell } from './features/shell/shell';
 
 export const routes: Routes = [
-  { path: '', component: Login, title: 'Acceso · NEXUS//FORGE' },
+  { path: '', component: Login, title: 'Acceso · Sale perso' },
   // Debe ir antes del comodín '**'. Es la redirectUri registrada en el backend.
   {
     path: 'callback',
@@ -19,75 +19,75 @@ export const routes: Routes = [
       { path: '', pathMatch: 'full', redirectTo: 'inicio' },
       {
         path: 'inicio',
-        title: 'Inicio · NEXUS//FORGE',
+        title: 'Inicio · Sale perso',
         loadComponent: () => import('./features/shell/views/inicio').then((m) => m.Inicio),
       },
       {
         path: 'historial',
-        title: 'Historial · NEXUS//FORGE',
+        title: 'Historial · Sale perso',
         loadComponent: () => import('./features/shell/views/historial').then((m) => m.Historial),
       },
       {
         path: 'historial/:id',
-        title: 'Partida · NEXUS//FORGE',
+        title: 'Partida · Sale perso',
         loadComponent: () =>
           import('./features/shell/views/partida-detalle').then((m) => m.PartidaDetalle),
       },
       {
         path: 'grupos',
-        title: 'Grupos · NEXUS//FORGE',
+        title: 'Grupos · Sale perso',
         loadComponent: () => import('./features/shell/views/grupos').then((m) => m.Grupos),
       },
       {
         path: 'grupos/:id',
-        title: 'Grupo · NEXUS//FORGE',
+        title: 'Grupo · Sale perso',
         loadComponent: () =>
           import('./features/shell/views/grupo-detalle').then((m) => m.GrupoDetalle),
       },
       {
         path: 'grupos/:id/crear-partida',
-        title: 'Crear partida · NEXUS//FORGE',
+        title: 'Crear partida · Sale perso',
         loadComponent: () =>
           import('./features/shell/views/grupo-crear-partida').then((m) => m.GrupoCrearPartida),
       },
       {
         path: 'grupos/:id/partidas',
-        title: 'Partidas activas · NEXUS//FORGE',
+        title: 'Partidas activas · Sale perso',
         loadComponent: () =>
           import('./features/shell/views/grupo-partidas').then((m) => m.GrupoPartidas),
       },
       {
         path: 'grupos/:id/partidas/:roomId',
-        title: 'Sala · NEXUS//FORGE',
+        title: 'Sala · Sale perso',
         loadComponent: () =>
           import('./features/shell/views/grupo-sala').then((m) => m.GrupoSala),
       },
       {
         path: 'grupos/:id/ranking',
-        title: 'Ranking · NEXUS//FORGE',
+        title: 'Ranking · Sale perso',
         loadComponent: () =>
           import('./features/shell/views/grupo-ranking').then((m) => m.GrupoRanking),
       },
       {
         path: 'grupos/:id/estadisticas',
-        title: 'Estadísticas · NEXUS//FORGE',
+        title: 'Estadísticas · Sale perso',
         loadComponent: () =>
           import('./features/shell/views/grupo-estadisticas').then((m) => m.GrupoEstadisticas),
       },
       {
         path: 'grupos/:id/historial',
-        title: 'Historial del grupo · NEXUS//FORGE',
+        title: 'Historial del grupo · Sale perso',
         loadComponent: () =>
           import('./features/shell/views/grupo-historial').then((m) => m.GrupoHistorial),
       },
       {
         path: 'perfil',
-        title: 'Perfil · NEXUS//FORGE',
+        title: 'Perfil · Sale perso',
         loadComponent: () => import('./features/shell/views/perfil').then((m) => m.Perfil),
       },
       {
         path: 'ajustes',
-        title: 'Ajustes · NEXUS//FORGE',
+        title: 'Ajustes · Sale perso',
         loadComponent: () => import('./features/shell/views/ajustes').then((m) => m.Ajustes),
       },
     ],

@@ -9,6 +9,7 @@
   en memoria.
 - Sistema de diseño propio **NEXUS//FORGE** en `src/app/ui` (`nf-button`, `nf-badge`,
   `nf-window`, `nf-select`, `nf-toggle`, `nf-toast`, `nf-avatar-picker`, `nf-pagination`).
+  Es el nombre del design system, no el de la app (**Sale perso**); por eso el prefijo `nf-`.
 
 ## Estructura de carpetas
 

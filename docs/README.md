@@ -1,4 +1,4 @@
-# NEXUS//FORGE — Custom Game Creator (cgc-frontend)
+# Sale perso — Custom Game Creator (cgc-frontend)
 
 Documentación de contexto de la aplicación. Todo el dato es **mock** (en memoria,
 seedeado de forma determinista); estos documentos describen la **lógica de negocio**
@@ -35,6 +35,7 @@ montar **partidas personalizadas 5v5** estilo League of Legends dentro de **grup
 
 - **Idioma:** UI y copy en español. Identificadores de rol/región en mayúsculas.
 - **Diseño:** sistema NEXUS//FORGE (tokens `--nf-*`, componentes `nf-*` en `src/app/ui`).
+  Es el nombre del **design system**, no el de la app (la app es **Sale perso**); de ahí el prefijo `nf-`.
 - **Estado:** todo en signals dentro de servicios `@Injectable({ providedIn: 'root' })`.
 - **Backend:** marcado en el código con `BACKEND NOTE:`. El front está diseñado para
   que solo cambie la fuente de datos (los métodos de los stores ya tienen la forma final).

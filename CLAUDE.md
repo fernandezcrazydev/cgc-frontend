@@ -1,7 +1,9 @@
 # cgc-frontend — Guía para agentes
 
 SPA Angular 22 (standalone + signals) para organizar partidas custom de LoL entre grupos.
-UI en **español**. Design system propio "NEXUS//FORGE" (tokens `--nf-*`, componentes `nf-*`).
+La aplicación se llama **Sale perso** (nombre oficial: es el que va en el wordmark, el `<title>`
+y los títulos de ruta). UI en **español**. Design system propio "NEXUS//FORGE" (tokens `--nf-*`,
+componentes `nf-*`) — es el nombre del **sistema de diseño**, no el de la app; de ahí el prefijo `nf-`.
 
 ## Comandos
 

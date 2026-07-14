@@ -17,10 +17,9 @@
 .boot__logo {
   font-size: 22px;
   font-weight: 700;
-  letter-spacing: 4px;
+  letter-spacing: 2px;
   color: var(--nf-text);
 }
-.boot__slash { color: var(--nf-pink); }
 
 /* Barra indeterminada: no sabemos lo que tarda /me, así que no fingimos progreso. */
 .boot__bar {
