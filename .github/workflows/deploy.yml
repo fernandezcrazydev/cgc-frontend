@@ -51,7 +51,20 @@ jobs:
           # como ROOT y este rsync se come un "Permission denied" (ver despliegue.md).
           mkdir -p /srv/cgc/www
 
-          # rsync sobre el MISMO directorio, nunca un "mv": Caddy lo tiene montado como
-          # bind mount, y reemplazar el directorio lo dejaria sirviendo el inodo viejo, ya
-          # desenlazado. --delete se lleva los assets de la version anterior.
-          rsync -a --delete dist/cgc-frontend/browser/ /srv/cgc/www/
+          # rsync SIN --delete, y a proposito. Los chunks de Angular llevan el hash del
+          # contenido en el nombre, asi que publicar la version nueva solo AÑADE ficheros:
+          # nunca pisa uno que un navegador ya abierto aun pueda pedir. Si borraramos aqui
+          # los assets viejos, un usuario con el index.html anterior en memoria pediria un
+          # chunk que acabamos de borrar -> 404 al navegar a una vista aun no cargada, y se
+          # le rompe la app (era el bug intermitente de "me echa al login"). rsync sobre el
+          # MISMO directorio, nunca un "mv": Caddy lo tiene montado como bind mount, y
+          # reemplazar el directorio lo dejaria sirviendo el inodo viejo, ya desenlazado.
+          rsync -a dist/cgc-frontend/browser/ /srv/cgc/www/
+
+          # Recogida de basura. Sin --delete el disco creceria sin fin, asi que barremos los
+          # assets huerfanos por antiguedad: rsync refresca el mtime de TODO lo que sigue en
+          # el build (el index.html y los chunks vigentes se re-tocan en cada deploy), asi
+          # que solo los que dejaron de formar parte de la version actual conservan un mtime
+          # viejo. 7 dias de gracia -- de sobra para que cualquiera refresque la pestaña.
+          find /srv/cgc/www -type f -mtime +7 -delete
+          find /srv/cgc/www -type d -empty -delete
