@@ -14,7 +14,8 @@ import { GroupStore } from '../../core/group-store';
 import { MatchStore, MatchRoom } from '../../core/match-store';
 import { NotificationStore } from '../../core/notification-store';
 import { ToastService } from '../../core/toast';
-import { NfBadge, NfButton, NfToastHost, NfWindow } from '../../ui';
+import { NfBadge, NfButton, NfSegmented, NfToastHost, NfWindow } from '../../ui';
+import { ThemeService, THEMES } from '../../core/theme';
 import { FeedbackDialog } from '../feedback/feedback-dialog';
 
 /**
@@ -32,6 +33,7 @@ import { FeedbackDialog } from '../feedback/feedback-dialog';
     NfWindow,
     NfButton,
     NfBadge,
+    NfSegmented,
     NfToastHost,
     FeedbackDialog,
   ],
@@ -47,6 +49,10 @@ export class Shell {
   private readonly matches = inject(MatchStore);
   readonly notifs = inject(NotificationStore);
   private readonly toasts = inject(ToastService);
+
+  /** Selector de tema (skin global): vive en el header, junto a feedback y campana. */
+  readonly theme = inject(ThemeService);
+  readonly themeOptions = THEMES.map((t) => ({ value: t.id, label: t.label }));
 
   /**
    * The selected group's open room still waiting for players, if any. Surfaced as

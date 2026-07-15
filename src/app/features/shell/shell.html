@@ -149,6 +149,13 @@
         <h2 class="shell__title">{{ pageTitle() }}</h2>
       }
       <div class="shell__header-right">
+        <nf-segmented
+          class="shell__theme"
+          [options]="themeOptions"
+          [value]="theme.theme()"
+          (valueChange)="theme.set($event)"
+          ariaLabel="Tema visual"
+        />
         <button
           type="button"
           class="shell__feedback"

@@ -1,5 +1,5 @@
 import { Component, computed, inject } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { NfBadge, NfButton } from '../../../ui';
 import { Session } from '../../../core/auth';
 import { Group, Notification } from '../../../core/lobby';
@@ -37,7 +37,7 @@ const STATUS_ORDER: Record<RoomStatus, number> = { live: 0, waiting: 1, drafting
 @Component({
   selector: 'app-inicio',
   standalone: true,
-  imports: [RouterLink, NfButton, NfBadge],
+  imports: [NfButton, NfBadge],
   template: `
     <div class="view">
       <div class="view__head">
@@ -45,8 +45,7 @@ const STATUS_ORDER: Record<RoomStatus, number> = { live: 0, waiting: 1, drafting
       </div>
 
       <div class="actions">
-        <button nfButton variant="primary" size="md" [routerLink]="['/app', 'crear']">CREAR PARTIDA ►</button>
-        <button nfButton variant="secondary" size="md" [routerLink]="['/app', 'campeones']">VER CAMPEONES</button>
+        <button nfButton variant="primary" size="md" (click)="crearPartida()">CREAR PARTIDA ►</button>
       </div>
 
       <!-- ▸ RETOMAR — active rooms across all your groups (real match state) -->
@@ -177,6 +176,17 @@ export class Inicio {
   /** Jump into a room's lobby/sala. */
   open(it: ResumeItem): void {
     this.router.navigate(['/app', 'grupos', it.group.id, 'partidas', it.room.id]);
+  }
+
+  /**
+   * Crear una partida es una acción de grupo: el flujo real vive en
+   * `grupos/:id/crear-partida`. Desde el home usamos el grupo activo; si no hay
+   * ninguno, mandamos a la lista de grupos a elegir uno. Nunca a `/app/crear`, que
+   * no es una ruta registrada y el comodín `**` resolvía como el login.
+   */
+  crearPartida(): void {
+    const g = this.groups.selected() ?? this.groups.groups()[0] ?? null;
+    this.router.navigate(g ? ['/app', 'grupos', g.id, 'crear-partida'] : ['/app', 'grupos']);
   }
 
   glyph(n: Notification): string {

@@ -1,6 +1,5 @@
 import { Component, computed, inject, linkedSignal, signal } from '@angular/core';
-import { NfWindow, NfSegmented, NfButton, NfSelect, NfModal, NfToggle, NfSkeleton } from '../../../ui';
-import { ThemeService, THEMES } from '../../../core/theme';
+import { NfWindow, NfButton, NfSelect, NfModal, NfToggle, NfSkeleton } from '../../../ui';
 import { Session } from '../../../core/auth';
 import { CURRENT_USER } from '../../../core/lobby';
 import { GroupStore } from '../../../core/group-store';
@@ -46,18 +45,9 @@ interface RiotLink {
 @Component({
   selector: 'app-perfil',
   standalone: true,
-  imports: [NfWindow, NfSegmented, NfButton, NfSelect, NfModal, NfToggle, NfSkeleton],
+  imports: [NfWindow, NfButton, NfSelect, NfModal, NfToggle, NfSkeleton],
   template: `
     <div class="view">
-      <div class="view__head" style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap">
-        <nf-segmented
-          [options]="themeOptions"
-          [value]="theme.theme()"
-          (valueChange)="theme.set($event)"
-          ariaLabel="Tema visual"
-        />
-      </div>
-
       <!-- Cross-group scope disclaimer -->
       <div class="scope-note" role="note">
         <span class="scope-note__icon" aria-hidden="true">ⓘ</span>
@@ -473,10 +463,6 @@ export class Perfil {
   /** Mock legacy: solo alimenta las estadísticas agregadas (placeholder). La
    * identidad mostrada (nombre/avatar) viene de `session`, no de aquí. */
   private readonly user = CURRENT_USER;
-
-  /** Selector de skin. El tema es estado de UI global (ThemeService). */
-  protected readonly theme = inject(ThemeService);
-  protected readonly themeOptions = THEMES.map((t) => ({ value: t.id, label: t.label }));
 
   readonly profile = computed(() =>
     buildPlayerProfile(this.user, this.groups.groups(), (id) => this.groups.rosterOf(id)),
