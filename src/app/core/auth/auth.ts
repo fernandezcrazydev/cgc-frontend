@@ -39,9 +39,18 @@ export class Auth {
     await firstValueFrom(this.oidc.logoff());
   }
 
-  /** ¿Hay un token válido guardado? No hace red si ya lo sabe. */
+  /**
+   * ¿Sigues dentro? Con matiz importante en el arranque en frío.
+   *
+   * `checkAuth()` a secas NO usa el refresh token: si el access token ya caducó
+   * (p. ej. cerraste el navegador por la noche y el silent renew por timer dejó de
+   * correr), devuelve `false` sin más y el guard te manda al login cada mañana.
+   * `checkAuthIncludingServer()` cae a `forceRefreshSession()` con el refresh token
+   * guardado —válido 30 días en el backend— y solo entonces te da por fuera. Con
+   * tokens aún válidos responde al instante, sin llamada de red extra.
+   */
   async isAuthenticated(): Promise<boolean> {
-    const { isAuthenticated } = await firstValueFrom(this.oidc.checkAuth());
+    const { isAuthenticated } = await firstValueFrom(this.oidc.checkAuthIncludingServer());
     return isAuthenticated;
   }
 
