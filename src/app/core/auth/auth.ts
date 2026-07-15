@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { OidcSecurityService } from 'angular-auth-oidc-client';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, timeout } from 'rxjs';
 import { Session } from './session';
 
 /**
@@ -50,8 +50,22 @@ export class Auth {
    * tokens aún válidos responde al instante, sin llamada de red extra.
    */
   async isAuthenticated(): Promise<boolean> {
-    const { isAuthenticated } = await firstValueFrom(this.oidc.checkAuthIncludingServer());
-    return isAuthenticated;
+    try {
+      const { isAuthenticated } = await firstValueFrom(
+        // El timeout es red de seguridad: la rama de refresh-token de la librería
+        // NO lo lleva de fábrica, así que un /oauth2/token que no responda dejaría
+        // la comprobación colgada para siempre.
+        this.oidc.checkAuthIncludingServer().pipe(timeout(10_000)),
+      );
+      return isAuthenticated;
+    } catch {
+      // A diferencia de checkAuth(), checkAuthIncludingServer() EMITE UN ERROR
+      // cuando el refresh falla (sin refresh token, caducado o revocado): dispara
+      // forceRefreshSession(), que lanza en vez de devolver false. Sin este catch la
+      // promesa se rechaza y el login se queda clavado en "comprobando sesión". Un
+      // fallo aquí es, sencillamente, "no autenticado": que se vea el botón de Discord.
+      return false;
+    }
   }
 
   /**

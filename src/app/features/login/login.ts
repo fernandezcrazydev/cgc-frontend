@@ -43,20 +43,27 @@ export class Login implements OnInit, OnDestroy {
 
   /** Comprueba si ya hay un token válido y, en ese caso, entra al lobby. */
   private async checkSession(): Promise<void> {
-    // Sin token no tiene sentido llamar a la API: siempre daría 401.
-    if (!(await this.auth.isAuthenticated())) {
-      this.status.set('idle');
-      return;
-    }
+    try {
+      // Sin token no tiene sentido llamar a la API: siempre daría 401.
+      if (!(await this.auth.isAuthenticated())) {
+        this.status.set('idle');
+        return;
+      }
 
-    // Precarga el perfil: cuando el authGuard lo pida al entrar en /app ya estará
-    // en memoria, así que el shell pinta el nombre real sin un segundo de vacío.
-    const user = await this.session.ensureLoaded();
-    if (user) {
-      this.userName.set(user.discordUsername);
-      this.status.set('success');
-      this.enterTimer = setTimeout(() => this.enterApp(), 1100);
-    } else {
+      // Precarga el perfil: cuando el authGuard lo pida al entrar en /app ya estará
+      // en memoria, así que el shell pinta el nombre real sin un segundo de vacío.
+      const user = await this.session.ensureLoaded();
+      if (user) {
+        this.userName.set(user.discordUsername);
+        this.status.set('success');
+        this.enterTimer = setTimeout(() => this.enterApp(), 1100);
+      } else {
+        this.status.set('idle');
+      }
+    } catch {
+      // Pase lo que pase en la comprobación, NUNCA dejar la pantalla clavada en
+      // 'checking' ("COMPROBANDO SESIÓN…"): eso deja al usuario sin salida. Ante la
+      // duda mostramos el acceso, que siempre es un camino válido hacia adelante.
       this.status.set('idle');
     }
   }
