@@ -138,6 +138,13 @@ export class Grupos {
 
   create(): void {
     if (!this.canCreate()) return;
+    // BACKEND NOTE: el alta real ya está lista en `core/groups` (GroupsStore.create): hace
+    // el "doble call" —POST /groups con { name, region } y, si hay foto, PUT /groups/{id}/
+    // avatar (multipart) contra el id devuelto—, es pesimista y no reentrante (usa
+    // store.pending() para el botón). Aquí NO se conecta todavía porque la LISTA y el
+    // DETALLE de grupos siguen en el mock `GroupStore` (id = slug, roster sembrado), y
+    // mezclar el UUID real con eso rompería la navegación. Se conecta al migrar las
+    // lecturas de grupos al backend; entonces se borra `GroupStore.add` y este `add`.
     const group = this.groups.add({
       name: this.name(),
       region: this.region(),
