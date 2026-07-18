@@ -57,4 +57,41 @@ describe('GroupsApi', () => {
     expect(req.request.method).toBe('GET');
     req.flush([]);
   });
+
+  it('removeMember hace DELETE /groups/{id}/members/{userId}', () => {
+    api.removeMember('g1', 'u9').subscribe();
+    const req = http.expectOne(`${API}/groups/g1/members/u9`);
+    expect(req.request.method).toBe('DELETE');
+    req.flush(null);
+  });
+
+  it('leave hace DELETE /groups/{id}/membership', () => {
+    api.leave('g1').subscribe();
+    const req = http.expectOne(`${API}/groups/g1/membership`);
+    expect(req.request.method).toBe('DELETE');
+    req.flush(null);
+  });
+
+  it('changeRole hace PUT /groups/{id}/members/{userId}/role con el rol', () => {
+    api.changeRole('g1', 'u9', 'ADMIN').subscribe();
+    const req = http.expectOne(`${API}/groups/g1/members/u9/role`);
+    expect(req.request.method).toBe('PUT');
+    expect(req.request.body).toEqual({ role: 'ADMIN' });
+    req.flush(null);
+  });
+
+  it('transferOwnership hace PUT /groups/{id}/owner con el newOwnerId', () => {
+    api.transferOwnership('g1', 'u9').subscribe();
+    const req = http.expectOne(`${API}/groups/g1/owner`);
+    expect(req.request.method).toBe('PUT');
+    expect(req.request.body).toEqual({ newOwnerId: 'u9' });
+    req.flush(null);
+  });
+
+  it('deleteGroup hace DELETE /groups/{id}', () => {
+    api.deleteGroup('g1').subscribe();
+    const req = http.expectOne(`${API}/groups/g1`);
+    expect(req.request.method).toBe('DELETE');
+    req.flush(null);
+  });
 });

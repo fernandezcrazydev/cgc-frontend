@@ -1,7 +1,7 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { GroupsApi } from './groups-api';
-import { GroupResponse, Region } from './models';
+import { GroupResponse, GroupRole, Region } from './models';
 
 /** Lo que la vista de creación recoge del usuario: nombre, región y (opcional) la foto. */
 export interface CreateGroupInput {
@@ -48,6 +48,53 @@ export class GroupsStore {
         group = await firstValueFrom(this.api.uploadAvatar(group.groupId, blob));
       }
       return group;
+    } finally {
+      this._pending.set(false);
+    }
+  }
+
+  /**
+   * Gestión de miembros y ciclo de vida del grupo, contra el backend real. Todas son
+   * escrituras pesimistas y no reentrantes (guard con `pending`): `await` de la
+   * confirmación 204 y devuelven void; la vista traduce el fallo a un toast en español.
+   *
+   * BACKEND NOTE: cablearlas a la UI del detalle de grupo requiere que las LECTURAS de
+   * grupos migren a `/me/groups` (hoy la lista/detalle sigue en el mock `GroupStore` con
+   * ids-slug, no los UUID reales) y, para expulsar/rol/transferir, un endpoint que liste
+   * los miembros de un grupo (no existe aún). Hasta entonces estos métodos quedan listos
+   * pero sin punto de invocación real. Tras una escritura que cambie tu pertenencia
+   * (leave/delete) o la de otro, el llamante debe refetch de `/me/groups`.
+   */
+  async leave(groupId: string): Promise<void> {
+    await this.write(() => firstValueFrom(this.api.leave(groupId)));
+  }
+
+  /** Borra el grupo (solo owner). Ver BACKEND NOTE de `leave`. */
+  async deleteGroup(groupId: string): Promise<void> {
+    await this.write(() => firstValueFrom(this.api.deleteGroup(groupId)));
+  }
+
+  /** Expulsa a un miembro (por su UUID). Ver BACKEND NOTE de `leave`. */
+  async removeMember(groupId: string, userId: string): Promise<void> {
+    await this.write(() => firstValueFrom(this.api.removeMember(groupId, userId)));
+  }
+
+  /** Cambia el rol de un miembro (por su UUID). Ver BACKEND NOTE de `leave`. */
+  async changeRole(groupId: string, userId: string, role: GroupRole): Promise<void> {
+    await this.write(() => firstValueFrom(this.api.changeRole(groupId, userId, role)));
+  }
+
+  /** Transfiere la propiedad a otro miembro (por su UUID). Ver BACKEND NOTE de `leave`. */
+  async transferOwnership(groupId: string, newOwnerId: string): Promise<void> {
+    await this.write(() => firstValueFrom(this.api.transferOwnership(groupId, newOwnerId)));
+  }
+
+  /** Envoltorio no reentrante compartido por las escrituras que solo confirman (204). */
+  private async write(call: () => Promise<void>): Promise<void> {
+    if (this._pending()) throw new Error('Ya hay una operación de grupo en curso');
+    this._pending.set(true);
+    try {
+      await call();
     } finally {
       this._pending.set(false);
     }

@@ -291,98 +291,78 @@
         <nf-window title="notifications.exe" accent="pink" bodyPadding="0">
           <div class="shell__notif-sub">
             <span class="shell__notif-eyebrow nf-mono">// ACTIVIDAD RECIENTE</span>
-            <button type="button" class="shell__notif-clear nf-mono" (click)="clearNotifications($event)">
-              LIMPIAR ×
-            </button>
+            @if (notifs.hasUnread()) {
+              <button type="button" class="shell__notif-clear nf-mono" (click)="markAllRead($event)">
+                MARCAR LEÍDAS ✓
+              </button>
+            }
           </div>
 
-          <div class="shell__notif-list">
-            @for (n of notifs.notifications(); track n.id) {
-              <button
-                type="button"
+          <div class="shell__notif-list" [attr.aria-busy]="notifs.isLoading()">
+            @for (n of notifViews(); track n.id) {
+              <div
                 class="shell__notif-item"
-                [class.is-unread]="n.unread"
-                [class.is-clickable]="n.groupInvite"
+                [class.is-unread]="!n.read"
                 [style.--notif-accent]="n.accent"
-                (click)="onNotificationClick(n)"
               >
-                <div class="shell__notif-icon">{{ glyphFor(n.kind) }}</div>
+                <div class="shell__notif-icon">{{ n.glyph }}</div>
                 <div class="shell__notif-text">
                   <div class="shell__notif-title nf-mono">{{ n.title }}</div>
                   <div class="shell__notif-msg nf-mono">{{ n.message }}</div>
                   <div class="shell__notif-time nf-mono">{{ n.time }}</div>
-                  @if (n.groupInvite) {
-                    <div class="shell__notif-cta nf-mono">REVISAR INVITACIÓN ►</div>
+                  @if (n.invite; as inv) {
+                    @if (canRespond(inv.invitationId)) {
+                      <div class="shell__notif-actions">
+                        <button
+                          nfButton
+                          variant="ghost"
+                          size="sm"
+                          [disabled]="invitations.isResponding(inv.invitationId)"
+                          (click)="respondInvite(n, false)"
+                        >RECHAZAR</button>
+                        <button
+                          nfButton
+                          variant="primary"
+                          size="sm"
+                          [disabled]="invitations.isResponding(inv.invitationId)"
+                          (click)="respondInvite(n, true)"
+                        >UNIRME ►</button>
+                      </div>
+                    } @else {
+                      <div class="shell__notif-resolved nf-mono">// INVITACIÓN GESTIONADA</div>
+                    }
                   }
                 </div>
-                @if (n.unread) {
+                @if (!n.read) {
                   <span class="shell__notif-dot"></span>
                 }
-              </button>
+              </div>
             } @empty {
-              <div class="shell__notif-empty">
-                <div class="shell__notif-empty-glyph">◎</div>
-                <div class="shell__notif-empty-label nf-mono">// BANDEJA VACÍA</div>
-              </div>
-            }
-          </div>
-
-          <div class="shell__notif-foot">
-            <span class="nf-mono">VER HISTORIAL COMPLETO ►</span>
-          </div>
-        </nf-window>
-      </div>
-    </div>
-  }
-
-  <!-- group invitation review modal -->
-  @if (reviewInvite(); as inv) {
-    <div class="shell__overlay" (click)="closeInviteReview()">
-      <div class="shell__dialog shell__dialog--invite" (click)="$event.stopPropagation()">
-        <nf-window title="invitacion_grupo.exe" accent="pink" bodyPadding="0">
-          <div class="shell__invite">
-            <div class="shell__invite-hero" [style.--grp-c1]="inv.c1" [style.--grp-c2]="inv.c2">
-              <span class="shell__invite-avatar">{{ inv.initials }}</span>
-              <div class="shell__invite-headmeta">
-                <div class="shell__invite-tag nf-mono">{{ inv.tag }}</div>
-                <div class="shell__invite-name">{{ inv.groupName }}</div>
-                <div class="shell__invite-count nf-mono">◉ {{ inv.members }} MIEMBROS · {{ inv.region }}</div>
-              </div>
-            </div>
-
-            <div class="shell__invite-facts">
-              <div class="shell__invite-fact">
-                <span class="shell__invite-fact-label nf-mono">TE INVITA</span>
-                <span class="shell__invite-fact-value nf-mono">{{ inv.invitedBy }}</span>
-              </div>
-              <div class="shell__invite-fact">
-                <span class="shell__invite-fact-label nf-mono">ADMIN</span>
-                <span class="shell__invite-fact-value nf-mono">{{ inv.admin }}</span>
-              </div>
-            </div>
-
-            <div class="shell__invite-rosterhead nf-mono">// MIEMBROS ACTUALES</div>
-            <div class="shell__invite-roster">
-              @for (m of inv.roster; track m.tag) {
-                <div class="shell__invite-member">
-                  <span
-                    class="shell__invite-member-avatar"
-                    [style.background]="'radial-gradient(circle at 32% 26%, hsl(' + m.hue + ',90%,64%), hsl(' + m.hue + ',78%,30%))'"
-                  >{{ m.initials }}</span>
-                  <span class="shell__invite-member-name nf-mono">{{ m.name }}</span>
-                  @if (m.owner) {
-                    <nf-badge color="pink">OWNER</nf-badge>
-                  } @else {
-                    <span class="shell__invite-member-role nf-mono">{{ m.role }}</span>
-                  }
+              @if (notifs.isLoading()) {
+                @for (row of [0, 1, 2]; track row) {
+                  <div class="shell__notif-item" aria-hidden="true">
+                    <nf-skeleton width="34px" height="34px" radius="10px" />
+                    <div class="shell__notif-text">
+                      <nf-skeleton width="55%" height="11px" />
+                      <nf-skeleton width="80%" height="13px" />
+                    </div>
+                  </div>
+                }
+              } @else if (notifs.status() === 'error') {
+                <div class="shell__notif-empty">
+                  <div class="shell__notif-empty-glyph">⚠</div>
+                  <div class="shell__notif-empty-label nf-mono">// NO SE PUDO CARGAR</div>
+                  <button type="button" class="shell__notif-clear nf-mono" (click)="reloadNotifs($event)">
+                    REINTENTAR
+                  </button>
+                </div>
+              } @else {
+                <div class="shell__notif-empty">
+                  <div class="shell__notif-empty-glyph">◎</div>
+                  <div class="shell__notif-empty-label nf-mono">// BANDEJA VACÍA</div>
                 </div>
               }
-            </div>
-
-            <div class="shell__invite-actions">
-              <button nfButton variant="ghost" size="md" (click)="declineInvite()">RECHAZAR</button>
-              <button nfButton variant="primary" size="md" (click)="acceptInvite()">UNIRME AL GRUPO ►</button>
-            </div>
+            }
           </div>
         </nf-window>
       </div>

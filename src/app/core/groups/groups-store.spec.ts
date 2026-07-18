@@ -1,14 +1,22 @@
 import { TestBed } from '@angular/core/testing';
-import { Observable, of } from 'rxjs';
+import { Observable, Subject, of } from 'rxjs';
 import { GroupsApi } from './groups-api';
 import { GroupsStore } from './groups-store';
-import { CreateGroupRequest, GroupResponse } from './models';
+import { CreateGroupRequest, GroupResponse, GroupRole } from './models';
 
 /** Doble de `GroupsApi` que registra las llamadas y su orden, sin tocar la red. */
 class GroupsApiStub {
   createCalls: CreateGroupRequest[] = [];
   uploadCalls: { groupId: string; file: Blob }[] = [];
   order: string[] = [];
+
+  leaveCalls: string[] = [];
+  deleteCalls: string[] = [];
+  removeCalls: { groupId: string; userId: string }[] = [];
+  roleCalls: { groupId: string; userId: string; role: GroupRole }[] = [];
+  transferCalls: { groupId: string; newOwnerId: string }[] = [];
+  /** Compuerta para la próxima escritura void (leave/delete/...): controla el "en vuelo". */
+  gate: Subject<void> | null = null;
 
   created: GroupResponse = { groupId: 'g1', name: 'Los Cracks', region: 'EUW', avatarUrl: null };
   uploaded: GroupResponse = { groupId: 'g1', name: 'Los Cracks', region: 'EUW', avatarUrl: 'http://cdn/g1.jpg' };
@@ -23,6 +31,31 @@ class GroupsApiStub {
     this.uploadCalls.push({ groupId, file });
     this.order.push('upload');
     return of(this.uploaded);
+  }
+
+  private voidResult(): Observable<void> {
+    return this.gate ? this.gate.asObservable() : of(undefined);
+  }
+
+  leave(groupId: string): Observable<void> {
+    this.leaveCalls.push(groupId);
+    return this.voidResult();
+  }
+  deleteGroup(groupId: string): Observable<void> {
+    this.deleteCalls.push(groupId);
+    return this.voidResult();
+  }
+  removeMember(groupId: string, userId: string): Observable<void> {
+    this.removeCalls.push({ groupId, userId });
+    return this.voidResult();
+  }
+  changeRole(groupId: string, userId: string, role: GroupRole): Observable<void> {
+    this.roleCalls.push({ groupId, userId, role });
+    return this.voidResult();
+  }
+  transferOwnership(groupId: string, newOwnerId: string): Observable<void> {
+    this.transferCalls.push({ groupId, newOwnerId });
+    return this.voidResult();
   }
 }
 
@@ -69,5 +102,34 @@ describe('GroupsStore', () => {
     await expect(store.create({ name: 'B', region: 'EUW' })).rejects.toThrow();
     await first;
     expect(store.pending()).toBe(false);
+  });
+
+  it('leave y deleteGroup delegan en el api con el groupId', async () => {
+    await store.leave('g1');
+    await store.deleteGroup('g2');
+    expect(api.leaveCalls).toEqual(['g1']);
+    expect(api.deleteCalls).toEqual(['g2']);
+    expect(store.pending()).toBe(false);
+  });
+
+  it('removeMember / changeRole / transferOwnership delegan con sus argumentos', async () => {
+    await store.removeMember('g1', 'u9');
+    await store.changeRole('g1', 'u9', 'ADMIN');
+    await store.transferOwnership('g1', 'u9');
+    expect(api.removeCalls).toEqual([{ groupId: 'g1', userId: 'u9' }]);
+    expect(api.roleCalls).toEqual([{ groupId: 'g1', userId: 'u9', role: 'ADMIN' }]);
+    expect(api.transferCalls).toEqual([{ groupId: 'g1', newOwnerId: 'u9' }]);
+  });
+
+  it('las escrituras void son no reentrantes (guard anti doble submit)', async () => {
+    api.gate = new Subject<void>();
+    const first = store.leave('g1');
+    // Otra escritura mientras la primera está en vuelo: se rechaza.
+    await expect(store.deleteGroup('g1')).rejects.toThrow();
+    api.gate.next();
+    api.gate.complete();
+    await first;
+    expect(store.pending()).toBe(false);
+    expect(api.deleteCalls).toHaveLength(0);
   });
 });

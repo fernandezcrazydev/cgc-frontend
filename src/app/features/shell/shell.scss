@@ -692,6 +692,18 @@
   letter-spacing: 1.5px;
   color: var(--notif-accent);
 }
+.shell__notif-actions {
+  margin-top: 9px;
+  display: flex;
+  gap: 8px;
+}
+.shell__notif-resolved {
+  margin-top: 8px;
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  color: var(--nf-text-dim);
+  opacity: 0.7;
+}
 .shell__notif-item.is-unread {
   background: color-mix(in srgb, var(--notif-accent) 6%, transparent);
 }

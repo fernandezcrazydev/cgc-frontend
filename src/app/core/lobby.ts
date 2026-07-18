@@ -62,52 +62,6 @@ export interface Member {
   hue: number;
 }
 
-/**
- * Payload carried by a "group invite" notification so the bell can open a review
- * modal without hitting the backend (mock until the invite API exists).
- */
-export interface GroupInvitePayload {
-  /** Slug the group will get if the invite is accepted. */
-  groupId: string;
-  groupName: string;
-  region: string;
-  /** Mono subtitle, e.g. "EUW · COMPETITIVO". */
-  tag: string;
-  initials: string;
-  c1: string;
-  c2: string;
-  members: number;
-  /** Display name of whoever sent the invite. */
-  invitedBy: string;
-  /** Display name of the group owner/admin. */
-  admin: string;
-  /** Preview of the current roster. */
-  roster: Member[];
-}
-
-/** Kinds map to a glyph (see NOTIF_GLYPH); `accent` is a palette token for tint + dot. */
-export type NotificationKind = 'invite' | 'join' | 'result' | 'system';
-
-export interface Notification {
-  id: number;
-  kind: NotificationKind;
-  title: string;
-  message: string;
-  time: string;
-  unread: boolean;
-  /** CSS color (palette token) used for the icon, title and unread dot. */
-  accent: string;
-  /** When present, clicking the notification opens the group-invite review modal. */
-  groupInvite?: GroupInvitePayload;
-}
-
-export const NOTIF_GLYPH: Record<NotificationKind, string> = {
-  invite: '►',
-  join: '◉',
-  result: '▤',
-  system: '⊙',
-};
-
 export const CURRENT_USER = {
   name: 'N1ghtfang',
   initials: 'N1',
@@ -151,30 +105,3 @@ export const CHAMPIONS: Champion[] = CHAMP_DATA.map(([name, h, role]) => ({
 }));
 
 export const REGION_OPTIONS = ['LAN', 'BR', 'NA', 'EUW', 'KR'];
-
-/** Mock roster preview shown inside the example group-invite review modal. */
-const VORTEX_ROSTER: Member[] = [
-  { name: 'St0rmcaller', tag: 'St0rmcaller#EUW', initials: 'ST', role: 'CAPITÁN · OWNER', owner: true,  hue: 264 },
-  { name: 'Pix3lQueen',  tag: 'Pix3lQueen#EUW',  initials: 'PI', role: 'MID',             owner: false, hue: 318 },
-  { name: 'HexHunter',   tag: 'HexHunter#EUW',   initials: 'HE', role: 'JUNGLA',          owner: false, hue: 150 },
-  { name: 'NeonRift',    tag: 'NeonRift#EUW',    initials: 'NE', role: 'ADC',             owner: false, hue: 190 },
-  { name: 'AshenWolf',   tag: 'AshenWolf#EUW',   initials: 'AS', role: 'TOP',             owner: false, hue: 36  },
-  { name: 'LumeCore',    tag: 'LumeCore#EUW',    initials: 'LU', role: 'SUPPORT',         owner: false, hue: 96  },
-];
-
-export const NOTIFICATIONS: Notification[] = [
-  {
-    id: 6, kind: 'invite', title: 'INVITACIÓN A GRUPO',
-    message: 'St0rmcaller te invitó a unirte a VORTEX ESPORTS', time: 'AHORA', unread: true, accent: 'var(--nf-pink)',
-    groupInvite: {
-      groupId: 'vortex-esports', groupName: 'Vortex Esports', region: 'EUW', tag: 'EUW · COMPETITIVO',
-      initials: 'VE', c1: 'hsl(264,90%,64%)', c2: 'hsl(280,78%,34%)', members: VORTEX_ROSTER.length,
-      invitedBy: 'St0rmcaller', admin: 'St0rmcaller', roster: VORTEX_ROSTER,
-    },
-  },
-  { id: 1, kind: 'invite', title: 'INVITACIÓN A PARTIDA', message: 'Pix3lQueen te invitó a LAN-2895',                 time: 'AHORA', unread: true,  accent: 'var(--nf-cyan)'   },
-  { id: 2, kind: 'join',   title: 'SOLICITUD DE GRUPO',   message: 'Cr1msonByte quiere unirse a LAN CHALLENGER S14',   time: '5 MIN', unread: true,  accent: 'var(--nf-purple)' },
-  { id: 3, kind: 'result', title: 'PARTIDA FINALIZADA',   message: 'LAN-2887 — Victoria registrada · +32 LP',          time: '1H',    unread: false, accent: 'var(--nf-green)'  },
-  { id: 4, kind: 'system', title: 'SERVIDOR ACTUALIZADO', message: 'Región LAN · latencia 28ms',                       time: '3H',    unread: false, accent: 'var(--nf-yellow)' },
-  { id: 5, kind: 'result', title: 'DERROTA REGISTRADA',   message: 'LAN-2884 — D4rkFl4me venció a tu equipo',          time: '5H',    unread: false, accent: 'var(--nf-red)'    },
-];

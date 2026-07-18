@@ -39,3 +39,39 @@ export interface GroupMembershipResponse {
   /** ISO-8601 tal cual lo manda el backend; formatear es cosa de la vista. */
   joinedAt: string;
 }
+
+/** Estado de una invitación (`InvitationStatus` en el backend). */
+export type InvitationStatus = 'PENDING' | 'ACCEPTED' | 'DECLINED';
+
+/**
+ * Una invitación a un grupo (`InvitationResponse` del backend). El invitado se referencia
+ * por su `userId` (UUID de `app_user.id`), nunca por nombre. No trae `groupName` ni quién
+ * invitó: para pintar la tarjeta se usan los `data` de la notificación asociada.
+ */
+export interface InvitationResponse {
+  id: string;
+  groupId: string;
+  inviteeUserId: string;
+  status: InvitationStatus;
+  /** ISO-8601 tal cual lo manda el backend; formatear es cosa de la vista. */
+  createdAt: string;
+}
+
+/** Body de `POST /groups/{groupId}/invitations`: a quién se invita, por su UUID. */
+export interface InviteRequest {
+  inviteeUserId: string;
+}
+
+/**
+ * Body de `PUT /groups/{groupId}/members/{userId}/role`. `OWNER` no es asignable por esta
+ * vía (el backend responde 409: la propiedad se mueve por transferencia), pero el tipo lo
+ * admite porque el enum es el mismo; la restricción es de dominio, no de forma.
+ */
+export interface ChangeRoleRequest {
+  role: GroupRole;
+}
+
+/** Body de `PUT /groups/{groupId}/owner`: el nuevo owner, por su UUID de miembro. */
+export interface TransferOwnershipRequest {
+  newOwnerId: string;
+}
