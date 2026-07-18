@@ -94,24 +94,21 @@ export class GroupsStore {
   }
 
   /**
-   * Crea el grupo y, si hay foto, la sube en un SEGUNDO paso — el "doble call": primero
-   * `POST /groups` (JSON con nombre y región), y solo con el `groupId` que devuelve,
-   * `PUT /groups/{id}/avatar` (multipart). Pesimista y no reentrante: `await` de ambas
-   * confirmaciones y guarda contra doble submit. Refetch de la lista para que aparezca en la
-   * barra lateral. Devuelve el grupo ya con su `avatarUrl`; lanza si algo falla.
+   * Crea el grupo en UNA sola llamada: `POST /groups` multipart con nombre, región y —si hay— la
+   * foto en el mismo envío. Fusiona lo que antes eran dos llamadas (crear + subir avatar): el
+   * backend valida la imagen ANTES de crear la fila, así que un avatar inválido es un 400 que no
+   * deja un grupo huérfano (y al usuario reintentando, duplicándolos). Pesimista y no reentrante:
+   * `await` de la confirmación y guarda contra doble submit. Refetch de la lista para que aparezca
+   * en la barra lateral. Devuelve el grupo ya con su `avatarUrl`; lanza si algo falla.
    */
   async create(input: CreateGroupInput): Promise<GroupResponse> {
     if (this._pending()) throw new Error('Ya hay una creación de grupo en curso');
     this._pending.set(true);
     try {
-      let group = await firstValueFrom(
-        this.api.create({ name: input.name.trim(), region: input.region }),
+      const avatar = input.avatarDataUrl ? dataUrlToBlob(input.avatarDataUrl) : null;
+      const group = await firstValueFrom(
+        this.api.create({ name: input.name.trim(), region: input.region }, avatar),
       );
-      if (input.avatarDataUrl) {
-        // Solo tras crear el grupo: la foto se sube contra el id real que dio el backend.
-        const blob = dataUrlToBlob(input.avatarDataUrl);
-        group = await firstValueFrom(this.api.uploadAvatar(group.groupId, blob));
-      }
       await this.reload();
       return group;
     } finally {

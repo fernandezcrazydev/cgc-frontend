@@ -175,8 +175,10 @@ export class Grupos {
   }
 
   /**
-   * Alta real: `GroupsStore.create` hace el doble call (POST /groups y, si hay foto, PUT avatar),
-   * es pesimista y no reentrante, y refetch la lista. Solo al confirmar navegamos al detalle real.
+   * Alta real: `GroupsStore.create` hace una sola llamada multipart (POST /groups con la foto
+   * dentro, si la hay), es pesimista y no reentrante, y refetch la lista. Si la imagen no vale, el
+   * backend responde 400 y no se crea nada: cae en el catch y no navegamos. Solo al confirmar
+   * navegamos al detalle real.
    */
   async create(): Promise<void> {
     if (!this.canCreate() || this.groups.pending()) return;
