@@ -46,7 +46,17 @@ export class Login implements OnInit, OnDestroy {
     try {
       // Sin token no tiene sentido llamar a la API: siempre daría 401.
       if (!(await this.auth.isAuthenticated())) {
-        this.status.set('idle');
+        // Sin sesión local pero con derecho a un intento automático: lanzamos el
+        // flujo sin esperar al clic. Con la sesión persistente del AS y el
+        // prompt=none hacia Discord, el usuario ya conocido entra por una cadena
+        // de redirects invisible; nos quedamos en 'checking' para que el botón no
+        // parpadee mientras el navegador se va. Si el viaje fracasa, volveremos
+        // con el candado puesto y esta misma rama enseñará el botón de siempre.
+        if (this.auth.autoLoginAvailable()) {
+          this.auth.loginWithDiscord();
+        } else {
+          this.status.set('idle');
+        }
         return;
       }
 
