@@ -23,9 +23,20 @@ import {
 export class GroupsApi {
   private readonly http = inject(HttpClient);
 
-  /** Crea el grupo; el llamante queda como OWNER. 409 si supera el tope por usuario. */
-  create(body: CreateGroupRequest): Observable<GroupResponse> {
-    return this.http.post<GroupResponse>(`${environment.apiUrl}/groups`, body);
+  /**
+   * Crea el grupo en UNA sola llamada multipart: nombre, región y —opcional— la foto en el campo
+   * `file`. El backend valida la imagen ANTES de crear la fila, así que un avatar inválido es un
+   * 400 que NO deja grupo huérfano. Como en `uploadAvatar`, NO se fija `Content-Type` a mano: con
+   * `FormData` el navegador pone el `multipart/form-data` con su boundary. 409 si supera el tope.
+   */
+  create(body: CreateGroupRequest, avatar?: Blob | null, filename = 'avatar'): Observable<GroupResponse> {
+    const form = new FormData();
+    form.append('name', body.name);
+    form.append('region', body.region);
+    if (avatar) {
+      form.append('file', avatar, filename);
+    }
+    return this.http.post<GroupResponse>(`${environment.apiUrl}/groups`, form);
   }
 
   /**

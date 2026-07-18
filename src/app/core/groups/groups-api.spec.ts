@@ -21,16 +21,37 @@ describe('GroupsApi', () => {
 
   afterEach(() => http.verify());
 
-  it('create hace POST /groups con el nombre y la región', () => {
+  it('create hace POST /groups multipart con el nombre y la región', () => {
     const expected: GroupResponse = { groupId: 'g1', name: 'Los Cracks', region: 'EUW', avatarUrl: null };
     let received: GroupResponse | undefined;
     api.create({ name: 'Los Cracks', region: 'EUW' }).subscribe((g) => (received = g));
 
     const req = http.expectOne(`${API}/groups`);
     expect(req.request.method).toBe('POST');
-    expect(req.request.body).toEqual({ name: 'Los Cracks', region: 'EUW' });
+    // FormData con name/region y sin fichero; el Content-Type lo pone el navegador con su boundary.
+    expect(req.request.body).toBeInstanceOf(FormData);
+    const body = req.request.body as FormData;
+    expect(body.get('name')).toBe('Los Cracks');
+    expect(body.get('region')).toBe('EUW');
+    expect(body.has('file')).toBe(false);
+    expect(req.request.headers.has('Content-Type')).toBe(false);
     req.flush(expected);
     expect(received).toEqual(expected);
+  });
+
+  it('create con avatar mete el campo file en el mismo multipart', () => {
+    const expected: GroupResponse = {
+      groupId: 'g1', name: 'Los Cracks', region: 'EUW', avatarUrl: 'http://cdn/x.jpg',
+    };
+    const file = new Blob([new Uint8Array([1, 2, 3])], { type: 'image/png' });
+    api.create({ name: 'Los Cracks', region: 'EUW' }, file).subscribe();
+
+    const req = http.expectOne(`${API}/groups`);
+    expect(req.request.method).toBe('POST');
+    const body = req.request.body as FormData;
+    expect(body.has('file')).toBe(true);
+    expect(req.request.headers.has('Content-Type')).toBe(false);
+    req.flush(expected);
   });
 
   it('uploadAvatar hace PUT multipart con el campo file al id del grupo', () => {

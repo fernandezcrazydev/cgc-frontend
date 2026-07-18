@@ -15,6 +15,7 @@ function membership(groupId: string, role: GroupRole, name = groupId): GroupMemb
 /** Doble de `GroupsApi` que registra las llamadas y su orden, sin tocar la red. */
 class GroupsApiStub {
   createCalls: CreateGroupRequest[] = [];
+  createAvatars: (Blob | null)[] = [];
   uploadCalls: { groupId: string; file: Blob }[] = [];
   order: string[] = [];
 
@@ -38,10 +39,12 @@ class GroupsApiStub {
     return this.myGroupsImpl();
   }
 
-  create(body: CreateGroupRequest): Observable<GroupResponse> {
+  create(body: CreateGroupRequest, avatar?: Blob | null): Observable<GroupResponse> {
     this.createCalls.push(body);
+    this.createAvatars.push(avatar ?? null);
     this.order.push('create');
-    return of(this.created);
+    // Con foto el backend devuelve el grupo ya con su avatarUrl; sin foto, sin ella.
+    return of(avatar ? this.uploaded : this.created);
   }
 
   uploadAvatar(groupId: string, file: Blob): Observable<GroupResponse> {
@@ -90,21 +93,22 @@ describe('GroupsStore', () => {
     store = TestBed.inject(GroupsStore);
   });
 
-  it('sin foto hace una sola llamada (POST /groups) y no sube avatar', async () => {
+  it('sin foto hace una sola llamada (POST /groups) sin avatar', async () => {
     const group = await store.create({ name: 'Los Cracks', region: 'EUW' });
 
     expect(api.createCalls).toEqual([{ name: 'Los Cracks', region: 'EUW' }]);
+    expect(api.createAvatars).toEqual([null]);
     expect(api.uploadCalls).toHaveLength(0);
     expect(group).toEqual(api.created);
   });
 
-  it('con foto hace el doble call: crea primero y sube después contra el id devuelto', async () => {
+  it('con foto hace una sola llamada multipart que ya lleva el avatar dentro', async () => {
     const group = await store.create({ name: 'Los Cracks', region: 'EUW', avatarDataUrl: PNG });
 
-    // El orden es lo que importa: la foto se sube con el groupId que dio el backend.
-    expect(api.order).toEqual(['create', 'upload']);
-    expect(api.uploadCalls[0].groupId).toBe('g1');
-    expect(api.uploadCalls[0].file.type).toBe('image/png');
+    // Una sola llamada: la foto viaja en el mismo POST, no en un segundo paso (adiós huérfanos).
+    expect(api.order).toEqual(['create']);
+    expect(api.uploadCalls).toHaveLength(0);
+    expect(api.createAvatars[0]?.type).toBe('image/png');
     expect(group).toEqual(api.uploaded);
   });
 
