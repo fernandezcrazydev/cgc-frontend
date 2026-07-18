@@ -305,6 +305,12 @@
                 [class.is-unread]="!n.read"
                 [style.--notif-accent]="n.accent"
               >
+                <button
+                  type="button"
+                  class="shell__notif-dismiss nf-mono"
+                  aria-label="Borrar notificación"
+                  (click)="dismissNotif(n, $event)"
+                >×</button>
                 <div class="shell__notif-icon">{{ n.glyph }}</div>
                 <div class="shell__notif-text">
                   <div class="shell__notif-title nf-mono">{{ n.title }}</div>
@@ -364,6 +370,17 @@
               }
             }
           </div>
+
+          @if (notifs.hasMore()) {
+            <div class="shell__notif-foot">
+              <button
+                type="button"
+                class="shell__notif-more nf-mono"
+                [disabled]="notifs.loadingMore()"
+                (click)="loadMoreNotifs()"
+              >{{ notifs.loadingMore() ? 'CARGANDO…' : 'VER MÁS ▾' }}</button>
+            </div>
+          }
         </nf-window>
       </div>
     </div>

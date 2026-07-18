@@ -21,14 +21,14 @@ describe('NotificationsApi', () => {
 
   afterEach(() => http.verify());
 
-  it('list hace GET /me/notifications', () => {
+  it('list hace GET /me/notifications con page y size', () => {
     const expected: NotificationResponse[] = [
       { id: 'n1', type: 'INVITED_TO_GROUP', data: { groupName: 'X' }, read: false, createdAt: '2026-01-01T00:00:00Z' },
     ];
     let received: NotificationResponse[] | undefined;
-    api.list().subscribe((l) => (received = l));
+    api.list(2, 30).subscribe((l) => (received = l));
 
-    const req = http.expectOne(`${API}/me/notifications`);
+    const req = http.expectOne(`${API}/me/notifications?page=2&size=30`);
     expect(req.request.method).toBe('GET');
     req.flush(expected);
     expect(received).toEqual(expected);
@@ -38,6 +38,20 @@ describe('NotificationsApi', () => {
     api.markRead('n1').subscribe();
     const req = http.expectOne(`${API}/me/notifications/n1/read`);
     expect(req.request.method).toBe('POST');
+    req.flush(null);
+  });
+
+  it('markAllRead hace POST /me/notifications/read-all', () => {
+    api.markAllRead().subscribe();
+    const req = http.expectOne(`${API}/me/notifications/read-all`);
+    expect(req.request.method).toBe('POST');
+    req.flush(null);
+  });
+
+  it('delete hace DELETE /me/notifications/{id}', () => {
+    api.delete('n1').subscribe();
+    const req = http.expectOne(`${API}/me/notifications/n1`);
+    expect(req.request.method).toBe('DELETE');
     req.flush(null);
   });
 

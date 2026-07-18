@@ -17,9 +17,14 @@ import { NotificationResponse } from './models';
 export class NotificationsApi {
   private readonly http = inject(HttpClient);
 
-  /** La bandeja durable del usuario, la más reciente primero (orden del backend). */
-  list(): Observable<NotificationResponse[]> {
-    return this.http.get<NotificationResponse[]>(`${environment.apiUrl}/me/notifications`);
+  /**
+   * Una página de la bandeja durable del usuario, la más reciente primero (orden del
+   * backend). Paginación por offset: `page` 0-based, `size` elementos por página.
+   */
+  list(page = 0, size = 30): Observable<NotificationResponse[]> {
+    return this.http.get<NotificationResponse[]>(`${environment.apiUrl}/me/notifications`, {
+      params: { page, size },
+    });
   }
 
   /** Marca una notificación como leída. 204 sin cuerpo. */
@@ -28,6 +33,16 @@ export class NotificationsApi {
       `${environment.apiUrl}/me/notifications/${notificationId}/read`,
       null,
     );
+  }
+
+  /** Marca TODA la bandeja como leída en una sola llamada (sin fan-out). 204 sin cuerpo. */
+  markAllRead(): Observable<void> {
+    return this.http.post<void>(`${environment.apiUrl}/me/notifications/read-all`, null);
+  }
+
+  /** Borra una notificación de la bandeja. 404 si no existe o no es del llamante. 204 sin cuerpo. */
+  delete(notificationId: string): Observable<void> {
+    return this.http.delete<void>(`${environment.apiUrl}/me/notifications/${notificationId}`);
   }
 
   /**

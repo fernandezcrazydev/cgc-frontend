@@ -25,6 +25,8 @@ export interface InviteView {
   invitationId: string;
   groupId: string;
   groupName: string;
+  /** Nombre de quien invita, cuando el backend lo manda; null si no. */
+  invitedByName: string | null;
 }
 
 /** Mapea un DTO de notificación a su modelo de presentación. `now` inyectable para tests. */
@@ -37,16 +39,20 @@ export function notificationView(n: NotificationResponse, now = Date.now()): Not
   switch (n.type) {
     case 'INVITED_TO_GROUP': {
       const groupName = n.data['groupName'] ?? 'un grupo';
+      const invitedByName = n.data['invitedByName'] ?? null;
       return {
         ...base,
         title: 'INVITACIÓN A GRUPO',
-        message: `Te invitaron a unirte a ${groupName}`,
+        message: invitedByName
+          ? `${invitedByName} te invitó a unirte a ${groupName}`
+          : `Te invitaron a unirte a ${groupName}`,
         accent: 'var(--nf-pink)',
         glyph: '►',
         invite: {
           invitationId: n.data['invitationId'] ?? '',
           groupId: n.data['groupId'] ?? '',
           groupName,
+          invitedByName,
         },
       };
     }

@@ -753,6 +753,44 @@
   background: var(--notif-accent);
   box-shadow: 0 0 6px var(--notif-accent);
 }
+.shell__notif-item { position: relative; }
+.shell__notif-dismiss {
+  position: absolute;
+  top: 7px;
+  right: 9px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--nf-text-dim);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.45;
+  transition: opacity 0.14s, color 0.14s, background 0.14s;
+}
+.shell__notif-dismiss:hover {
+  opacity: 1;
+  color: var(--nf-text-mid);
+  background: rgba(255, 255, 255, 0.06);
+}
+.shell__notif-more {
+  font: inherit;
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: var(--nf-cyan);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+.shell__notif-more:disabled {
+  color: var(--nf-text-dim);
+  cursor: default;
+}
 
 .shell__notif-empty {
   padding: 36px 16px;

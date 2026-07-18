@@ -11,6 +11,9 @@ export type NotificationsStatus = 'idle' | 'loading' | 'ready' | 'error';
 const RECONNECT_BASE_MS = 1_000;
 const RECONNECT_MAX_MS = 30_000;
 
+/** Tamaño de página de la bandeja (debe ir alineado con el default del backend). */
+const PAGE_SIZE = 30;
+
 /**
  * Estado compartido de la campana, backed por el backend real. Clon de `Session`
  * (`ensureLoaded`/`reload`/`clear`) para la bandeja durable, MÁS una capa en vivo por
@@ -39,6 +42,14 @@ export class NotificationsStore {
 
   readonly isLoading = computed(() => this._status() === 'loading');
   readonly isReady = computed(() => this._status() === 'ready');
+
+  /** Paginación por offset: si queda otra página y si hay una carga de "más" en vuelo. */
+  private readonly _hasMore = signal(false);
+  private readonly _loadingMore = signal(false);
+  readonly hasMore = this._hasMore.asReadonly();
+  readonly loadingMore = this._loadingMore.asReadonly();
+  /** Índice de la próxima página a pedir (la 0 la trae `load`). */
+  private nextPage = 1;
 
   /** Badge de la campana: derivado, nunca un contador paralelo que se pueda desincronizar. */
   readonly unreadCount = computed(() => this._notifications().filter((n) => !n.read).length);
@@ -80,16 +91,41 @@ export class NotificationsStore {
   private async load(): Promise<NotificationResponse[]> {
     this._status.set('loading');
     try {
-      const list = await firstValueFrom(this.api.list());
+      const list = await firstValueFrom(this.api.list(0, PAGE_SIZE));
       this._notifications.set(list);
       this._status.set('ready');
+      this.nextPage = 1;
+      this._hasMore.set(list.length === PAGE_SIZE);
       return list;
     } catch {
       this._notifications.set([]);
       this._status.set('error');
+      this._hasMore.set(false);
       return [];
     } finally {
       this.inFlight = null;
+    }
+  }
+
+  /**
+   * Trae la siguiente página y la añade al final (dedup por id, por si el SSE ya insertó
+   * alguna). No reentrante; no-op si no queda más o la bandeja no está lista. Un fallo se
+   * traga: `hasMore` sigue true y el usuario puede reintentar.
+   */
+  async loadMore(): Promise<void> {
+    if (!this._hasMore() || this._loadingMore() || this._status() !== 'ready') return;
+    this._loadingMore.set(true);
+    try {
+      const page = await firstValueFrom(this.api.list(this.nextPage, PAGE_SIZE));
+      const seen = new Set(this._notifications().map((n) => n.id));
+      const fresh = page.filter((n) => !seen.has(n.id));
+      this._notifications.update((list) => [...list, ...fresh]);
+      this.nextPage++;
+      this._hasMore.set(page.length === PAGE_SIZE);
+    } catch {
+      // Reintentable: no tocamos hasMore.
+    } finally {
+      this._loadingMore.set(false);
     }
   }
 
@@ -117,13 +153,38 @@ export class NotificationsStore {
   }
 
   /**
-   * Marca todas como leídas (limpia el badge al abrir la campana). El backend no tiene un
-   * endpoint masivo, así que dispara un POST por cada no leída. BACKEND NOTE: un
-   * `POST /me/notifications/read-all` evitaría el fan-out cuando la bandeja crezca.
+   * Marca todas como leídas (limpia el badge al abrir la campana) en una sola llamada.
+   * Optimista: pinta todo leído y, si el POST falla, resincroniza con la verdad del backend.
    */
   async markAllRead(): Promise<void> {
-    const unread = this._notifications().filter((n) => !n.read);
-    await Promise.all(unread.map((n) => this.markRead(n.id)));
+    if (!this.hasUnread()) return;
+    this._notifications.update((list) => list.map((n) => (n.read ? n : { ...n, read: true })));
+    try {
+      await firstValueFrom(this.api.markAllRead());
+    } catch {
+      void this.reload();
+    }
+  }
+
+  /** Ids con un `delete` en vuelo: evita disparar el DELETE dos veces por la misma. */
+  private readonly removing = new Set<string>();
+
+  /**
+   * Borra una notificación de la bandeja. Optimista: la quita al instante y, si el DELETE
+   * falla (que no sea un 404 de "ya no está"), resincroniza. No reentrante por id.
+   */
+  async remove(notificationId: string): Promise<void> {
+    if (this.removing.has(notificationId)) return;
+    if (!this._notifications().some((n) => n.id === notificationId)) return;
+    this.removing.add(notificationId);
+    this._notifications.update((list) => list.filter((n) => n.id !== notificationId));
+    try {
+      await firstValueFrom(this.api.delete(notificationId));
+    } catch {
+      void this.reload();
+    } finally {
+      this.removing.delete(notificationId);
+    }
   }
 
   private patch(id: string, change: Partial<NotificationResponse>): void {
@@ -222,6 +283,9 @@ export class NotificationsStore {
     this.disconnect();
     this.inFlight = null;
     this.reconnectDelay = RECONNECT_BASE_MS;
+    this.nextPage = 1;
+    this._hasMore.set(false);
+    this._loadingMore.set(false);
     this._notifications.set([]);
     this._status.set('idle');
     this._lastArrived.set(null);

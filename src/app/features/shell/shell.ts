@@ -132,6 +132,17 @@ export class Shell {
     void this.notifs.reload();
   }
 
+  /** Borra una notificación de la bandeja (la × de cada fila). */
+  dismissNotif(view: NotificationView, event: Event): void {
+    event.stopPropagation();
+    void this.notifs.remove(view.id);
+  }
+
+  /** Trae la siguiente página de la bandeja. */
+  loadMoreNotifs(): void {
+    void this.notifs.loadMore();
+  }
+
   /**
    * ¿Se puede aún aceptar/rechazar esta invitación? Si conocemos las pendientes (status
    * ready), solo si sigue en la lista; si no las conocemos todavía, se permite y el 409

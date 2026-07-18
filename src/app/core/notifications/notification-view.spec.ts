@@ -19,8 +19,22 @@ describe('notificationView', () => {
     const view = notificationView(invite(), NOW);
     expect(view.title).toBe('INVITACIÓN A GRUPO');
     expect(view.message).toBe('Te invitaron a unirte a Los Cracks');
-    expect(view.invite).toEqual({ invitationId: 'inv1', groupId: 'g1', groupName: 'Los Cracks' });
+    expect(view.invite).toEqual({
+      invitationId: 'inv1',
+      groupId: 'g1',
+      groupName: 'Los Cracks',
+      invitedByName: null,
+    });
     expect(view.read).toBe(false);
+  });
+
+  it('usa invitedByName en el mensaje cuando el backend lo manda', () => {
+    const view = notificationView(
+      invite({ data: { groupId: 'g1', groupName: 'Los Cracks', invitationId: 'inv1', invitedByName: 'St0rm' } }),
+      NOW,
+    );
+    expect(view.message).toBe('St0rm te invitó a unirte a Los Cracks');
+    expect(view.invite?.invitedByName).toBe('St0rm');
   });
 
   it('sobrevive a un tipo desconocido sin romperse (sin acciones de invitación)', () => {

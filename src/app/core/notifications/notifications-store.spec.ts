@@ -9,23 +9,39 @@ function notif(id: string, read = false): NotificationResponse {
   return { id, type: 'INVITED_TO_GROUP', data: { invitationId: `inv-${id}` }, read, createdAt: '2026-07-18T12:00:00Z' };
 }
 
-/** Doble de `NotificationsApi` con `list`/`markRead` swappables para controlar tiempo y fallos. */
+/** Doble de `NotificationsApi` con métodos swappables para controlar tiempo y fallos. */
 class ApiStub {
   listCalls = 0;
+  listArgs: { page: number; size: number }[] = [];
   markReadCalls: string[] = [];
   markReadFail = false;
+  markAllReadCalls = 0;
+  markAllReadFail = false;
+  deleteCalls: string[] = [];
   streamUrl = 'http://localhost/stream';
 
-  listImpl: () => Observable<NotificationResponse[]> = () => of([notif('a'), notif('b', true)]);
+  listImpl: (page: number, size: number) => Observable<NotificationResponse[]> = () =>
+    of([notif('a'), notif('b', true)]);
 
-  list(): Observable<NotificationResponse[]> {
+  list(page = 0, size = 30): Observable<NotificationResponse[]> {
     this.listCalls++;
-    return this.listImpl();
+    this.listArgs.push({ page, size });
+    return this.listImpl(page, size);
   }
 
   markRead(id: string): Observable<void> {
     this.markReadCalls.push(id);
     return this.markReadFail ? throwError(() => new Error('boom')) : of(undefined);
+  }
+
+  markAllRead(): Observable<void> {
+    this.markAllReadCalls++;
+    return this.markAllReadFail ? throwError(() => new Error('boom')) : of(undefined);
+  }
+
+  delete(id: string): Observable<void> {
+    this.deleteCalls.push(id);
+    return of(undefined);
   }
 }
 
@@ -103,12 +119,34 @@ describe('NotificationsStore', () => {
     expect(store.unreadCount()).toBe(1);
   });
 
-  it('markAllRead marca cada no leída (un POST por cada una)', async () => {
+  it('markAllRead usa el endpoint único y pinta todo leído', async () => {
     api.listImpl = () => of([notif('a'), notif('b'), notif('c', true)]);
     await store.ensureLoaded();
     await store.markAllRead();
-    expect(api.markReadCalls.sort()).toEqual(['a', 'b']);
+    expect(api.markAllReadCalls).toBe(1);
+    expect(api.markReadCalls).toEqual([]);
     expect(store.unreadCount()).toBe(0);
+  });
+
+  it('remove borra la notificación de la bandeja y hace DELETE', async () => {
+    await store.ensureLoaded();
+    await store.remove('a');
+    expect(api.deleteCalls).toEqual(['a']);
+    expect(store.notifications().some((n) => n.id === 'a')).toBe(false);
+  });
+
+  it('loadMore trae la siguiente página, la añade y deduplica por id', async () => {
+    const fullPage = Array.from({ length: 30 }, (_, i) => notif(`p0-${i}`));
+    api.listImpl = (page) => of(page === 0 ? fullPage : [notif('p1-a'), notif('p0-0')]);
+    await store.ensureLoaded();
+    expect(store.hasMore()).toBe(true);
+
+    await store.loadMore();
+    expect(api.listArgs).toContainEqual({ page: 1, size: 30 });
+    expect(store.notifications().filter((n) => n.id === 'p0-0')).toHaveLength(1);
+    expect(store.notifications().some((n) => n.id === 'p1-a')).toBe(true);
+    // La segunda página vino incompleta (< 30): no queda más.
+    expect(store.hasMore()).toBe(false);
   });
 
   it('clear resetea la bandeja y el estado', async () => {
