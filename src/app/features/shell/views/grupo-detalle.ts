@@ -1,745 +1,455 @@
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import { Component, DestroyRef, computed, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { ActivatedRoute, RouterLink } from '@angular/router';
-import { map } from 'rxjs';
-import { NfAvatarPicker, NfBadge, NfBadgeColor, NfButton, NfSelect, NfWindow } from '../../../ui';
-import { GroupStore } from '../../../core/group-store';
-import { MatchStore } from '../../../core/match-store';
-import { ToastService } from '../../../core/toast';
-import { CURRENT_USER, Group, Member, REGION_OPTIONS } from '../../../core/lobby';
-import { MemberDetail, memberDetail, opggUrl } from '../../../core/member-detail';
-import { MemberBadge, badgesFor } from '../../../core/group-badges';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { firstValueFrom, map } from 'rxjs';
+import { NfBadge, NfButton, NfSkeleton, NfWindow } from '../../../ui';
+import { Session } from '../../../core/auth';
 import {
-  Perk,
-  PerkTone,
-  PERK_CATALOG,
-  PERK_COLOR,
-  PERK_TONES,
-  PERK_TONE_LABEL,
-  perksFromIds,
-} from '../../../core/perks';
+  GroupDetailStore,
+  GroupMemberResponse,
+  GroupRole,
+  InvitationsStore,
+  bannerColors,
+  initialsOf,
+} from '../../../core/groups';
+import { GroupStore } from '../../../core/group-store';
+import { UserSearchResult, UsersApi } from '../../../core/users';
+import { ToastService } from '../../../core/toast';
+
+/** Peso de cada rol para ordenar el roster: owner primero, luego admins, luego miembros. */
+const ROLE_RANK: Record<GroupRole, number> = { OWNER: 0, ADMIN: 1, MEMBER: 2 };
 
 @Component({
   selector: 'app-grupo-detalle',
   standalone: true,
-  imports: [RouterLink, FormsModule, NfAvatarPicker, NfBadge, NfButton, NfSelect, NfWindow],
+  imports: [RouterLink, FormsModule, NfBadge, NfButton, NfSkeleton, NfWindow],
   template: `
-    <div class="view">
-      @if (group(); as g) {
-        <div class="group-hero" [style.--grp-c1]="g.c1" [style.--grp-c2]="g.c2">
-          <span class="group-hero__avatar">
-            @if (g.avatar) {
-              <img class="group-hero__avatar-img" [src]="g.avatar" alt="" />
-            } @else {
-              {{ g.initials }}
-            }
-          </span>
-          <div class="group-hero__meta">
-            <div class="group-hero__tag nf-mono">{{ g.tag }}</div>
-            <h1 class="group-hero__name">{{ g.name }}</h1>
-            <div class="group-hero__badges">
-              <nf-badge [color]="g.role === 'OWNER' ? 'pink' : 'cyan'">{{ g.role }}</nf-badge>
-              <span class="group-hero__count nf-mono">◉ {{ g.members }} MIEMBROS</span>
+    @switch (store.status()) {
+      @case ('loading') {
+        <div class="view" aria-busy="true">
+          <div class="group-hero">
+            <nf-skeleton width="72px" height="72px" radius="18px" />
+            <div class="group-hero__meta">
+              <nf-skeleton width="120px" height="12px" />
+              <nf-skeleton width="220px" height="26px" />
+              <nf-skeleton width="160px" height="14px" />
             </div>
           </div>
-        </div>
-
-        <div class="actions">
-          <button nfButton variant="primary" size="md" [routerLink]="['/app', 'grupos', g.id, 'crear-partida']">CREAR PARTIDA ►</button>
-          <button
-            nfButton
-            variant="accent"
-            size="md"
-            class="actions__matches"
-            [class.actions__matches--live]="activeMatches().length"
-            [routerLink]="['/app', 'grupos', g.id, 'partidas']"
-          >
-            ◉ PARTIDAS ACTIVAS@if (activeMatches().length) {<span class="actions__count nf-mono">{{ activeMatches().length }}</span>}
-          </button>
-          @if (g.role === 'OWNER') {
-            <button nfButton variant="accent" size="md" (click)="openEdit()">✎ EDITAR GRUPO</button>
-          }
-          <button nfButton variant="secondary" size="md" [routerLink]="['/app', 'grupos', g.id, 'ranking']">RANKING</button>
-          <button nfButton variant="secondary" size="md" [routerLink]="['/app', 'grupos', g.id, 'estadisticas']">ESTADÍSTICAS</button>
-          <button nfButton variant="secondary" size="md" [routerLink]="['/app', 'grupos', g.id, 'historial']">HISTORIAL</button>
-          <button nfButton variant="ghost" size="md" [routerLink]="['/app', 'grupos']">← TODOS LOS GRUPOS</button>
-        </div>
-
-        <div class="view__label-row">
-          <div class="view__label nf-mono">▸ MIEMBROS</div>
-          @if (g.role === 'OWNER') {
-            <button nfButton variant="secondary" size="sm" (click)="openInvite()">＋ INVITAR</button>
-          }
-        </div>
-        <nf-window title="miembros.exe" accent="cyan" bodyPadding="0">
-          <div class="members">
-            @for (m of members(); track m.tag; let last = $last) {
-              <div class="member-row" [class.member-row--open]="expandedTag() === m.tag">
-                <div
-                  class="member"
-                  role="button"
-                  tabindex="0"
-                  [attr.aria-expanded]="expandedTag() === m.tag"
-                  (click)="toggleMember(m)"
-                  (keydown.enter)="toggleMember(m)"
-                  (keydown.space)="$event.preventDefault(); toggleMember(m)"
-                >
-                  <div
-                    class="member__avatar"
-                    [style.background]="'radial-gradient(circle at 32% 26%, hsl(' + m.hue + ',90%,64%), hsl(' + m.hue + ',78%,30%))'"
-                  >{{ m.initials }}</div>
-                  <div class="member__meta">
-                    <div class="member__name nf-mono">{{ m.name }}</div>
-                    <div class="member__role nf-mono">{{ m.role }}</div>
-                    @if (badgesOf(m.name); as bs) {
-                      @if (bs.length) {
-                        <div class="mbadges">
-                          @for (b of bs; track b.id) {
-                            <span class="mbadge" [attr.data-color]="b.color" [title]="b.title + ' · ' + b.detail">{{ b.glyph }}</span>
-                          }
-                        </div>
-                      }
-                    }
+          <nf-window title="miembros.exe" accent="cyan" bodyPadding="0">
+            <div class="gd-members">
+              @for (s of [0, 1, 2, 3]; track s) {
+                <div class="gd-member">
+                  <nf-skeleton width="38px" height="38px" radius="11px" />
+                  <div class="gd-member__meta">
+                    <nf-skeleton width="140px" height="13px" />
+                    <nf-skeleton width="70px" height="11px" />
                   </div>
-                  <span class="member__chevron" aria-hidden="true">▾</span>
-                  @if (m.owner) {
-                    <nf-badge color="pink">OWNER</nf-badge>
-                  } @else {
-                    @if (m.admin) {
-                      <nf-badge color="cyan">ADMIN</nf-badge>
-                    }
-                    @if (g.role === 'OWNER') {
-                      <div class="member__menu-wrap">
-                        <button
-                          type="button"
-                          class="member__menu-btn"
-                          [class.member__menu-btn--active]="menuTag() === m.tag"
-                          [attr.aria-label]="'Opciones de ' + m.name"
-                          [attr.aria-expanded]="menuTag() === m.tag"
-                          (click)="$event.stopPropagation(); toggleMenu(m)"
-                        >⋮</button>
-                        @if (menuTag() === m.tag) {
-                          <div
-                            class="member__menu"
-                            [class.member__menu--up]="last"
-                            (click)="$event.stopPropagation()"
-                          >
-                            <button type="button" class="member__menu-item" (click)="askPromote(m)">
-                              {{ m.admin ? '↓ Quitar administrador' : '↑ Ascender a administrador' }}
-                            </button>
-                            <button
-                              type="button"
-                              class="member__menu-item member__menu-item--danger"
-                              (click)="askRemove(m)"
-                            >✕ Eliminar miembro del grupo</button>
-                          </div>
-                        }
-                      </div>
-                    }
-                  }
                 </div>
+              }
+            </div>
+          </nf-window>
+        </div>
+      }
+      @case ('error') {
+        <div class="view">
+          <div class="empty-state">
+            <div class="empty-state__icon">⚠</div>
+            <div class="empty-state__text nf-mono">// ERROR AL CARGAR</div>
+            <p class="empty-state__hint">No se pudo cargar el grupo.</p>
+            <button nfButton variant="secondary" size="md" (click)="reload()">REINTENTAR</button>
+          </div>
+        </div>
+      }
+      @case ('not-found') {
+        <div class="view">
+          <div class="empty-state">
+            <div class="empty-state__icon">🔍</div>
+            <div class="empty-state__text nf-mono">// GRUPO NO ENCONTRADO</div>
+            <p class="empty-state__hint">Este grupo no existe o ya no eres miembro.</p>
+            <button nfButton variant="ghost" size="md" [routerLink]="['/app', 'grupos']">← TODOS LOS GRUPOS</button>
+          </div>
+        </div>
+      }
+      @default {
+        @if (store.group(); as g) {
+          <div class="view">
+            <div class="group-hero" [style.--grp-c1]="g.c1" [style.--grp-c2]="g.c2">
+              <span class="group-hero__avatar">
+                @if (g.avatarUrl) {
+                  <img class="group-hero__avatar-img" [src]="g.avatarUrl" alt="" />
+                } @else {
+                  {{ g.initials }}
+                }
+              </span>
+              <div class="group-hero__meta">
+                <div class="group-hero__tag nf-mono">{{ g.region ?? '—' }}</div>
+                <h1 class="group-hero__name">{{ g.name }}</h1>
+                <div class="group-hero__badges">
+                  <nf-badge [color]="g.role === 'OWNER' ? 'pink' : 'cyan'">{{ g.role }}</nf-badge>
+                  <span class="group-hero__count nf-mono">◉ {{ store.roster().length }} MIEMBROS</span>
+                </div>
+              </div>
+            </div>
 
-                @if (expandedTag() === m.tag && expandedDetail(); as d) {
-                  <div class="member-detail">
-                    <div class="member-detail__head">
-                      <div class="member-detail__tag nf-mono">{{ m.tag }}</div>
+            <div class="actions">
+              <button nfButton variant="primary" size="md" [routerLink]="['/app', 'grupos', g.id, 'crear-partida']">CREAR PARTIDA ►</button>
+              <button nfButton variant="secondary" size="md" [routerLink]="['/app', 'grupos', g.id, 'partidas']">PARTIDAS</button>
+              <button nfButton variant="secondary" size="md" [routerLink]="['/app', 'grupos', g.id, 'ranking']">RANKING</button>
+              <button nfButton variant="secondary" size="md" [routerLink]="['/app', 'grupos', g.id, 'estadisticas']">ESTADÍSTICAS</button>
+              <button nfButton variant="secondary" size="md" [routerLink]="['/app', 'grupos', g.id, 'historial']">HISTORIAL</button>
+              @if (store.isOwner()) {
+                <button nfButton variant="danger" size="md" [disabled]="store.busy()" (click)="confirmDelete.set(true)">BORRAR GRUPO</button>
+              } @else {
+                <button nfButton variant="ghost" size="md" [disabled]="store.busy()" (click)="confirmLeave.set(true)">SALIR DEL GRUPO</button>
+              }
+              <button nfButton variant="ghost" size="md" [routerLink]="['/app', 'grupos']">← TODOS</button>
+            </div>
+
+            @if (store.canManage()) {
+              <div class="view__label nf-mono">▸ INVITAR</div>
+              <nf-window title="invitar.exe" accent="pink" bodyPadding="16px">
+                <div class="gd-invite">
+                  <input
+                    class="field__input"
+                    type="text"
+                    placeholder="Buscar por nombre de Discord…"
+                    autocomplete="off"
+                    [ngModel]="query()"
+                    (ngModelChange)="onQuery($event)"
+                  />
+                  @if (searching()) {
+                    <div class="gd-invite__hint nf-mono">// BUSCANDO…</div>
+                  } @else if (query().trim().length >= 2 && !candidates().length) {
+                    <div class="gd-invite__hint nf-mono">// SIN RESULTADOS</div>
+                  }
+                  @for (u of candidates(); track u.userId) {
+                    <div class="gd-invite__row">
+                      <span
+                        class="gd-member__avatar"
+                        [style.background]="avatarBg(u.userId)"
+                      >
+                        @if (u.avatarUrl) {
+                          <img class="gd-member__avatar-img" [src]="u.avatarUrl" alt="" />
+                        } @else {
+                          {{ initials(u.discordUsername) }}
+                        }
+                      </span>
+                      <span class="gd-invite__name nf-mono">{{ u.discordUsername }}</span>
                       <button
                         nfButton
-                        variant="secondary"
+                        variant="primary"
                         size="sm"
-                        (click)="openOpgg(m.tag, $event)"
-                      >Ver en OP.GG ↗</button>
+                        [disabled]="invitations.inviting() || invitedIds().has(u.userId)"
+                        (click)="invite(u)"
+                      >{{ invitedIds().has(u.userId) ? 'INVITADO ✓' : 'INVITAR ►' }}</button>
                     </div>
+                  }
+                </div>
+              </nf-window>
+            }
 
-                    <div class="member-detail__tags">
-                      <div class="member-detail__group">
-                        <span class="member-detail__label nf-mono">Campeones</span>
-                        <div class="champ-icons">
-                          @for (c of d.champions; track c.name) {
-                            <span
-                              class="champ-icon"
-                              [style.background]="'linear-gradient(135deg, ' + c.c1 + ', ' + c.c2 + ')'"
-                              [title]="c.name + ' · ' + c.role"
-                            >{{ c.initials }}</span>
-                          }
-                        </div>
+            <div class="view__label nf-mono">▸ MIEMBROS</div>
+            <nf-window title="miembros.exe" accent="cyan" bodyPadding="0">
+              <div class="gd-members">
+                @for (m of members(); track m.userId) {
+                  <div class="gd-member">
+                    <span class="gd-member__avatar" [style.background]="avatarBg(m.userId)">
+                      @if (m.avatarUrl) {
+                        <img class="gd-member__avatar-img" [src]="m.avatarUrl" alt="" />
+                      } @else {
+                        {{ initials(m.discordUsername) }}
+                      }
+                    </span>
+                    <div class="gd-member__meta">
+                      <div class="gd-member__name nf-mono">
+                        {{ m.discordUsername }}@if (isMe(m)) {<span class="gd-member__you nf-mono"> · TÚ</span>}
                       </div>
-                      <div class="member-detail__group">
-                        <span class="member-detail__label nf-mono">Roles</span>
-                        @for (r of d.roles; track r) {
-                          <nf-badge color="yellow">⚡ {{ r }}</nf-badge>
-                        }
-                      </div>
-                      @if (perksFor(m.tag); as ps) {
-                        @if (ps.length || canEditPerks()) {
-                          <div class="member-detail__group member-detail__group--perks">
-                            <span class="member-detail__label nf-mono">Perks</span>
-                            @for (p of ps; track p.id) {
-                              <nf-badge [color]="perkColor(p.tone)">{{ p.glyph }} {{ p.label }}</nf-badge>
-                            } @empty {
-                              <span class="member-detail__empty nf-mono">sin perks aún</span>
-                            }
-                            @if (canEditPerks()) {
-                              <button
-                                type="button"
-                                class="member-detail__perk-edit nf-mono"
-                                (click)="openPerks(m, $event)"
-                              >✎ editar</button>
-                            }
-                          </div>
-                        }
+                      <div class="gd-member__role nf-mono">{{ m.role }}</div>
+                    </div>
+                    @if (m.role === 'OWNER') {
+                      <nf-badge color="pink">OWNER</nf-badge>
+                    } @else if (m.role === 'ADMIN') {
+                      <nf-badge color="cyan">ADMIN</nf-badge>
+                    }
+                    <div class="gd-member__actions">
+                      @if (canPromote(m)) {
+                        <button nfButton variant="ghost" size="sm" [disabled]="store.isActing(m.userId)" (click)="promote(m)">↑ ADMIN</button>
+                      }
+                      @if (canDemote(m)) {
+                        <button nfButton variant="ghost" size="sm" [disabled]="store.isActing(m.userId)" (click)="demote(m)">↓ MIEMBRO</button>
+                      }
+                      @if (canTransfer(m)) {
+                        <button nfButton variant="ghost" size="sm" [disabled]="store.isActing(m.userId)" (click)="transferTo.set(m)">CORONA ♛</button>
+                      }
+                      @if (canKick(m)) {
+                        <button nfButton variant="danger" size="sm" [disabled]="store.isActing(m.userId)" (click)="kick.set(m)">EXPULSAR</button>
                       }
                     </div>
-
-                    <div class="matchup-grid">
-                      <div class="matchup matchup--duo">
-                        <div class="matchup__label nf-mono">🤝 Mejor dúo</div>
-                        <div class="matchup__name nf-mono">{{ d.bestDuo.tag }}</div>
-                        <div class="matchup__stat nf-mono">
-                          {{ d.bestDuo.wr }}% · {{ d.bestDuo.wins }} wins / {{ d.bestDuo.games }} games
-                        </div>
-                      </div>
-                      <div class="matchup matchup--victim">
-                        <div class="matchup__label nf-mono">💀 Víctima favorita</div>
-                        <div class="matchup__name nf-mono">{{ d.favoriteVictim.tag }}</div>
-                        <div class="matchup__stat nf-mono">
-                          {{ d.favoriteVictim.wr }}% · {{ d.favoriteVictim.wins }} wins / {{ d.favoriteVictim.games }} games
-                        </div>
-                      </div>
-                      <div class="matchup matchup--nightmare">
-                        <div class="matchup__label nf-mono">👹 Su peor pesadilla</div>
-                        <div class="matchup__name nf-mono">{{ d.worstNightmare.tag }}</div>
-                        <div class="matchup__stat nf-mono">
-                          {{ d.worstNightmare.wr }}% · {{ d.worstNightmare.wins }} wins / {{ d.worstNightmare.games }} games
-                        </div>
-                      </div>
-                    </div>
                   </div>
                 }
               </div>
-            }
+            </nf-window>
           </div>
-
-          @if (pending().length) {
-            <div class="members__pending-head nf-mono">// INVITACIONES PENDIENTES</div>
-            <div class="members">
-              @for (tag of pending(); track tag) {
-                <div class="member member--pending">
-                  <div class="member__avatar member__avatar--pending">{{ tag.slice(0, 2).toUpperCase() }}</div>
-                  <div class="member__meta">
-                    <div class="member__name nf-mono">{{ tag }}</div>
-                    <div class="member__role nf-mono">ESPERANDO RESPUESTA</div>
-                  </div>
-                  <nf-badge color="yellow">PENDIENTE</nf-badge>
-                  @if (g.role === 'OWNER') {
-                    <button
-                      type="button"
-                      class="member__remove"
-                      [attr.aria-label]="'Cancelar invitación a ' + tag"
-                      (click)="cancelInvite(tag)"
-                    >×</button>
-                  }
-                </div>
-              }
-            </div>
-          }
-        </nf-window>
-      } @else {
-        <div class="view__head">
-          <div class="view__eyebrow nf-mono">// ERROR 404</div>
-          <h1 class="view__title">Grupo no encontrado</h1>
-          <p class="view__lead">El grupo que buscas no existe o ya no perteneces a él.</p>
-        </div>
-        <button nfButton variant="secondary" size="md" [routerLink]="['/app', 'grupos']">← VOLVER A GRUPOS</button>
+        }
       }
-    </div>
+    }
 
-    @if (editing(); as g) {
-      <div class="modal-overlay" (click)="closeEdit()">
+    <!-- confirmaciones -->
+    @if (confirmDelete()) {
+      <div class="modal-overlay" (click)="confirmDelete.set(false)">
         <div class="modal" (click)="$event.stopPropagation()">
-          <nf-window title="editar_grupo.exe" accent="pink" bodyPadding="22px 22px 28px">
-            <div class="settings-eyebrow nf-mono">// EDITAR GRUPO</div>
-
-            <div class="field" style="margin-bottom: 18px">
-              <label class="field__label nf-mono">FOTO DEL GRUPO</label>
-              <nf-avatar-picker
-                [value]="editAvatar()"
-                [initials]="g.initials"
-                [c1]="g.c1"
-                [c2]="g.c2"
-                (valueChange)="editAvatar.set($event)"
-              />
-            </div>
-
-            <div class="form-grid">
-              <div class="field">
-                <label class="field__label nf-mono" for="edit-group-name">NOMBRE DEL GRUPO</label>
-                <input
-                  id="edit-group-name"
-                  class="field__input"
-                  type="text"
-                  autocomplete="off"
-                  [ngModel]="editName()"
-                  (ngModelChange)="editName.set($event)"
-                  (keydown.enter)="saveEdit()"
-                />
-              </div>
-
-              <div class="field">
-                <label class="field__label nf-mono">REGIÓN</label>
-                <nf-select [options]="regionOptions" [value]="editRegion()" (valueChange)="editRegion.set($event)" />
-              </div>
-            </div>
-
+          <nf-window title="borrar_grupo.exe" accent="pink" bodyPadding="24px">
+            <p class="gd-confirm">¿Seguro que quieres <strong>borrar</strong> este grupo? Esta acción no se puede deshacer.</p>
             <div class="form-foot">
-              <button nfButton variant="primary" size="md" [disabled]="!canSaveEdit()" (click)="saveEdit()">
-                GUARDAR CAMBIOS ►
-              </button>
-              <button nfButton variant="ghost" size="md" (click)="closeEdit()">CANCELAR</button>
+              <button nfButton variant="ghost" size="md" [disabled]="store.busy()" (click)="confirmDelete.set(false)">CANCELAR</button>
+              <button nfButton variant="danger" size="md" [disabled]="store.busy()" (click)="doDelete()">BORRAR</button>
             </div>
           </nf-window>
         </div>
       </div>
     }
-
-    @if (inviting()) {
-      <div class="modal-overlay" (click)="closeInvite()">
+    @if (confirmLeave()) {
+      <div class="modal-overlay" (click)="confirmLeave.set(false)">
         <div class="modal" (click)="$event.stopPropagation()">
-          <nf-window title="invitar_miembro.exe" accent="cyan" bodyPadding="22px 22px 28px">
-            <div class="settings-eyebrow nf-mono">// INVITAR AL GRUPO</div>
-
-            @if (inviteSent()) {
-              <div class="invite-result">
-                <div class="invite-result__glyph">✓</div>
-                <p class="invite-result__msg">
-                  Invitación enviada a <strong>{{ inviteTag() }}</strong>.<br />
-                  Aparecerá como miembro en cuanto acepte.
-                </p>
-              </div>
-              <div class="form-foot">
-                <button nfButton variant="primary" size="md" (click)="closeInvite()">LISTO</button>
-                <button nfButton variant="ghost" size="md" (click)="inviteAnother()">INVITAR A OTRO</button>
-              </div>
-            } @else {
-              <div class="field">
-                <label class="field__label nf-mono" for="invite-tag">TAG DEL JUGADOR</label>
-                <input
-                  id="invite-tag"
-                  class="field__input"
-                  type="text"
-                  placeholder="CrazyDragon#EUW"
-                  autocomplete="off"
-                  [ngModel]="inviteTag()"
-                  (ngModelChange)="onInviteInput($event)"
-                  (keydown.enter)="sendInvite()"
-                />
-                @if (inviteError(); as err) {
-                  <div class="field__error nf-mono">⚠ {{ err }}</div>
-                }
-              </div>
-              <p class="form-note nf-mono">
-                Se enviará una invitación a la campanita del jugador. No formará parte del grupo hasta que la acepte.
-              </p>
-              <div class="form-foot">
-                <button nfButton variant="primary" size="md" [disabled]="!inviteTag().trim()" (click)="sendInvite()">
-                  ENVIAR INVITACIÓN ►
-                </button>
-                <button nfButton variant="ghost" size="md" (click)="closeInvite()">CANCELAR</button>
-              </div>
-            }
+          <nf-window title="salir_grupo.exe" accent="pink" bodyPadding="24px">
+            <p class="gd-confirm">¿Seguro que quieres <strong>salir</strong> de este grupo?</p>
+            <div class="form-foot">
+              <button nfButton variant="ghost" size="md" [disabled]="store.busy()" (click)="confirmLeave.set(false)">CANCELAR</button>
+              <button nfButton variant="danger" size="md" [disabled]="store.busy()" (click)="doLeave()">SALIR</button>
+            </div>
           </nf-window>
         </div>
       </div>
     }
-
-    @if (removing(); as m) {
-      <div class="modal-overlay" (click)="cancelRemove()">
+    @if (kick(); as m) {
+      <div class="modal-overlay" (click)="kick.set(null)">
         <div class="modal" (click)="$event.stopPropagation()">
-          <nf-window title="eliminar_miembro.exe" accent="pink" bodyPadding="24px">
-            <div class="settings-eyebrow nf-mono">// ELIMINAR MIEMBRO</div>
-            <p class="remove-msg">
-              ¿Seguro que quieres eliminar a <strong>{{ m.name }}</strong> del grupo?
+          <nf-window title="expulsar.exe" accent="pink" bodyPadding="24px">
+            <p class="gd-confirm">¿Expulsar a <strong>{{ m.discordUsername }}</strong> del grupo?</p>
+            <div class="form-foot">
+              <button nfButton variant="ghost" size="md" [disabled]="store.isActing(m.userId)" (click)="kick.set(null)">CANCELAR</button>
+              <button nfButton variant="danger" size="md" [disabled]="store.isActing(m.userId)" (click)="doKick(m)">EXPULSAR</button>
+            </div>
+          </nf-window>
+        </div>
+      </div>
+    }
+    @if (transferTo(); as m) {
+      <div class="modal-overlay" (click)="transferTo.set(null)">
+        <div class="modal" (click)="$event.stopPropagation()">
+          <nf-window title="transferir.exe" accent="pink" bodyPadding="24px">
+            <p class="gd-confirm">
+              ¿Transferir la <strong>propiedad</strong> a <strong>{{ m.discordUsername }}</strong>?
+              Pasarás a ser ADMIN.
             </p>
-            <div class="remove-warn nf-mono">
-              ⚠ Esto borrará <strong>toda su información</strong> en este grupo: estadísticas,
-              historial de partidas y posición en el ranking. Esta acción no se puede deshacer.
-            </div>
             <div class="form-foot">
-              <button nfButton variant="ghost" size="md" (click)="cancelRemove()">CANCELAR</button>
-              <button nfButton variant="danger" size="md" (click)="confirmRemove()">ELIMINAR MIEMBRO</button>
+              <button nfButton variant="ghost" size="md" [disabled]="store.isActing(m.userId)" (click)="transferTo.set(null)">CANCELAR</button>
+              <button nfButton variant="primary" size="md" [disabled]="store.isActing(m.userId)" (click)="doTransfer(m)">TRANSFERIR ♛</button>
             </div>
           </nf-window>
         </div>
       </div>
-    }
-
-    @if (promoting(); as m) {
-      <div class="modal-overlay" (click)="cancelPromote()">
-        <div class="modal" (click)="$event.stopPropagation()">
-          <nf-window [title]="m.admin ? 'quitar_admin.exe' : 'ascender_admin.exe'" accent="cyan" bodyPadding="24px">
-            <div class="settings-eyebrow nf-mono">
-              // {{ m.admin ? 'QUITAR ADMINISTRADOR' : 'ASCENDER A ADMINISTRADOR' }}
-            </div>
-            <p class="remove-msg">
-              @if (m.admin) {
-                ¿Seguro que quieres quitarle el rol de administrador a <strong>{{ m.name }}</strong>?
-              } @else {
-                ¿Seguro que quieres ascender a <strong>{{ m.name }}</strong> a administrador del grupo?
-              }
-            </p>
-            <div class="remove-warn nf-mono">
-              @if (m.admin) {
-                ⚠ Dejará de poder gestionar a los miembros e invitaciones del grupo.
-              } @else {
-                ⚠ Podrá gestionar a los miembros e invitaciones del grupo, igual que tú.
-              }
-            </div>
-            <div class="form-foot">
-              <button nfButton variant="ghost" size="md" (click)="cancelPromote()">CANCELAR</button>
-              <button nfButton variant="primary" size="md" (click)="confirmPromote()">
-                {{ m.admin ? 'QUITAR ADMINISTRADOR' : 'ASCENDER ►' }}
-              </button>
-            </div>
-          </nf-window>
-        </div>
-      </div>
-    }
-
-    @if (editingPerks(); as m) {
-      <div class="modal-overlay" (click)="closePerks()">
-        <div class="modal" (click)="$event.stopPropagation()">
-          <nf-window title="perks_jugador.exe" accent="cyan" bodyPadding="22px 22px 26px">
-            <div class="settings-eyebrow nf-mono">// PERKS · {{ m.name }}</div>
-            <p class="remove-msg">
-              Marca el estilo de juego de <strong>{{ m.name }}</strong> en este grupo. Lo verán
-              todos los miembros; solo owner y administradores pueden editarlo.
-            </p>
-
-            @for (tone of perkTones; track tone) {
-              <div class="perks-edit">
-                <div class="perks-edit__heading nf-mono" [attr.data-tone]="tone">
-                  {{ perkToneLabel(tone) }}
-                </div>
-                <div class="perks-edit__chips">
-                  @for (p of perksOfTone(tone); track p.id) {
-                    <button
-                      type="button"
-                      class="perk-chip"
-                      [attr.data-tone]="tone"
-                      [class.perk-chip--on]="isPerkOn(m.tag, p.id)"
-                      [attr.aria-pressed]="isPerkOn(m.tag, p.id)"
-                      (click)="togglePerk(m.tag, p.id)"
-                    >
-                      <span class="perk-chip__glyph" aria-hidden="true">{{ p.glyph }}</span>
-                      <span class="perk-chip__label nf-mono">{{ p.label }}</span>
-                      <span class="perk-chip__mark" aria-hidden="true">{{ isPerkOn(m.tag, p.id) ? '✓' : '+' }}</span>
-                    </button>
-                  }
-                </div>
-              </div>
-            }
-
-            <div class="form-foot">
-              <button nfButton variant="primary" size="md" (click)="closePerks()">LISTO</button>
-            </div>
-          </nf-window>
-        </div>
-      </div>
-    }
-
-    @if (menuTag()) {
-      <div class="menu-backdrop" (click)="closeMenu()"></div>
     }
   `,
 })
 export class GrupoDetalle {
-  private readonly route = inject(ActivatedRoute);
-  readonly groups = inject(GroupStore);
-  private readonly matches = inject(MatchStore);
+  readonly store = inject(GroupDetailStore);
+  readonly invitations = inject(InvitationsStore);
+  private readonly usersApi = inject(UsersApi);
+  private readonly session = inject(Session);
   private readonly toasts = inject(ToastService);
+  private readonly router = inject(Router);
+  private readonly mockGroups = inject(GroupStore);
+  private readonly destroyRef = inject(DestroyRef);
 
-  private readonly id = toSignal(
-    this.route.paramMap.pipe(map((p) => p.get('id'))),
-    { initialValue: this.route.snapshot.paramMap.get('id') },
+  /** Id del grupo desde la ruta. */
+  private readonly routeId = toSignal(
+    inject(ActivatedRoute).paramMap.pipe(map((p) => p.get('id') ?? '')),
+    { initialValue: '' },
   );
 
-  readonly group = computed(() => {
-    const id = this.id();
-    return id ? this.groups.byId(id) ?? null : null;
+  /** Roster ordenado: owner, luego admins, luego miembros; alfabético dentro de cada grupo. */
+  readonly members = computed(() =>
+    [...this.store.roster()].sort(
+      (a, b) =>
+        ROLE_RANK[a.role] - ROLE_RANK[b.role] ||
+        a.discordUsername.localeCompare(b.discordUsername),
+    ),
+  );
+
+  // ── Diálogos de confirmación / estado local de UI ──────────────────
+  readonly confirmDelete = signal(false);
+  readonly confirmLeave = signal(false);
+  readonly kick = signal<GroupMemberResponse | null>(null);
+  readonly transferTo = signal<GroupMemberResponse | null>(null);
+
+  // ── Invitar ────────────────────────────────────────────────────────
+  readonly query = signal('');
+  readonly searching = signal(false);
+  private readonly results = signal<UserSearchResult[]>([]);
+  /** Ids ya invitados en esta sesión (para pintar "INVITADO ✓"). */
+  readonly invitedIds = signal<ReadonlySet<string>>(new Set());
+  private searchTimer: ReturnType<typeof setTimeout> | null = null;
+  private searchSeq = 0;
+
+  /** Candidatos: resultados menos quienes ya están en el roster (por userId). */
+  readonly candidates = computed(() => {
+    const inGroup = new Set(this.store.roster().map((m) => m.userId));
+    return this.results().filter((u) => !inGroup.has(u.userId));
   });
-
-  /** Live roster from the store for the active group. */
-  readonly members = computed<Member[]>(() => {
-    const g = this.group();
-    return g ? this.groups.rosterOf(g.id) : [];
-  });
-
-  /** Pending outgoing invite tags for the active group. */
-  readonly pending = computed<string[]>(() => {
-    const g = this.group();
-    return g ? this.groups.pendingOf(g.id) : [];
-  });
-
-  /** Name → accolade badges for the roster, shared with the group ranking. */
-  readonly badges = computed(() => {
-    const g = this.group();
-    return g ? badgesFor(g.id, this.members()) : new Map<string, MemberBadge[]>();
-  });
-
-  badgesOf(name: string): MemberBadge[] {
-    return this.badges().get(name) ?? [];
-  }
-
-  // --- Player perks (owner/admin-curated gamestyle labels) ------------------
-  readonly perkTones = PERK_TONES;
-
-  /**
-   * Whether the current user may EDIT perks: the group owner, or an admin. Mirrors
-   * the rule that already governs managing members/invites. Read access is open to
-   * everyone; this only gates the editor. BACKEND NOTE: revalidated server-side.
-   */
-  readonly canEditPerks = computed(() => {
-    const g = this.group();
-    if (!g) return false;
-    if (g.role === 'OWNER') return true;
-    const me = this.members().find((m) => m.tag === CURRENT_USER.tag);
-    return !!me && (me.owner || !!me.admin);
-  });
-
-  /** Resolved perks pinned on a member, for the read-only badges. */
-  perksFor(tag: string): Perk[] {
-    const g = this.group();
-    return g ? perksFromIds(this.groups.perksOf(g.id, tag)) : [];
-  }
-
-  perkColor(tone: PerkTone): NfBadgeColor {
-    return PERK_COLOR[tone];
-  }
-
-  perkToneLabel(tone: PerkTone): string {
-    return PERK_TONE_LABEL[tone];
-  }
-
-  perksOfTone(tone: PerkTone): Perk[] {
-    return PERK_CATALOG.filter((p) => p.tone === tone);
-  }
-
-  isPerkOn(tag: string, perkId: string): boolean {
-    const g = this.group();
-    return !!g && this.groups.perksOf(g.id, tag).includes(perkId);
-  }
-
-  /** The member whose perks are being edited, or null when the modal is closed. */
-  readonly editingPerks = signal<Member | null>(null);
-
-  openPerks(m: Member, ev: Event): void {
-    ev.stopPropagation();
-    this.editingPerks.set(m);
-  }
-
-  closePerks(): void {
-    this.editingPerks.set(null);
-  }
-
-  togglePerk(tag: string, perkId: string): void {
-    const g = this.group();
-    if (!g || !this.canEditPerks()) return;
-    this.groups.togglePerk(g.id, tag, perkId);
-  }
-
-  /** Active match rooms (waiting + live) for the active group. */
-  readonly activeMatches = computed(() => {
-    const g = this.group();
-    return g ? this.matches.activeOf(g.id) : [];
-  });
-
-  // --- Member detail dropdown ----------------------------------------------
-  /** Tag of the member whose detail panel is expanded, or null when collapsed. */
-  readonly expandedTag = signal<string | null>(null);
-
-  /** Lazily-derived details for the currently expanded member. */
-  readonly expandedDetail = computed<MemberDetail | null>(() => {
-    const tag = this.expandedTag();
-    if (!tag) return null;
-    const m = this.members().find((x) => x.tag === tag);
-    return m ? memberDetail(m, this.members()) : null;
-  });
-
-  /** Toggle a member's detail panel (one open at a time). */
-  toggleMember(m: Member): void {
-    this.expandedTag.update((t) => (t === m.tag ? null : m.tag));
-  }
-
-  /** Open the member's OP.GG profile in a new tab (without toggling the panel). */
-  openOpgg(tag: string, ev: Event): void {
-    ev.stopPropagation();
-    window.open(opggUrl(tag), '_blank', 'noopener');
-  }
-
-  // --- Edit modal -----------------------------------------------------------
-  readonly regionOptions = REGION_OPTIONS;
-
-  /** The group currently being edited, or null when the modal is closed. */
-  readonly editing = signal<Group | null>(null);
-  readonly editName = signal('');
-  readonly editRegion = signal('');
-  readonly editAvatar = signal<string | null>(null);
-
-  readonly canSaveEdit = computed(() => this.editName().trim().length > 0);
-
-  openEdit(): void {
-    const g = this.group();
-    if (!g) return;
-    this.editName.set(g.name);
-    // The tag is "<REGION> · <SUFFIX>"; recover the region from the first part.
-    this.editRegion.set(g.tag.split('·')[0].trim() || 'EUW');
-    this.editAvatar.set(g.avatar ?? null);
-    this.editing.set(g);
-  }
-
-  closeEdit(): void {
-    this.editing.set(null);
-  }
-
-  saveEdit(): void {
-    const g = this.editing();
-    if (!g || !this.canSaveEdit()) return;
-    this.groups.update(g.id, {
-      name: this.editName(),
-      region: this.editRegion(),
-      avatar: this.editAvatar(),
-    });
-    this.editing.set(null);
-  }
-
-  // --- Invite modal ---------------------------------------------------------
-  readonly inviting = signal(false);
-  readonly inviteTag = signal('');
-  readonly inviteError = signal<string | null>(null);
-  readonly inviteSent = signal(false);
-
-  openInvite(): void {
-    this.inviteTag.set('');
-    this.inviteError.set(null);
-    this.inviteSent.set(false);
-    this.inviting.set(true);
-  }
-
-  closeInvite(): void {
-    this.inviting.set(false);
-  }
-
-  /** Clear the error as soon as the user edits the tag again. */
-  onInviteInput(value: string): void {
-    this.inviteTag.set(value);
-    if (this.inviteError()) this.inviteError.set(null);
-  }
-
-  sendInvite(): void {
-    const g = this.group();
-    if (!g) return;
-    const result = this.groups.inviteMember(g.id, this.inviteTag());
-    if (result.ok) {
-      this.inviteSent.set(true);
-      this.toasts.success(`Invitación enviada a ${this.inviteTag().trim()}`);
-      return;
-    }
-    this.inviteError.set(this.inviteErrorMessage(result.reason));
-  }
-
-  cancelInvite(tag: string): void {
-    const g = this.group();
-    if (!g) return;
-    this.groups.cancelInvite(g.id, tag);
-    this.toasts.info(`Invitación a ${tag} cancelada`);
-  }
-
-  inviteAnother(): void {
-    this.inviteTag.set('');
-    this.inviteError.set(null);
-    this.inviteSent.set(false);
-  }
-
-  private inviteErrorMessage(reason: 'invalid' | 'already-member' | 'already-pending'): string {
-    switch (reason) {
-      case 'already-member':
-        return 'Ese jugador ya es miembro del grupo.';
-      case 'already-pending':
-        return 'Ese jugador ya tiene una invitación pendiente.';
-      default:
-        return 'Formato no válido. Usa Nombre#REGIÓN, p. ej. CrazyDragon#EUW.';
-    }
-  }
-
-  // --- Member actions menu (kebab) ------------------------------------------
-  /** Tag of the member whose actions menu is open, or null when closed. */
-  readonly menuTag = signal<string | null>(null);
-
-  toggleMenu(m: Member): void {
-    this.menuTag.update((t) => (t === m.tag ? null : m.tag));
-  }
-
-  closeMenu(): void {
-    this.menuTag.set(null);
-  }
-
-  // --- Remove member modal --------------------------------------------------
-  readonly removing = signal<Member | null>(null);
-
-  askRemove(m: Member): void {
-    this.closeMenu();
-    this.removing.set(m);
-  }
-
-  cancelRemove(): void {
-    this.removing.set(null);
-  }
-
-  confirmRemove(): void {
-    const g = this.group();
-    const m = this.removing();
-    if (g && m) {
-      this.groups.removeMember(g.id, m.name);
-      this.toasts.info(`${m.name} fue eliminado del grupo`);
-    }
-    this.removing.set(null);
-  }
-
-  // --- Promote / demote admin modal -----------------------------------------
-  readonly promoting = signal<Member | null>(null);
-
-  askPromote(m: Member): void {
-    this.closeMenu();
-    this.promoting.set(m);
-  }
-
-  cancelPromote(): void {
-    this.promoting.set(null);
-  }
-
-  confirmPromote(): void {
-    const g = this.group();
-    const m = this.promoting();
-    if (g && m) {
-      const makeAdmin = !m.admin;
-      this.groups.setAdmin(g.id, m.name, makeAdmin);
-      this.toasts.success(
-        makeAdmin
-          ? `${m.name} ahora es administrador del grupo`
-          : `${m.name} ya no es administrador del grupo`,
-      );
-    }
-    this.promoting.set(null);
-  }
 
   constructor() {
-    // Keep the shell header/sidebar in sync on deep-link or when switching groups.
+    // Carga (y recarga al cambiar de :id), cancelando lo obsoleto dentro del store.
     effect(() => {
-      const id = this.id();
-      if (id && this.groups.byId(id)) {
-        this.groups.select(id);
-      }
+      const id = this.routeId();
+      if (id) void this.store.load(id);
     });
+
+    // Puente identidad → store mock, para que los sub-views placeholder de matchmaking
+    // (crear-partida/sala/partidas/ranking/stats/historial) resuelvan su cabecera.
+    effect(() => {
+      const g = this.store.group();
+      if (!g) return;
+      this.mockGroups.ensureStub({
+        id: g.id,
+        name: g.name,
+        tag: g.region ?? 'LAN',
+        initials: g.initials,
+        role: g.role === 'OWNER' ? 'OWNER' : 'MIEMBRO',
+        members: this.store.roster().length,
+        c1: g.c1,
+        c2: g.c2,
+        avatar: g.avatarUrl ?? undefined,
+      });
+    });
+
+    this.destroyRef.onDestroy(() => {
+      if (this.searchTimer !== null) clearTimeout(this.searchTimer);
+    });
+  }
+
+  reload(): void {
+    const id = this.routeId();
+    if (id) void this.store.load(id);
+  }
+
+  // ── Presentación ────────────────────────────────────────────────────
+  initials(name: string): string {
+    return initialsOf(name);
+  }
+  avatarBg(seed: string): string {
+    const { c1, c2 } = bannerColors(seed);
+    return `radial-gradient(circle at 32% 26%, ${c1}, ${c2})`;
+  }
+  isMe(m: GroupMemberResponse): boolean {
+    return m.userId === this.session.user()?.userId;
+  }
+
+  // ── Reglas de gestión (solo UX; el backend revalida) ────────────────
+  /** El owner puede ascender un MEMBER a ADMIN. */
+  canPromote(m: GroupMemberResponse): boolean {
+    return this.store.isOwner() && m.role === 'MEMBER';
+  }
+  /** El owner puede degradar un ADMIN a MEMBER. */
+  canDemote(m: GroupMemberResponse): boolean {
+    return this.store.isOwner() && m.role === 'ADMIN';
+  }
+  /** El owner puede transferir a cualquier no-owner. */
+  canTransfer(m: GroupMemberResponse): boolean {
+    return this.store.isOwner() && m.role !== 'OWNER';
+  }
+  /** Expulsar exige superar en rango: el owner a admins/miembros; un admin solo a miembros. */
+  canKick(m: GroupMemberResponse): boolean {
+    if (this.isMe(m) || m.role === 'OWNER') return false;
+    if (this.store.isOwner()) return true;
+    return this.store.myRole() === 'ADMIN' && m.role === 'MEMBER';
+  }
+
+  // ── Acciones de miembro ─────────────────────────────────────────────
+  async promote(m: GroupMemberResponse): Promise<void> {
+    await this.run(() => this.store.changeRole(m.userId, 'ADMIN'), `${m.discordUsername} ahora es ADMIN`);
+  }
+  async demote(m: GroupMemberResponse): Promise<void> {
+    await this.run(() => this.store.changeRole(m.userId, 'MEMBER'), `${m.discordUsername} ahora es MIEMBRO`);
+  }
+  async doKick(m: GroupMemberResponse): Promise<void> {
+    this.kick.set(null);
+    await this.run(() => this.store.removeMember(m.userId), `${m.discordUsername} fue expulsado`);
+  }
+  async doTransfer(m: GroupMemberResponse): Promise<void> {
+    this.transferTo.set(null);
+    await this.run(() => this.store.transferOwnership(m.userId), `${m.discordUsername} es el nuevo owner`);
+  }
+
+  async doDelete(): Promise<void> {
+    try {
+      await this.store.deleteGroup();
+      this.confirmDelete.set(false);
+      this.toasts.success('Grupo borrado');
+      this.router.navigate(['/app', 'grupos']);
+    } catch {
+      this.toasts.error('No se pudo borrar el grupo.');
+    }
+  }
+  async doLeave(): Promise<void> {
+    try {
+      await this.store.leave();
+      this.confirmLeave.set(false);
+      this.toasts.success('Has salido del grupo');
+      this.router.navigate(['/app', 'grupos']);
+    } catch {
+      this.toasts.error('No se pudo salir del grupo.');
+    }
+  }
+
+  /** Envuelve una acción de gestión: toast de éxito, o resync + mensaje ante conflicto. */
+  private async run(action: () => Promise<void>, ok: string): Promise<void> {
+    try {
+      await action();
+      this.toasts.success(ok);
+    } catch {
+      await this.store.reloadRoster();
+      this.toasts.error('No se pudo completar la acción. Se ha actualizado el grupo.');
+    }
+  }
+
+  // ── Invitar ─────────────────────────────────────────────────────────
+  onQuery(value: string): void {
+    this.query.set(value);
+    if (this.searchTimer !== null) clearTimeout(this.searchTimer);
+    const term = value.trim();
+    if (term.length < 2) {
+      this.results.set([]);
+      this.searching.set(false);
+      return;
+    }
+    this.searching.set(true);
+    this.searchTimer = setTimeout(() => void this.search(term), 300);
+  }
+
+  private async search(term: string): Promise<void> {
+    const seq = ++this.searchSeq;
+    try {
+      const hits = await firstValueFrom(this.usersApi.search(term));
+      if (seq !== this.searchSeq) return; // respuesta obsoleta
+      this.results.set(hits);
+    } catch {
+      if (seq === this.searchSeq) this.results.set([]);
+    } finally {
+      if (seq === this.searchSeq) this.searching.set(false);
+    }
+  }
+
+  async invite(u: UserSearchResult): Promise<void> {
+    const g = this.store.group();
+    if (!g || this.invitations.inviting() || this.invitedIds().has(u.userId)) return;
+    try {
+      await this.invitations.invite(g.id, u.userId);
+      this.invitedIds.update((set) => new Set(set).add(u.userId));
+      this.toasts.success(`Invitación enviada a ${u.discordUsername}`);
+    } catch {
+      this.toasts.error('No se pudo invitar (¿ya es miembro o tiene una invitación pendiente?).');
+    }
   }
 }

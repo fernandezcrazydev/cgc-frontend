@@ -58,6 +58,20 @@ describe('GroupsApi', () => {
     req.flush([]);
   });
 
+  it('detail hace GET /groups/{id}', () => {
+    api.detail('g1').subscribe();
+    const req = http.expectOne(`${API}/groups/g1`);
+    expect(req.request.method).toBe('GET');
+    req.flush({ group: { groupId: 'g1', name: 'X', region: 'EUW', avatarUrl: null }, role: 'OWNER', joinedAt: '2026-01-01T00:00:00Z' });
+  });
+
+  it('members hace GET /groups/{id}/members', () => {
+    api.members('g1').subscribe();
+    const req = http.expectOne(`${API}/groups/g1/members`);
+    expect(req.request.method).toBe('GET');
+    req.flush([]);
+  });
+
   it('removeMember hace DELETE /groups/{id}/members/{userId}', () => {
     api.removeMember('g1', 'u9').subscribe();
     const req = http.expectOne(`${API}/groups/g1/members/u9`);

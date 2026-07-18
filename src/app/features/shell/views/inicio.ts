@@ -2,16 +2,14 @@ import { Component, computed, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { NfBadge, NfButton } from '../../../ui';
 import { Session } from '../../../core/auth';
-import { Group } from '../../../core/lobby';
-import { GroupStore } from '../../../core/group-store';
-import { InvitationsStore } from '../../../core/groups';
+import { GroupsStore, GroupView, InvitationsStore } from '../../../core/groups';
 import { MatchRoom, MatchStore, RoomStatus } from '../../../core/match-store';
 import { NotificationsStore, NotificationView, notificationView } from '../../../core/notifications';
 import { ToastService } from '../../../core/toast';
 
 /** A resumable room paired with the group it belongs to (for display). */
 interface ResumeItem {
-  group: Group;
+  group: GroupView;
   room: MatchRoom;
 }
 
@@ -146,7 +144,7 @@ const STATUS_ORDER: Record<RoomStatus, number> = { live: 0, waiting: 1, drafting
   `,
 })
 export class Inicio {
-  private readonly groups = inject(GroupStore);
+  private readonly groups = inject(GroupsStore);
   private readonly matches = inject(MatchStore);
   private readonly notifs = inject(NotificationsStore);
   private readonly invitations = inject(InvitationsStore);

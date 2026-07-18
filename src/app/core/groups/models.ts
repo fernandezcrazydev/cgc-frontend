@@ -40,6 +40,19 @@ export interface GroupMembershipResponse {
   joinedAt: string;
 }
 
+/**
+ * Un miembro del roster de un grupo (`GroupMemberResponse` del backend). El `userId` es el UUID
+ * que necesitan expulsar / cambiar rol / transferir; `discordUsername` y `avatarUrl` son para
+ * pintar la fila. `role` es el nombre del enum; `joinedAt` es ISO-8601 (antigüedad).
+ */
+export interface GroupMemberResponse {
+  userId: string;
+  discordUsername: string;
+  avatarUrl: string | null;
+  role: GroupRole;
+  joinedAt: string;
+}
+
 /** Estado de una invitación (`InvitationStatus` en el backend). */
 export type InvitationStatus = 'PENDING' | 'ACCEPTED' | 'DECLINED';
 

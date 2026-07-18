@@ -105,6 +105,19 @@ export class GroupStore {
     return this.groups().find((g) => g.id === id);
   }
 
+  /**
+   * PUENTE TEMPORAL mock↔real. Registra la IDENTIDAD de un grupo real (por su UUID) para que
+   * los sub-views placeholder de matchmaking (crear-partida, sala, partidas, ranking, stats,
+   * historial) —que aún leen de este store mock— resuelvan su cabecera al navegar desde el
+   * detalle real. Solo identidad + roster vacío: los datos de matchmaking siguen siendo mock
+   * (vacíos) hasta que ese dominio migre al backend, momento en que este puente se borra.
+   */
+  ensureStub(group: Group): void {
+    if (this.byId(group.id)) return;
+    this.groups.update((list) => [...list, group]);
+    this.rosters.update((map) => ({ ...map, [group.id]: [] }));
+  }
+
   /** Reactive read of a group's members; empty array for unknown ids. */
   rosterOf(id: string): Member[] {
     return this.rosters()[id] ?? [];

@@ -5,6 +5,7 @@ import { environment } from '../../../environments/environment';
 import {
   ChangeRoleRequest,
   CreateGroupRequest,
+  GroupMemberResponse,
   GroupMembershipResponse,
   GroupResponse,
   GroupRole,
@@ -41,6 +42,16 @@ export class GroupsApi {
   /** Los grupos del usuario logueado, con su rol en cada uno (para el perfil). */
   myGroups(): Observable<GroupMembershipResponse[]> {
     return this.http.get<GroupMembershipResponse[]>(`${environment.apiUrl}/me/groups`);
+  }
+
+  /** Detalle de un grupo + el rol del llamante. 403 si no eres miembro, 404 si no existe. */
+  detail(groupId: string): Observable<GroupMembershipResponse> {
+    return this.http.get<GroupMembershipResponse>(`${environment.apiUrl}/groups/${groupId}`);
+  }
+
+  /** El roster del grupo: cada miembro con su userId, nombre, avatar, rol y alta. Solo miembros. */
+  members(groupId: string): Observable<GroupMemberResponse[]> {
+    return this.http.get<GroupMemberResponse[]>(`${environment.apiUrl}/groups/${groupId}/members`);
   }
 
   /**

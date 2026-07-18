@@ -4,8 +4,7 @@ import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } fro
 import { filter, map, startWith } from 'rxjs';
 import { NAV } from '../../core/lobby';
 import { Auth, Session } from '../../core/auth';
-import { GroupStore } from '../../core/group-store';
-import { InvitationsStore } from '../../core/groups';
+import { GroupDetailStore, GroupsStore, InvitationsStore } from '../../core/groups';
 import { MatchStore, MatchRoom } from '../../core/match-store';
 import { NotificationsStore, NotificationView, notificationView } from '../../core/notifications';
 import { ToastService } from '../../core/toast';
@@ -40,12 +39,13 @@ export class Shell {
   /** El usuario real de la BD. El authGuard garantiza que ya está cargado. */
   readonly session = inject(Session);
   private readonly auth = inject(Auth);
-  readonly groups = inject(GroupStore);
+  readonly groups = inject(GroupsStore);
   private readonly matches = inject(MatchStore);
   /** Campana real: bandeja durable + stream SSE en vivo (reemplaza el mock legacy). */
   readonly notifs = inject(NotificationsStore);
   /** Invitaciones pendientes: fuente de verdad de "¿este invite sigue vivo?". */
   readonly invitations = inject(InvitationsStore);
+  private readonly groupDetail = inject(GroupDetailStore);
   private readonly toasts = inject(ToastService);
 
   /** Vista de presentación de la bandeja: título/mensaje/tiempo en español por notificación. */
@@ -199,6 +199,8 @@ export class Shell {
     void this.notifs.ensureLoaded();
     this.notifs.connect();
     void this.invitations.ensureLoaded();
+    // La lista real de grupos alimenta la barra lateral, la cabecera y el conmutador móvil.
+    void this.groups.ensureLoaded();
 
     // Una invitación nueva llega por SSE como notificación; recargar las pendientes para
     // que sus acciones (aceptar/rechazar) se habiliten al instante.
@@ -251,9 +253,11 @@ export class Shell {
   /** Cierra sesión de verdad: revoca el token y limpia el perfil, luego navega. */
   async logout(): Promise<void> {
     this.confirmLogout.set(false);
-    // No dejar bandeja, stream abierto ni invitaciones del usuario anterior en memoria.
+    // No dejar bandeja, stream abierto, invitaciones ni grupos del usuario anterior en memoria.
     this.notifs.clear();
     this.invitations.clear();
+    this.groups.clear();
+    this.groupDetail.clear();
     await this.auth.logout();
     await this.router.navigateByUrl('/');
   }

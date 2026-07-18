@@ -40,15 +40,15 @@
                       (click)="selectGroup(g.id)"
                     >
                       <span class="shell__groupitem-avatar">
-                        @if (g.avatar) {
-                          <img class="shell__avatar-img" [src]="g.avatar" alt="" />
+                        @if (g.avatarUrl) {
+                          <img class="shell__avatar-img" [src]="g.avatarUrl" alt="" />
                         } @else {
                           {{ g.initials }}
                         }
                       </span>
                       <span class="shell__groupitem-meta">
                         <span class="shell__groupitem-name">{{ g.name }}</span>
-                        <span class="shell__groupitem-sub nf-mono">{{ g.members }} ▪ {{ g.role }}</span>
+                        <span class="shell__groupitem-sub nf-mono">{{ g.region }} ▪ {{ g.role }}</span>
                       </span>
                     </button>
                   } @empty {
@@ -128,8 +128,8 @@
           (click)="onHeaderGroup()"
         >
           <span class="shell__groupbar-avatar">
-            @if (g.avatar) {
-              <img class="shell__avatar-img" [src]="g.avatar" alt="" />
+            @if (g.avatarUrl) {
+              <img class="shell__avatar-img" [src]="g.avatarUrl" alt="" />
             } @else {
               {{ g.initials }}
             }
@@ -259,15 +259,15 @@
               (click)="selectGroup(g.id)"
             >
               <span class="shell__groupitem-avatar">
-                @if (g.avatar) {
-                  <img class="shell__avatar-img" [src]="g.avatar" alt="" />
+                @if (g.avatarUrl) {
+                  <img class="shell__avatar-img" [src]="g.avatarUrl" alt="" />
                 } @else {
                   {{ g.initials }}
                 }
               </span>
               <span class="shell__groupitem-meta">
                 <span class="shell__groupitem-name">{{ g.name }}</span>
-                <span class="shell__groupitem-sub nf-mono">{{ g.members }} ▪ {{ g.role }}</span>
+                <span class="shell__groupitem-sub nf-mono">{{ g.region }} ▪ {{ g.role }}</span>
               </span>
               @if (g.id === groups.selectedId()) {
                 <span class="shell__groupitem-check">◉</span>
