@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { authGuard } from './core/auth';
+import { adminGuard, authGuard } from './core/auth';
 import { Login } from './features/login/login';
 import { Shell } from './features/shell/shell';
 
@@ -89,6 +89,21 @@ export const routes: Routes = [
         path: 'ajustes',
         title: 'Ajustes · Sale perso',
         loadComponent: () => import('./features/shell/views/ajustes').then((m) => m.Ajustes),
+      },
+      // Administración: además del authGuard del padre, exige rol ADMIN (el backend revalida).
+      {
+        path: 'admin/feedback',
+        title: 'Feedback · Admin',
+        canActivate: [adminGuard],
+        loadComponent: () =>
+          import('./features/shell/views/admin-feedback').then((m) => m.AdminFeedback),
+      },
+      {
+        path: 'admin/feedback/:id',
+        title: 'Reporte · Admin',
+        canActivate: [adminGuard],
+        loadComponent: () =>
+          import('./features/shell/views/admin-feedback-detalle').then((m) => m.AdminFeedbackDetalle),
       },
     ],
   },

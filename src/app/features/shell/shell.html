@@ -75,6 +75,17 @@
             </a>
           }
         }
+
+        @if (isAdmin()) {
+          <a
+            class="shell__nav-item"
+            [routerLink]="['/app', 'admin', 'feedback']"
+            routerLinkActive="is-active"
+          >
+            <span class="shell__nav-glyph">🛡</span>
+            Feedback
+          </a>
+        }
       </nav>
 
       <div class="shell__sidefoot">

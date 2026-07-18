@@ -1,28 +1,28 @@
-import { Injectable } from '@angular/core';
-import { Observable, delay, of } from 'rxjs';
+import { Injectable, inject } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Observable, map } from 'rxjs';
+import { environment } from '../../../environments/environment';
 import { FeedbackReport } from './models';
 
 /**
  * Envío de reportes de los usuarios.
  *
- * PLACEHOLDER: todavía no hay endpoint, así que el envío es un mock con latencia.
- * Es el ÚNICO fichero del dominio que sabe que el envío es falso: el store y el
- * diálogo ya trabajan contra la firma definitiva (Observable, latencia, fallo).
+ * Único sitio que conoce la URL de `POST /api/v1/feedback`. No captura errores ni guarda
+ * estado — de eso se encarga `FeedbackStore`; aquí solo se traduce "un endpoint" a un
+ * Observable tipado. El Bearer lo añade `authInterceptor` porque la URL cuelga de
+ * `environment.apiUrl`.
  *
- * BACKEND NOTE: al migrar, este fichero inyecta `HttpClient` y hace
- * `POST ${environment.apiUrl}/feedback` con el `FeedbackReport` como body; el
- * servidor genera id, timestamp y autor (del bearer). La firma no cambia, así que
- * ni el store ni la vista se tocan.
+ * El servidor genera id, timestamp y autor (del bearer): el cuerpo es exactamente el
+ * `FeedbackReport` que arma el diálogo, y la respuesta (`{ id }`) no le hace falta a nadie,
+ * así que se descarta para mantener la firma `Observable<void>` que ya usan store y vista.
  */
 @Injectable({ providedIn: 'root' })
 export class FeedbackApi {
-  /** Latencia simulada: obliga al diálogo a tratar de verdad el estado `submitting`. */
-  private static readonly LATENCY_MS = 600;
+  private readonly http = inject(HttpClient);
 
   submit(report: FeedbackReport): Observable<void> {
-    // Sin backend, el reporte se perdería sin dejar rastro. Al menos que sea
-    // visible en dev mientras dure el mock.
-    console.info('[feedback] reporte (mock, aún sin backend):', report);
-    return of(void 0).pipe(delay(FeedbackApi.LATENCY_MS));
+    return this.http
+      .post<{ id: string }>(`${environment.apiUrl}/feedback`, report)
+      .pipe(map(() => void 0));
   }
 }
