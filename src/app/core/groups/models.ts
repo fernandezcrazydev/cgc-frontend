@@ -15,7 +15,11 @@ export type Region = (typeof REGIONS)[number];
 /** Rol dentro de un grupo (`GroupRole` en el backend). */
 export type GroupRole = 'OWNER' | 'ADMIN' | 'MEMBER';
 
-/** Body de `POST /api/v1/groups`. La foto NO va aquí: se sube en un segundo paso. */
+/**
+ * Campos de texto de `POST /api/v1/groups`. La foto viaja en la MISMA petición como parte
+ * multipart `file` (opcional) —no en un segundo paso—, así que no cabe en esta interfaz: el
+ * `GroupsApi.create` la recibe aparte como `Blob` y arma el `FormData`.
+ */
 export interface CreateGroupRequest {
   name: string;
   region: Region;
