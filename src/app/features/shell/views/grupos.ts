@@ -5,6 +5,7 @@ import { NfAvatarPicker, NfButton, NfSelect, NfSkeleton, NfWindow } from '../../
 import { NfBadge } from '../../../ui';
 import { GroupsStore, REGIONS, Region } from '../../../core/groups';
 import { ToastService } from '../../../core/toast';
+import { errorMessage } from '../../../core/http';
 import { initialsOf } from '../../../core/groups';
 
 @Component({
@@ -188,8 +189,10 @@ export class Grupos {
       this.creating.set(false);
       this.toasts.success(`Grupo "${group.name}" creado`);
       this.router.navigate(['/app', 'grupos', group.groupId]);
-    } catch {
-      this.toasts.error('No se pudo crear el grupo. Inténtalo de nuevo.');
+    } catch (e) {
+      // El backend manda un `code` estable en el ProblemDetail; `errorMessage` lo traduce a
+      // español (con fallback por status). Ver CLAUDE.md § "Formato de error".
+      this.toasts.error(errorMessage(e));
     }
   }
 }
