@@ -166,11 +166,12 @@ export class Shell {
       if (accept) await this.invitations.accept(invite.invitationId);
       else await this.invitations.decline(invite.invitationId);
       await this.notifs.markRead(view.id);
+      // Al aceptar ya somos MEMBER en el backend: refetch de /me/groups para que el nuevo
+      // grupo aparezca en la barra lateral sin que el usuario tenga que recargar la página.
+      if (accept) await this.groups.reload();
       this.toasts.success(
         accept ? `Te uniste a ${invite.groupName}` : `Invitación a ${invite.groupName} rechazada`,
       );
-      // BACKEND NOTE: al aceptar, el grupo aparecería en /me/groups; la lista de grupos de
-      // la barra lateral sigue en mock, así que aún no se refresca aquí.
     } catch {
       await Promise.all([this.notifs.reload(), this.invitations.reload()]);
       this.toasts.info('Esta invitación ya no está disponible');
