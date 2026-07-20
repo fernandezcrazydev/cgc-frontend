@@ -57,8 +57,8 @@ export interface GroupMemberResponse {
   joinedAt: string;
 }
 
-/** Estado de una invitación (`InvitationStatus` en el backend). */
-export type InvitationStatus = 'PENDING' | 'ACCEPTED' | 'DECLINED';
+/** Estado de una invitación (`InvitationStatus` en el backend). `REVOKED` = el grupo la retiró. */
+export type InvitationStatus = 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'REVOKED';
 
 /**
  * Una invitación a un grupo (`InvitationResponse` del backend). El invitado se referencia
@@ -77,6 +77,22 @@ export interface InvitationResponse {
 /** Body de `POST /groups/{groupId}/invitations`: a quién se invita, por su UUID. */
 export interface InviteRequest {
   inviteeUserId: string;
+}
+
+/**
+ * Una invitación pendiente vista desde el grupo (`GroupInvitationResponse` del backend): lo que pinta
+ * la pestaña "Invitados". A diferencia de `InvitationResponse` (la vista del invitado), trae el
+ * `discordUsername` y `avatarUrl` del invitado para dibujar la fila sin un segundo lookup, y no lleva
+ * `status` (aquí todas son PENDING por construcción) ni `groupId` (ya está en la ruta). El `id` es el de
+ * la invitación —el que pide `DELETE /groups/{groupId}/invitations/{id}` para cancelarla—.
+ */
+export interface GroupInvitationResponse {
+  id: string;
+  inviteeUserId: string;
+  discordUsername: string | null;
+  avatarUrl: string | null;
+  /** ISO-8601 tal cual lo manda el backend; formatear es cosa de la vista. */
+  createdAt: string;
 }
 
 /**

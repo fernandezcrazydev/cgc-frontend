@@ -3760,3 +3760,14 @@
 .gd-invite__name { flex: 1; min-width: 0; font-size: 13px; color: var(--nf-text); }
 
 .gd-confirm { font-size: 14px; line-height: 1.5; color: var(--nf-text); margin: 0 0 20px; }
+
+.gd-tabs { margin-bottom: 16px; }
+.gd-invites-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 40px 16px;
+  text-align: center;
+}
+.gd-invites-empty__text { font-size: 12px; letter-spacing: 1.5px; color: var(--nf-text-dim); }

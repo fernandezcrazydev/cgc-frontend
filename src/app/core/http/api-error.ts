@@ -61,8 +61,13 @@ function parseFieldErrors(raw: unknown): ApiFieldError[] {
  * Mantener en orden alfabético.
  */
 const MESSAGES_BY_CODE: Record<string, string> = {
+  ALREADY_MEMBER: 'Este usuario ya es miembro del grupo.',
+  DUPLICATE_PENDING_INVITATION: 'Este usuario ya tiene una invitación pendiente.',
   GROUP_QUOTA_EXCEEDED: 'Has alcanzado el número máximo de grupos que puedes tener.',
   IMAGE_TOO_LARGE: 'La imagen es demasiado grande. Usa uno más ligero.',
+  INVITATION_NOT_FOUND: 'Esa invitación ya no existe.',
+  INVITATION_NOT_PENDING: 'Esa invitación ya no está pendiente: se aceptó, se rechazó o se canceló.',
+  INVITEE_NOT_FOUND: 'No se ha encontrado ese usuario.',
   UNSUPPORTED_IMAGE: 'Ese formato de imagen no es válido. Usa JPEG o PNG.',
 };
 

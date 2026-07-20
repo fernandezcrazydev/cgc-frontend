@@ -4,6 +4,10 @@
 export { GroupsStore, type CreateGroupInput, type GroupsStatus } from './groups-store';
 export { GroupDetailStore, type GroupDetailStatus } from './group-detail-store';
 export { InvitationsStore, type InvitationsStatus } from './invitations-store';
+export {
+  GroupInvitationsStore,
+  type GroupInvitationsStatus,
+} from './group-invitations-store';
 export { groupView, groupViewFrom, initialsOf, bannerColors, type GroupView } from './group-view';
 export {
   REGIONS,
@@ -16,6 +20,7 @@ export {
   type InvitationResponse,
   type InvitationStatus,
   type InviteRequest,
+  type GroupInvitationResponse,
   type ChangeRoleRequest,
   type TransferOwnershipRequest,
 } from './models';
