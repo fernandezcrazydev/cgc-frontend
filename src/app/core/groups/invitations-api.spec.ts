@@ -3,7 +3,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { environment } from '../../../environments/environment';
 import { InvitationsApi } from './invitations-api';
-import { InvitationResponse } from './models';
+import { GroupInvitationResponse, InvitationResponse } from './models';
 
 const API = environment.apiUrl;
 
@@ -53,6 +53,26 @@ describe('InvitationsApi', () => {
     api.decline('inv1').subscribe();
     const req = http.expectOne(`${API}/invitations/inv1/decline`);
     expect(req.request.method).toBe('POST');
+    req.flush(null);
+  });
+
+  it('forGroup hace GET /groups/{id}/invitations', () => {
+    const expected: GroupInvitationResponse[] = [
+      { id: 'inv1', inviteeUserId: 'u9', discordUsername: 'senkroh', avatarUrl: null, createdAt: '2026-01-01T00:00:00Z' },
+    ];
+    let received: GroupInvitationResponse[] | undefined;
+    api.forGroup('g1').subscribe((list) => (received = list));
+
+    const req = http.expectOne(`${API}/groups/g1/invitations`);
+    expect(req.request.method).toBe('GET');
+    req.flush(expected);
+    expect(received).toEqual(expected);
+  });
+
+  it('cancel hace DELETE /groups/{id}/invitations/{invitationId}', () => {
+    api.cancel('g1', 'inv1').subscribe();
+    const req = http.expectOne(`${API}/groups/g1/invitations/inv1`);
+    expect(req.request.method).toBe('DELETE');
     req.flush(null);
   });
 });

@@ -3,10 +3,12 @@ import { FormsModule } from '@angular/forms';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { firstValueFrom, map } from 'rxjs';
-import { NfBadge, NfButton, NfSkeleton, NfWindow } from '../../../ui';
+import { NfBadge, NfButton, NfModal, NfSegmented, NfSegmentOption, NfSkeleton, NfWindow } from '../../../ui';
 import { Session } from '../../../core/auth';
 import {
   GroupDetailStore,
+  GroupInvitationResponse,
+  GroupInvitationsStore,
   GroupMemberResponse,
   GroupRole,
   InvitationsStore,
@@ -16,6 +18,7 @@ import {
 import { GroupStore } from '../../../core/group-store';
 import { UserSearchResult, UsersApi } from '../../../core/users';
 import { ToastService } from '../../../core/toast';
+import { errorMessage } from '../../../core/http';
 
 /** Peso de cada rol para ordenar el roster: owner primero, luego admins, luego miembros. */
 const ROLE_RANK: Record<GroupRole, number> = { OWNER: 0, ADMIN: 1, MEMBER: 2 };
@@ -23,7 +26,7 @@ const ROLE_RANK: Record<GroupRole, number> = { OWNER: 0, ADMIN: 1, MEMBER: 2 };
 @Component({
   selector: 'app-grupo-detalle',
   standalone: true,
-  imports: [RouterLink, FormsModule, NfBadge, NfButton, NfSkeleton, NfWindow],
+  imports: [RouterLink, FormsModule, NfBadge, NfButton, NfModal, NfSegmented, NfSkeleton, NfWindow],
   template: `
     @switch (store.status()) {
       @case ('loading') {
@@ -94,6 +97,9 @@ const ROLE_RANK: Record<GroupRole, number> = { OWNER: 0, ADMIN: 1, MEMBER: 2 };
 
             <div class="actions">
               <button nfButton variant="primary" size="md" [routerLink]="['/app', 'grupos', g.id, 'crear-partida']">CREAR PARTIDA ►</button>
+              @if (store.canManage()) {
+                <button nfButton variant="secondary" size="md" (click)="openInvite()">✉ INVITAR</button>
+              }
               <button nfButton variant="secondary" size="md" [routerLink]="['/app', 'grupos', g.id, 'partidas']">PARTIDAS</button>
               <button nfButton variant="secondary" size="md" [routerLink]="['/app', 'grupos', g.id, 'ranking']">RANKING</button>
               <button nfButton variant="secondary" size="md" [routerLink]="['/app', 'grupos', g.id, 'estadisticas']">ESTADÍSTICAS</button>
@@ -107,89 +113,120 @@ const ROLE_RANK: Record<GroupRole, number> = { OWNER: 0, ADMIN: 1, MEMBER: 2 };
             </div>
 
             @if (store.canManage()) {
-              <div class="view__label nf-mono">▸ INVITAR</div>
-              <nf-window title="invitar.exe" accent="pink" bodyPadding="16px">
-                <div class="gd-invite">
-                  <input
-                    class="field__input"
-                    type="text"
-                    placeholder="Buscar por nombre de Discord…"
-                    autocomplete="off"
-                    [ngModel]="query()"
-                    (ngModelChange)="onQuery($event)"
-                  />
-                  @if (searching()) {
-                    <div class="gd-invite__hint nf-mono">// BUSCANDO…</div>
-                  } @else if (query().trim().length >= 2 && !candidates().length) {
-                    <div class="gd-invite__hint nf-mono">// SIN RESULTADOS</div>
-                  }
-                  @for (u of candidates(); track u.userId) {
-                    <div class="gd-invite__row">
-                      <span
-                        class="gd-member__avatar"
-                        [style.background]="avatarBg(u.userId)"
-                      >
-                        @if (u.avatarUrl) {
-                          <img class="gd-member__avatar-img" [src]="u.avatarUrl" alt="" />
+              <nf-segmented
+                class="gd-tabs"
+                [options]="tabOptions()"
+                [value]="tab()"
+                (valueChange)="setTab($event)"
+                ariaLabel="Miembros o invitados"
+              />
+            } @else {
+              <div class="view__label nf-mono">▸ MIEMBROS</div>
+            }
+
+            @if (!store.canManage() || tab() === 'members') {
+              <nf-window title="miembros.exe" accent="cyan" bodyPadding="0">
+                <div class="gd-members">
+                  @for (m of members(); track m.userId) {
+                    <div class="gd-member">
+                      <span class="gd-member__avatar" [style.background]="avatarBg(m.userId)">
+                        @if (m.avatarUrl) {
+                          <img class="gd-member__avatar-img" [src]="m.avatarUrl" alt="" />
                         } @else {
-                          {{ initials(u.discordUsername) }}
+                          {{ initials(m.discordUsername) }}
                         }
                       </span>
-                      <span class="gd-invite__name nf-mono">{{ u.discordUsername }}</span>
-                      <button
-                        nfButton
-                        variant="primary"
-                        size="sm"
-                        [disabled]="invitations.inviting() || invitedIds().has(u.userId)"
-                        (click)="invite(u)"
-                      >{{ invitedIds().has(u.userId) ? 'INVITADO ✓' : 'INVITAR ►' }}</button>
+                      <div class="gd-member__meta">
+                        <div class="gd-member__name nf-mono">
+                          {{ m.discordUsername }}@if (isMe(m)) {<span class="gd-member__you nf-mono"> · TÚ</span>}
+                        </div>
+                        <div class="gd-member__role nf-mono">{{ m.role }}</div>
+                      </div>
+                      @if (m.role === 'OWNER') {
+                        <nf-badge color="pink">OWNER</nf-badge>
+                      } @else if (m.role === 'ADMIN') {
+                        <nf-badge color="cyan">ADMIN</nf-badge>
+                      }
+                      <div class="gd-member__actions">
+                        @if (canPromote(m)) {
+                          <button nfButton variant="ghost" size="sm" [disabled]="store.isActing(m.userId)" (click)="promote(m)">↑ ADMIN</button>
+                        }
+                        @if (canDemote(m)) {
+                          <button nfButton variant="ghost" size="sm" [disabled]="store.isActing(m.userId)" (click)="demote(m)">↓ MIEMBRO</button>
+                        }
+                        @if (canTransfer(m)) {
+                          <button nfButton variant="ghost" size="sm" [disabled]="store.isActing(m.userId)" (click)="transferTo.set(m)">CORONA ♛</button>
+                        }
+                        @if (canKick(m)) {
+                          <button nfButton variant="danger" size="sm" [disabled]="store.isActing(m.userId)" (click)="kick.set(m)">EXPULSAR</button>
+                        }
+                      </div>
                     </div>
                   }
                 </div>
               </nf-window>
             }
 
-            <div class="view__label nf-mono">▸ MIEMBROS</div>
-            <nf-window title="miembros.exe" accent="cyan" bodyPadding="0">
-              <div class="gd-members">
-                @for (m of members(); track m.userId) {
-                  <div class="gd-member">
-                    <span class="gd-member__avatar" [style.background]="avatarBg(m.userId)">
-                      @if (m.avatarUrl) {
-                        <img class="gd-member__avatar-img" [src]="m.avatarUrl" alt="" />
-                      } @else {
-                        {{ initials(m.discordUsername) }}
+            @if (store.canManage() && tab() === 'invites') {
+              <nf-window title="invitados.exe" accent="pink" bodyPadding="0">
+                @switch (groupInvitations.status()) {
+                  @case ('loading') {
+                    <div class="gd-members" aria-busy="true">
+                      @for (s of [0, 1, 2]; track s) {
+                        <div class="gd-member">
+                          <nf-skeleton width="38px" height="38px" radius="11px" />
+                          <div class="gd-member__meta">
+                            <nf-skeleton width="140px" height="13px" />
+                            <nf-skeleton width="80px" height="11px" />
+                          </div>
+                        </div>
                       }
-                    </span>
-                    <div class="gd-member__meta">
-                      <div class="gd-member__name nf-mono">
-                        {{ m.discordUsername }}@if (isMe(m)) {<span class="gd-member__you nf-mono"> · TÚ</span>}
+                    </div>
+                  }
+                  @case ('error') {
+                    <div class="gd-invites-empty">
+                      <div class="gd-invites-empty__text nf-mono">// ERROR AL CARGAR INVITACIONES</div>
+                      <button nfButton variant="secondary" size="sm" (click)="reloadInvites()">REINTENTAR</button>
+                    </div>
+                  }
+                  @default {
+                    @if (groupInvitations.invitations().length) {
+                      <div class="gd-members">
+                        @for (inv of groupInvitations.invitations(); track inv.id) {
+                          <div class="gd-member">
+                            <span class="gd-member__avatar" [style.background]="avatarBg(inv.inviteeUserId)">
+                              @if (inv.avatarUrl) {
+                                <img class="gd-member__avatar-img" [src]="inv.avatarUrl" alt="" />
+                              } @else {
+                                {{ initials(inv.discordUsername ?? '?') }}
+                              }
+                            </span>
+                            <div class="gd-member__meta">
+                              <div class="gd-member__name nf-mono">{{ inv.discordUsername ?? '—' }}</div>
+                              <div class="gd-member__role nf-mono">INVITACIÓN PENDIENTE</div>
+                            </div>
+                            <div class="gd-member__actions">
+                              <button
+                                nfButton
+                                variant="danger"
+                                size="sm"
+                                [disabled]="groupInvitations.isCancelling(inv.id)"
+                                (click)="cancelInvite(inv)"
+                              >✕ CANCELAR</button>
+                            </div>
+                          </div>
+                        }
                       </div>
-                      <div class="gd-member__role nf-mono">{{ m.role }}</div>
-                    </div>
-                    @if (m.role === 'OWNER') {
-                      <nf-badge color="pink">OWNER</nf-badge>
-                    } @else if (m.role === 'ADMIN') {
-                      <nf-badge color="cyan">ADMIN</nf-badge>
+                    } @else {
+                      <div class="gd-invites-empty">
+                        <div class="gd-invites-empty__text nf-mono">// SIN INVITACIONES PENDIENTES</div>
+                        <button nfButton variant="secondary" size="sm" (click)="openInvite()">✉ INVITAR A ALGUIEN</button>
+                      </div>
                     }
-                    <div class="gd-member__actions">
-                      @if (canPromote(m)) {
-                        <button nfButton variant="ghost" size="sm" [disabled]="store.isActing(m.userId)" (click)="promote(m)">↑ ADMIN</button>
-                      }
-                      @if (canDemote(m)) {
-                        <button nfButton variant="ghost" size="sm" [disabled]="store.isActing(m.userId)" (click)="demote(m)">↓ MIEMBRO</button>
-                      }
-                      @if (canTransfer(m)) {
-                        <button nfButton variant="ghost" size="sm" [disabled]="store.isActing(m.userId)" (click)="transferTo.set(m)">CORONA ♛</button>
-                      }
-                      @if (canKick(m)) {
-                        <button nfButton variant="danger" size="sm" [disabled]="store.isActing(m.userId)" (click)="kick.set(m)">EXPULSAR</button>
-                      }
-                    </div>
-                  </div>
+                  }
                 }
-              </div>
-            </nf-window>
+              </nf-window>
+            }
           </div>
         }
       }
@@ -251,11 +288,54 @@ const ROLE_RANK: Record<GroupRole, number> = { OWNER: 0, ADMIN: 1, MEMBER: 2 };
         </div>
       </div>
     }
+
+    <!-- invitar: mismo buscador que antes, ahora en un modal disparado desde la fila de acciones -->
+    @if (showInvite()) {
+      <nf-modal title="invitar.exe" accent="pink" width="480px" (closed)="closeInvite()">
+        <div class="gd-invite">
+          <input
+            class="field__input"
+            type="text"
+            placeholder="Buscar por nombre de Discord…"
+            autocomplete="off"
+            [ngModel]="query()"
+            (ngModelChange)="onQuery($event)"
+          />
+          @if (searching()) {
+            <div class="gd-invite__hint nf-mono">// BUSCANDO…</div>
+          } @else if (query().trim().length >= 2 && !candidates().length) {
+            <div class="gd-invite__hint nf-mono">// SIN RESULTADOS</div>
+          } @else if (query().trim().length < 2) {
+            <div class="gd-invite__hint nf-mono">// ESCRIBE AL MENOS 2 CARACTERES</div>
+          }
+          @for (u of candidates(); track u.userId) {
+            <div class="gd-invite__row">
+              <span class="gd-member__avatar" [style.background]="avatarBg(u.userId)">
+                @if (u.avatarUrl) {
+                  <img class="gd-member__avatar-img" [src]="u.avatarUrl" alt="" />
+                } @else {
+                  {{ initials(u.discordUsername) }}
+                }
+              </span>
+              <span class="gd-invite__name nf-mono">{{ u.discordUsername }}</span>
+              <button
+                nfButton
+                variant="primary"
+                size="sm"
+                [disabled]="invitations.inviting() || isInvited(u.userId)"
+                (click)="invite(u)"
+              >{{ isInvited(u.userId) ? 'INVITADO ✓' : 'INVITAR ►' }}</button>
+            </div>
+          }
+        </div>
+      </nf-modal>
+    }
   `,
 })
 export class GrupoDetalle {
   readonly store = inject(GroupDetailStore);
   readonly invitations = inject(InvitationsStore);
+  readonly groupInvitations = inject(GroupInvitationsStore);
   private readonly usersApi = inject(UsersApi);
   private readonly session = inject(Session);
   private readonly toasts = inject(ToastService);
@@ -284,12 +364,29 @@ export class GrupoDetalle {
   readonly kick = signal<GroupMemberResponse | null>(null);
   readonly transferTo = signal<GroupMemberResponse | null>(null);
 
+  // ── Tabs miembros / invitados (estado de UI, no de dominio) ─────────
+  readonly tab = signal<'members' | 'invites'>('members');
+  setTab(value: string): void {
+    this.tab.set(value === 'invites' ? 'invites' : 'members');
+  }
+  readonly tabOptions = computed<NfSegmentOption[]>(() => {
+    const invites = this.groupInvitations.invitations().length;
+    return [
+      { value: 'members', label: `MIEMBROS · ${this.members().length}` },
+      { value: 'invites', label: invites ? `INVITADOS · ${invites}` : 'INVITADOS' },
+    ];
+  });
+
   // ── Invitar ────────────────────────────────────────────────────────
+  /** Abre/cierra el modal de invitar (estado de UI). */
+  readonly showInvite = signal(false);
   readonly query = signal('');
   readonly searching = signal(false);
   private readonly results = signal<UserSearchResult[]>([]);
-  /** Ids ya invitados en esta sesión (para pintar "INVITADO ✓"). */
+  /** Ids ya invitados en esta sesión (para pintar "INVITADO ✓") además de los del store. */
   readonly invitedIds = signal<ReadonlySet<string>>(new Set());
+  /** Qué grupo tiene ya cargadas sus invitaciones, para no recargar en cada tick del effect. */
+  private invitesLoadedFor: string | null = null;
   private searchTimer: ReturnType<typeof setTimeout> | null = null;
   private searchSeq = 0;
 
@@ -324,8 +421,21 @@ export class GrupoDetalle {
       });
     });
 
+    // Invitaciones pendientes del grupo (pestaña "Invitados"): solo owner/admin las ve. Se cargan una
+    // vez por grupo; al cambiar de :id el guard interno del store descarta lo obsoleto. No las pedimos
+    // para miembros normales (el endpoint es admin-only → sería un 403).
+    effect(() => {
+      const g = this.store.group();
+      const canManage = this.store.canManage();
+      if (g && canManage && this.invitesLoadedFor !== g.id) {
+        this.invitesLoadedFor = g.id;
+        void this.groupInvitations.load(g.id);
+      }
+    });
+
     this.destroyRef.onDestroy(() => {
       if (this.searchTimer !== null) clearTimeout(this.searchTimer);
+      this.groupInvitations.clear();
     });
   }
 
@@ -441,15 +551,55 @@ export class GrupoDetalle {
     }
   }
 
+  /** Abre el modal de invitar. Al reabrirlo se parte de un buscador limpio. */
+  openInvite(): void {
+    this.resetSearch();
+    this.showInvite.set(true);
+  }
+  closeInvite(): void {
+    this.showInvite.set(false);
+    this.resetSearch();
+  }
+  private resetSearch(): void {
+    if (this.searchTimer !== null) clearTimeout(this.searchTimer);
+    this.searchSeq++; // invalida cualquier búsqueda en vuelo
+    this.query.set('');
+    this.results.set([]);
+    this.searching.set(false);
+  }
+
+  /** Ya invitado: en esta sesión o según la lista de pendientes del grupo. */
+  isInvited(userId: string): boolean {
+    return this.invitedIds().has(userId) || this.groupInvitations.pendingInviteeIds().has(userId);
+  }
+
   async invite(u: UserSearchResult): Promise<void> {
     const g = this.store.group();
-    if (!g || this.invitations.inviting() || this.invitedIds().has(u.userId)) return;
+    if (!g || this.invitations.inviting() || this.isInvited(u.userId)) return;
     try {
       await this.invitations.invite(g.id, u.userId);
       this.invitedIds.update((set) => new Set(set).add(u.userId));
       this.toasts.success(`Invitación enviada a ${u.discordUsername}`);
-    } catch {
-      this.toasts.error('No se pudo invitar (¿ya es miembro o tiene una invitación pendiente?).');
+      // Refetch de la lista derivada (pestaña "Invitados"); no la recalculamos en cliente.
+      void this.groupInvitations.reload();
+    } catch (e) {
+      this.toasts.error(errorMessage(e));
+    }
+  }
+
+  // ── Invitados (cancelar) ────────────────────────────────────────────
+  reloadInvites(): void {
+    void this.groupInvitations.reload();
+  }
+
+  async cancelInvite(inv: GroupInvitationResponse): Promise<void> {
+    if (this.groupInvitations.isCancelling(inv.id)) return;
+    try {
+      await this.groupInvitations.cancel(inv.id);
+      this.toasts.success(`Invitación de ${inv.discordUsername ?? 'el usuario'} cancelada`);
+    } catch (e) {
+      await this.groupInvitations.reload();
+      this.toasts.error(errorMessage(e));
     }
   }
 }
