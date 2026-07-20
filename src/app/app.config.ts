@@ -36,12 +36,16 @@ export const appConfig: ApplicationConfig = {
         silentRenew: true,
         useRefreshToken: true,
         renewTimeBeforeTokenExpiresInSeconds: 30,
+        // No pedimos el userinfo OIDC: nuestra identidad la da GET /api/v1/me (Session),
+        // nunca leemos el userData de la librería. Con el default (autoUserInfo: true) la
+        // librería llamaba a /userinfo en CADA callback —incluida la renovación silenciosa—,
+        // y ese GET fallaba en el arranque en frío. Como el user info es el último paso de
+        // la cadena de renovación, su fallo tumbaba TODA la renovación: la sesión se
+        // reseteaba y el login caía en authorize() → el rebote visible por Discord "de
+        // ayer". En false, la librería usa el id_token decodificado y no toca /userinfo.
+        autoUserInfo: false,
         secureRoutes: [environment.apiUrl],
-        // DIAGNÓSTICO TEMPORAL (revertir tras capturar): Warn en prod para ver el
-        // ValidationResult del refresh silencioso que hoy desloguea en frío y rebota
-        // a Discord. Warn (no Debug) porque los mensajes "qué check falla" son de nivel
-        // Warn y NO vuelca valores de token a la consola de los usuarios.
-        logLevel: LogLevel.Warn,
+        logLevel: environment.production ? LogLevel.Error : LogLevel.Warn,
       },
     }),
     // Por defecto la librería usa sessionStorage, que se borra al cerrar la pestaña:
