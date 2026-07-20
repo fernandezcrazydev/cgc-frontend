@@ -1,25 +1,23 @@
-# Build y despliegue de la SPA. Ver docs/despliegue.md del repo cgc-backend.
+# Despliegue de la SPA en push a main (o sea, al mergear). La validacion en PR vive en ci.yml. Ver
+# docs/despliegue.md del repo cgc-backend.
 #
-# Desplegar el front es copiar ficheros a /srv/cgc/www, donde Caddy los sirve. No se
-# construye ninguna imagen y no se reinicia ningun contenedor: nadie pierde la sesion.
+# Desplegar el front es copiar ficheros a /srv/cgc/www, donde Caddy los sirve. No se construye
+# ninguna imagen y no se reinicia ningun contenedor: nadie pierde la sesion.
 name: deploy
 
 on:
   push:
     branches: [main]
-  pull_request:
 
 concurrency:
   group: deploy-frontend
   cancel-in-progress: false
 
 jobs:
-  ci:
-    # Un PR puede modificar este mismo fichero. Si corriera en el runner self-hosted,
-    # cualquier colaborador podria ejecutar lo que quisiera en el mini PC antes de que
-    # nadie revisara nada. Los PR se construyen en runners de GitHub; la maquina de casa
-    # solo ejecuta lo que YA esta en main.
-    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-latest' || 'self-hosted' }}
+  deploy:
+    # Solo corre sobre main (ya revisado), asi que el runner self-hosted del mini PC es seguro: aqui
+    # nunca se ejecuta codigo de un PR sin revisar (eso se queda en ci.yml, en runners de GitHub).
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v4
 
@@ -30,21 +28,16 @@ jobs:
 
       - run: npm ci
 
-      # --watch=false no es opcional: sin el, vitest se queda esperando cambios y el job
-      # se cuelga hasta que GitHub lo mata a las 6 horas.
-      #
-      # Va antes del build a proposito: si los tests fallan, no se construye nada y por
-      # tanto no hay nada que publicar. Ese es el freno.
+      # Antes del build a proposito: si los tests fallan, no se construye nada y por tanto no hay nada
+      # que publicar. Ese es el freno. --watch=false para que vitest no cuelgue el job.
       - name: Tests
         run: npx ng test --watch=false
 
-      # "production" es la defaultConfiguration del proyecto: es la que aplica el
-      # fileReplacements de environment.prod.ts. Sin ella, la SPA saldria apuntando a
-      # localhost:8080 y en produccion no habria login.
+      # "production" es la defaultConfiguration del proyecto: es la que aplica el fileReplacements de
+      # environment.prod.ts. Sin ella, la SPA saldria apuntando a localhost:8080 y no habria login.
       - run: npx ng build --configuration production
 
       - name: Publicar en /srv/cgc/www
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
           # El directorio lo crea el deploy del backend antes de levantar el compose, y a
           # proposito: si no existe al montar el bind mount, lo crea el demonio de Docker

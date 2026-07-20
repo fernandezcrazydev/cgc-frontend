@@ -1,0 +1,37 @@
+# CI de la SPA en cada PR: valida (tests + build de produccion) sin publicar nada. El despliegue
+# vive en deploy.yml y solo corre en push a main. Ver docs/despliegue.md del repo cgc-backend.
+#
+# Corre en runners de GitHub (ubuntu-latest), nunca en el self-hosted: un PR puede modificar este
+# mismo fichero, y si corriera en el mini PC cualquier colaborador podria ejecutar lo que quisiera
+# antes de que nadie lo revisara. La maquina de casa solo ejecuta lo que YA esta en main (deploy.yml).
+name: ci
+
+on:
+  pull_request:
+
+# Empujar un commit nuevo a un PR cancela el CI anterior de esa rama: solo interesa el ultimo.
+concurrency:
+  group: ci-frontend-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci
+
+      # --watch=false no es opcional: sin el, vitest se queda esperando cambios y el job se cuelga
+      # hasta que GitHub lo mata a las 6 horas.
+      - name: Tests
+        run: npx ng test --watch=false
+
+      # El build de produccion es parte de la validacion: engancha errores de plantilla/AOT que los
+      # tests unitarios no ven. "production" es la defaultConfiguration del proyecto.
+      - run: npx ng build --configuration production
