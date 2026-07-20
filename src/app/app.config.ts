@@ -37,7 +37,11 @@ export const appConfig: ApplicationConfig = {
         useRefreshToken: true,
         renewTimeBeforeTokenExpiresInSeconds: 30,
         secureRoutes: [environment.apiUrl],
-        logLevel: environment.production ? LogLevel.Error : LogLevel.Warn,
+        // DIAGNÓSTICO TEMPORAL (revertir tras capturar): Warn en prod para ver el
+        // ValidationResult del refresh silencioso que hoy desloguea en frío y rebota
+        // a Discord. Warn (no Debug) porque los mensajes "qué check falla" son de nivel
+        // Warn y NO vuelca valores de token a la consola de los usuarios.
+        logLevel: LogLevel.Warn,
       },
     }),
     // Por defecto la librería usa sessionStorage, que se borra al cerrar la pestaña:
