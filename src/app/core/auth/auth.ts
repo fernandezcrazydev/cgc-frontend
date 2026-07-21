@@ -17,12 +17,38 @@ import { Session } from './session';
  */
 @Injectable({ providedIn: 'root' })
 export class Auth {
+  /**
+   * Candado del auto-login. Presente en sessionStorage = el login NO debe
+   * relanzarse solo; toca enseñar el botón.
+   *
+   * sessionStorage a propósito: sobrevive a la cadena de redirects del OAuth
+   * (misma pestaña) pero muere al cerrarla, así que cada visita nueva vuelve a
+   * tener derecho a UN intento automático. Se pone al salir hacia el
+   * Authorization Server (si el viaje fracasa volvemos con el candado puesto:
+   * sin él, fallo → '/' → relanzar → fallo... bucle infinito de redirects) y en
+   * el logout (sin él, cerrar sesión te volvería a meter al instante: la cookie
+   * de Discord sigue viva y prompt=none re-loguea sin preguntar). Lo quita el
+   * callback cuando el login termina bien.
+   */
+  private static readonly AUTO_LOGIN_LOCK = 'cgc.autologin.lock';
+
   private readonly oidc = inject(OidcSecurityService);
   private readonly session = inject(Session);
 
   /** Arranca el flujo OAuth. El nombre se mantiene: para el usuario, "entra con Discord". */
   loginWithDiscord(): void {
+    sessionStorage.setItem(Auth.AUTO_LOGIN_LOCK, '1');
     this.oidc.authorize();
+  }
+
+  /** ¿Puede el login lanzarse solo, sin esperar al clic? Ver AUTO_LOGIN_LOCK. */
+  autoLoginAvailable(): boolean {
+    return sessionStorage.getItem(Auth.AUTO_LOGIN_LOCK) === null;
+  }
+
+  /** Lo llama el callback tras un login con éxito: el candado ya cumplió su papel. */
+  resumeAutoLogin(): void {
+    sessionStorage.removeItem(Auth.AUTO_LOGIN_LOCK);
   }
 
   /**
@@ -35,6 +61,7 @@ export class Auth {
    * después llega a ejecutarse.
    */
   async logout(): Promise<void> {
+    sessionStorage.setItem(Auth.AUTO_LOGIN_LOCK, '1');
     this.session.clear();
     await firstValueFrom(this.oidc.logoff());
   }

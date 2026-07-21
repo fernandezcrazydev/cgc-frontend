@@ -1,20 +1,14 @@
-import { Component, DestroyRef, computed, inject, linkedSignal, signal } from '@angular/core';
+import { Component, DestroyRef, computed, effect, inject, linkedSignal, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { filter, map, startWith } from 'rxjs';
-import {
-  GroupInvitePayload,
-  NAV,
-  NOTIF_GLYPH,
-  Notification,
-  NotificationKind,
-} from '../../core/lobby';
+import { NAV } from '../../core/lobby';
 import { Auth, Session } from '../../core/auth';
-import { GroupStore } from '../../core/group-store';
+import { GroupDetailStore, GroupsStore, InvitationsStore } from '../../core/groups';
 import { MatchStore, MatchRoom } from '../../core/match-store';
-import { NotificationStore } from '../../core/notification-store';
+import { NotificationsStore, NotificationView, notificationView } from '../../core/notifications';
 import { ToastService } from '../../core/toast';
-import { NfBadge, NfButton, NfSegmented, NfToastHost, NfWindow } from '../../ui';
+import { NfButton, NfSegmented, NfSkeleton, NfToastHost, NfWindow } from '../../ui';
 import { ThemeService, THEMES } from '../../core/theme';
 import { FeedbackDialog } from '../feedback/feedback-dialog';
 
@@ -32,8 +26,8 @@ import { FeedbackDialog } from '../feedback/feedback-dialog';
     RouterLinkActive,
     NfWindow,
     NfButton,
-    NfBadge,
     NfSegmented,
+    NfSkeleton,
     NfToastHost,
     FeedbackDialog,
   ],
@@ -45,10 +39,17 @@ export class Shell {
   /** El usuario real de la BD. El authGuard garantiza que ya está cargado. */
   readonly session = inject(Session);
   private readonly auth = inject(Auth);
-  readonly groups = inject(GroupStore);
+  readonly groups = inject(GroupsStore);
   private readonly matches = inject(MatchStore);
-  readonly notifs = inject(NotificationStore);
+  /** Campana real: bandeja durable + stream SSE en vivo (reemplaza el mock legacy). */
+  readonly notifs = inject(NotificationsStore);
+  /** Invitaciones pendientes: fuente de verdad de "¿este invite sigue vivo?". */
+  readonly invitations = inject(InvitationsStore);
+  private readonly groupDetail = inject(GroupDetailStore);
   private readonly toasts = inject(ToastService);
+
+  /** Vista de presentación de la bandeja: título/mensaje/tiempo en español por notificación. */
+  readonly notifViews = computed(() => this.notifs.notifications().map((n) => notificationView(n)));
 
   /** Selector de tema (skin global): vive en el header, junto a feedback y campana. */
   readonly theme = inject(ThemeService);
@@ -113,69 +114,75 @@ export class Shell {
   }
 
   // ── Notifications (top-right bell + dropdown panel) ───────────────
-  // State lives in NotificationStore so the bell and the home "Requiere tu
-  // atención" panel stay in sync; the shell only owns the panel's open/close.
+  // El estado vive en NotificationsStore (backend real + SSE) para que la campana y
+  // el panel del home ("Requiere tu atención") lean la MISMA lista; el shell solo
+  // posee el abrir/cerrar del panel.
   readonly showNotifications = signal(false);
 
-  glyphFor(kind: NotificationKind): string {
-    return NOTIF_GLYPH[kind];
-  }
-
-  /** Opening the panel marks everything as read (clears the badge). */
   toggleNotifications(): void {
-    const willOpen = !this.showNotifications();
-    this.showNotifications.set(willOpen);
-    if (willOpen) this.notifs.markAllRead();
+    this.showNotifications.update((open) => !open);
   }
 
   closeNotifications(): void {
     this.showNotifications.set(false);
   }
 
-  clearNotifications(event: Event): void {
+  /** Marca toda la bandeja como leída (limpia el badge). No hay borrado en el backend. */
+  markAllRead(event: Event): void {
     event.stopPropagation();
-    this.notifs.clear();
+    void this.notifs.markAllRead();
   }
 
-  // ── Group invitation review modal ─────────────────────────────────
-  readonly reviewInvite = signal<GroupInvitePayload | null>(null);
-  /** Id of the notification that opened the review modal, removed on response. */
-  private reviewNotifId: number | null = null;
-
-  /** Click a notification: group invites open the review modal; the rest are no-ops for now. */
-  onNotificationClick(n: Notification): void {
-    if (!n.groupInvite) return;
-    this.reviewNotifId = n.id;
-    this.reviewInvite.set(n.groupInvite);
-    this.showNotifications.set(false);
+  /** Reintenta la carga de la bandeja tras un error de red. */
+  reloadNotifs(event: Event): void {
+    event.stopPropagation();
+    void this.notifs.reload();
   }
 
-  closeInviteReview(): void {
-    this.reviewInvite.set(null);
-    this.reviewNotifId = null;
+  /** Borra una notificación de la bandeja (la × de cada fila). */
+  dismissNotif(view: NotificationView, event: Event): void {
+    event.stopPropagation();
+    void this.notifs.remove(view.id);
   }
 
-  acceptInvite(): void {
-    const invite = this.reviewInvite();
-    if (!invite) return;
-    const group = this.groups.joinFromInvite(invite);
-    this.dismissReviewNotif();
-    this.closeInviteReview();
-    this.toasts.success(`Invitación aceptada · Te uniste a ${group.name}`);
-    this.router.navigate(['/app', 'grupos', group.id]);
+  /** Trae la siguiente página de la bandeja. */
+  loadMoreNotifs(): void {
+    void this.notifs.loadMore();
   }
 
-  declineInvite(): void {
-    const invite = this.reviewInvite();
-    this.dismissReviewNotif();
-    this.closeInviteReview();
-    this.toasts.info(`Invitación a ${invite?.groupName ?? 'grupo'} rechazada`);
+  /**
+   * ¿Se puede aún aceptar/rechazar esta invitación? Si conocemos las pendientes (status
+   * ready), solo si sigue en la lista; si no las conocemos todavía, se permite y el 409
+   * del backend nos corrige. Evita botones muertos para invitaciones ya respondidas en
+   * otra sesión.
+   */
+  canRespond(invitationId: string): boolean {
+    if (this.invitations.status() !== 'ready') return true;
+    return this.invitations.pendingIds().has(invitationId);
   }
 
-  /** Drop the notification that triggered the review once it's been answered. */
-  private dismissReviewNotif(): void {
-    const id = this.reviewNotifId;
-    if (id != null) this.notifs.dismiss(id);
+  /**
+   * Acepta o rechaza una invitación desde la campana. Pesimista: espera la confirmación,
+   * marca la notificación leída y avisa. Un 409 (ya respondida en otra pestaña) o un fallo
+   * de red resincroniza bandeja e invitaciones en vez de dejar la UI mintiendo.
+   */
+  async respondInvite(view: NotificationView, accept: boolean): Promise<void> {
+    const invite = view.invite;
+    if (!invite || this.invitations.isResponding(invite.invitationId)) return;
+    try {
+      if (accept) await this.invitations.accept(invite.invitationId);
+      else await this.invitations.decline(invite.invitationId);
+      await this.notifs.markRead(view.id);
+      // Al aceptar ya somos MEMBER en el backend: refetch de /me/groups para que el nuevo
+      // grupo aparezca en la barra lateral sin que el usuario tenga que recargar la página.
+      if (accept) await this.groups.reload();
+      this.toasts.success(
+        accept ? `Te uniste a ${invite.groupName}` : `Invitación a ${invite.groupName} rechazada`,
+      );
+    } catch {
+      await Promise.all([this.notifs.reload(), this.invitations.reload()]);
+      this.toasts.info('Esta invitación ya no está disponible');
+    }
   }
 
   // ── Reporte de bug / propuesta / incidencia ───────────────────────
@@ -196,6 +203,22 @@ export class Shell {
   constructor() {
     // Rol admin: lo lee del token (sin red). Si falla, se queda en false y el enlace no aparece.
     void this.auth.isAdmin().then((admin) => this.isAdmin.set(admin));
+
+    // Campana real: cargar la bandeja durable y abrir el stream en vivo. El authGuard ya
+    // garantiza sesión, así que hay token para el SSE. Las invitaciones pendientes dan el
+    // "¿sigue vivo este invite?" al pintar las acciones.
+    void this.notifs.ensureLoaded();
+    this.notifs.connect();
+    void this.invitations.ensureLoaded();
+    // La lista real de grupos alimenta la barra lateral, la cabecera y el conmutador móvil.
+    void this.groups.ensureLoaded();
+
+    // Una invitación nueva llega por SSE como notificación; recargar las pendientes para
+    // que sus acciones (aceptar/rechazar) se habiliten al instante.
+    effect(() => {
+      const latest = this.notifs.lastArrived();
+      if (latest?.type === 'INVITED_TO_GROUP') void this.invitations.reload();
+    });
 
     // Responsive breakpoint (mirrors the dc.html matchMedia at 760px).
     const mq = window.matchMedia('(max-width: 760px)');
@@ -241,6 +264,11 @@ export class Shell {
   /** Cierra sesión de verdad: revoca el token y limpia el perfil, luego navega. */
   async logout(): Promise<void> {
     this.confirmLogout.set(false);
+    // No dejar bandeja, stream abierto, invitaciones ni grupos del usuario anterior en memoria.
+    this.notifs.clear();
+    this.invitations.clear();
+    this.groups.clear();
+    this.groupDetail.clear();
     await this.auth.logout();
     await this.router.navigateByUrl('/');
   }

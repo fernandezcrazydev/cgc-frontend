@@ -20,8 +20,13 @@ export class FeedbackStore {
   readonly submitting = this._submitting.asReadonly();
 
   /**
-   * Envía el reporte. Devuelve `false` si falló o si ya había otro envío en
-   * vuelo; en ese caso el borrador de la vista sigue intacto para reintentar.
+   * Envía el reporte. Devuelve `true` si el servidor confirmó y `false` si ya
+   * había otro envío en vuelo (anti doble submit); el borrador de la vista sigue
+   * intacto en ambos casos.
+   *
+   * Los fallos **se propagan**: el error del backend es un ProblemDetail con `code`
+   * y solo la vista sabe traducirlo (`errorMessage` de `core/http`). Tragárselo aquí
+   * obligaría a un mensaje fijo que oculta el motivo real.
    */
   async submit(report: FeedbackReport): Promise<boolean> {
     if (this._submitting()) return false;
@@ -29,8 +34,6 @@ export class FeedbackStore {
     try {
       await firstValueFrom(this.api.submit(report));
       return true;
-    } catch {
-      return false;
     } finally {
       this._submitting.set(false);
     }

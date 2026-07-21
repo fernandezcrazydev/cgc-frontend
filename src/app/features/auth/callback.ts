@@ -1,6 +1,7 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { OidcSecurityService } from 'angular-auth-oidc-client';
+import { Auth } from '../../core/auth';
 
 /**
  * Aterrizaje del Authorization Code. El backend nos devuelve aquí con `?code=...`
@@ -16,12 +17,19 @@ import { OidcSecurityService } from 'angular-auth-oidc-client';
 })
 export class Callback implements OnInit {
   private readonly oidc = inject(OidcSecurityService);
+  private readonly auth = inject(Auth);
   private readonly router = inject(Router);
 
   ngOnInit(): void {
     this.oidc.checkAuth().subscribe({
-      next: ({ isAuthenticated }) =>
-        void this.router.navigateByUrl(isAuthenticated ? '/app' : '/'),
+      next: ({ isAuthenticated }) => {
+        if (isAuthenticated) {
+          // El candado anti-bucle del auto-login ya cumplió su papel: la próxima
+          // visita sin tokens vuelve a tener derecho a entrar sola.
+          this.auth.resumeAutoLogin();
+        }
+        void this.router.navigateByUrl(isAuthenticated ? '/app' : '/');
+      },
       error: () => void this.router.navigateByUrl('/'),
     });
   }

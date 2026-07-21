@@ -51,6 +51,8 @@ describe('Auth', () => {
   let session: SessionStub;
 
   beforeEach(() => {
+    // El candado del auto-login vive en sessionStorage; sin esto un test contamina al siguiente.
+    sessionStorage.clear();
     oidc = new OidcStub();
     session = new SessionStub();
     TestBed.configureTestingModule({
@@ -129,6 +131,33 @@ describe('Auth', () => {
   it('loginWithDiscord arranca el flujo OAuth de la librería', () => {
     auth.loginWithDiscord();
     expect(oidc.authorizeCalls).toBe(1);
+  });
+
+  /**
+   * El candado del auto-login protege dos cosas que se rompen en silencio: el
+   * bucle infinito de redirects cuando un login automático fracasa, y el logout
+   * imposible (cerrar sesión y que prompt=none te vuelva a meter al instante).
+   */
+  describe('auto-login', () => {
+    it('una pestaña recién abierta tiene derecho a un intento automático', () => {
+      expect(auth.autoLoginAvailable()).toBe(true);
+    });
+
+    it('salir hacia el Authorization Server echa el candado: un fracaso no se relanza en bucle', () => {
+      auth.loginWithDiscord();
+      expect(auth.autoLoginAvailable()).toBe(false);
+    });
+
+    it('un login con éxito devuelve el derecho al intento automático', () => {
+      auth.loginWithDiscord();
+      auth.resumeAutoLogin();
+      expect(auth.autoLoginAvailable()).toBe(true);
+    });
+
+    it('el logout echa el candado: sin él, prompt=none volvería a iniciar sesión al instante', async () => {
+      await auth.logout();
+      expect(auth.autoLoginAvailable()).toBe(false);
+    });
   });
 
   it('logout limpia la sesión local ANTES de cerrar en el servidor', async () => {

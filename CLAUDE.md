@@ -116,6 +116,37 @@ Checklist que TODO dominio migrado debe cubrir (no negociable; revisar una a una
 - Tras una escritura que afecte a datos derivados (stats, ranking, MMR), **refetch** de lo
   derivado; no recalcular en cliente.
 
+**Formato de error (contrato acordado con backend)**
+
+El backend responde los errores como **ProblemDetail (RFC 7807)** extendido con un **`code`
+estable y obligatorio** legible por máquina. Ejemplo real:
+
+```jsonc
+{
+  "type": "about:blank",
+  "title": "Bad Request",
+  "status": 400,
+  "detail": "Unsupported image type; use JPEG or PNG", // técnico/inglés: SOLO para logs
+  "instance": "/api/v1/groups",
+  "code": "UNSUPPORTED_IMAGE",                          // ← la clave que consume el front
+  "errors": [{ "field": "name", "code": "TOO_LONG" }]   // ← solo en 422 (validación por campo)
+}
+```
+
+Reglas de oro del manejo de errores:
+- **`detail` NUNCA se pinta**: viene en inglés y es técnico. Es solo para logs/telemetría.
+- **El front es dueño del texto en español.** El catálogo `code → mensaje` vive en
+  `core/http/api-error.ts` (`MESSAGES_BY_CODE`). Añadir un `code` nuevo en backend obliga a
+  añadir su traducción ahí.
+- **Todo `catch` de una escritura pasa por el helper**, nunca una string fija que se traga el
+  error: `this.toasts.error(errorMessage(e))` (import desde `core/http`). Prohibido el patrón
+  viejo `catch { toasts.error('No se pudo...') }`.
+- **Cadena de fallback** (en `messageForError`): `code` conocido → mensaje específico; `code`
+  desconocido → genérico por `status` + `console.warn` para catalogarlo; sin `code` → genérico
+  por `status`; red/timeout (`status 0`) → mensaje de reintento. Nunca cuelga sin mensaje.
+- **`422`**: usar `ApiError.errors[]` para mapear cada `code` a su campo del formulario.
+- Nuevos códigos que descubramos en runtime salen por `console.warn`; catalogarlos cuanto antes.
+
 **Errores HTTP (mapa de decisiones)**
 - `401`: lo gestiona el refresh de `angular-auth-oidc-client`; si el refresh falla → `Session.clear()`
   + redirigir a login. No tratar 401 endpoint a endpoint.
@@ -144,7 +175,8 @@ Checklist que TODO dominio migrado debe cubrir (no negociable; revisar una a una
 
 ## Contratos pendientes de acordar con backend (preguntar antes de asumir)
 
-- **Formato de error** (¿ProblemDetail RFC 7807 de Spring?) → condiciona el manejo global de errores.
+- ~~**Formato de error**~~ → **ACORDADO**: ProblemDetail RFC 7807 + `code` estable obligatorio.
+  Documentado arriba en § "Formato de error" y en `core/http/api-error.ts`.
 - **Contrato de paginación** (page/size vs cursor) → condiciona `NfPagination` y los stores de listas.
 - **Canal realtime** (WebSocket vs SSE, y su autenticación) para salas/drafts/notificaciones.
 - **Ids estables de jugador/miembro/grupo** y su relación con la identidad Discord de `/me`.

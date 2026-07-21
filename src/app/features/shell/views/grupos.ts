@@ -1,14 +1,17 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { NfAvatarPicker, NfBadge, NfButton, NfSelect, NfWindow } from '../../../ui';
-import { GroupStore } from '../../../core/group-store';
-import { REGION_OPTIONS } from '../../../core/lobby';
+import { NfAvatarPicker, NfButton, NfSelect, NfSkeleton, NfWindow } from '../../../ui';
+import { NfBadge } from '../../../ui';
+import { GroupsStore, REGIONS, Region } from '../../../core/groups';
+import { ToastService } from '../../../core/toast';
+import { errorMessage } from '../../../core/http';
+import { initialsOf } from '../../../core/groups';
 
 @Component({
   selector: 'app-grupos',
   standalone: true,
-  imports: [RouterLink, FormsModule, NfAvatarPicker, NfBadge, NfButton, NfSelect, NfWindow],
+  imports: [RouterLink, FormsModule, NfAvatarPicker, NfBadge, NfButton, NfSelect, NfSkeleton, NfWindow],
   template: `
     <div class="view">
       <div class="view__head view__head--row">
@@ -20,41 +23,65 @@ import { REGION_OPTIONS } from '../../../core/lobby';
         <button nfButton variant="primary" size="md" (click)="openCreate()">＋ NUEVO GRUPO</button>
       </div>
 
-      <div class="group-grid">
-        <button type="button" class="group-card group-card--new" (click)="openCreate()">
-          <span class="group-card__plus">＋</span>
-          <span class="group-card__newlabel nf-mono">CREAR GRUPO</span>
-        </button>
-
-        @for (g of groups.groups(); track g.id) {
-          <a
-            class="group-card"
-            [class.is-active]="g.id === groups.selectedId()"
-            [style.--grp-c1]="g.c1"
-            [style.--grp-c2]="g.c2"
-            [routerLink]="['/app', 'grupos', g.id]"
-            (click)="groups.select(g.id)"
-          >
-            <div class="group-card__banner">
-              <span class="group-card__avatar">
-                @if (g.avatar) {
-                  <img class="group-card__avatar-img" [src]="g.avatar" alt="" />
-                } @else {
-                  {{ g.initials }}
-                }
-              </span>
-            </div>
-            <div class="group-card__body">
-              <div class="group-card__top">
-                <span class="group-card__name">{{ g.name }}</span>
-                <nf-badge [color]="g.role === 'OWNER' ? 'pink' : 'cyan'">{{ g.role }}</nf-badge>
+      @switch (groups.status()) {
+        @case ('loading') {
+          <div class="group-grid" aria-busy="true">
+            @for (s of [0, 1, 2]; track s) {
+              <div class="group-card" aria-hidden="true">
+                <div class="group-card__banner"><nf-skeleton width="52px" height="52px" radius="14px" /></div>
+                <div class="group-card__body">
+                  <nf-skeleton width="70%" height="16px" />
+                  <nf-skeleton width="40%" height="11px" />
+                </div>
               </div>
-              <div class="group-card__tag nf-mono">{{ g.tag }}</div>
-              <div class="group-card__foot nf-mono">◉ {{ g.members }} MIEMBROS</div>
-            </div>
-          </a>
+            }
+          </div>
         }
-      </div>
+        @case ('error') {
+          <div class="empty-state">
+            <div class="empty-state__icon">⚠</div>
+            <div class="empty-state__text nf-mono">// ERROR AL CARGAR</div>
+            <p class="empty-state__hint">No se pudieron cargar tus grupos.</p>
+            <button nfButton variant="secondary" size="md" (click)="retry()">REINTENTAR</button>
+          </div>
+        }
+        @default {
+          <div class="group-grid">
+            <button type="button" class="group-card group-card--new" (click)="openCreate()">
+              <span class="group-card__plus">＋</span>
+              <span class="group-card__newlabel nf-mono">CREAR GRUPO</span>
+            </button>
+
+            @for (g of groups.groups(); track g.id) {
+              <a
+                class="group-card"
+                [class.is-active]="g.id === groups.selectedId()"
+                [style.--grp-c1]="g.c1"
+                [style.--grp-c2]="g.c2"
+                [routerLink]="['/app', 'grupos', g.id]"
+                (click)="groups.select(g.id)"
+              >
+                <div class="group-card__banner">
+                  <span class="group-card__avatar">
+                    @if (g.avatarUrl) {
+                      <img class="group-card__avatar-img" [src]="g.avatarUrl" alt="" />
+                    } @else {
+                      {{ g.initials }}
+                    }
+                  </span>
+                </div>
+                <div class="group-card__body">
+                  <div class="group-card__top">
+                    <span class="group-card__name">{{ g.name }}</span>
+                    <nf-badge [color]="g.role === 'OWNER' ? 'pink' : 'cyan'">{{ g.role }}</nf-badge>
+                  </div>
+                  <div class="group-card__tag nf-mono">{{ g.region ?? '—' }}</div>
+                </div>
+              </a>
+            }
+          </div>
+        }
+      }
     </div>
 
     @if (creating()) {
@@ -89,15 +116,15 @@ import { REGION_OPTIONS } from '../../../core/lobby';
 
               <div class="field">
                 <label class="field__label nf-mono">REGIÓN</label>
-                <nf-select [options]="regionOptions" [value]="region()" (valueChange)="region.set($event)" />
+                <nf-select [options]="regionOptions" [value]="region()" (valueChange)="setRegion($event)" />
               </div>
             </div>
 
             <div class="form-foot">
-              <button nfButton variant="primary" size="md" [disabled]="!canCreate()" (click)="create()">
-                CREAR GRUPO ►
+              <button nfButton variant="primary" size="md" [disabled]="!canCreate() || groups.pending()" (click)="create()">
+                {{ groups.pending() ? 'CREANDO…' : 'CREAR GRUPO ►' }}
               </button>
-              <button nfButton variant="ghost" size="md" (click)="closeCreate()">CANCELAR</button>
+              <button nfButton variant="ghost" size="md" [disabled]="groups.pending()" (click)="closeCreate()">CANCELAR</button>
             </div>
           </nf-window>
         </div>
@@ -106,24 +133,34 @@ import { REGION_OPTIONS } from '../../../core/lobby';
   `,
 })
 export class Grupos {
-  readonly groups = inject(GroupStore);
+  readonly groups = inject(GroupsStore);
   private readonly router = inject(Router);
+  private readonly toasts = inject(ToastService);
 
-  readonly regionOptions = REGION_OPTIONS;
+  readonly regionOptions = [...REGIONS];
 
   readonly creating = signal(false);
   readonly name = signal('');
-  readonly region = signal('EUW');
+  readonly region = signal<Region>('EUW');
   readonly avatar = signal<string | null>(null);
 
   readonly canCreate = computed(() => this.name().trim().length > 0);
 
   /** Live initials for the picker fallback while typing the name. */
-  readonly previewInitials = computed(() => {
-    const words = this.name().trim().split(/\s+/).filter(Boolean);
-    const letters = words.length >= 2 ? words[0][0] + words[1][0] : this.name().trim().slice(0, 2);
-    return letters.toUpperCase() || 'GR';
-  });
+  readonly previewInitials = computed(() => initialsOf(this.name() || 'GR'));
+
+  constructor() {
+    // Al re-entrar en la ruta refrescamos por si otro cliente cambió los grupos (barato).
+    void this.groups.reload();
+  }
+
+  retry(): void {
+    void this.groups.reload();
+  }
+
+  setRegion(value: string): void {
+    this.region.set(value as Region);
+  }
 
   openCreate(): void {
     this.name.set('');
@@ -133,24 +170,31 @@ export class Grupos {
   }
 
   closeCreate(): void {
+    if (this.groups.pending()) return;
     this.creating.set(false);
   }
 
-  create(): void {
-    if (!this.canCreate()) return;
-    // BACKEND NOTE: el alta real ya está lista en `core/groups` (GroupsStore.create): hace
-    // el "doble call" —POST /groups con { name, region } y, si hay foto, PUT /groups/{id}/
-    // avatar (multipart) contra el id devuelto—, es pesimista y no reentrante (usa
-    // store.pending() para el botón). Aquí NO se conecta todavía porque la LISTA y el
-    // DETALLE de grupos siguen en el mock `GroupStore` (id = slug, roster sembrado), y
-    // mezclar el UUID real con eso rompería la navegación. Se conecta al migrar las
-    // lecturas de grupos al backend; entonces se borra `GroupStore.add` y este `add`.
-    const group = this.groups.add({
-      name: this.name(),
-      region: this.region(),
-      avatar: this.avatar(),
-    });
-    this.creating.set(false);
-    this.router.navigate(['/app', 'grupos', group.id]);
+  /**
+   * Alta real: `GroupsStore.create` hace una sola llamada multipart (POST /groups con la foto
+   * dentro, si la hay), es pesimista y no reentrante, y refetch la lista. Si la imagen no vale, el
+   * backend responde 400 y no se crea nada: cae en el catch y no navegamos. Solo al confirmar
+   * navegamos al detalle real.
+   */
+  async create(): Promise<void> {
+    if (!this.canCreate() || this.groups.pending()) return;
+    try {
+      const group = await this.groups.create({
+        name: this.name(),
+        region: this.region(),
+        avatarDataUrl: this.avatar(),
+      });
+      this.creating.set(false);
+      this.toasts.success(`Grupo "${group.name}" creado`);
+      this.router.navigate(['/app', 'grupos', group.groupId]);
+    } catch (e) {
+      // El backend manda un `code` estable en el ProblemDetail; `errorMessage` lo traduce a
+      // español (con fallback por status). Ver CLAUDE.md § "Formato de error".
+      this.toasts.error(errorMessage(e));
+    }
   }
 }

@@ -83,9 +83,10 @@ describe('FeedbackStore', () => {
     expect(await first).toBe(true);
   });
 
-  it('si el envío falla devuelve false y deja reintentar', async () => {
+  it('si el envío falla propaga el error, libera submitting y deja reintentar', async () => {
     api.fail = true;
-    expect(await store.submit(REPORT)).toBe(false);
+    // El error viaja a la vista para que traduzca su `code`; el store no lo traga.
+    await expect(store.submit(REPORT)).rejects.toThrow('boom');
     expect(store.submitting()).toBe(false);
 
     api.fail = false;

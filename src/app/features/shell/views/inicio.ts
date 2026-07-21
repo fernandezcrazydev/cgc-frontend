@@ -2,15 +2,14 @@ import { Component, computed, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { NfBadge, NfButton } from '../../../ui';
 import { Session } from '../../../core/auth';
-import { Group, Notification } from '../../../core/lobby';
-import { GroupStore } from '../../../core/group-store';
+import { GroupsStore, GroupView, InvitationsStore } from '../../../core/groups';
 import { MatchRoom, MatchStore, RoomStatus } from '../../../core/match-store';
-import { NotificationStore } from '../../../core/notification-store';
+import { NotificationsStore, NotificationView, notificationView } from '../../../core/notifications';
 import { ToastService } from '../../../core/toast';
 
 /** A resumable room paired with the group it belongs to (for display). */
 interface ResumeItem {
-  group: Group;
+  group: GroupView;
   room: MatchRoom;
 }
 
@@ -31,8 +30,8 @@ const STATUS_ORDER: Record<RoomStatus, number> = { live: 0, waiting: 1, drafting
  * Two live sections:
  * - "Retomar": every active room across the user's groups (real MatchStore state),
  *   so a match in progress / a sala filling up / a draft being built is one tap away.
- * - "Requiere tu atención": the actionable notifications (group + match invites,
- *   join requests) shared with the header bell via the NotificationStore.
+ * - "Requiere tu atención": las invitaciones a grupo pendientes (backend real),
+ *   compartidas con la campana del header vía `NotificationsStore` + `InvitationsStore`.
  */
 @Component({
   selector: 'app-inicio',
@@ -115,25 +114,26 @@ const STATUS_ORDER: Record<RoomStatus, number> = { live: 0, waiting: 1, drafting
           <div class="attn-list">
             @for (n of items; track n.id) {
               <div class="attn-card" [style.--attn-accent]="n.accent">
-                @if (n.groupInvite; as gi) {
-                  <span
-                    class="attn-card__avatar"
-                    [style.--grp-c1]="gi.c1"
-                    [style.--grp-c2]="gi.c2"
-                  >{{ gi.initials }}</span>
-                } @else {
-                  <span class="attn-card__glyph">{{ glyph(n) }}</span>
-                }
+                <span class="attn-card__glyph">{{ n.glyph }}</span>
                 <div class="attn-card__text">
                   <div class="attn-card__title nf-mono">{{ n.title }}</div>
                   <div class="attn-card__msg">{{ n.message }}</div>
-                  @if (n.groupInvite; as gi) {
-                    <div class="attn-card__meta nf-mono">◉ {{ gi.members }} MIEMBROS · {{ gi.region }}</div>
-                  }
                 </div>
                 <div class="attn-card__actions">
-                  <button nfButton variant="ghost" size="sm" (click)="respond(n, false)">RECHAZAR</button>
-                  <button nfButton variant="primary" size="sm" (click)="respond(n, true)">{{ acceptLabel(n) }}</button>
+                  <button
+                    nfButton
+                    variant="ghost"
+                    size="sm"
+                    [disabled]="responding(n)"
+                    (click)="respond(n, false)"
+                  >RECHAZAR</button>
+                  <button
+                    nfButton
+                    variant="primary"
+                    size="sm"
+                    [disabled]="responding(n)"
+                    (click)="respond(n, true)"
+                  >UNIRME ►</button>
                 </div>
               </div>
             }
@@ -144,9 +144,10 @@ const STATUS_ORDER: Record<RoomStatus, number> = { live: 0, waiting: 1, drafting
   `,
 })
 export class Inicio {
-  private readonly groups = inject(GroupStore);
+  private readonly groups = inject(GroupsStore);
   private readonly matches = inject(MatchStore);
-  private readonly notifs = inject(NotificationStore);
+  private readonly notifs = inject(NotificationsStore);
+  private readonly invitations = inject(InvitationsStore);
   private readonly toasts = inject(ToastService);
   private readonly router = inject(Router);
 
@@ -166,8 +167,16 @@ export class Inicio {
     );
   });
 
-  /** Notifications that still need a yes/no (shared with the header bell). */
-  readonly attention = this.notifs.actionable;
+  /**
+   * Invitaciones que aún piden un sí/no (compartidas con la campana del header). Solo las
+   * que siguen pendientes: una ya respondida en otra sesión no debe aparecer aquí.
+   */
+  readonly attention = computed<NotificationView[]>(() =>
+    this.notifs
+      .actionable()
+      .map((n) => notificationView(n))
+      .filter((v) => v.invite !== null && this.canRespond(v.invite.invitationId)),
+  );
 
   meta(it: ResumeItem) {
     return STATUS_META[it.room.status];
@@ -189,39 +198,38 @@ export class Inicio {
     this.router.navigate(g ? ['/app', 'grupos', g.id, 'crear-partida'] : ['/app', 'grupos']);
   }
 
-  glyph(n: Notification): string {
-    // Match invite vs. join request — a simple cue without the bell's full map.
-    return n.kind === 'join' ? '◉' : '►';
+  /** ¿Sigue viva esta invitación? (misma regla que la campana; ver `Shell.canRespond`). */
+  private canRespond(invitationId: string): boolean {
+    if (this.invitations.status() !== 'ready') return true;
+    return this.invitations.pendingIds().has(invitationId);
   }
 
-  acceptLabel(n: Notification): string {
-    if (n.groupInvite) return 'UNIRME ►';
-    return n.kind === 'join' ? 'APROBAR ►' : 'ACEPTAR ►';
+  /** Una acción en vuelo sobre esta invitación: deshabilita sus botones. */
+  responding(view: NotificationView): boolean {
+    return view.invite !== null && this.invitations.isResponding(view.invite.invitationId);
   }
 
   /**
-   * Resolve an actionable notification. Group invites run the real join flow;
-   * the rest are acknowledged (mock until those endpoints exist). Either way the
-   * notification leaves the list — and the bell — since they share the store.
+   * Acepta o rechaza una invitación desde el home. Pesimista: espera la confirmación,
+   * marca la notificación leída y avisa. Comparte store con la campana, así que la tarjeta
+   * desaparece de ambos sitios. Un 409 (respondida en otro sitio) resincroniza y avisa.
    */
-  respond(n: Notification, accept: boolean): void {
-    if (n.groupInvite) {
-      if (accept) {
-        const group = this.notifs.acceptGroupInvite(n);
-        if (group) {
-          this.toasts.success(`Invitación aceptada · Te uniste a ${group.name}`);
-          this.router.navigate(['/app', 'grupos', group.id]);
-        }
-      } else {
-        this.notifs.dismiss(n.id);
-        this.toasts.info(`Invitación a ${n.groupInvite.groupName} rechazada`);
-      }
-      return;
+  async respond(view: NotificationView, accept: boolean): Promise<void> {
+    const invite = view.invite;
+    if (!invite || this.invitations.isResponding(invite.invitationId)) return;
+    try {
+      if (accept) await this.invitations.accept(invite.invitationId);
+      else await this.invitations.decline(invite.invitationId);
+      await this.notifs.markRead(view.id);
+      // Al aceptar ya somos MEMBER en el backend: refetch de /me/groups para que el nuevo
+      // grupo aparezca en la barra lateral sin que el usuario tenga que recargar la página.
+      if (accept) await this.groups.reload();
+      this.toasts.success(
+        accept ? `Te uniste a ${invite.groupName}` : `Invitación a ${invite.groupName} rechazada`,
+      );
+    } catch {
+      await Promise.all([this.notifs.reload(), this.invitations.reload()]);
+      this.toasts.info('Esta invitación ya no está disponible');
     }
-
-    const kind = n.kind === 'join' ? 'Solicitud' : 'Invitación';
-    this.notifs.dismiss(n.id);
-    if (accept) this.toasts.success(`${kind} aceptada`);
-    else this.toasts.info(`${kind} descartada`);
   }
 }

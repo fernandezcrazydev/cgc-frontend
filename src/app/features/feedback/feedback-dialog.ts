@@ -11,6 +11,7 @@ import {
   FeedbackReport,
   FeedbackStore,
 } from '../../core/feedback';
+import { errorMessage } from '../../core/http';
 import { ToastService } from '../../core/toast';
 import { NfButton, NfModal, NfSegmented, NfSelect } from '../../ui';
 
@@ -328,9 +329,12 @@ export class FeedbackDialog {
     if (!this.canSubmit() || this.store.submitting()) return;
 
     const kind = this.kind();
-    const ok = await this.store.submit(this.buildReport());
-    if (!ok) {
-      this.toasts.error('No hemos podido enviar tu reporte. Inténtalo de nuevo.');
+    try {
+      if (!(await this.store.submit(this.buildReport()))) return;
+    } catch (e) {
+      // El texto en español lo decide el catálogo `code → mensaje` de `core/http`,
+      // nunca el `detail` técnico del backend.
+      this.toasts.error(errorMessage(e));
       return;
     }
 

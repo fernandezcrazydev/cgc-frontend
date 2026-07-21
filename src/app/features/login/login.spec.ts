@@ -18,8 +18,19 @@ const flush = async () => {
 
 class AuthStub {
   result: () => Promise<boolean> = () => Promise.resolve(false);
+  canAutoLogin = true;
+  loginLaunches = 0;
+
   isAuthenticated(): Promise<boolean> {
     return this.result();
+  }
+
+  autoLoginAvailable(): boolean {
+    return this.canAutoLogin;
+  }
+
+  loginWithDiscord(): void {
+    this.loginLaunches++;
   }
 }
 
@@ -62,13 +73,27 @@ describe('Login', () => {
     expect(login.isChecking()).toBe(true);
   });
 
-  it('sin sesión, muestra el bloque de acceso', async () => {
+  it('sin sesión y con derecho a intento automático, lanza el login solo', async () => {
     auth.result = () => Promise.resolve(false);
+    auth.canAutoLogin = true;
+    login.ngOnInit();
+    await flush();
+
+    expect(auth.loginLaunches).toBe(1);
+    // Se queda en 'checking': el navegador está a punto de irse al Authorization
+    // Server y un botón parpadeando un instante sería ruido.
+    expect(login.status()).toBe('checking');
+  });
+
+  it('sin sesión y con el candado echado (logout o intento fallido), muestra el bloque de acceso', async () => {
+    auth.result = () => Promise.resolve(false);
+    auth.canAutoLogin = false;
     login.ngOnInit();
     await flush();
 
     expect(login.status()).toBe('idle');
     expect(login.showAuth()).toBe(true);
+    expect(auth.loginLaunches).toBe(0);
   });
 
   it('con sesión y perfil, entra al lobby', async () => {
