@@ -10,6 +10,7 @@ import {
 } from 'angular-auth-oidc-client';
 
 import { routes } from './app.routes';
+import { sessionRecoveryInterceptor } from './core/http';
 import { environment } from '../environments/environment';
 
 export const appConfig: ApplicationConfig = {
@@ -18,7 +19,13 @@ export const appConfig: ApplicationConfig = {
     provideRouter(routes),
     // authInterceptor() añade "Authorization: Bearer <token>" solo a las URLs
     // listadas en secureRoutes. Al resto de peticiones no las toca.
-    provideHttpClient(withFetch(), withInterceptors([authInterceptor()])),
+    // sessionRecoveryInterceptor va DELANTE a propósito: ante un 401 renueva el token y
+    // reintenta, y ese reintento debe volver a pasar por authInterceptor para llevar el
+    // Bearer nuevo. Ver core/http/session-recovery.ts.
+    provideHttpClient(
+      withFetch(),
+      withInterceptors([sessionRecoveryInterceptor, authInterceptor()]),
+    ),
     provideAuth({
       config: {
         // El resto de endpoints (authorize, token, jwks) se descubren solos

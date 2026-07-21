@@ -7,3 +7,4 @@ export {
   type ApiError,
   type ApiFieldError,
 } from './api-error';
+export { SessionRecovery, sessionRecoveryInterceptor } from './session-recovery';

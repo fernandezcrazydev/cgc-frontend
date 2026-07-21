@@ -148,8 +148,11 @@ Reglas de oro del manejo de errores:
 - Nuevos códigos que descubramos en runtime salen por `console.warn`; catalogarlos cuanto antes.
 
 **Errores HTTP (mapa de decisiones)**
-- `401`: lo gestiona el refresh de `angular-auth-oidc-client`; si el refresh falla → `Session.clear()`
-  + redirigir a login. No tratar 401 endpoint a endpoint.
+- `401`: **ya resuelto de forma central** en `core/http/session-recovery.ts`
+  (`sessionRecoveryInterceptor`): renueva el token con `forceRefreshSession()` y **reintenta la
+  petición original** (una sola vez, con la renovación deduplicada entre peticiones simultáneas);
+  solo si el refresh falla → `Session.clear()` + vuelta a login. Ningún store ni vista debe tratar
+  el 401 endpoint a endpoint: para ellos ese error ya no llega, o si llega es sesión terminada.
 - `403`: el usuario no puede — ocultar/deshabilitar el control si es predecible; si llega igual,
   toast genérico. Los checks de permiso en cliente son solo UX; el backend decide.
 - `404`: entidad no existe → estado 404 de la vista (distinto de loading).
