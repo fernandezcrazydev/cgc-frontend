@@ -77,6 +77,13 @@ export class Shell {
   readonly pageTitle = signal('Inicio');
   readonly confirmLogout = signal(false);
 
+  /**
+   * ¿El usuario es ADMIN? Comodidad de UI para mostrar el acceso al panel de admin. La
+   * autorización de verdad la hacen `adminGuard` y el backend; esto solo esconde el enlace.
+   * Se resuelve del claim `roles` del token, sin llamada de red.
+   */
+  readonly isAdmin = signal(false);
+
   // ── Groups (sidebar dropdown + mobile sheet) ──────────────────────
   readonly groupsExpanded = signal(true);
   readonly showGroupSheet = signal(false);
@@ -194,6 +201,9 @@ export class Shell {
   private readonly destroyRef = inject(DestroyRef);
 
   constructor() {
+    // Rol admin: lo lee del token (sin red). Si falla, se queda en false y el enlace no aparece.
+    void this.auth.isAdmin().then((admin) => this.isAdmin.set(admin));
+
     // Campana real: cargar la bandeja durable y abrir el stream en vivo. El authGuard ya
     // garantiza sesión, así que hay token para el SSE. Las invitaciones pendientes dan el
     // "¿sigue vivo este invite?" al pintar las acciones.
