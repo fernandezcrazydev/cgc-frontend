@@ -23,6 +23,19 @@ describe('openNotificationStream', () => {
     globalThis.fetch = realFetch;
   });
 
+  it('un 401 se cierra reportando el status, para que el llamante renueve el token', async () => {
+    globalThis.fetch = (() => Promise.resolve(new Response(null, { status: 401 }))) as typeof fetch;
+
+    const reason = await new Promise<{ aborted: boolean; status: number | null }>((resolve) => {
+      openNotificationStream('http://x/stream', 'caducado', {
+        onNotification: () => {},
+        onClose: resolve,
+      });
+    });
+
+    expect(reason).toEqual({ aborted: false, status: 401 });
+  });
+
   it('emite el JSON de cada frame `event: notification`', async () => {
     const frame = `event: notification\ndata: ${NOTIF}\n\n`;
     globalThis.fetch = (() => Promise.resolve(streamedResponse([frame]))) as typeof fetch;

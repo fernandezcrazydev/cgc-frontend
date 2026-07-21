@@ -153,6 +153,11 @@ Reglas de oro del manejo de errores:
   petición original** (una sola vez, con la renovación deduplicada entre peticiones simultáneas);
   solo si el refresh falla → `Session.clear()` + vuelta a login. Ningún store ni vista debe tratar
   el 401 endpoint a endpoint: para ellos ese error ya no llega, o si llega es sesión terminada.
+  **Excepción: todo transporte que esquive `HttpClient` no está cubierto por el interceptor** —
+  hoy el stream SSE de notificaciones (`fetch` a pelo, porque `EventSource` no admite cabeceras),
+  mañana el WebSocket de salas. Esos deben pedir la renovación a mano (`SessionRecovery.refresh()`,
+  ver `NotificationsStore.reconnectWithFreshToken()`); si no, reintentan para siempre con un
+  Bearer muerto.
 - `403`: el usuario no puede — ocultar/deshabilitar el control si es predecible; si llega igual,
   toast genérico. Los checks de permiso en cliente son solo UX; el backend decide.
 - `404`: entidad no existe → estado 404 de la vista (distinto de loading).

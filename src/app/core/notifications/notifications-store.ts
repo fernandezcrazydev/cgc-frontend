@@ -1,6 +1,7 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { OidcSecurityService } from 'angular-auth-oidc-client';
 import { firstValueFrom } from 'rxjs';
+import { SessionRecovery } from '../http';
 import { NotificationsApi } from './notifications-api';
 import { NotificationResponse } from './models';
 import { openNotificationStream } from './notification-stream';
@@ -22,14 +23,21 @@ const PAGE_SIZE = 30;
  * así que marcar leída o recibir una nueva mueve el badge solo.
  *
  * Reconexión: el JWT se valida una vez al conectar; cuando caduca (o se cae la red) el
- * stream termina y aquí se reconecta con backoff y token nuevo, resincronizando la
- * bandeja con `reload()` — el diseño del backend cuenta con esto (nada se pierde: la
- * fila ya es durable y se relee de `GET /me/notifications`).
+ * stream termina y aquí se reconecta con backoff, resincronizando la bandeja con `reload()`
+ * — el diseño del backend cuenta con esto (nada se pierde: la fila ya es durable y se relee
+ * de `GET /me/notifications`).
+ *
+ * OJO con el 401: el stream va por `fetch` a pelo (el `EventSource` nativo no deja poner
+ * cabeceras), así que NO pasa por los interceptores de `HttpClient` y `sessionRecoveryInterceptor`
+ * no lo cubre. La renovación del token ante un 401 la hace este store a mano en
+ * `reconnectWithFreshToken()`. Cualquier transporte futuro que esquive `HttpClient`
+ * (WebSocket para salas/drafts) tendrá que repetir ese cuidado.
  */
 @Injectable({ providedIn: 'root' })
 export class NotificationsStore {
   private readonly api = inject(NotificationsApi);
   private readonly oidc = inject(OidcSecurityService);
+  private readonly recovery = inject(SessionRecovery);
 
   private readonly _notifications = signal<NotificationResponse[]>([]);
   private readonly _status = signal<NotificationsStatus>('idle');
@@ -200,6 +208,8 @@ export class NotificationsStore {
   /** Generación del intento actual: descarta callbacks de un stream ya reemplazado. */
   private streamGeneration = 0;
   private connected = false;
+  /** Ya se renovó el token por un 401 del stream sin haber conseguido abrirlo desde entonces. */
+  private refreshedForStream = false;
 
   /**
    * Abre el stream en vivo (idempotente). Llamar tras `ensureLoaded()`: la bandeja da el
@@ -238,17 +248,49 @@ export class NotificationsStore {
         if (generation !== this.streamGeneration) return;
         // Reconexión exitosa: resetear backoff y resincronizar por si perdimos algo.
         this.reconnectDelay = RECONNECT_BASE_MS;
+        this.refreshedForStream = false;
         void this.reload();
       },
       onNotification: (notification) => {
         if (generation !== this.streamGeneration) return;
         this.ingest(notification);
       },
-      onClose: (aborted) => {
-        if (aborted || generation !== this.streamGeneration) return;
+      onClose: (reason) => {
+        if (reason.aborted || generation !== this.streamGeneration) return;
+        if (reason.status === 401) {
+          void this.reconnectWithFreshToken(generation);
+          return;
+        }
         this.scheduleReconnect(generation);
       },
     });
+  }
+
+  /**
+   * El servidor rechazó el stream por token muerto. Reintentar con el mismo Bearer solo
+   * repetiría el 401 hasta el fin de los tiempos (el backoff no arregla un token caducado),
+   * así que se renueva y se reconecta al instante.
+   *
+   * Esto es lo que convierte al stream en el detector de sesión caducada de la app: en
+   * cuanto el token muere, la reconexión lo renueva y deja uno fresco en almacenamiento,
+   * así que la siguiente petición normal —el clic en "gestionar grupos"— ya sale con token
+   * bueno. Si la renovación falla, `SessionRecovery` ya ha cerrado la sesión y llevado al
+   * login: aquí no queda nada que hacer.
+   */
+  private async reconnectWithFreshToken(generation: number): Promise<void> {
+    // Un solo intento inmediato por racha de fallos: si tras renovar el backend vuelve a
+    // responder 401, no es el token —es otra cosa— y se cae al backoff normal en vez de
+    // entrar en un bucle de reconexiones a pelo. La bandera se limpia al abrir con éxito.
+    if (this.refreshedForStream) {
+      this.scheduleReconnect(generation);
+      return;
+    }
+    this.refreshedForStream = true;
+
+    const renewed = await this.recovery.refresh();
+    if (!renewed || !this.connected || generation !== this.streamGeneration) return;
+    this.reconnectDelay = RECONNECT_BASE_MS;
+    void this.openStream();
   }
 
   /** Inserta (o actualiza) una notificación llegada en vivo, la más reciente primero. */
@@ -283,6 +325,7 @@ export class NotificationsStore {
     this.disconnect();
     this.inFlight = null;
     this.reconnectDelay = RECONNECT_BASE_MS;
+    this.refreshedForStream = false;
     this.nextPage = 1;
     this._hasMore.set(false);
     this._loadingMore.set(false);

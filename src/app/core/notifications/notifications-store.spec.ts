@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { OidcSecurityService } from 'angular-auth-oidc-client';
 import { Observable, Subject, of, throwError } from 'rxjs';
+import { SessionRecovery } from '../http';
 import { NotificationsApi } from './notifications-api';
 import { NotificationsStore } from './notifications-store';
 import { NotificationResponse } from './models';
@@ -57,6 +58,8 @@ describe('NotificationsStore', () => {
         { provide: NotificationsApi, useValue: api },
         // El stream nunca se abre en tests; el token solo hace falta para conectar.
         { provide: OidcSecurityService, useValue: { getAccessToken: () => of('') } },
+        // La recuperación de sesión arrastraría Router/Session reales: doble inerte.
+        { provide: SessionRecovery, useValue: { refresh: () => Promise.resolve(false) } },
       ],
     });
     store = TestBed.inject(NotificationsStore);
@@ -155,5 +158,86 @@ describe('NotificationsStore', () => {
     expect(store.notifications()).toEqual([]);
     expect(store.status()).toBe('idle');
     expect(store.unreadCount()).toBe(0);
+  });
+});
+
+/**
+ * El stream SSE va por `fetch` a pelo, así que NO pasa por los interceptores de `HttpClient`:
+ * su 401 tiene que recuperarlo el store a mano. Es además el detector de sesión caducada de la
+ * app —renovar aquí deja token fresco para el resto de peticiones—, de ahí estos tests.
+ */
+describe('NotificationsStore · recuperación del stream ante un 401', () => {
+  const realFetch = globalThis.fetch;
+  let store: NotificationsStore;
+  let api: ApiStub;
+  let refresh: ReturnType<typeof vi.fn>;
+  let tokens: string[];
+  let bearers: (string | null)[];
+
+  /** Deja correr las promesas encadenadas del fetch + refresh + reconexión. */
+  const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+  /** `statuses` = respuesta de cada `fetch` sucesivo: 401 o un stream vivo que no emite nada. */
+  function stubFetch(statuses: number[]): void {
+    let call = 0;
+    globalThis.fetch = ((_url: string, init: RequestInit) => {
+      bearers.push(new Headers(init.headers).get('Authorization'));
+      const status = statuses[Math.min(call++, statuses.length - 1)];
+      if (status !== 200) return Promise.resolve(new Response(null, { status }));
+      // Stream abierto que nunca cierra: obliga a que la reconexión sea deliberada.
+      return Promise.resolve(new Response(new ReadableStream(), { status: 200 }));
+    }) as unknown as typeof fetch;
+  }
+
+  beforeEach(() => {
+    api = new ApiStub();
+    tokens = ['caducado', 'fresco'];
+    bearers = [];
+    refresh = vi.fn(() => Promise.resolve(true));
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [
+        NotificationsStore,
+        { provide: NotificationsApi, useValue: api },
+        { provide: OidcSecurityService, useValue: { getAccessToken: () => of(tokens.shift() ?? 'fresco') } },
+        { provide: SessionRecovery, useValue: { refresh } },
+      ],
+    });
+    store = TestBed.inject(NotificationsStore);
+  });
+
+  afterEach(() => {
+    store.clear();
+    globalThis.fetch = realFetch;
+  });
+
+  it('renueva el token y reconecta al instante, sin esperar al backoff', async () => {
+    stubFetch([401, 200]);
+    store.connect();
+    await tick();
+
+    expect(refresh).toHaveBeenCalledTimes(1);
+    expect(bearers).toEqual(['Bearer caducado', 'Bearer fresco']);
+  });
+
+  it('si la renovación falla no reconecta: SessionRecovery ya ha cerrado la sesión', async () => {
+    refresh.mockResolvedValue(false);
+    stubFetch([401]);
+    store.connect();
+    await tick();
+
+    expect(refresh).toHaveBeenCalledTimes(1);
+    expect(bearers).toHaveLength(1);
+  });
+
+  it('un 401 tras haber renovado cae al backoff, no a un bucle de reconexiones', async () => {
+    stubFetch([401, 401]);
+    store.connect();
+    await tick();
+    await tick();
+
+    // Solo una renovación y solo un reintento inmediato; el tercer intento queda en el timer.
+    expect(refresh).toHaveBeenCalledTimes(1);
+    expect(bearers).toHaveLength(2);
   });
 });

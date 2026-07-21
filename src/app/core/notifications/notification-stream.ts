@@ -1,13 +1,24 @@
 import { NotificationResponse } from './models';
 
-/** Callbacks del stream. `onError` cubre tanto el fin de conexión como un fallo de red. */
+/**
+ * Por qué terminó el stream. `aborted` = lo cerramos nosotros (no reconectar). `status` es el
+ * código HTTP cuando el servidor rechazó la conexión de entrada, y null si el stream llegó a
+ * abrirse y luego murió (fin de cuerpo, red caída). El 401 importa: significa token muerto, y
+ * eso se arregla renovando, no reintentando con el mismo Bearer.
+ */
+export interface NotificationStreamClose {
+  aborted: boolean;
+  status: number | null;
+}
+
+/** Callbacks del stream. `onClose` cubre tanto el fin de conexión como un fallo de red. */
 export interface NotificationStreamHandlers {
   /** Una notificación nueva (evento `notification`), ya parseada. */
   onNotification: (notification: NotificationResponse) => void;
   /** La conexión se abrió (útil para reintentos: resetear el backoff). */
   onOpen?: () => void;
-  /** La conexión terminó o falló. `aborted` = la cerramos nosotros (no reconectar). */
-  onClose?: (aborted: boolean) => void;
+  /** La conexión terminó o falló. Ver `NotificationStreamClose`. */
+  onClose?: (reason: NotificationStreamClose) => void;
 }
 
 /**
@@ -35,7 +46,8 @@ export function openNotificationStream(
         signal: controller.signal,
       });
       if (!response.ok || !response.body) {
-        handlers.onClose?.(false);
+        // El status viaja al llamante: un 401 aquí es "renueva el token", no "reintenta igual".
+        handlers.onClose?.({ aborted: false, status: response.status });
         return;
       }
       handlers.onOpen?.();
@@ -58,11 +70,11 @@ export function openNotificationStream(
           emitFrame(frame, handlers.onNotification);
         }
       }
-      handlers.onClose?.(false);
+      handlers.onClose?.({ aborted: false, status: null });
     } catch (error) {
       // AbortError = lo cerramos nosotros; cualquier otro = caída real de la conexión.
       const aborted = error instanceof DOMException && error.name === 'AbortError';
-      handlers.onClose?.(aborted);
+      handlers.onClose?.({ aborted, status: null });
     }
   })();
 
