@@ -1,4 +1,5 @@
 /* NEXUS//FORGE design-system primitives (Angular standalone components). */
+export * from './theme-token';
 export * from './button/nf-button';
 export * from './window/nf-window';
 export * from './modal/nf-modal';

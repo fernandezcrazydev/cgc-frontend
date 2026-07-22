@@ -8,8 +8,7 @@ import { GroupDetailStore, GroupsStore, InvitationsStore } from '../../core/grou
 import { MatchStore, MatchRoom } from '../../core/match-store';
 import { NotificationsStore, NotificationView, notificationView } from '../../core/notifications';
 import { ToastService } from '../../core/toast';
-import { NfButton, NfSegmented, NfSkeleton, NfToastHost, NfWindow } from '../../ui';
-import { ThemeService, THEMES } from '../../core/theme';
+import { NfButton, NfSkeleton, NfToastHost, NfWindow } from '../../ui';
 import { FeedbackDialog } from '../feedback/feedback-dialog';
 
 /**
@@ -26,7 +25,6 @@ import { FeedbackDialog } from '../feedback/feedback-dialog';
     RouterLinkActive,
     NfWindow,
     NfButton,
-    NfSegmented,
     NfSkeleton,
     NfToastHost,
     FeedbackDialog,
@@ -50,10 +48,6 @@ export class Shell {
 
   /** Vista de presentación de la bandeja: título/mensaje/tiempo en español por notificación. */
   readonly notifViews = computed(() => this.notifs.notifications().map((n) => notificationView(n)));
-
-  /** Selector de tema (skin global): vive en el header, junto a feedback y campana. */
-  readonly theme = inject(ThemeService);
-  readonly themeOptions = THEMES.map((t) => ({ value: t.id, label: t.label }));
 
   /**
    * The selected group's open room still waiting for players, if any. Surfaced as

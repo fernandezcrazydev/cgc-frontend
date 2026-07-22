@@ -39,7 +39,7 @@ const KIND_NOUN: Record<FeedbackKind, string> = {
   template: `
     <nf-modal title="reportar.exe" accent="cyan" width="580px" (closed)="requestClose()">
       <div class="fb">
-        <div class="fb__eyebrow nf-mono">// ¿QUÉ NOS CUENTAS?</div>
+        <div class="fb__eyebrow nf-mono nf-eyebrow">¿Qué nos cuentas?</div>
 
         <div class="fb__kinds" role="radiogroup" aria-label="Tipo de reporte">
           @for (k of kinds; track k.value) {
@@ -239,16 +239,17 @@ const KIND_NOUN: Record<FeedbackKind, string> = {
 
         <div class="fb__actions">
           <button nfButton variant="ghost" size="md" [disabled]="store.submitting()" (click)="requestClose()">
-            CANCELAR
+            Cancelar
           </button>
           <button
             nfButton
             variant="primary"
             size="md"
             [disabled]="!canSubmit() || store.submitting()"
+            [class.nf-go]="!store.submitting()"
             (click)="submit()"
           >
-            {{ store.submitting() ? 'ENVIANDO…' : 'ENVIAR ►' }}
+            {{ store.submitting() ? 'Enviando…' : 'Enviar' }}
           </button>
         </div>
 

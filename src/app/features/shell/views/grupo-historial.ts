@@ -17,7 +17,7 @@ import { matchesByGroup, kdaRatio, shortGold } from '../../../core/match-history
           <span class="view-back__arrow" aria-hidden="true">←</span> {{ g.name }}
         </a>
         <div class="view__head">
-          <div class="view__eyebrow nf-mono">// HISTORIAL DEL GRUPO</div>
+          <div class="view__eyebrow nf-mono nf-eyebrow">Historial del grupo</div>
           <h1 class="view__title">{{ g.name }}</h1>
           <p class="view__lead">Partidas disputadas en este grupo. Pulsa una para ver el detalle completo.</p>
         </div>
@@ -78,7 +78,7 @@ import { matchesByGroup, kdaRatio, shortGold } from '../../../core/match-history
 
                 <div class="mh-when">
                   <span class="mh-when__date nf-mono">{{ m.date }}</span>
-                  <span class="mh-when__cta nf-mono">DETALLE ►</span>
+                  <span class="mh-when__cta nf-mono nf-caps nf-go">Detalle</span>
                 </div>
               </a>
             }
@@ -86,17 +86,17 @@ import { matchesByGroup, kdaRatio, shortGold } from '../../../core/match-history
         } @else {
           <div class="empty-state">
             <span class="empty-state__icon">🎮</span>
-            <p class="empty-state__text nf-mono">// SIN PARTIDAS TODAVÍA</p>
+            <p class="empty-state__text nf-mono nf-eyebrow">Sin partidas todavía</p>
             <p class="empty-state__hint">Este grupo aún no ha disputado ninguna partida.</p>
           </div>
         }
       } @else {
         <div class="view__head">
-          <div class="view__eyebrow nf-mono">// ERROR 404</div>
+          <div class="view__eyebrow nf-mono nf-eyebrow">Error 404</div>
           <h1 class="view__title">Grupo no encontrado</h1>
           <p class="view__lead">El grupo que buscas no existe o ya no perteneces a él.</p>
         </div>
-        <button nfButton variant="secondary" size="md" [routerLink]="['/app', 'grupos']">← VOLVER A GRUPOS</button>
+        <button nfButton variant="secondary" size="md" [routerLink]="['/app', 'grupos']">← Volver a grupos</button>
       }
     </div>
   `,

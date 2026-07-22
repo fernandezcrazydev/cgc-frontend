@@ -73,9 +73,9 @@ import { errorMessage } from '../../../core/http';
         <div class="view">
           <div class="empty-state">
             <div class="empty-state__icon">⚠</div>
-            <div class="empty-state__text nf-mono">// ERROR AL CARGAR</div>
+            <div class="empty-state__text nf-mono nf-eyebrow">Error al cargar</div>
             <p class="empty-state__hint">No se pudo cargar el grupo.</p>
-            <button nfButton variant="secondary" size="md" (click)="reload()">REINTENTAR</button>
+            <button nfButton variant="secondary" size="md" (click)="reload()">Reintentar</button>
           </div>
         </div>
       }
@@ -83,9 +83,9 @@ import { errorMessage } from '../../../core/http';
         <div class="view">
           <div class="empty-state">
             <div class="empty-state__icon">🔍</div>
-            <div class="empty-state__text nf-mono">// GRUPO NO ENCONTRADO</div>
+            <div class="empty-state__text nf-mono nf-eyebrow">Grupo no encontrado</div>
             <p class="empty-state__hint">Este grupo no existe o ya no eres miembro.</p>
-            <button nfButton variant="ghost" size="md" [routerLink]="['/app', 'grupos']">← TODOS LOS GRUPOS</button>
+            <button nfButton variant="ghost" size="md" [routerLink]="['/app', 'grupos']">← Todos los grupos</button>
           </div>
         </div>
       }
@@ -111,20 +111,20 @@ import { errorMessage } from '../../../core/http';
             </div>
 
             <div class="actions">
-              <button nfButton variant="primary" size="md" [routerLink]="['/app', 'grupos', g.id, 'crear-partida']">CREAR PARTIDA ►</button>
+              <button nfButton variant="primary" size="md" [routerLink]="['/app', 'grupos', g.id, 'crear-partida']" class="nf-go">Crear partida</button>
               @if (store.canManage()) {
-                <button nfButton variant="secondary" size="md" (click)="openInvite()">✉ INVITAR</button>
+                <button nfButton variant="secondary" size="md" (click)="openInvite()">✉ Invitar</button>
               }
-              <button nfButton variant="secondary" size="md" [routerLink]="['/app', 'grupos', g.id, 'partidas']">PARTIDAS</button>
-              <button nfButton variant="secondary" size="md" [routerLink]="['/app', 'grupos', g.id, 'ranking']">RANKING</button>
-              <button nfButton variant="secondary" size="md" [routerLink]="['/app', 'grupos', g.id, 'estadisticas']">ESTADÍSTICAS</button>
-              <button nfButton variant="secondary" size="md" [routerLink]="['/app', 'grupos', g.id, 'historial']">HISTORIAL</button>
+              <button nfButton variant="secondary" size="md" [routerLink]="['/app', 'grupos', g.id, 'partidas']">Partidas</button>
+              <button nfButton variant="secondary" size="md" [routerLink]="['/app', 'grupos', g.id, 'ranking']">Ranking</button>
+              <button nfButton variant="secondary" size="md" [routerLink]="['/app', 'grupos', g.id, 'estadisticas']">Estadísticas</button>
+              <button nfButton variant="secondary" size="md" [routerLink]="['/app', 'grupos', g.id, 'historial']">Historial</button>
               @if (store.isOwner()) {
-                <button nfButton variant="danger" size="md" [disabled]="store.busy()" (click)="confirmDelete.set(true)">BORRAR GRUPO</button>
+                <button nfButton variant="danger" size="md" [disabled]="store.busy()" (click)="confirmDelete.set(true)">Borrar grupo</button>
               } @else {
-                <button nfButton variant="ghost" size="md" [disabled]="store.busy()" (click)="confirmLeave.set(true)">SALIR DEL GRUPO</button>
+                <button nfButton variant="ghost" size="md" [disabled]="store.busy()" (click)="confirmLeave.set(true)">Salir del grupo</button>
               }
-              <button nfButton variant="ghost" size="md" [routerLink]="['/app', 'grupos']">← TODOS</button>
+              <button nfButton variant="ghost" size="md" [routerLink]="['/app', 'grupos']">← Todos</button>
             </div>
 
             <!-- Una sola ventana para las dos secciones: las pestañas viven DENTRO, pegadas bajo
@@ -183,16 +183,16 @@ import { errorMessage } from '../../../core/http';
                         }
                         <div class="gd-member__actions">
                           @if (canPromote(m)) {
-                            <button nfButton variant="ghost" size="sm" [disabled]="store.isActing(m.userId)" (click)="promote(m)">↑ ADMIN</button>
+                            <button nfButton variant="ghost" size="sm" [disabled]="store.isActing(m.userId)" (click)="promote(m)">↑ Admin</button>
                           }
                           @if (canDemote(m)) {
-                            <button nfButton variant="ghost" size="sm" [disabled]="store.isActing(m.userId)" (click)="demote(m)">↓ MIEMBRO</button>
+                            <button nfButton variant="ghost" size="sm" [disabled]="store.isActing(m.userId)" (click)="demote(m)">↓ Miembro</button>
                           }
                           @if (canTransfer(m)) {
-                            <button nfButton variant="ghost" size="sm" [disabled]="store.isActing(m.userId)" (click)="transferTo.set(m)">CORONA ♛</button>
+                            <button nfButton variant="ghost" size="sm" [disabled]="store.isActing(m.userId)" (click)="transferTo.set(m)">Corona ♛</button>
                           }
                           @if (canKick(m)) {
-                            <button nfButton variant="danger" size="sm" [disabled]="store.isActing(m.userId)" (click)="kick.set(m)">EXPULSAR</button>
+                            <button nfButton variant="danger" size="sm" [disabled]="store.isActing(m.userId)" (click)="kick.set(m)">Expulsar</button>
                           }
                         </div>
                       </div>
@@ -227,8 +227,8 @@ import { errorMessage } from '../../../core/http';
                   }
                   @case ('error') {
                     <div class="gd-invites-empty">
-                      <div class="gd-invites-empty__text nf-mono">// ERROR AL CARGAR INVITACIONES</div>
-                      <button nfButton variant="secondary" size="sm" (click)="reloadInvites()">REINTENTAR</button>
+                      <div class="gd-invites-empty__text nf-mono nf-eyebrow">Error al cargar invitaciones</div>
+                      <button nfButton variant="secondary" size="sm" (click)="reloadInvites()">Reintentar</button>
                     </div>
                   }
                   @default {
@@ -254,15 +254,15 @@ import { errorMessage } from '../../../core/http';
                                 size="sm"
                                 [disabled]="groupInvitations.isCancelling(inv.id)"
                                 (click)="cancelInvite(inv)"
-                              >✕ CANCELAR</button>
+                              >✕ Cancelar</button>
                             </div>
                           </div>
                         }
                       </div>
                     } @else {
                       <div class="gd-invites-empty">
-                        <div class="gd-invites-empty__text nf-mono">// SIN INVITACIONES PENDIENTES</div>
-                        <button nfButton variant="secondary" size="sm" (click)="openInvite()">✉ INVITAR A ALGUIEN</button>
+                        <div class="gd-invites-empty__text nf-mono nf-eyebrow">Sin invitaciones pendientes</div>
+                        <button nfButton variant="secondary" size="sm" (click)="openInvite()">✉ Invitar a alguien</button>
                       </div>
                     }
                   }
@@ -281,8 +281,8 @@ import { errorMessage } from '../../../core/http';
           <nf-window title="borrar_grupo.exe" accent="pink" bodyPadding="24px">
             <p class="gd-confirm">¿Seguro que quieres <strong>borrar</strong> este grupo? Esta acción no se puede deshacer.</p>
             <div class="form-foot">
-              <button nfButton variant="ghost" size="md" [disabled]="store.busy()" (click)="confirmDelete.set(false)">CANCELAR</button>
-              <button nfButton variant="danger" size="md" [disabled]="store.busy()" (click)="doDelete()">BORRAR</button>
+              <button nfButton variant="ghost" size="md" [disabled]="store.busy()" (click)="confirmDelete.set(false)">Cancelar</button>
+              <button nfButton variant="danger" size="md" [disabled]="store.busy()" (click)="doDelete()">Borrar</button>
             </div>
           </nf-window>
         </div>
@@ -294,8 +294,8 @@ import { errorMessage } from '../../../core/http';
           <nf-window title="salir_grupo.exe" accent="pink" bodyPadding="24px">
             <p class="gd-confirm">¿Seguro que quieres <strong>salir</strong> de este grupo?</p>
             <div class="form-foot">
-              <button nfButton variant="ghost" size="md" [disabled]="store.busy()" (click)="confirmLeave.set(false)">CANCELAR</button>
-              <button nfButton variant="danger" size="md" [disabled]="store.busy()" (click)="doLeave()">SALIR</button>
+              <button nfButton variant="ghost" size="md" [disabled]="store.busy()" (click)="confirmLeave.set(false)">Cancelar</button>
+              <button nfButton variant="danger" size="md" [disabled]="store.busy()" (click)="doLeave()">Salir</button>
             </div>
           </nf-window>
         </div>
@@ -307,8 +307,8 @@ import { errorMessage } from '../../../core/http';
           <nf-window title="expulsar.exe" accent="pink" bodyPadding="24px">
             <p class="gd-confirm">¿Expulsar a <strong>{{ m.discordUsername }}</strong> del grupo?</p>
             <div class="form-foot">
-              <button nfButton variant="ghost" size="md" [disabled]="store.isActing(m.userId)" (click)="kick.set(null)">CANCELAR</button>
-              <button nfButton variant="danger" size="md" [disabled]="store.isActing(m.userId)" (click)="doKick(m)">EXPULSAR</button>
+              <button nfButton variant="ghost" size="md" [disabled]="store.isActing(m.userId)" (click)="kick.set(null)">Cancelar</button>
+              <button nfButton variant="danger" size="md" [disabled]="store.isActing(m.userId)" (click)="doKick(m)">Expulsar</button>
             </div>
           </nf-window>
         </div>
@@ -323,8 +323,8 @@ import { errorMessage } from '../../../core/http';
               Pasarás a ser ADMIN.
             </p>
             <div class="form-foot">
-              <button nfButton variant="ghost" size="md" [disabled]="store.isActing(m.userId)" (click)="transferTo.set(null)">CANCELAR</button>
-              <button nfButton variant="primary" size="md" [disabled]="store.isActing(m.userId)" (click)="doTransfer(m)">TRANSFERIR ♛</button>
+              <button nfButton variant="ghost" size="md" [disabled]="store.isActing(m.userId)" (click)="transferTo.set(null)">Cancelar</button>
+              <button nfButton variant="primary" size="md" [disabled]="store.isActing(m.userId)" (click)="doTransfer(m)">Transferir ♛</button>
             </div>
           </nf-window>
         </div>
@@ -344,11 +344,11 @@ import { errorMessage } from '../../../core/http';
             (ngModelChange)="onQuery($event)"
           />
           @if (searching()) {
-            <div class="gd-invite__hint nf-mono">// BUSCANDO…</div>
+            <div class="gd-invite__hint nf-mono nf-eyebrow">Buscando…</div>
           } @else if (query().trim().length >= 2 && !candidates().length) {
-            <div class="gd-invite__hint nf-mono">// SIN RESULTADOS</div>
+            <div class="gd-invite__hint nf-mono nf-eyebrow">Sin resultados</div>
           } @else if (query().trim().length < 2) {
-            <div class="gd-invite__hint nf-mono">// ESCRIBE AL MENOS 2 CARACTERES</div>
+            <div class="gd-invite__hint nf-mono nf-eyebrow">Escribe al menos 2 caracteres</div>
           }
           @for (u of candidates(); track u.userId) {
             <div class="gd-invite__row">
@@ -365,8 +365,9 @@ import { errorMessage } from '../../../core/http';
                 variant="primary"
                 size="sm"
                 [disabled]="invitations.inviting() || isInvited(u.userId)"
+                [class.nf-go]="!isInvited(u.userId)"
                 (click)="invite(u)"
-              >{{ isInvited(u.userId) ? 'INVITADO ✓' : 'INVITAR ►' }}</button>
+              >{{ isInvited(u.userId) ? 'Invitado ✓' : 'Invitar' }}</button>
             </div>
           }
         </div>

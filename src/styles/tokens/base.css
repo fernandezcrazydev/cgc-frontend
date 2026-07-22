@@ -55,3 +55,33 @@ body {
 
 /* ---- Utility ---- */
 .nf-mono { font-family: var(--nf-mono); }
+
+/* ---- Eyebrow ----
+   Marca de sección / línea de estado. El "// " y las MAYÚSCULAS son decoración
+   de la skin vaporwave, no copy: el texto se escribe en frase normal ("Tus
+   grupos") y el CSS lo viste según el tema. Así una skin que no sea de
+   escritorio retro (ver themes/original.css) lo muestra tal cual, sin que haya
+   que reescribir 50 plantillas.
+
+   Modificadores para conservar el render exacto de Nexus donde el texto no iba
+   en mayúsculas:
+     --asis  → contenido interpolado ({{ … }}), se deja como venga
+     --lower → minúsculas deliberadas (mensajes tipo consola)
+   Se acompaña siempre de .nf-mono, que es quien pone la fuente. */
+.nf-eyebrow { text-transform: uppercase; }
+/* nbsp, no espacio normal: en `content` un espacio final puede colapsar según
+   el white-space heredado, y el marcador quedaría pegado al texto. */
+.nf-eyebrow::before { content: '//\00a0'; }
+.nf-eyebrow--asis { text-transform: none; }
+.nf-eyebrow--lower { text-transform: lowercase; }
+
+/* ---- Caps ----
+   Mismo criterio que .nf-eyebrow, para etiquetas que NO son botones `nfButton`
+   (esos ya tienen las mayúsculas en .nf-btn y cada skin las apaga ahí). */
+.nf-caps { text-transform: uppercase; }
+
+/* ---- Marcador "avanzar" ----
+   La puntita ► de los CTA es decoración de la skin retro, no copy. En .nf-btn
+   no lleva espacio porque el propio botón ya separa con `gap`. */
+.nf-go::after { content: '\00a0►'; }
+.nf-btn.nf-go::after { content: '►'; }

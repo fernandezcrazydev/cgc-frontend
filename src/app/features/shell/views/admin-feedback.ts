@@ -62,7 +62,7 @@ const KIND_FILTERS: FilterOption<FeedbackKindTag>[] = [
   template: `
     <div class="view">
       <div class="view__head">
-        <div class="view__eyebrow nf-mono">// ADMINISTRACIÓN · REPORTES</div>
+        <div class="view__eyebrow nf-mono nf-eyebrow">Administración · reportes</div>
         <h1 class="view__title">Feedback</h1>
         <p class="view__lead">
           Reportes que envían los usuarios (bugs, propuestas e incidencias). Fíltralos y ábrelos para
@@ -86,10 +86,10 @@ const KIND_FILTERS: FilterOption<FeedbackKindTag>[] = [
       </div>
 
       @if (store.loading() && !store.page()) {
-        <div class="af-empty nf-mono">// CARGANDO…</div>
+        <div class="af-empty nf-mono nf-eyebrow">Cargando…</div>
       } @else if (store.page(); as pg) {
         @if (pg.content.length === 0) {
-          <div class="af-empty nf-mono">// SIN REPORTES CON ESTOS FILTROS</div>
+          <div class="af-empty nf-mono nf-eyebrow">Sin reportes con estos filtros</div>
         } @else {
           <div class="af-list">
             @for (r of pg.content; track r.id) {
@@ -103,7 +103,7 @@ const KIND_FILTERS: FilterOption<FeedbackKindTag>[] = [
                 </div>
                 <span class="af-row__when nf-mono">{{ r.createdAt | date: 'dd/MM/yy HH:mm' }}</span>
                 <nf-badge [color]="statusColor(r.status)">{{ statusLabel2(r.status) }}</nf-badge>
-                <span class="af-row__cta nf-mono">DETALLE ►</span>
+                <span class="af-row__cta nf-mono nf-caps nf-go">Detalle</span>
               </a>
             }
           </div>

@@ -16,11 +16,11 @@ import { initialsOf } from '../../../core/groups';
     <div class="view">
       <div class="view__head view__head--row">
         <div>
-          <div class="view__eyebrow nf-mono">// TUS GRUPOS</div>
+          <div class="view__eyebrow nf-mono nf-eyebrow">Tus grupos</div>
           <h1 class="view__title">Grupos</h1>
           <p class="view__lead">Equipos a los que perteneces o que gestionas. Selecciona uno para verlo.</p>
         </div>
-        <button nfButton variant="primary" size="md" (click)="openCreate()">＋ NUEVO GRUPO</button>
+        <button nfButton variant="primary" size="md" (click)="openCreate()">＋ Nuevo grupo</button>
       </div>
 
       @switch (groups.status()) {
@@ -40,16 +40,16 @@ import { initialsOf } from '../../../core/groups';
         @case ('error') {
           <div class="empty-state">
             <div class="empty-state__icon">⚠</div>
-            <div class="empty-state__text nf-mono">// ERROR AL CARGAR</div>
+            <div class="empty-state__text nf-mono nf-eyebrow">Error al cargar</div>
             <p class="empty-state__hint">No se pudieron cargar tus grupos.</p>
-            <button nfButton variant="secondary" size="md" (click)="retry()">REINTENTAR</button>
+            <button nfButton variant="secondary" size="md" (click)="retry()">Reintentar</button>
           </div>
         }
         @default {
           <div class="group-grid">
             <button type="button" class="group-card group-card--new" (click)="openCreate()">
               <span class="group-card__plus">＋</span>
-              <span class="group-card__newlabel nf-mono">CREAR GRUPO</span>
+              <span class="group-card__newlabel nf-mono nf-caps">Crear grupo</span>
             </button>
 
             @for (g of groups.groups(); track g.id) {
@@ -88,7 +88,7 @@ import { initialsOf } from '../../../core/groups';
       <div class="modal-overlay" (click)="closeCreate()">
         <div class="modal" (click)="$event.stopPropagation()">
           <nf-window title="nuevo_grupo.exe" accent="cyan" bodyPadding="22px 22px 28px">
-            <div class="settings-eyebrow nf-mono">// CREAR NUEVO GRUPO</div>
+            <div class="settings-eyebrow nf-mono nf-eyebrow">Crear nuevo grupo</div>
 
             <div class="field" style="margin-bottom: 18px">
               <label class="field__label nf-mono">FOTO DEL GRUPO</label>
@@ -121,10 +121,17 @@ import { initialsOf } from '../../../core/groups';
             </div>
 
             <div class="form-foot">
-              <button nfButton variant="primary" size="md" [disabled]="!canCreate() || groups.pending()" (click)="create()">
-                {{ groups.pending() ? 'CREANDO…' : 'CREAR GRUPO ►' }}
+              <button
+                nfButton
+                variant="primary"
+                size="md"
+                [disabled]="!canCreate() || groups.pending()"
+                [class.nf-go]="!groups.pending()"
+                (click)="create()"
+              >
+                {{ groups.pending() ? 'Creando…' : 'Crear grupo' }}
               </button>
-              <button nfButton variant="ghost" size="md" [disabled]="groups.pending()" (click)="closeCreate()">CANCELAR</button>
+              <button nfButton variant="ghost" size="md" [disabled]="groups.pending()" (click)="closeCreate()">Cancelar</button>
             </div>
           </nf-window>
         </div>

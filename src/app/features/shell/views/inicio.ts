@@ -15,9 +15,11 @@ interface ResumeItem {
 
 /** Per-status presentation for the "Retomar" cards (badge + call to action). */
 const STATUS_META: Record<RoomStatus, { label: string; color: 'green' | 'yellow' | 'cyan'; cta: string }> = {
-  live: { label: 'EN CURSO', color: 'green', cta: 'VOLVER A LA SALA ►' },
-  waiting: { label: 'ESPERANDO', color: 'yellow', cta: 'ENTRAR ►' },
-  drafting: { label: 'EN PREPARACIÓN', color: 'cyan', cta: 'SEGUIR EN DIRECTO ►' },
+  // Texto en frase normal: las MAYÚSCULAS las pone `.nf-badge`/`.nf-caps` y la
+  // puntita ► la pone `.nf-go`, para que cada skin decida (ver tokens/base.css).
+  live: { label: 'En curso', color: 'green', cta: 'Volver a la sala' },
+  waiting: { label: 'Esperando', color: 'yellow', cta: 'Entrar' },
+  drafting: { label: 'En preparación', color: 'cyan', cta: 'Seguir en directo' },
 };
 
 /** Sort key so live rooms float above waiting, and waiting above drafts. */
@@ -44,7 +46,7 @@ const STATUS_ORDER: Record<RoomStatus, number> = { live: 0, waiting: 1, drafting
       </div>
 
       <div class="actions">
-        <button nfButton variant="primary" size="md" (click)="crearPartida()">CREAR PARTIDA ►</button>
+        <button nfButton variant="primary" size="md" (click)="crearPartida()" class="nf-go">Crear partida</button>
       </div>
 
       <!-- ▸ RETOMAR — active rooms across all your groups (real match state) -->
@@ -74,7 +76,7 @@ const STATUS_ORDER: Record<RoomStatus, number> = { live: 0, waiting: 1, drafting
                 <span class="resume-hero__name">{{ top.group.name }} <span class="resume-hero__code nf-mono">· SALA {{ top.room.code }}</span></span>
                 <span class="resume-hero__sub nf-mono">Abierta por {{ top.room.openedBy }}</span>
               </span>
-              <span class="resume-hero__cta nf-mono">{{ meta(top).cta }}</span>
+              <span class="resume-hero__cta nf-mono nf-caps nf-go">{{ meta(top).cta }}</span>
             </button>
           }
 
@@ -126,14 +128,13 @@ const STATUS_ORDER: Record<RoomStatus, number> = { live: 0, waiting: 1, drafting
                     size="sm"
                     [disabled]="responding(n)"
                     (click)="respond(n, false)"
-                  >RECHAZAR</button>
+                  >Rechazar</button>
                   <button
                     nfButton
                     variant="primary"
                     size="sm"
                     [disabled]="responding(n)"
-                    (click)="respond(n, true)"
-                  >UNIRME ►</button>
+                    (click)="respond(n, true)" class="nf-go">Unirme</button>
                 </div>
               </div>
             }

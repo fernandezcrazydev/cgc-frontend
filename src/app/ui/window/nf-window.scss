@@ -68,3 +68,17 @@
 .nf-window__body {
   background: var(--nf-surface);
 }
+
+/* ---- Encabezado plano: sustituye a la barra en temas sin cromo de ventana
+   (hoy solo `original`). Sin gradiente, sin mono, sin mayúsculas. ---- */
+.nf-window__heading {
+  margin: 0;
+  padding: 16px 20px 0;
+  font-size: var(--fs-h3);
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-tight);
+  color: var(--nf-text);
+}
+/* El padding inferior lo pone el propio body (viene por [style.padding], que
+   gana a cualquier regla de aquí), así que el heading solo reserva arriba.
+   Con bodyPadding="0" el contenido queda a ras, que es lo que esas vistas piden. */

@@ -21,7 +21,7 @@ import { MATCHES } from '../../../core/lobby';
             </div>
             <div class="pm-foot">
               <nf-badge [color]="m.color" [dot]="true">{{ m.status }}</nf-badge>
-              <button nfButton variant="ghost" size="sm">ABRIR ►</button>
+              <button nfButton variant="ghost" size="sm" class="nf-go">Abrir</button>
             </div>
           </nf-window>
         }

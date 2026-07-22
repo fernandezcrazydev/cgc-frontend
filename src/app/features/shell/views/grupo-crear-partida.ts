@@ -108,8 +108,8 @@ interface GeneratedTeams {
             </div>
             <div class="cp-head__actions">
               @if (mode() === 'manual' && !reconfigureRoomId()) {
-                <button type="button" class="cp-discard nf-mono" (click)="discarding.set(true)">
-                  ✕ DESCARTAR
+                <button type="button" class="cp-discard nf-mono nf-caps" (click)="discarding.set(true)">
+                  ✕ Descartar
                 </button>
               }
               <a class="view-back cp-back" [routerLink]="['/app', 'grupos', g.id]">
@@ -130,7 +130,7 @@ interface GeneratedTeams {
                     Ahora mismo sois {{ roster().length }}. Invita a más gente y vuelve.
                   </p>
                   <button nfButton variant="secondary" size="md" [routerLink]="['/app', 'grupos', g.id]">
-                    ＋ IR A INVITAR
+                    ＋ Ir a invitar
                   </button>
                 </div>
               </div>
@@ -145,7 +145,7 @@ interface GeneratedTeams {
                 <p class="cp-mode__desc">
                   Eliges tú a los 10 jugadores ahora y configuras las restricciones de una sentada.
                 </p>
-                <span class="cp-mode__cta nf-mono">ELEGIR ►</span>
+                <span class="cp-mode__cta nf-mono nf-caps nf-go">Elegir</span>
               </button>
               <button type="button" class="cp-mode cp-mode--pink" (click)="chooseMode('open')">
                 <div class="cp-mode__glyph">📣</div>
@@ -154,7 +154,7 @@ interface GeneratedTeams {
                   Publicas una sala y los jugadores del grupo se apuntan desde sus cuentas.
                   Configuras las restricciones cuando se llena.
                 </p>
-                <span class="cp-mode__cta nf-mono">ELEGIR ►</span>
+                <span class="cp-mode__cta nf-mono nf-caps nf-go">Elegir</span>
               </button>
             </div>
           } @else if (showStepWizard()) {
@@ -249,7 +249,7 @@ interface GeneratedTeams {
                         }
                       </button>
                     } @empty {
-                      <div class="cp-empty nf-mono">// sin resultados para ese filtro</div>
+                      <div class="cp-empty nf-mono nf-eyebrow nf-eyebrow--lower">Sin resultados para ese filtro</div>
                     }
                   </div>
 
@@ -398,10 +398,10 @@ interface GeneratedTeams {
                     </div>
                     <button
                       type="button"
-                      class="cp-rb__add nf-mono"
+                      class="cp-rb__add nf-mono nf-caps"
                       [disabled]="!builderValid()"
                       (click)="addRule()"
-                    >＋ AÑADIR REGLA</button>
+                    >＋ Añadir regla</button>
                   </div>
 
                   @if (ruleErrors().length || ruleWarnings().length) {
@@ -513,7 +513,7 @@ interface GeneratedTeams {
                                     </span>
                                   </button>
                                 } @empty {
-                                  <div class="cp-empty nf-mono">// sin campeones para esa búsqueda</div>
+                                  <div class="cp-empty nf-mono nf-eyebrow nf-eyebrow--lower">Sin campeones para esa búsqueda</div>
                                 }
                               </div>
                             } @else {
@@ -665,7 +665,7 @@ interface GeneratedTeams {
                     </div>
 
                     <div class="cp-teams__foot">
-                      <button type="button" class="cp-reroll nf-mono" (click)="reroll()">↻ REBALANCEAR</button>
+                      <button type="button" class="cp-reroll nf-mono nf-caps" (click)="reroll()">↻ Rebalancear</button>
                       @if (generated().total) {
                         <span class="cp-teams__rules nf-mono">
                           reglas respetadas: {{ generated().satisfied }}/{{ generated().total }}
@@ -718,10 +718,10 @@ interface GeneratedTeams {
                   @if (step() < steps.length && canSkipToLaunch()) {
                     <button
                       type="button"
-                      class="cp-foot__skip nf-mono"
+                      class="cp-foot__skip nf-mono nf-caps"
                       title="Saltar las restricciones (son opcionales) e ir directo a lanzar"
                       (click)="skipToLaunch()"
-                    >⏩ SALTAR Y LANZAR</button>
+                    >⏩ Saltar y lanzar</button>
                   }
                 </div>
                 <button
@@ -730,7 +730,8 @@ interface GeneratedTeams {
                   size="md"
                   [disabled]="!canStepContinue()"
                   (click)="onPrimary()"
-                >{{ step() === steps.length ? 'LANZAR PARTIDA ►' : 'SIGUIENTE ►' }}</button>
+                  class="nf-go"
+                >{{ step() === steps.length ? 'Lanzar partida' : 'Siguiente' }}</button>
               </div>
             }
           } @else {
@@ -802,17 +803,17 @@ interface GeneratedTeams {
             </nf-window>
 
             <div class="cp-foot">
-              <button nfButton variant="ghost" size="md" (click)="resetMode()">← MODO</button>
+              <button nfButton variant="ghost" size="md" (click)="resetMode()">← Modo</button>
               <div class="cp-foot__status nf-mono">{{ openCount() }}/{{ MAX }} APUNTADOS</div>
               <button
                 nfButton
                 variant="primary"
                 size="md"
-                class="cp-cta"
+                class="cp-cta nf-go"
                 [class.cp-cta--ready]="openFull()"
                 [disabled]="!openFull()"
                 (click)="continueToRestrictions()"
-              >CONTINUAR A RESTRICCIONES ►</button>
+              >Continuar a restricciones</button>
             </div>
           }
         </div>
@@ -821,15 +822,15 @@ interface GeneratedTeams {
           <div class="modal-overlay" (click)="discarding.set(false)">
             <div class="modal" (click)="$event.stopPropagation()">
               <nf-window title="descartar_borrador.exe" accent="pink" bodyPadding="24px">
-                <div class="settings-eyebrow nf-mono">// DESCARTAR BORRADOR</div>
+                <div class="settings-eyebrow nf-mono nf-eyebrow">Descartar borrador</div>
                 <p class="remove-msg">¿Seguro que quieres descartar esta partida a medias?</p>
                 <div class="remove-warn nf-mono">
                   ⚠ Se borrará la configuración y la sala dejará de aparecer en el grupo.
                   Esto no se puede deshacer. (Si solo quieres seguir luego, sal con “Volver al grupo”.)
                 </div>
                 <div class="form-foot">
-                  <button nfButton variant="ghost" size="md" (click)="discarding.set(false)">CANCELAR</button>
-                  <button nfButton variant="danger" size="md" (click)="discardDraft()">DESCARTAR</button>
+                  <button nfButton variant="ghost" size="md" (click)="discarding.set(false)">Cancelar</button>
+                  <button nfButton variant="danger" size="md" (click)="discardDraft()">Descartar</button>
                 </div>
               </nf-window>
             </div>
@@ -837,10 +838,10 @@ interface GeneratedTeams {
         }
       } @else {
         <div class="view__head">
-          <div class="view__eyebrow nf-mono">// ERROR 404</div>
+          <div class="view__eyebrow nf-mono nf-eyebrow">Error 404</div>
           <h1 class="view__title">Grupo no encontrado</h1>
         </div>
-        <button nfButton variant="secondary" size="md" [routerLink]="['/app', 'grupos']">← VOLVER A GRUPOS</button>
+        <button nfButton variant="secondary" size="md" [routerLink]="['/app', 'grupos']">← Volver a grupos</button>
       }
     </div>
   `,

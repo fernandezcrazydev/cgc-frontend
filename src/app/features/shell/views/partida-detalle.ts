@@ -69,15 +69,15 @@ import { matchById, kdaRatio } from '../../../core/match-history';
         </nf-window>
 
         <div class="actions md-actions">
-          <button nfButton variant="ghost" size="md" [routerLink]="['/app', 'historial']">← VOLVER AL HISTORIAL</button>
+          <button nfButton variant="ghost" size="md" [routerLink]="['/app', 'historial']">← Volver al historial</button>
         </div>
       } @else {
         <div class="view__head">
-          <div class="view__eyebrow nf-mono">// ERROR 404</div>
+          <div class="view__eyebrow nf-mono nf-eyebrow">Error 404</div>
           <h1 class="view__title">Partida no encontrada</h1>
           <p class="view__lead">Esta partida no existe o ya no está en tu historial.</p>
         </div>
-        <button nfButton variant="secondary" size="md" [routerLink]="['/app', 'historial']">← VOLVER AL HISTORIAL</button>
+        <button nfButton variant="secondary" size="md" [routerLink]="['/app', 'historial']">← Volver al historial</button>
       }
     </div>
   `,

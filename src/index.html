@@ -14,7 +14,10 @@
     (function () {
       try {
         var t = localStorage.getItem('cgc-theme');
-        if (t === 'nocturne') document.documentElement.setAttribute('data-theme', t);
+        // 'nexus' es el default y no lleva atributo (:root a secas ya es nexus).
+        if (t === 'nocturne' || t === 'original') {
+          document.documentElement.setAttribute('data-theme', t);
+        }
       } catch (e) {}
     })();
   </script>

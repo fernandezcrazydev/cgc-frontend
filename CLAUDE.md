@@ -228,6 +228,26 @@ Cuando se acuerde uno, documentarlo aquí y borrar la línea de pendientes.
   `ui/index.ts`. Antes de crear markup ad-hoc (modales, paginación...), mira si existe o debe
   existir una primitiva `nf-*`.
 - Los componentes **consumen** tokens `var(--nf-*)`; solo `src/styles/tokens/` los declara.
+- **Temas**: `core/theme` mantiene `<html data-theme>`; cada skin es un fichero en
+  `src/styles/themes/` que redefine tokens y aplana los efectos firma (`nexus` = default,
+  sin atributo). Skins actuales: `nexus`, `nocturne`, `original` (port del look legacy).
+  El selector vive en **Ajustes**, no en la barra. Al añadir una skin: fichero en `themes/`,
+  entrada en `THEMES`, import en `styles.scss` y el `if` del script inline de `index.html`.
+- **Copy en frase normal, siempre.** MAYÚSCULAS, el `// ` de los eyebrows y la puntita `►`
+  de los CTA son decoración de skin, no texto: van en CSS y cada tema decide. Nunca los
+  escribas literales en una plantilla ni en una constante de TS — atan el copy a Nexus.
+  - `nf-eyebrow` → marca de sección (`// TEXTO`). Modificadores `--asis` (contenido
+    interpolado) y `--lower` (minúsculas deliberadas).
+  - `nf-caps` → mayúsculas en etiquetas que no son botón.
+  - `nf-go` → la puntita `►` de un CTA. Si depende de una condición, `[class.nf-go]="…"`.
+  - `<button nfButton>` y `<nf-badge>` **ya** llevan las mayúsculas en `.nf-btn`/`.nf-badge`:
+    ahí el copy va en frase normal y no hace falta `nf-caps`.
+  Las tres utilidades viven en `tokens/base.css` y se apagan en `themes/original.css`.
+- Una skin es **solo CSS**, con una excepción declarada: `NfWindow` no renderiza la barra de
+  ventana retro (semáforo, título `.exe`) bajo `original`, porque eso es markup y texto de
+  30 vistas, no tokens. Lee el tema por `NF_THEME` (token declarado en `ui/`, cableado a
+  `ThemeService` en `app.config.ts`) para no romper la dirección de dependencias. Si otro
+  primitivo necesita lo mismo, usa ese token; no importes `core/` desde `ui/`.
 - Tipografía: Manrope para texto de lectura; Share Tech Mono solo como acento (labels, código,
   números). Nada por debajo de ~11px.
 - Feedback al usuario: `ToastService` (`core/toast.ts`) + `NfToastHost`.

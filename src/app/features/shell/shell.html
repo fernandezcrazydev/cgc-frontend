@@ -52,7 +52,7 @@
                       </span>
                     </button>
                   } @empty {
-                    <div class="shell__grouplist-empty nf-mono">// SIN GRUPOS</div>
+                    <div class="shell__grouplist-empty nf-mono nf-eyebrow">Sin grupos</div>
                   }
                   <a
                     class="shell__grouplist-all nf-mono"
@@ -106,7 +106,7 @@
             </div>
             <div class="shell__user-meta">
               <div class="shell__user-name">{{ me.discordUsername }}</div>
-              <div class="shell__profile-cta nf-mono">VER PERFIL ►</div>
+              <div class="shell__profile-cta nf-mono nf-caps nf-go">Ver perfil</div>
             </div>
           </a>
         } @else {
@@ -119,7 +119,7 @@
             </div>
           </div>
         }
-        <button type="button" class="shell__logout" (click)="confirmLogout.set(true)">CERRAR SESIÓN</button>
+        <button type="button" class="shell__logout nf-caps" (click)="confirmLogout.set(true)">Cerrar sesión</button>
       </div>
     </aside>
   }
@@ -147,7 +147,7 @@
           </span>
           <span class="shell__groupbar-meta">
             <span class="shell__groupbar-name">{{ g.name }}</span>
-            <span class="shell__groupbar-section nf-mono">// {{ pageTitle() }}</span>
+            <span class="shell__groupbar-section nf-mono nf-eyebrow nf-eyebrow--asis">{{ pageTitle() }}</span>
           </span>
           @if (isMobile()) {
             <span class="shell__groupbar-caret">▾</span>
@@ -160,13 +160,6 @@
         <h2 class="shell__title">{{ pageTitle() }}</h2>
       }
       <div class="shell__header-right">
-        <nf-segmented
-          class="shell__theme"
-          [options]="themeOptions"
-          [value]="theme.theme()"
-          (valueChange)="theme.set($event)"
-          ariaLabel="Tema visual"
-        />
         <button
           type="button"
           class="shell__feedback"
@@ -208,7 +201,7 @@
           <span class="shell__pending-title nf-mono">SALA ABIERTA · {{ r.seats.length }}/{{ r.capacity }} APUNTADOS</span>
           <span class="shell__pending-sub nf-mono">Sala {{ r.code }} esperando jugadores — toca para entrar</span>
         </span>
-        <span class="shell__pending-cta nf-mono">ENTRAR ►</span>
+        <span class="shell__pending-cta nf-mono nf-caps nf-go">Entrar</span>
       </button>
     }
 
@@ -255,10 +248,10 @@
               <span class="shell__pending-title nf-mono">SALA ABIERTA · {{ r.seats.length }}/{{ r.capacity }}</span>
               <span class="shell__pending-sub nf-mono">Sala {{ r.code }} esperando jugadores</span>
             </span>
-            <span class="shell__pending-cta nf-mono">ENTRAR ►</span>
+            <span class="shell__pending-cta nf-mono nf-caps nf-go">Entrar</span>
           </button>
         }
-        <div class="shell__sheet-head nf-mono">// TUS GRUPOS</div>
+        <div class="shell__sheet-head nf-mono nf-eyebrow">Tus grupos</div>
         <div class="shell__sheet-list">
           @for (g of groups.groups(); track g.id) {
             <button
@@ -285,7 +278,7 @@
               }
             </button>
           } @empty {
-            <div class="shell__grouplist-empty nf-mono">// SIN GRUPOS</div>
+            <div class="shell__grouplist-empty nf-mono nf-eyebrow">Sin grupos</div>
           }
         </div>
         <a class="shell__sheet-all nf-mono" [routerLink]="['/app', 'grupos']" (click)="closeGroupSheet()">
@@ -301,10 +294,10 @@
       <div class="shell__notif" (click)="$event.stopPropagation()">
         <nf-window title="notifications.exe" accent="pink" bodyPadding="0">
           <div class="shell__notif-sub">
-            <span class="shell__notif-eyebrow nf-mono">// ACTIVIDAD RECIENTE</span>
+            <span class="shell__notif-eyebrow nf-mono nf-eyebrow">Actividad reciente</span>
             @if (notifs.hasUnread()) {
-              <button type="button" class="shell__notif-clear nf-mono" (click)="markAllRead($event)">
-                MARCAR LEÍDAS ✓
+              <button type="button" class="shell__notif-clear nf-mono nf-caps" (click)="markAllRead($event)">
+                Marcar leídas ✓
               </button>
             }
           </div>
@@ -336,17 +329,16 @@
                           size="sm"
                           [disabled]="invitations.isResponding(inv.invitationId)"
                           (click)="respondInvite(n, false)"
-                        >RECHAZAR</button>
+                        >Rechazar</button>
                         <button
                           nfButton
                           variant="primary"
                           size="sm"
                           [disabled]="invitations.isResponding(inv.invitationId)"
-                          (click)="respondInvite(n, true)"
-                        >UNIRME ►</button>
+                          (click)="respondInvite(n, true)" class="nf-go">Unirme</button>
                       </div>
                     } @else {
-                      <div class="shell__notif-resolved nf-mono">// INVITACIÓN GESTIONADA</div>
+                      <div class="shell__notif-resolved nf-mono nf-eyebrow">Invitación gestionada</div>
                     }
                   }
                 </div>
@@ -368,15 +360,15 @@
               } @else if (notifs.status() === 'error') {
                 <div class="shell__notif-empty">
                   <div class="shell__notif-empty-glyph">⚠</div>
-                  <div class="shell__notif-empty-label nf-mono">// NO SE PUDO CARGAR</div>
-                  <button type="button" class="shell__notif-clear nf-mono" (click)="reloadNotifs($event)">
-                    REINTENTAR
+                  <div class="shell__notif-empty-label nf-mono nf-eyebrow">No se pudo cargar</div>
+                  <button type="button" class="shell__notif-clear nf-mono nf-caps" (click)="reloadNotifs($event)">
+                    Reintentar
                   </button>
                 </div>
               } @else {
                 <div class="shell__notif-empty">
                   <div class="shell__notif-empty-glyph">◎</div>
-                  <div class="shell__notif-empty-label nf-mono">// BANDEJA VACÍA</div>
+                  <div class="shell__notif-empty-label nf-mono nf-eyebrow">Bandeja vacía</div>
                 </div>
               }
             }
@@ -414,8 +406,8 @@
             ¿Seguro que quieres <strong>cerrar sesión</strong>? Tendrás que volver a iniciar sesión para acceder.
           </p>
           <div class="shell__dialog-actions">
-            <button nfButton variant="ghost" size="md" (click)="confirmLogout.set(false)">CANCELAR</button>
-            <button nfButton variant="danger" size="md" (click)="logout()">CERRAR SESIÓN</button>
+            <button nfButton variant="ghost" size="md" (click)="confirmLogout.set(false)">Cancelar</button>
+            <button nfButton variant="danger" size="md" (click)="logout()">Cerrar sesión</button>
           </div>
         </nf-window>
       </div>

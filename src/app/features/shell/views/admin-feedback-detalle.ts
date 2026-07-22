@@ -49,10 +49,10 @@ const FREQUENCY_LABEL: Record<string, string> = {
       <a class="afd-back nf-mono" [routerLink]="['/app', 'admin', 'feedback']">◄ VOLVER A LA LISTA</a>
 
       @if (store.detailLoading()) {
-        <div class="afd-empty nf-mono">// CARGANDO…</div>
+        <div class="afd-empty nf-mono nf-eyebrow">Cargando…</div>
       } @else if (store.detail(); as f) {
         <div class="view__head">
-          <div class="view__eyebrow nf-mono">// {{ kindLabel(f.kind) }} · {{ f.area }}</div>
+          <div class="view__eyebrow nf-mono nf-eyebrow nf-eyebrow--asis">{{ kindLabel(f.kind) }} · {{ f.area }}</div>
           <h1 class="view__title">{{ f.title }}</h1>
           <div class="afd-meta nf-mono">
             <nf-badge [color]="statusColor(f.status)">{{ statusLabel(f.status) }}</nf-badge>
@@ -130,7 +130,7 @@ const FREQUENCY_LABEL: Record<string, string> = {
 
         <!-- triaje -->
         <div class="afd-block afd-triage">
-          <h2 class="afd-triage__title nf-mono">// TRIAJE</h2>
+          <h2 class="afd-triage__title nf-mono nf-eyebrow">Triaje</h2>
           <label class="afd-field">
             <span class="afd-field__k nf-mono">ESTADO</span>
             <nf-select [options]="statusLabels()" [value]="statusLabel(status())" (valueChange)="onStatus($event)" />
@@ -159,7 +159,7 @@ const FREQUENCY_LABEL: Record<string, string> = {
           <p class="afd-updated nf-mono">Última actualización: {{ f.updatedAt | date: 'dd/MM/yyyy HH:mm' }}</p>
         </div>
       } @else {
-        <div class="afd-empty nf-mono">// REPORTE NO ENCONTRADO</div>
+        <div class="afd-empty nf-mono nf-eyebrow">Reporte no encontrado</div>
       }
     </div>
   `,

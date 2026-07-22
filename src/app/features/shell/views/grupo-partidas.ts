@@ -49,6 +49,7 @@ import { MatchStore, MatchRoom } from '../../../core/match-store';
                     nfButton
                     variant="ghost"
                     size="sm"
+                    class="nf-go"
                     [routerLink]="['/app', 'grupos', g.id, 'partidas', r.id]"
                   >{{ ctaLabel(r) }}</button>
                 </div>
@@ -65,19 +66,18 @@ import { MatchStore, MatchRoom } from '../../../core/match-store';
                   No hay ninguna sala abierta ni partida en curso ahora mismo. Crea una partida
                   para empezar a jugar con tu grupo.
                 </p>
-                <button nfButton variant="primary" size="md" [routerLink]="['/app', 'grupos', g.id, 'crear-partida']">
-                  CREAR PARTIDA ►
-                </button>
+                <button nfButton variant="primary" size="md" [routerLink]="['/app', 'grupos', g.id, 'crear-partida']" class="nf-go">
+                  Crear partida</button>
               </div>
             </div>
           </nf-window>
         }
       } @else {
         <div class="view__head">
-          <div class="view__eyebrow nf-mono">// ERROR 404</div>
+          <div class="view__eyebrow nf-mono nf-eyebrow">Error 404</div>
           <h1 class="view__title">Grupo no encontrado</h1>
         </div>
-        <button nfButton variant="secondary" size="md" [routerLink]="['/app', 'grupos']">← VOLVER A GRUPOS</button>
+        <button nfButton variant="secondary" size="md" [routerLink]="['/app', 'grupos']">← Volver a grupos</button>
       }
     </div>
   `,
@@ -115,8 +115,9 @@ export class GrupoPartidas {
     return r.status === 'live' ? 'green' : r.status === 'drafting' ? 'purple' : 'yellow';
   }
 
+  /** En frase normal: las mayúsculas las pone `.nf-btn` y el ► la clase `.nf-go`. */
   ctaLabel(r: MatchRoom): string {
-    return r.status === 'live' ? 'VER PARTIDA ►' : r.status === 'drafting' ? 'VER EN DIRECTO ►' : 'VER SALA ►';
+    return r.status === 'live' ? 'Ver partida' : r.status === 'drafting' ? 'Ver en directo' : 'Ver sala';
   }
 
   constructor() {

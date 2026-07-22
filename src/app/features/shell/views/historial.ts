@@ -10,7 +10,7 @@ import { NfPagination } from '../../../ui';
   template: `
     <div class="view">
       <div class="view__head">
-        <div class="view__eyebrow nf-mono">// REGISTRO DE PARTIDAS</div>
+        <div class="view__eyebrow nf-mono nf-eyebrow">Registro de partidas</div>
         <h1 class="view__title">Historial</h1>
         <p class="view__lead">Tus últimas partidas disputadas. Pulsa una para ver el detalle completo.</p>
       </div>
@@ -78,7 +78,7 @@ import { NfPagination } from '../../../ui';
 
             <div class="mh-when">
               <span class="mh-when__date nf-mono">{{ m.date }}</span>
-              <span class="mh-when__cta nf-mono">DETALLE ►</span>
+              <span class="mh-when__cta nf-mono nf-caps nf-go">Detalle</span>
             </div>
           </a>
         }

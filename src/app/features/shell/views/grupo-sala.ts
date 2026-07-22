@@ -133,7 +133,7 @@ import { MemberBadge, badgesFor } from '../../../core/group-badges';
 
             <div class="actions" style="margin-top: 22px">
               <button nfButton variant="ghost" size="md" [routerLink]="['/app', 'grupos', g.id, 'partidas']">
-                ← PARTIDAS ACTIVAS
+                ← Partidas activas
               </button>
             </div>
           } @else {
@@ -264,10 +264,10 @@ import { MemberBadge, badgesFor } from '../../../core/group-badges';
                       <button type="button" class="res__cancel nf-mono" (click)="swapping.set(false)">cancelar</button>
                       <button
                         type="button"
-                        class="res__win res__win--blue nf-mono"
+                        class="res__win res__win--blue nf-mono nf-go nf-caps"
                         [disabled]="swapRoster().length !== 10"
                         (click)="confirmSwap(r)"
-                      >REEMPAREJAR Y JUGAR ►</button>
+                      >Reemparejar y jugar</button>
                     </div>
                   </div>
                 } @else {
@@ -300,7 +300,7 @@ import { MemberBadge, badgesFor } from '../../../core/group-badges';
                         <span class="res__path-txt"><b>Cambiar jugadores</b><small>entran/salen del grupo</small></span>
                       </button>
                     </div>
-                    <button type="button" class="res__close nf-mono" (click)="confirmClose.set(true)">⏹ CERRAR LA SALA</button>
+                    <button type="button" class="res__close nf-mono nf-caps" (click)="confirmClose.set(true)">⏹ Cerrar la sala</button>
                   </div>
                 }
               } @else if (resolvingImport()) {
@@ -345,10 +345,10 @@ import { MemberBadge, badgesFor } from '../../../core/group-badges';
                     <button type="button" class="res__cancel nf-mono" (click)="discardImport()">descartar import</button>
                     <button
                       type="button"
-                      class="res__win res__win--blue nf-mono"
+                      class="res__win res__win--blue nf-mono nf-go nf-caps"
                       [disabled]="!allResolved()"
                       (click)="applyImport(r)"
-                    >RESOLVER Y APLICAR ►</button>
+                    >Resolver y aplicar</button>
                   </div>
                 </div>
               } @else {
@@ -370,9 +370,9 @@ import { MemberBadge, badgesFor } from '../../../core/group-badges';
                   </div>
                   <div class="res__or nf-mono">— o decide el resultado a mano (solo admin) —</div>
                   <div class="res__buttons">
-                    <button type="button" class="res__win res__win--blue nf-mono" (click)="askWin('blue')">🏆 GANÓ AZUL</button>
-                    <button type="button" class="res__win res__win--red nf-mono" (click)="askWin('red')">🏆 GANÓ ROJO</button>
-                    <button type="button" class="res__cancel nf-mono" (click)="cancelMatch(r)">✕ CANCELAR</button>
+                    <button type="button" class="res__win res__win--blue nf-mono nf-caps" (click)="askWin('blue')">🏆 Ganó azul</button>
+                    <button type="button" class="res__win res__win--red nf-mono nf-caps" (click)="askWin('red')">🏆 Ganó rojo</button>
+                    <button type="button" class="res__cancel nf-mono nf-caps" (click)="cancelMatch(r)">✕ Cancelar</button>
                   </div>
                 </div>
               }
@@ -445,7 +445,7 @@ import { MemberBadge, badgesFor } from '../../../core/group-badges';
 
           <div class="actions" style="margin-top: 22px">
             <button nfButton variant="ghost" size="md" [routerLink]="['/app', 'grupos', g.id, 'partidas']">
-              ← PARTIDAS ACTIVAS
+              ← Partidas activas
             </button>
           </div>
 
@@ -453,7 +453,7 @@ import { MemberBadge, badgesFor } from '../../../core/group-badges';
             @if (res.winner !== 'cancelled') {
               <div class="vic" [attr.data-side]="res.winner">
                 <div class="vic__inner">
-                  <div class="vic__eyebrow nf-mono">// PARTIDA FINALIZADA</div>
+                  <div class="vic__eyebrow nf-mono nf-eyebrow">Partida finalizada</div>
                   <div class="vic__title nf-mono">VICTORIA</div>
                   <div class="vic__team nf-mono">EQUIPO {{ res.winner === 'blue' ? 'AZUL' : 'ROJO' }}</div>
                   <div class="vic__winners">
@@ -474,7 +474,7 @@ import { MemberBadge, badgesFor } from '../../../core/group-badges';
                       </div>
                     }
                   </div>
-                  <button nfButton variant="primary" size="md" (click)="celebrating.set(false)">CONTINUAR ►</button>
+                  <button nfButton variant="primary" size="md" (click)="celebrating.set(false)" class="nf-go">Continuar</button>
                 </div>
               </div>
             }
@@ -499,7 +499,7 @@ import { MemberBadge, badgesFor } from '../../../core/group-badges';
               <div class="modal-overlay">
                 <div class="modal modal--wide" (click)="$event.stopPropagation()">
                   <nf-window title="preview_partida.exe" accent="cyan" bodyPadding="24px">
-                    <div class="settings-eyebrow nf-mono">// REVISA EL REPARTO ANTES DE LANZAR</div>
+                    <div class="settings-eyebrow nf-mono nf-eyebrow">Revisa el reparto antes de lanzar</div>
                     <p class="remove-msg">
                       Así quedan los equipos. Si no te convence, vuelve a rebalancear; cuando estés
                       conforme, lánzala.
@@ -588,12 +588,12 @@ import { MemberBadge, badgesFor } from '../../../core/group-badges';
                     </div>
 
                     <div class="cp-teams__foot">
-                      <button type="button" class="cp-reroll nf-mono" (click)="rebalancePreview()">↻ REBALANCEAR</button>
+                      <button type="button" class="cp-reroll nf-mono nf-caps" (click)="rebalancePreview()">↻ Rebalancear</button>
                     </div>
 
                     <div class="form-foot">
-                      <button nfButton variant="ghost" size="md" (click)="cancelPreview()">CANCELAR</button>
-                      <button nfButton variant="primary" size="md" (click)="confirmPreview()">LANZAR PARTIDA ►</button>
+                      <button nfButton variant="ghost" size="md" (click)="cancelPreview()">Cancelar</button>
+                      <button nfButton variant="primary" size="md" (click)="confirmPreview()" class="nf-go">Lanzar partida</button>
                     </div>
                   </nf-window>
                 </div>
@@ -605,7 +605,7 @@ import { MemberBadge, badgesFor } from '../../../core/group-badges';
             <div class="modal-overlay" (click)="confirmWin.set(null)">
               <div class="modal" (click)="$event.stopPropagation()">
                 <nf-window [title]="'confirmar_resultado.exe'" [accent]="side === 'blue' ? 'cyan' : 'pink'" bodyPadding="24px">
-                  <div class="settings-eyebrow nf-mono">// CONFIRMAR RESULTADO</div>
+                  <div class="settings-eyebrow nf-mono nf-eyebrow">Confirmar resultado</div>
                   <p class="remove-msg">
                     ¿Seguro que marcas <strong>EQUIPO {{ side === 'blue' ? 'AZUL' : 'ROJO' }}</strong> como ganador?
                   </p>
@@ -613,8 +613,8 @@ import { MemberBadge, badgesFor } from '../../../core/group-badges';
                     ⚠ Disparará el cálculo de MMR y guardará la partida. Si te equivocas, podrás corregirlo después.
                   </div>
                   <div class="form-foot">
-                    <button nfButton variant="ghost" size="md" (click)="confirmWin.set(null)">CANCELAR</button>
-                    <button nfButton variant="primary" size="md" (click)="confirmWinNow(r)">CONFIRMAR ►</button>
+                    <button nfButton variant="ghost" size="md" (click)="confirmWin.set(null)">Cancelar</button>
+                    <button nfButton variant="primary" size="md" (click)="confirmWinNow(r)" class="nf-go">Confirmar</button>
                   </div>
                 </nf-window>
               </div>
@@ -625,7 +625,7 @@ import { MemberBadge, badgesFor } from '../../../core/group-badges';
             <div class="modal-overlay" (click)="confirmClose.set(false)">
               <div class="modal" (click)="$event.stopPropagation()">
                 <nf-window [title]="'cerrar_sala.exe'" accent="pink" bodyPadding="24px">
-                  <div class="settings-eyebrow nf-mono">// CERRAR LA SALA</div>
+                  <div class="settings-eyebrow nf-mono nf-eyebrow">Cerrar la sala</div>
                   <p class="remove-msg">
                     ¿Seguro que quieres <strong>CERRAR LA SALA</strong>? Se terminará la sesión.
                   </p>
@@ -633,8 +633,8 @@ import { MemberBadge, badgesFor } from '../../../core/group-badges';
                     ⚠ La sala se eliminará para todos los jugadores. Esta acción no se puede deshacer.
                   </div>
                   <div class="form-foot">
-                    <button nfButton variant="ghost" size="md" (click)="confirmClose.set(false)">CANCELAR</button>
-                    <button nfButton variant="danger" size="md" (click)="closeRoom(r)">CERRAR SALA ►</button>
+                    <button nfButton variant="ghost" size="md" (click)="confirmClose.set(false)">Cancelar</button>
+                    <button nfButton variant="danger" size="md" (click)="closeRoom(r)" class="nf-go">Cerrar sala</button>
                   </div>
                 </nf-window>
               </div>
@@ -643,20 +643,20 @@ import { MemberBadge, badgesFor } from '../../../core/group-badges';
           }
         } @else {
           <div class="view__head">
-            <div class="view__eyebrow nf-mono">// ERROR 404</div>
+            <div class="view__eyebrow nf-mono nf-eyebrow">Error 404</div>
             <h1 class="view__title">Sala no encontrada</h1>
             <p class="view__lead">Esta sala ya no existe: se canceló o la partida terminó.</p>
           </div>
           <button nfButton variant="secondary" size="md" [routerLink]="['/app', 'grupos', g.id, 'partidas']">
-            ← PARTIDAS ACTIVAS
+            ← Partidas activas
           </button>
         }
       } @else {
         <div class="view__head">
-          <div class="view__eyebrow nf-mono">// ERROR 404</div>
+          <div class="view__eyebrow nf-mono nf-eyebrow">Error 404</div>
           <h1 class="view__title">Grupo no encontrado</h1>
         </div>
-        <button nfButton variant="secondary" size="md" [routerLink]="['/app', 'grupos']">← VOLVER A GRUPOS</button>
+        <button nfButton variant="secondary" size="md" [routerLink]="['/app', 'grupos']">← Volver a grupos</button>
       }
     </div>
   `,

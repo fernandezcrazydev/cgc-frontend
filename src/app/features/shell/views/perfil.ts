@@ -117,7 +117,7 @@ interface RiotLink {
           @if (rolesDirty()) {
             <div class="pf-roles__actions">
               <button nfButton variant="ghost" size="sm" [disabled]="prefs.saving()" (click)="discardRoles()">
-                DESCARTAR
+                Descartar
               </button>
               <button nfButton variant="primary" size="sm" [disabled]="!canSaveRoles()" (click)="saveRoles()">
                 {{ prefs.saving() ? 'GUARDANDO…' : 'GUARDAR CAMBIOS' }}
@@ -139,7 +139,7 @@ interface RiotLink {
           @case ('error') {
             <div class="pf-roles pf-roles--error" role="alert">
               <p class="pf-roles__errtext">No hemos podido cargar tus roles preferidos.</p>
-              <button nfButton variant="ghost" size="sm" (click)="prefs.reload()">REINTENTAR</button>
+              <button nfButton variant="ghost" size="sm" (click)="prefs.reload()">Reintentar</button>
             </div>
           }
           @default {
@@ -222,10 +222,10 @@ interface RiotLink {
               </div>
             </div>
             <div class="pf-riot__actions">
-              <a class="pf-hero__opgg nf-mono" [href]="opgg(riot.riotId)" target="_blank" rel="noopener">
-                VER EN OP.GG ►
+              <a class="pf-hero__opgg nf-mono nf-caps nf-go" [href]="opgg(riot.riotId)" target="_blank" rel="noopener">
+                Ver en OP.GG
               </a>
-              <button nfButton variant="ghost" size="sm" (click)="askUnlink()">DESVINCULAR</button>
+              <button nfButton variant="ghost" size="sm" (click)="askUnlink()">Desvincular</button>
             </div>
           </div>
         } @else {
@@ -237,7 +237,7 @@ interface RiotLink {
               </p>
             </div>
             <button nfButton variant="accent" size="md" (click)="startLinking()">
-              ＋ VINCULAR CUENTA DE RIOT
+              ＋ Vincular cuenta de Riot
             </button>
           </div>
         }
@@ -371,7 +371,7 @@ interface RiotLink {
           } @empty {
             <div class="empty-state">
               <div class="empty-state__icon">◎</div>
-              <div class="empty-state__text nf-mono">// SIN GRUPOS TODAVÍA</div>
+              <div class="empty-state__text nf-mono nf-eyebrow">Sin grupos todavía</div>
             </div>
           }
         </div>
@@ -380,7 +380,7 @@ interface RiotLink {
       <!-- Vincular cuenta de Riot: diálogo sobre fondo difuminado -->
       @if (linking()) {
         <nf-modal title="vincular_riot.exe" accent="cyan" (closed)="cancelLinking()">
-          <div class="settings-eyebrow nf-mono">// VINCULAR CUENTA DE RIOT</div>
+          <div class="settings-eyebrow nf-mono nf-eyebrow">Vincular cuenta de Riot</div>
 
           <div class="riot-link">
             <span class="pf-riot__logo nf-mono" aria-hidden="true">R</span>
@@ -426,10 +426,9 @@ interface RiotLink {
           </div>
 
           <div class="form-foot">
-            <button nfButton variant="primary" size="md" [disabled]="!linkValid()" (click)="confirmLink()">
-              VINCULAR ►
-            </button>
-            <button nfButton variant="ghost" size="md" (click)="cancelLinking()">CANCELAR</button>
+            <button nfButton variant="primary" size="md" [disabled]="!linkValid()" (click)="confirmLink()" class="nf-go">
+              Vincular</button>
+            <button nfButton variant="ghost" size="md" (click)="cancelLinking()">Cancelar</button>
           </div>
         </nf-modal>
       }
@@ -437,7 +436,7 @@ interface RiotLink {
       <!-- Desvincular: acción destructiva, siempre confirmada -->
       @if (unlinking(); as riot) {
         <nf-modal title="desvincular_riot.exe" accent="pink" width="440px" (closed)="cancelUnlink()">
-          <div class="settings-eyebrow nf-mono">// DESVINCULAR CUENTA DE RIOT</div>
+          <div class="settings-eyebrow nf-mono nf-eyebrow">Desvincular cuenta de Riot</div>
 
           <p class="confirm__text">
             Vas a desvincular <strong>{{ riot.riotId }}</strong> de tu perfil. Dejaremos de mostrar
@@ -446,9 +445,9 @@ interface RiotLink {
 
           <div class="form-foot">
             <button nfButton variant="danger" size="md" (click)="confirmUnlink()">
-              SÍ, DESVINCULAR
+              Sí, desvincular
             </button>
-            <button nfButton variant="ghost" size="md" (click)="cancelUnlink()">CANCELAR</button>
+            <button nfButton variant="ghost" size="md" (click)="cancelUnlink()">Cancelar</button>
           </div>
         </nf-modal>
       }

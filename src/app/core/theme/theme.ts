@@ -7,19 +7,25 @@ import { Injectable, effect, signal } from '@angular/core';
  *
  *  - `nexus`    → NEXUS//FORGE, el look por defecto (vaporwave neón).
  *  - `nocturne` → Apple-dark minimalista.
+ *  - `original` → el look de la app legacy (glass índigo/fucsia sobre azul noche).
+ *
+ * `original` es la única skin que además apaga el cromo de ventana retro: ver
+ * `NfWindow`, que no renderiza barra/semáforo bajo este tema. Es la excepción
+ * consciente a "las skins son solo CSS" — el semáforo es markup, no un token.
  */
-export type ThemeId = 'nexus' | 'nocturne';
+export type ThemeId = 'nexus' | 'nocturne' | 'original';
 
-export const THEMES: readonly { id: ThemeId; label: string }[] = [
-  { id: 'nexus', label: 'Nexus' },
-  { id: 'nocturne', label: 'Nocturne' },
+export const THEMES: readonly { id: ThemeId; label: string; description: string }[] = [
+  { id: 'nexus', label: 'Nexus', description: 'Vaporwave neón sobre violeta. El look de casa.' },
+  { id: 'nocturne', label: 'Nocturne', description: 'Oscuro minimalista, tipografía del sistema.' },
+  { id: 'original', label: 'Original', description: 'El estilo de la primera versión: cristal índigo y fucsia.' },
 ];
 
 const DEFAULT_THEME: ThemeId = 'nexus';
 const STORAGE_KEY = 'cgc-theme';
 
 function isTheme(v: unknown): v is ThemeId {
-  return v === 'nexus' || v === 'nocturne';
+  return THEMES.some((t) => t.id === v);
 }
 
 /** Lee la preferencia guardada; si no hay o es basura, cae al tema por defecto. */

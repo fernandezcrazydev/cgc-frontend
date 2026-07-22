@@ -1,0 +1,419 @@
+/* ============================================================
+   ORIGINAL · el look de la app legacy (Next.js + Tailwind)
+   ------------------------------------------------------------
+   Cristal índigo/fucsia sobre azul noche, radios generosos,
+   tipografía del sistema, resplandores difusos en el fondo.
+   Valores tomados de `creador customs/src/app/globals.css` y
+   de las clases Tailwind que usaba LobbyView.
+
+   Es una SKIN: redefine tokens --nf-* bajo
+   :root[data-theme="original"] y aplana los efectos "firma"
+   que los componentes hardcodean fuera de token.
+
+   ÚNICA excepción no-CSS: `NfWindow` no renderiza la barra de
+   ventana retro bajo este tema (el semáforo es markup, no un
+   token) y pinta `.nf-window__heading` en su lugar.
+   ============================================================ */
+
+:root[data-theme='original'] {
+  /* ---- Superficies: azul noche + capas de cristal ----
+     El legacy no tenía superficies opacas: eran white/5 y white/10 sobre el
+     fondo. Aquí se aproximan con mezclas opacas (los tokens se usan en sitios
+     donde el translúcido apilado se ensuciaría) y el cristal real se aplica
+     en los bloques grandes más abajo. */
+  --nf-void: #070912;
+  --nf-inset: #0b0e1c;
+  --nf-surface: #121527;
+  --nf-surface-2: #171a2e;
+  --nf-elevated: #20243c;
+
+  /* ---- Paleta: índigo primario, fucsia secundario ---- */
+  --nf-pink: #6366f1; /* primary   → indigo-500          */
+  --nf-pink-strong: #4f46e5; /* pressed   → indigo-600   */
+  --nf-cyan: #e879f9; /* secondary → fuchsia-400         */
+  --nf-purple: #a78bfa; /* violet-400                     */
+  --nf-yellow: #fbbf24; /* amber-400                      */
+  --nf-green: #34d399; /* emerald-400                     */
+  --nf-red: #fb7185; /* rose-400                          */
+
+  --nf-team-blue: #60a5fa; /* blue-400  */
+  --nf-team-red: #fb7185; /* rose-400   */
+
+  /* ---- Texto: el #e7e9f3 del legacy + dos capas atenuadas ----
+     Las tres capas pasan AA sobre void/surface/surface-2. No bajar. */
+  --nf-text: #e7e9f3;
+  --nf-text-mid: rgba(231, 233, 243, 0.72);
+  --nf-text-dim: rgba(231, 233, 243, 0.56);
+
+  /* ---- Líneas: hairlines blancos (white/10, white/15) ---- */
+  --nf-border: rgba(255, 255, 255, 0.1);
+  --nf-border-strong: rgba(255, 255, 255, 0.16);
+  --nf-border-pink: rgba(99, 102, 241, 0.4);
+
+  /* ---- Efectos: sombras difusas, cero glow neón ---- */
+  --nf-shadow-cyan: 0 8px 24px rgba(0, 0, 0, 0.4);
+  --nf-shadow-pink: 0 8px 24px rgba(0, 0, 0, 0.4);
+  --nf-shadow-card: 0 12px 32px rgba(0, 0, 0, 0.45);
+  --nf-glow-pink: 0 0 0 rgba(0, 0, 0, 0);
+
+  /* ---- Tipografía: la pila del sistema del legacy, sin mono ---- */
+  --nf-font: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+    sans-serif;
+  --nf-mono: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+    sans-serif;
+
+  /* Tracking normal: el legacy no separaba letras. */
+  --ls-wide: 0;
+  --ls-wider: 0;
+  --ls-widest: 0;
+  --ls-eyebrow: 0.01em;
+  --ls-tight: -0.01em;
+
+  /* ---- Radios: rounded-lg / xl / 2xl de Tailwind ---- */
+  --nf-radius-sm: 8px;
+  --nf-radius: 12px;
+  --nf-radius-lg: 16px;
+
+  /* ---- Bordes: 1px, nada del borde firma de 2px ---- */
+  --bw-hair: 1px;
+  --bw-1: 1px;
+  --bw-2: 1px;
+}
+
+/* ============================================================
+   Fondo: los dos resplandores animados que iban en body::before
+   y body::after del legacy (índigo arriba-izquierda, fucsia
+   abajo-derecha, a la deriva).
+   ============================================================ */
+
+:root[data-theme='original'] body {
+  background: var(--nf-void);
+  position: relative;
+}
+:root[data-theme='original'] body::before,
+:root[data-theme='original'] body::after {
+  content: '';
+  position: fixed;
+  width: 50vmax;
+  height: 50vmax;
+  border-radius: 50%;
+  filter: blur(90px);
+  opacity: 0.35;
+  z-index: 0;
+  pointer-events: none;
+}
+:root[data-theme='original'] body::before {
+  background: radial-gradient(circle, #6366f1, transparent 60%);
+  top: -10vmax;
+  left: -10vmax;
+  animation: nf-drift-1 18s ease-in-out infinite alternate;
+}
+:root[data-theme='original'] body::after {
+  background: radial-gradient(circle, #d946ef, transparent 60%);
+  bottom: -15vmax;
+  right: -10vmax;
+  animation: nf-drift-2 22s ease-in-out infinite alternate;
+}
+/* La app va por encima de los resplandores. */
+:root[data-theme='original'] app-root {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes nf-drift-1 {
+  to {
+    transform: translate(12vmax, 8vmax) scale(1.15);
+  }
+}
+@keyframes nf-drift-2 {
+  to {
+    transform: translate(-10vmax, -6vmax) scale(1.2);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-theme='original'] body::before,
+  :root[data-theme='original'] body::after {
+    animation: none;
+  }
+}
+
+/* ============================================================
+   Aplanado de efectos "firma" del UI kit
+   (selectores globales, ViewEncapsulation.None).
+   ============================================================ */
+
+/* ---- Botones: pill suave, sin mayúsculas, sin sombra dura ---- */
+:root[data-theme='original'] .nf-btn {
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 600;
+  border-radius: var(--nf-radius);
+  box-shadow: none !important;
+}
+:root[data-theme='original'] .nf-btn:hover:not(:disabled) {
+  transform: none;
+  filter: brightness(1.1);
+}
+:root[data-theme='original'] .nf-btn:active:not(:disabled) {
+  transform: scale(0.97);
+  filter: brightness(0.95);
+}
+:root[data-theme='original'] .nf-btn--danger {
+  color: #fff;
+}
+
+/* ---- Ventana → tarjeta de cristal ----
+   La barra ya no se renderiza (lo decide NfWindow); aquí se le da al contenedor
+   el aspecto `.glass` del legacy. */
+:root[data-theme='original'] .nf-window {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: var(--nf-radius-lg);
+}
+:root[data-theme='original'] .nf-window__body {
+  background: transparent;
+}
+
+/* ---- Utilidad mono: en este tema no hay mono, pero las cifras se alinean ---- */
+:root[data-theme='original'] .nf-mono {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+
+/* ---- Cromo del navegador ---- */
+:root[data-theme='original'] ::selection {
+  background: rgba(99, 102, 241, 0.4);
+}
+:root[data-theme='original'] ::-webkit-scrollbar-track {
+  background: transparent;
+}
+:root[data-theme='original'] ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: transparent;
+  border-radius: 999px;
+}
+:root[data-theme='original'] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.26);
+}
+
+/* ---- Range input: pulgar índigo redondo, sin glow ---- */
+:root[data-theme='original'] .nf-range::-webkit-slider-thumb {
+  background: var(--nf-pink);
+  border-color: var(--nf-void);
+  border-radius: 50%;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
+}
+:root[data-theme='original'] .nf-range::-moz-range-thumb {
+  background: var(--nf-pink);
+  border-color: var(--nf-void);
+  border-radius: 50%;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
+}
+
+/* ============================================================
+   Overrides de vistas (views.scss)
+   ============================================================ */
+
+/* Tracking: el legacy nunca separaba letras. Mismo truco que Nocturne: el
+   combinador [class] (0,2,0) gana a los `.foo { letter-spacing: 3px }` (0,1,0)
+   sin !important. */
+:root[data-theme='original'] [class] {
+  letter-spacing: normal;
+}
+
+/* Eyebrows: sin el marcador "// " y sin mayúsculas. El texto ya está escrito en
+   frase normal en las plantillas (ver .nf-eyebrow en tokens/base.css), así que
+   aquí basta con no vestirlo. Cubre también --asis y --lower: (0,2,0) gana. */
+:root[data-theme='original'] .nf-eyebrow {
+  text-transform: none;
+}
+:root[data-theme='original'] .nf-eyebrow::before {
+  content: none;
+}
+
+/* Etiquetas en mayúsculas fuera de botón, y la puntita ► de los CTA: ambas son
+   decoración retro. El copy ya está en frase normal en las plantillas. */
+:root[data-theme='original'] .nf-caps {
+  text-transform: none;
+}
+:root[data-theme='original'] .nf-go::after {
+  content: none;
+}
+
+/* Otras mayúsculas puestas por CSS. */
+:root[data-theme='original'] .member-detail__label,
+:root[data-theme='original'] .perks-edit__heading {
+  text-transform: none;
+}
+
+/* Eyebrows: gris tenue, no cian. */
+:root[data-theme='original'] .view__eyebrow,
+:root[data-theme='original'] .settings-eyebrow {
+  color: var(--nf-text-dim);
+}
+
+/* Hover: elevación suave en vez de "hundirse en la sombra dura". */
+:root[data-theme='original'] .resume-hero:hover,
+:root[data-theme='original'] .champ:hover,
+:root[data-theme='original'] .group-card:hover,
+:root[data-theme='original'] .group-card--new:hover,
+:root[data-theme='original'] .mh-row:hover,
+:root[data-theme='original'] .mh-row.is-win:hover,
+:root[data-theme='original'] .mh-row.is-loss:hover,
+:root[data-theme='original'] .cp-mode:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--nf-shadow-card);
+}
+
+/* Glows neón fuera. */
+:root[data-theme='original'] .hl__big {
+  filter: none;
+}
+:root[data-theme='original'] .resume-hero__avatar,
+:root[data-theme='original'] .group-hero__avatar {
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+}
+:root[data-theme='original'] .field__input:focus {
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.35);
+}
+:root[data-theme='original'] .seg__btn.is-active {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Texto sobre relleno índigo: blanco (antes era oscuro sobre neón). */
+:root[data-theme='original'] .actions__count,
+:root[data-theme='original'] .attn-count {
+  color: #fff;
+}
+
+/* Overlays: negro neutro, no violeta. */
+:root[data-theme='original'] .modal-overlay {
+  background: rgba(7, 9, 18, 0.72);
+  backdrop-filter: blur(4px);
+}
+
+/* ============================================================
+   Shell (sidebar, header, nav, avatar, fab, bottomnav, notifs).
+   Sin esto, cualquier vista se ve dentro de un marco violeta neón.
+   ============================================================ */
+
+:root[data-theme='original'] .shell {
+  background: transparent; /* deja ver los resplandores del body */
+}
+:root[data-theme='original'] .shell__sidebar {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+:root[data-theme='original'] .shell__header {
+  background: rgba(7, 9, 18, 0.72);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* Marca y avatar: el gradiente índigo→fucsia del legacy (.text-gradient). */
+:root[data-theme='original'] .shell__logo,
+:root[data-theme='original'] .shell__avatar {
+  background: linear-gradient(110deg, #818cf8, #e879f9);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+:root[data-theme='original'] .shell__fab {
+  background: var(--nf-pink);
+  box-shadow: 0 8px 22px rgba(99, 102, 241, 0.4), 0 0 0 6px var(--nf-void);
+}
+:root[data-theme='original'] .shell__bottomnav-item--center.is-active .shell__fab {
+  box-shadow: 0 10px 26px rgba(99, 102, 241, 0.55), 0 0 0 6px var(--nf-void);
+}
+
+/* Estados activos/hover: índigo tenue. */
+:root[data-theme='original'] .shell__nav-item.is-active,
+:root[data-theme='original'] .shell__bottomnav-item.is-active .shell__bottomnav-glyph {
+  background: rgba(99, 102, 241, 0.18);
+}
+:root[data-theme='original'] .shell__groupitem:hover,
+:root[data-theme='original'] .shell__grouplist-all:hover,
+:root[data-theme='original'] .shell__profile:hover,
+:root[data-theme='original'] .shell__notif-item.is-clickable:hover,
+:root[data-theme='original'] .shell__sheet-all:active {
+  background: rgba(255, 255, 255, 0.06);
+}
+:root[data-theme='original'] .shell__profile:hover .shell__avatar {
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+
+/* Glows del logo / campana / notificaciones fuera. */
+:root[data-theme='original'] .shell__logo,
+:root[data-theme='original'] .shell__bell.is-active,
+:root[data-theme='original'] .shell__notif {
+  filter: none;
+}
+:root[data-theme='original'] .shell__bell.is-active,
+:root[data-theme='original'] .shell__bell-badge {
+  box-shadow: none;
+}
+
+/* Paneles flotantes: cristal, no violeta. */
+:root[data-theme='original'] .shell__bottomnav {
+  background: rgba(7, 9, 18, 0.9);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+:root[data-theme='original'] .shell__sheet {
+  background: rgba(18, 21, 39, 0.98);
+}
+:root[data-theme='original'] .shell__notif-item {
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+:root[data-theme='original'] .shell__notif-empty-glyph {
+  color: var(--nf-text-dim);
+}
+:root[data-theme='original'] .shell__overlay,
+:root[data-theme='original'] .shell__sheet-overlay {
+  background: rgba(7, 9, 18, 0.72);
+}
+
+/* ============================================================
+   Login: fuera el sol neón y la rejilla en perspectiva. Es la
+   pieza más vaporwave de la app y no pinta nada en Original;
+   en su lugar se dejan ver los resplandores del body.
+   ============================================================ */
+
+:root[data-theme='original'] .login {
+  background: transparent;
+}
+:root[data-theme='original'] .login__sun,
+:root[data-theme='original'] .login__grid {
+  display: none;
+}
+/* La puntita del CTA de Discord ya vive en su propio span: aquí basta ocultarla
+   (es el equivalente a .nf-go para un glifo que ya estaba separado del copy). */
+:root[data-theme='original'] .login__discord-arrow {
+  display: none;
+}
+:root[data-theme='original'] .login__wordmark {
+  background: linear-gradient(110deg, #818cf8, #e879f9 60%, #f0abfc);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ============================================================
+   Legibilidad: mismo suelo de 11px que Nocturne. La app tiene
+   mucha label a 9–10px, por debajo del mínimo de la guía, y sin
+   el mono vaporwave se leen peor todavía.
+   ============================================================ */
+
+:root[data-theme='original'] [class*='eyebrow'],
+:root[data-theme='original'] [class*='__role'],
+:root[data-theme='original'] [class*='__sub'],
+:root[data-theme='original'] [class*='__meta'],
+:root[data-theme='original'] [class*='__time'],
+:root[data-theme='original'] [class*='__seats'],
+:root[data-theme='original'] [class*='__count'],
+:root[data-theme='original'] [class*='__mode'],
+:root[data-theme='original'] [class*='__cap'] {
+  font-size: 11px;
+}

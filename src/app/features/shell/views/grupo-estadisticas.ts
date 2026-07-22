@@ -30,7 +30,7 @@ type StatTab = 'resumen' | 'jugadores' | 'premios';
           <span class="view-back__arrow" aria-hidden="true">←</span> {{ g.name }}
         </a>
         <div class="view__head">
-          <div class="view__eyebrow nf-mono">// ESTADÍSTICAS DEL GRUPO</div>
+          <div class="view__eyebrow nf-mono nf-eyebrow">Estadísticas del grupo</div>
           <p class="view__lead">Rendimiento y métricas del grupo a lo largo de vuestras customs.</p>
         </div>
 
@@ -231,11 +231,11 @@ type StatTab = 'resumen' | 'jugadores' | 'premios';
         }
       } @else {
         <div class="view__head">
-          <div class="view__eyebrow nf-mono">// ERROR 404</div>
+          <div class="view__eyebrow nf-mono nf-eyebrow">Error 404</div>
           <h1 class="view__title">Grupo no encontrado</h1>
           <p class="view__lead">El grupo que buscas no existe o ya no perteneces a él.</p>
         </div>
-        <button nfButton variant="secondary" size="md" [routerLink]="['/app', 'grupos']">← VOLVER A GRUPOS</button>
+        <button nfButton variant="secondary" size="md" [routerLink]="['/app', 'grupos']">← Volver a grupos</button>
       }
     </div>
   `,

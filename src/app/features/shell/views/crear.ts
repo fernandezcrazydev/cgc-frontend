@@ -13,7 +13,7 @@ import { REGION_OPTIONS } from '../../../core/lobby';
       <p class="view__intro">Configura el lobby, define las reglas y lanza la partida personalizada.</p>
 
       <nf-window title="nueva_partida.exe" accent="cyan" bodyPadding="22px">
-        <div class="settings-eyebrow nf-mono">// NUEVA PARTIDA PERSONALIZADA</div>
+        <div class="settings-eyebrow nf-mono nf-eyebrow">Nueva partida personalizada</div>
 
         <div class="form-grid">
           <div class="field">
@@ -55,8 +55,8 @@ import { REGION_OPTIONS } from '../../../core/lobby';
         </div>
 
         <div class="form-foot">
-          <button nfButton variant="primary" size="md" (click)="launch()">LANZAR PARTIDA ►</button>
-          <button nfButton variant="ghost" size="md" (click)="reset()">LIMPIAR</button>
+          <button nfButton variant="primary" size="md" (click)="launch()" class="nf-go">Lanzar partida</button>
+          <button nfButton variant="ghost" size="md" (click)="reset()">Limpiar</button>
         </div>
 
         <p class="form-note nf-mono">

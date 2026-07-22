@@ -511,11 +511,7 @@
 }
 .shell__groupbar-caret { flex: none; font-size: 11px; color: var(--nf-text-dim); }
 .shell__header-right { margin-left: auto; display: flex; align-items: center; gap: 14px; }
-/* Selector de tema en el header: compacto para convivir con los iconos sin ahogar la
-   cabecera. Visible también en móvil: al salir de Perfil, este es el único acceso al tema. */
-.shell__theme { flex: none; }
-.shell__theme .nf-seg__btn { padding: 5px 10px; font-size: 12px; }
-@media (max-width: 560px) { .shell__theme .nf-seg__btn { padding: 4px 8px; font-size: 11px; } }
+/* El selector de tema ya no vive en el header: está en Ajustes (/app/ajustes). */
 /* ---- pending open-room banner (under the header) ---- */
 .shell__pending {
   display: flex;
