@@ -1,7 +1,8 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { PageResponse } from '../http';
 import {
   ChangeRoleRequest,
   CreateGroupRequest,
@@ -60,9 +61,22 @@ export class GroupsApi {
     return this.http.get<GroupMembershipResponse>(`${environment.apiUrl}/groups/${groupId}`);
   }
 
-  /** El roster del grupo: cada miembro con su userId, nombre, avatar, rol y alta. Solo miembros. */
-  members(groupId: string): Observable<GroupMemberResponse[]> {
-    return this.http.get<GroupMemberResponse[]>(`${environment.apiUrl}/groups/${groupId}/members`);
+  /**
+   * Una página del roster del grupo: cada miembro con su userId, nombre, avatar, rol y alta.
+   * Solo miembros. Paginado en SERVIDOR (`?page=&size=`, `page` 0-based): un grupo grande no
+   * viaja entero en cada render. El orden lo fija el backend —OWNER, ADMINs y MEMBERs, y dentro
+   * de cada rango por antigüedad— y no es negociable desde aquí: no hay parámetro `sort` porque
+   * ordenar por nombre de Discord exigiría un JOIN entre módulos en el backend.
+   *
+   * `totalElements` es el total de miembros del grupo, no los de esta página: es lo que pinta
+   * tanto el paginador como el contador de la cabecera.
+   */
+  members(groupId: string, page: number, size: number): Observable<PageResponse<GroupMemberResponse>> {
+    const params = new HttpParams().set('page', page).set('size', size);
+    return this.http.get<PageResponse<GroupMemberResponse>>(
+      `${environment.apiUrl}/groups/${groupId}/members`,
+      { params },
+    );
   }
 
   /**

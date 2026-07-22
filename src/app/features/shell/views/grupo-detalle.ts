@@ -3,14 +3,22 @@ import { FormsModule } from '@angular/forms';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { firstValueFrom, map } from 'rxjs';
-import { NfBadge, NfButton, NfModal, NfSegmented, NfSegmentOption, NfSkeleton, NfWindow } from '../../../ui';
+import {
+  NfBadge,
+  NfButton,
+  NfModal,
+  NfPagination,
+  NfSegmented,
+  NfSegmentOption,
+  NfSkeleton,
+  NfWindow,
+} from '../../../ui';
 import { Session } from '../../../core/auth';
 import {
   GroupDetailStore,
   GroupInvitationResponse,
   GroupInvitationsStore,
   GroupMemberResponse,
-  GroupRole,
   InvitationsStore,
   bannerColors,
   initialsOf,
@@ -20,13 +28,20 @@ import { UserSearchResult, UsersApi } from '../../../core/users';
 import { ToastService } from '../../../core/toast';
 import { errorMessage } from '../../../core/http';
 
-/** Peso de cada rol para ordenar el roster: owner primero, luego admins, luego miembros. */
-const ROLE_RANK: Record<GroupRole, number> = { OWNER: 0, ADMIN: 1, MEMBER: 2 };
-
 @Component({
   selector: 'app-grupo-detalle',
   standalone: true,
-  imports: [RouterLink, FormsModule, NfBadge, NfButton, NfModal, NfSegmented, NfSkeleton, NfWindow],
+  imports: [
+    RouterLink,
+    FormsModule,
+    NfBadge,
+    NfButton,
+    NfModal,
+    NfPagination,
+    NfSegmented,
+    NfSkeleton,
+    NfWindow,
+  ],
   template: `
     @switch (store.status()) {
       @case ('loading') {
@@ -90,7 +105,7 @@ const ROLE_RANK: Record<GroupRole, number> = { OWNER: 0, ADMIN: 1, MEMBER: 2 };
                 <h1 class="group-hero__name">{{ g.name }}</h1>
                 <div class="group-hero__badges">
                   <nf-badge [color]="g.role === 'OWNER' ? 'pink' : 'cyan'">{{ g.role }}</nf-badge>
-                  <span class="group-hero__count nf-mono">◉ {{ store.roster().length }} MIEMBROS</span>
+                  <span class="group-hero__count nf-mono">◉ {{ store.memberCount() }} MIEMBROS</span>
                 </div>
               </div>
             </div>
@@ -112,63 +127,90 @@ const ROLE_RANK: Record<GroupRole, number> = { OWNER: 0, ADMIN: 1, MEMBER: 2 };
               <button nfButton variant="ghost" size="md" [routerLink]="['/app', 'grupos']">← TODOS</button>
             </div>
 
-            @if (store.canManage()) {
-              <nf-segmented
-                class="gd-tabs"
-                [options]="tabOptions()"
-                [value]="tab()"
-                (valueChange)="setTab($event)"
-                ariaLabel="Miembros o invitados"
-              />
-            } @else {
-              <div class="view__label nf-mono">▸ MIEMBROS</div>
-            }
+            <!-- Una sola ventana para las dos secciones: las pestañas viven DENTRO, pegadas bajo
+                 la barra de título, y el paginador es su barra de estado. Antes el segmented
+                 flotaba fuera y el título de la ventana repetía el mismo estado: dos indicadores
+                 sueltos de lo mismo. -->
+            <nf-window
+              [title]="showingInvites() ? 'invitados.exe' : 'miembros.exe'"
+              [accent]="showingInvites() ? 'pink' : 'cyan'"
+              bodyPadding="0"
+            >
+              @if (store.canManage()) {
+                <nf-segmented
+                  variant="tabs"
+                  [options]="tabOptions()"
+                  [value]="tab()"
+                  (valueChange)="setTab($event)"
+                  ariaLabel="Miembros o invitados"
+                />
+              }
 
-            @if (!store.canManage() || tab() === 'members') {
-              <nf-window title="miembros.exe" accent="cyan" bodyPadding="0">
-                <div class="gd-members">
-                  @for (m of members(); track m.userId) {
-                    <div class="gd-member">
-                      <span class="gd-member__avatar" [style.background]="avatarBg(m.userId)">
-                        @if (m.avatarUrl) {
-                          <img class="gd-member__avatar-img" [src]="m.avatarUrl" alt="" />
-                        } @else {
-                          {{ initials(m.discordUsername) }}
-                        }
-                      </span>
-                      <div class="gd-member__meta">
-                        <div class="gd-member__name nf-mono">
-                          {{ m.discordUsername }}@if (isMe(m)) {<span class="gd-member__you nf-mono"> · TÚ</span>}
+              @if (!showingInvites()) {
+                <div class="gd-members" [attr.aria-busy]="store.membersLoading() ? 'true' : null">
+                  @if (store.membersLoading()) {
+                    <!-- Tantos esqueletos como filas tenía la página que se sustituye: la ventana
+                         no colapsa ni pega un salto al llegar la nueva. -->
+                    @for (s of memberSkeletons(); track s) {
+                      <div class="gd-member">
+                        <nf-skeleton width="38px" height="38px" radius="11px" />
+                        <div class="gd-member__meta">
+                          <nf-skeleton width="140px" height="13px" />
+                          <nf-skeleton width="70px" height="11px" />
                         </div>
-                        <div class="gd-member__role nf-mono">{{ m.role }}</div>
                       </div>
-                      @if (m.role === 'OWNER') {
-                        <nf-badge color="pink">OWNER</nf-badge>
-                      } @else if (m.role === 'ADMIN') {
-                        <nf-badge color="cyan">ADMIN</nf-badge>
-                      }
-                      <div class="gd-member__actions">
-                        @if (canPromote(m)) {
-                          <button nfButton variant="ghost" size="sm" [disabled]="store.isActing(m.userId)" (click)="promote(m)">↑ ADMIN</button>
+                    }
+                  } @else {
+                    @for (m of members(); track m.userId) {
+                      <div class="gd-member">
+                        <span class="gd-member__avatar" [style.background]="avatarBg(m.userId)">
+                          @if (m.avatarUrl) {
+                            <img class="gd-member__avatar-img" [src]="m.avatarUrl" alt="" />
+                          } @else {
+                            {{ initials(m.discordUsername) }}
+                          }
+                        </span>
+                        <div class="gd-member__meta">
+                          <div class="gd-member__name nf-mono">
+                            {{ m.discordUsername }}@if (isMe(m)) {<span class="gd-member__you nf-mono"> · TÚ</span>}
+                          </div>
+                          <div class="gd-member__role nf-mono">{{ m.role }}</div>
+                        </div>
+                        @if (m.role === 'OWNER') {
+                          <nf-badge color="pink">OWNER</nf-badge>
+                        } @else if (m.role === 'ADMIN') {
+                          <nf-badge color="cyan">ADMIN</nf-badge>
                         }
-                        @if (canDemote(m)) {
-                          <button nfButton variant="ghost" size="sm" [disabled]="store.isActing(m.userId)" (click)="demote(m)">↓ MIEMBRO</button>
-                        }
-                        @if (canTransfer(m)) {
-                          <button nfButton variant="ghost" size="sm" [disabled]="store.isActing(m.userId)" (click)="transferTo.set(m)">CORONA ♛</button>
-                        }
-                        @if (canKick(m)) {
-                          <button nfButton variant="danger" size="sm" [disabled]="store.isActing(m.userId)" (click)="kick.set(m)">EXPULSAR</button>
-                        }
+                        <div class="gd-member__actions">
+                          @if (canPromote(m)) {
+                            <button nfButton variant="ghost" size="sm" [disabled]="store.isActing(m.userId)" (click)="promote(m)">↑ ADMIN</button>
+                          }
+                          @if (canDemote(m)) {
+                            <button nfButton variant="ghost" size="sm" [disabled]="store.isActing(m.userId)" (click)="demote(m)">↓ MIEMBRO</button>
+                          }
+                          @if (canTransfer(m)) {
+                            <button nfButton variant="ghost" size="sm" [disabled]="store.isActing(m.userId)" (click)="transferTo.set(m)">CORONA ♛</button>
+                          }
+                          @if (canKick(m)) {
+                            <button nfButton variant="danger" size="sm" [disabled]="store.isActing(m.userId)" (click)="kick.set(m)">EXPULSAR</button>
+                          }
+                        </div>
                       </div>
-                    </div>
+                    }
                   }
                 </div>
-              </nf-window>
-            }
 
-            @if (store.canManage() && tab() === 'invites') {
-              <nf-window title="invitados.exe" accent="pink" bodyPadding="0">
+                @if (store.memberCount() > store.membersPageSize()) {
+                  <div class="gd-statusbar">
+                    <nf-pagination
+                      [total]="store.memberCount()"
+                      [pageSize]="store.membersPageSize()"
+                      [page]="store.membersPage() + 1"
+                      (pageChange)="goToMembersPage($event)"
+                    />
+                  </div>
+                }
+              } @else {
                 @switch (groupInvitations.status()) {
                   @case ('loading') {
                     <div class="gd-members" aria-busy="true">
@@ -225,8 +267,8 @@ const ROLE_RANK: Record<GroupRole, number> = { OWNER: 0, ADMIN: 1, MEMBER: 2 };
                     }
                   }
                 }
-              </nf-window>
-            }
+              }
+            </nf-window>
           </div>
         }
       }
@@ -349,14 +391,21 @@ export class GrupoDetalle {
     { initialValue: '' },
   );
 
-  /** Roster ordenado: owner, luego admins, luego miembros; alfabético dentro de cada grupo. */
-  readonly members = computed(() =>
-    [...this.store.roster()].sort(
-      (a, b) =>
-        ROLE_RANK[a.role] - ROLE_RANK[b.role] ||
-        a.discordUsername.localeCompare(b.discordUsername),
-    ),
+  /**
+   * La página visible del roster, TAL CUAL la manda el backend. No se reordena aquí: con
+   * paginación en servidor, ordenar la página en cliente la descolocaría respecto al orden
+   * global (owner, admins y miembros, y por antigüedad dentro de cada rango) y la misma persona
+   * podría aparecer en dos páginas distintas.
+   */
+  readonly members = computed(() => this.store.roster());
+
+  /** Filas de esqueleto mientras viaja otra página: tantas como tenía la página que se sustituye. */
+  readonly memberSkeletons = computed(() =>
+    Array.from({ length: Math.max(1, this.store.roster().length) }, (_, i) => i),
   );
+
+  /** Se está mirando la pestaña de invitados (solo existe para quien gestiona el grupo). */
+  readonly showingInvites = computed(() => this.store.canManage() && this.tab() === 'invites');
 
   // ── Diálogos de confirmación / estado local de UI ──────────────────
   readonly confirmDelete = signal(false);
@@ -372,10 +421,16 @@ export class GrupoDetalle {
   readonly tabOptions = computed<NfSegmentOption[]>(() => {
     const invites = this.groupInvitations.invitations().length;
     return [
-      { value: 'members', label: `MIEMBROS · ${this.members().length}` },
+      // El contador es el total del grupo, no el de la página visible.
+      { value: 'members', label: `MIEMBROS · ${this.store.memberCount()}` },
       { value: 'invites', label: invites ? `INVITADOS · ${invites}` : 'INVITADOS' },
     ];
   });
+
+  /** Salta de página en el roster. `<nf-pagination>` es 1-based; el backend, 0-based. */
+  goToMembersPage(page: number): void {
+    void this.store.goToMembersPage(page - 1);
+  }
 
   // ── Invitar ────────────────────────────────────────────────────────
   /** Abre/cierra el modal de invitar (estado de UI). */
@@ -390,7 +445,12 @@ export class GrupoDetalle {
   private searchTimer: ReturnType<typeof setTimeout> | null = null;
   private searchSeq = 0;
 
-  /** Candidatos: resultados menos quienes ya están en el roster (por userId). */
+  /**
+   * Candidatos: resultados menos quienes ya están en el roster (por userId). Con el roster
+   * paginado esto solo filtra a los miembros de la página cargada, así que es una comodidad,
+   * no una garantía: invitar a alguien que ya es miembro lo rechaza el backend con un 409
+   * `ALREADY_MEMBER`, que `errorMessage()` ya traduce.
+   */
   readonly candidates = computed(() => {
     const inGroup = new Set(this.store.roster().map((m) => m.userId));
     return this.results().filter((u) => !inGroup.has(u.userId));
@@ -414,7 +474,7 @@ export class GrupoDetalle {
         tag: g.region ?? 'LAN',
         initials: g.initials,
         role: g.role === 'OWNER' ? 'OWNER' : 'MIEMBRO',
-        members: this.store.roster().length,
+        members: this.store.memberCount(),
         c1: g.c1,
         c2: g.c2,
         avatar: g.avatarUrl ?? undefined,

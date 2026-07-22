@@ -185,7 +185,13 @@ Reglas de oro del manejo de errores:
 
 - ~~**Formato de error**~~ → **ACORDADO**: ProblemDetail RFC 7807 + `code` estable obligatorio.
   Documentado arriba en § "Formato de error" y en `core/http/api-error.ts`.
-- **Contrato de paginación** (page/size vs cursor) → condiciona `NfPagination` y los stores de listas.
+- ~~**Contrato de paginación**~~ → **ACORDADO**: paginación por **offset**. El cliente manda
+  `?page=&size=` (`page` 0-based) y recibe `PageResponse<T>` = `{ content, page, size,
+  totalElements, totalPages }`. El tipo vive en `core/http/page.ts` (uno solo para toda la app,
+  no una copia por dominio). `totalElements` es el total de la colección, así que también es el
+  contador que se pinta ("24 miembros"), nunca `content.length`. `<nf-pagination>` es 1-based:
+  al pintarlo va `[page]="page + 1"` y al recibir el evento se resta 1.
+  Lo usan `GET /admin/feedback` y `GET /groups/{id}/members`.
 - **Canal realtime** (WebSocket vs SSE, y su autenticación) para salas/drafts/notificaciones.
 - **Ids estables de jugador/miembro/grupo** y su relación con la identidad Discord de `/me`.
 

@@ -8,3 +8,4 @@ export {
   type ApiFieldError,
 } from './api-error';
 export { SessionRecovery, sessionRecoveryInterceptor } from './session-recovery';
+export { type PageResponse } from './page';

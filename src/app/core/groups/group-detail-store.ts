@@ -5,6 +5,7 @@ import { GroupsApi } from './groups-api';
 import { GroupsStore } from './groups-store';
 import { GroupMemberResponse, GroupRole } from './models';
 import { GroupView, groupView } from './group-view';
+import { PageResponse } from '../http';
 
 /** `not-found` = el grupo no existe o no eres miembro (403/404): un estado 404 de la vista. */
 export type GroupDetailStatus = 'idle' | 'loading' | 'ready' | 'error' | 'not-found';
@@ -15,22 +16,43 @@ export type GroupDetailStatus = 'idle' | 'loading' | 'ready' | 'error' | 'not-fo
  * lista cuando cambia tu pertenencia); aquí, tras cada una, se refetch el roster para que la
  * tabla no mienta. Cancela respuestas obsoletas al cambiar de `:id` comprobando el id activo
  * antes de escribir en las signals.
+ *
+ * El roster está paginado EN SERVIDOR: `roster()` es solo la página visible, y el número real
+ * de miembros del grupo es `memberCount()` (el `totalElements` de la página). Cualquier vista
+ * que quiera decir "N miembros" debe leer ese contador, nunca `roster().length`.
  */
 @Injectable({ providedIn: 'root' })
 export class GroupDetailStore {
   private readonly api = inject(GroupsApi);
   private readonly groups = inject(GroupsStore);
 
+  /** Miembros por página. Encaja con el alto de la ventana sin obligar a hacer scroll. */
+  static readonly MEMBERS_PAGE_SIZE = 10;
+
   private readonly _status = signal<GroupDetailStatus>('idle');
   private readonly _group = signal<GroupView | null>(null);
-  private readonly _roster = signal<GroupMemberResponse[]>([]);
+  private readonly _members = signal<PageResponse<GroupMemberResponse> | null>(null);
+  private readonly _membersLoading = signal(false);
   /** El grupo que se está mostrando; descarta respuestas de un id ya abandonado. */
   private currentId: string | null = null;
+  /** Secuencia de peticiones de página: descarta la respuesta de una página ya abandonada. */
+  private membersSeq = 0;
 
   readonly status = this._status.asReadonly();
   readonly group = this._group.asReadonly();
-  readonly roster = this._roster.asReadonly();
   readonly isLoading = computed(() => this._status() === 'loading');
+
+  /** Los miembros de la página visible. NO es el grupo entero: para eso, `memberCount()`. */
+  readonly roster = computed<GroupMemberResponse[]>(() => this._members()?.content ?? []);
+  /** Miembros totales del grupo (`totalElements`), lo que se pinta como "N MIEMBROS". */
+  readonly memberCount = computed(() => this._members()?.totalElements ?? 0);
+  /** Página visible, 0-based (como la manda el backend). */
+  readonly membersPage = computed(() => this._members()?.page ?? 0);
+  readonly membersPageSize = computed(
+    () => this._members()?.size ?? GroupDetailStore.MEMBERS_PAGE_SIZE,
+  );
+  /** Hay un cambio de página en vuelo: la lista se pinta con esqueletos, la vista no se vacía. */
+  readonly membersLoading = this._membersLoading.asReadonly();
 
   /** Rol del llamante en este grupo (del detalle). */
   readonly myRole = computed<GroupRole | null>(() => this._group()?.role ?? null);
@@ -55,17 +77,18 @@ export class GroupDetailStore {
    */
   async load(groupId: string): Promise<void> {
     this.currentId = groupId;
+    this.membersSeq++;
     this._status.set('loading');
     this._group.set(null);
-    this._roster.set([]);
+    this._members.set(null);
     try {
-      const [membership, roster] = await Promise.all([
+      const [membership, members] = await Promise.all([
         firstValueFrom(this.api.detail(groupId)),
-        firstValueFrom(this.api.members(groupId)),
+        firstValueFrom(this.api.members(groupId, 0, GroupDetailStore.MEMBERS_PAGE_SIZE)),
       ]);
       if (this.currentId !== groupId) return;
       this._group.set(groupView(membership));
-      this._roster.set(roster);
+      this._members.set(members);
       this._status.set('ready');
       // Mantener la barra lateral y el banner en sintonía con lo que se está viendo.
       this.groups.select(groupId);
@@ -75,15 +98,41 @@ export class GroupDetailStore {
     }
   }
 
-  /** Refetch solo del roster (tras expulsar / cambiar rol). No-op si no hay grupo activo. */
+  /**
+   * Salta a una página del roster (0-based). Deja la página anterior en pantalla mientras la
+   * nueva viaja —marcada con `membersLoading()`— para que la ventana no colapse y vuelva a
+   * crecer. Si se pide otra página antes de que llegue esta, la respuesta vieja se descarta.
+   */
+  async goToMembersPage(page: number): Promise<void> {
+    const groupId = this.currentId;
+    if (!groupId) return;
+    const seq = ++this.membersSeq;
+    this._membersLoading.set(true);
+    try {
+      const members = await firstValueFrom(
+        this.api.members(groupId, Math.max(0, page), GroupDetailStore.MEMBERS_PAGE_SIZE),
+      );
+      if (seq !== this.membersSeq || this.currentId !== groupId) return;
+      this._members.set(members);
+    } catch {
+      // Un fallo de paginación no debe romper la vista: se queda la página que ya estaba.
+    } finally {
+      if (seq === this.membersSeq) this._membersLoading.set(false);
+    }
+  }
+
+  /**
+   * Refetch de la página visible del roster (tras expulsar / cambiar rol). Si al expulsar se
+   * vacía la última página, retrocede una: quedarse en una página que ya no existe pintaría una
+   * lista vacía con el paginador diciendo que hay miembros.
+   */
   async reloadRoster(): Promise<void> {
     const groupId = this.currentId;
     if (!groupId) return;
-    try {
-      const roster = await firstValueFrom(this.api.members(groupId));
-      if (this.currentId === groupId) this._roster.set(roster);
-    } catch {
-      // Un fallo de refetch no debe romper la vista; el siguiente `load` corrige.
+    const page = this.membersPage();
+    await this.goToMembersPage(page);
+    if (page > 0 && this.currentId === groupId && this.roster().length === 0) {
+      await this.goToMembersPage(page - 1);
     }
   }
 
@@ -145,9 +194,11 @@ export class GroupDetailStore {
   /** Al cerrar sesión no debe quedar rastro del grupo del usuario anterior. */
   clear(): void {
     this.currentId = null;
+    this.membersSeq++;
     this._status.set('idle');
     this._group.set(null);
-    this._roster.set([]);
+    this._members.set(null);
+    this._membersLoading.set(false);
     this._acting.set(new Set());
     this._busy.set(false);
   }

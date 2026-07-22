@@ -37,3 +37,48 @@
   outline: 2px solid var(--nf-cyan);
   outline-offset: 1px;
 }
+
+/* ---- variant "tabs": pestañas pegadas al contenedor que gobiernan ----
+   Sin borde ni radio propios y a ancho completo, para encajar a hueso bajo la barra de
+   título de una <nf-window>. La pestaña activa toma el fondo del cuerpo y borra su línea
+   inferior: es lo que hace que ventana y pestaña se lean como una sola pieza en vez de
+   como dos controles apilados. */
+.nf-seg--tabs {
+  display: flex;
+  gap: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: var(--nf-inset);
+}
+
+.nf-seg--tabs .nf-seg__btn {
+  flex: 1;
+  min-width: 0;
+  padding: 11px 16px;
+  border-radius: 0;
+  border-bottom: var(--bw-hair) solid var(--nf-border);
+  /* Separador entre pestañas; la última no lo lleva (regla de abajo). */
+  border-right: var(--bw-hair) solid var(--nf-border);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: background 0.18s, color 0.18s, border-color 0.18s;
+}
+
+.nf-seg--tabs .nf-seg__btn:last-child {
+  border-right: 0;
+}
+
+.nf-seg--tabs .nf-seg__btn:hover:not(.nf-seg__btn--on) {
+  background: var(--nf-elevated);
+}
+
+.nf-seg--tabs .nf-seg__btn--on {
+  background: var(--nf-surface);
+  border-bottom-color: transparent;
+}
+
+.nf-seg--tabs .nf-seg__btn:focus-visible {
+  outline-offset: -2px;
+}

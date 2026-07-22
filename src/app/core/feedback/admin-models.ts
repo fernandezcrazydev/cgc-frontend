@@ -24,14 +24,12 @@ export interface FeedbackAuthor {
   avatarUrl: string | null;
 }
 
-/** Una porción paginada, espejo de `PageResponse<T>` del backend (paginación por offset). */
-export interface PageResponse<T> {
-  content: T[];
-  page: number;
-  size: number;
-  totalElements: number;
-  totalPages: number;
-}
+/**
+ * Una porción paginada. El contrato NO es de este dominio: lo comparten todos los endpoints
+ * paginados, así que vive en `core/http` y aquí solo se reexporta para no romper a quien ya
+ * lo importaba desde este módulo.
+ */
+export type { PageResponse } from '../http';
 
 /** Fila de la tabla de triaje: lo justo para escanear y priorizar, sin el cuerpo completo. */
 export interface FeedbackSummary {

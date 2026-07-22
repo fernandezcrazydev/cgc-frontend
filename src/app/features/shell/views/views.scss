@@ -3761,7 +3761,20 @@
 
 .gd-confirm { font-size: 14px; line-height: 1.5; color: var(--nf-text); margin: 0 0 20px; }
 
-.gd-tabs { margin-bottom: 16px; }
+/* Barra de estado de la ventana: aloja el paginador del roster pegado al borde inferior,
+   como el status bar de una ventana de escritorio. Solo se pinta si hay más de una página. */
+.gd-statusbar {
+  display: flex;
+  justify-content: center;
+  padding: 10px 16px;
+  background: var(--nf-inset);
+  border-top: var(--bw-hair) solid var(--nf-border);
+}
+/* El paginador nace suelto en una página (de ahí su margen superior) y aquí va empotrado:
+   se le quita el margen y se compactan los botones para que quepan en la barra. */
+.gd-statusbar .nf-pager { width: 100%; margin-top: 0; }
+.gd-statusbar .nf-pager__btn { min-width: 30px; height: 30px; }
+
 .gd-invites-empty {
   display: flex;
   flex-direction: column;
