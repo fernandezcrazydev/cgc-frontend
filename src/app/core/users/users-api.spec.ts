@@ -22,7 +22,9 @@ describe('UsersApi', () => {
   afterEach(() => http.verify());
 
   it('search hace GET /users con el query', () => {
-    const expected: UserSearchResult[] = [{ userId: 'u1', discordUsername: 'St0rm', avatarUrl: null }];
+    const expected: UserSearchResult[] = [
+      { userId: 'u1', discordUsername: 'St0rm', avatarUrl: null, acceptsGroupInvites: true },
+    ];
     let received: UserSearchResult[] | undefined;
     api.search('st0').subscribe((r) => (received = r));
 

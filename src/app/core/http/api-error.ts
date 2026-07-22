@@ -65,10 +65,11 @@ const MESSAGES_BY_CODE: Record<string, string> = {
   DUPLICATE_PENDING_INVITATION: 'Este usuario ya tiene una invitación pendiente.',
   GROUP_QUOTA_EXCEEDED: 'Has alcanzado el número máximo de grupos que puedes tener.',
   IMAGE_TOO_LARGE: 'La imagen es demasiado grande. Usa uno más ligero.',
+  INVALID_RIOT_ID: 'Ese Riot ID no es válido. Debe ser «Nombre#TAG», tal y como aparece en el cliente.',
   INVITATION_NOT_FOUND: 'Esa invitación ya no existe.',
   INVITATION_NOT_PENDING: 'Esa invitación ya no está pendiente: se aceptó, se rechazó o se canceló.',
   INVITEE_NOT_FOUND: 'No se ha encontrado ese usuario.',
-  INVALID_RIOT_ID: 'Ese Riot ID no es válido. Debe ser «Nombre#TAG», tal y como aparece en el cliente.',
+  INVITEE_REFUSES_INVITATIONS: 'Este usuario no acepta invitaciones a grupos nuevos.',
   RIOT_ACCOUNT_ALREADY_LINKED:
     'Esa cuenta de Riot ya está vinculada por otro usuario. Si es tuya, pídele que la desvincule.',
   RIOT_ACCOUNT_NOT_LINKED: 'No tienes ninguna cuenta de Riot vinculada.',

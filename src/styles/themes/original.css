@@ -185,6 +185,21 @@
   background: transparent;
 }
 
+/* ---- Toasts: cristal con sombra difusa, sin sombra dura ni glow ---- */
+:root[data-theme='original'] .nf-toast {
+  background: rgba(23, 26, 46, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: var(--nf-radius-lg);
+  /* Sombra corta a propósito: el clip del host recorta en vertical a la altura de
+     --nf-toast-gap, así que aquí no cabe el 0 12px 32px de --nf-shadow-card. */
+  box-shadow: 0 4px 10px -3px rgba(0, 0, 0, 0.55);
+}
+:root[data-theme='original'] .nf-toast:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px -3px rgba(0, 0, 0, 0.6);
+}
+
 /* ---- Utilidad mono: en este tema no hay mono, pero las cifras se alinean ---- */
 :root[data-theme='original'] .nf-mono {
   font-variant-numeric: tabular-nums;
