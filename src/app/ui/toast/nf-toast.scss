@@ -1,32 +1,129 @@
-/* NEXUS//FORGE · Toast host (global, ViewEncapsulation.None) */
+/* NEXUS//FORGE · Toast host (global, ViewEncapsulation.None)
+
+   Entrada y salida son TRANSICIONES, no keyframes: la entrada arranca desde
+   `@starting-style` y la salida desde `.is-leaving`. Con dos animaciones sobre las
+   mismas propiedades, el `animation-fill-mode` de la entrada se quedaría dueño del
+   `transform` y el hover dejaría de funcionar; así ambas comparten transición y el
+   navegador interpola desde donde esté (una salida a media entrada no da tirón).
+
+   El hueco lo colapsa el slot con el truco de `grid-template-rows: 1fr → 0fr`, de
+   modo que los toasts de al lado se recolocan solos sin medir alturas en JS. */
 
 .nf-toasts {
+  /* Margen vertical de cada toast (separación real = x2). También es TODO el aire
+     que tiene la sombra: el clip recorta en vertical, así que ninguna sombra puede
+     salirse más de esto. Si tocas una, comprueba la otra. */
+  --nf-toast-gap: 10px;
+  --nf-toast-enter: 340ms;
+  --nf-toast-exit: 240ms; /* == EXIT_MS en core/toast.ts */
+  --nf-toast-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --nf-toast-ease-in: cubic-bezier(0.5, 0, 0.75, 0);
+  --nf-toast-accent: var(--nf-cyan); /* lo pisa cada variante */
+
   position: fixed;
   right: clamp(14px, 4vw, 26px);
   bottom: clamp(14px, 4vw, 26px);
   z-index: 200;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  max-width: min(360px, calc(100vw - 28px));
+  width: min(380px, calc(100vw - 28px));
   pointer-events: none;
 }
 
+/* Capa 1 · el hueco. Solo anima su altura. */
+.nf-toast-slot {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows var(--nf-toast-enter) var(--nf-toast-ease-out);
+}
+
+.nf-toast-slot.is-leaving {
+  grid-template-rows: 0fr;
+  transition-duration: var(--nf-toast-exit);
+  transition-timing-function: var(--nf-toast-ease-in);
+}
+
+/* Capa 2 · entrada/salida + recorte durante el colapso.
+   El padding lateral deja sitio a la sombra dura y al glow para que no se recorten
+   en reposo; el margen negativo lo devuelve al layout. En vertical el aire lo pone
+   el margen del propio toast (ver .nf-toast), que además hace de separación. */
+.nf-toast-clip {
+  min-height: 0;
+  overflow: hidden;
+  padding-inline: 34px;
+  margin-inline: -34px;
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity var(--nf-toast-enter) var(--nf-toast-ease-out),
+    transform var(--nf-toast-enter) var(--nf-toast-ease-out);
+}
+
+.nf-toast-slot.is-leaving .nf-toast-clip {
+  opacity: 0;
+  transform: translateX(26px) scale(0.96);
+  transition-duration: var(--nf-toast-exit);
+  transition-timing-function: var(--nf-toast-ease-in);
+}
+
+/* Estado inicial de un toast recién insertado: mismo sitio del que sale. */
+@starting-style {
+  .nf-toast-slot {
+    grid-template-rows: 0fr;
+  }
+  .nf-toast-clip {
+    opacity: 0;
+    transform: translateX(26px) scale(0.96);
+  }
+}
+
+/* Capa 3 · la tarjeta. */
 .nf-toast {
   pointer-events: auto;
-  display: flex;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
   align-items: center;
-  gap: 11px;
-  width: 100%;
-  text-align: left;
-  padding: 12px 15px;
+  gap: 12px;
+  margin-block: var(--nf-toast-gap);
+  padding: 13px 14px;
   border-radius: var(--nf-radius);
-  border: 2px solid var(--nf-border);
+  border: var(--bw-2, 2px) solid color-mix(in srgb, var(--nf-toast-accent) 30%, var(--nf-border));
+  /* Barra de acento: la variante se lee de un vistazo sin depender del glifo. */
+  border-left: 4px solid var(--nf-toast-accent);
   background: var(--nf-surface-2);
   color: var(--nf-text);
-  cursor: pointer;
-  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.35);
-  animation: nf-toast-in 0.22s cubic-bezier(0.2, 0.9, 0.3, 1.3) both;
+  /* Sombra dura (la firma de Nexus) + aro interior del acento. El glow exterior de
+     antes no cabe aquí: el clip lo cortaría en seco por arriba y por abajo. */
+  box-shadow:
+    4px 4px 0 rgba(0, 0, 0, 0.35),
+    inset 0 0 0 1px color-mix(in srgb, var(--nf-toast-accent) 14%, transparent);
+  transition:
+    transform 180ms var(--nf-toast-ease-out),
+    box-shadow 180ms var(--nf-toast-ease-out);
+}
+
+/* Velo de color propio de la variante, muy tenue, para que la tarjeta no sea un
+   rectángulo gris con un borde de color. */
+.nf-toast::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(
+    100deg,
+    color-mix(in srgb, var(--nf-toast-accent) 16%, transparent),
+    transparent 58%
+  );
+}
+
+.nf-toast:hover {
+  transform: translate(-2px, -2px);
+  box-shadow:
+    6px 6px 0 rgba(0, 0, 0, 0.4),
+    inset 0 0 0 1px color-mix(in srgb, var(--nf-toast-accent) 32%, transparent);
 }
 
 .nf-toast__glyph {
@@ -35,39 +132,114 @@
   justify-content: center;
   width: 24px;
   height: 24px;
-  flex: none;
   border-radius: 50%;
   font-size: 13px;
   font-weight: 700;
+  line-height: 1;
+  background: var(--nf-toast-accent);
   color: var(--nf-void);
 }
 
 .nf-toast__msg {
-  font-size: 12px;
-  letter-spacing: 0.4px;
+  margin: 0;
+  font-size: 13px;
   line-height: 1.45;
+  /* Un toast no es un párrafo: si el mensaje se desmadra, se recorta. */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  line-clamp: 4;
+  overflow: hidden;
 }
 
-/* ---- variants ---- */
+.nf-toast__close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--nf-radius-sm);
+  background: transparent;
+  color: var(--nf-text-dim);
+  font-size: 11px;
+  cursor: pointer;
+  /* Discreto hasta que hay intención de tocarlo, pero nunca invisible del todo. */
+  opacity: 0.55;
+  transition:
+    opacity 160ms ease,
+    background-color 160ms ease,
+    color 160ms ease;
+}
+
+.nf-toast:hover .nf-toast__close,
+.nf-toast__close:focus-visible {
+  opacity: 1;
+}
+
+.nf-toast__close:hover {
+  background: color-mix(in srgb, var(--nf-text) 12%, transparent);
+  color: var(--nf-text);
+}
+
+/* Cuenta atrás visible: el usuario ve cuánto le queda y por qué se para al pasar
+   el ratón. Consume la misma duración que el temporizador del servicio. */
+.nf-toast__progress {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 2px;
+  transform-origin: left;
+  background: var(--nf-toast-accent);
+  opacity: 0.75;
+  animation: nf-toast-life var(--nf-toast-life, 4200ms) linear forwards;
+}
+
+.nf-toasts.is-paused .nf-toast__progress {
+  animation-play-state: paused;
+}
+
+/* Un toast que ya se está yendo no debe seguir contando. */
+.nf-toast-slot.is-leaving .nf-toast__progress {
+  animation-play-state: paused;
+  opacity: 0;
+}
+
+@keyframes nf-toast-life {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
+/* ---- variantes: solo cambian el acento ---- */
 .nf-toast--success {
-  border-color: color-mix(in srgb, var(--nf-green) 55%, var(--nf-border));
-  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.35), 0 0 18px color-mix(in srgb, var(--nf-green) 28%, transparent);
+  --nf-toast-accent: var(--nf-green);
 }
-.nf-toast--success .nf-toast__glyph { background: var(--nf-green); }
-
 .nf-toast--error {
-  border-color: color-mix(in srgb, var(--nf-red) 55%, var(--nf-border));
-  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.35), 0 0 18px color-mix(in srgb, var(--nf-red) 28%, transparent);
+  --nf-toast-accent: var(--nf-red);
 }
-.nf-toast--error .nf-toast__glyph { background: var(--nf-red); color: #fff; }
-
 .nf-toast--info {
-  border-color: color-mix(in srgb, var(--nf-cyan) 55%, var(--nf-border));
-  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.35), 0 0 18px color-mix(in srgb, var(--nf-cyan) 28%, transparent);
+  --nf-toast-accent: var(--nf-cyan);
 }
-.nf-toast--info .nf-toast__glyph { background: var(--nf-cyan); }
 
-@keyframes nf-toast-in {
-  from { opacity: 0; transform: translateY(14px) scale(0.96); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
+.nf-toast--error .nf-toast__glyph {
+  color: #fff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nf-toast-slot,
+  .nf-toast-clip,
+  .nf-toast,
+  .nf-toast__close {
+    transition-duration: 1ms;
+  }
+  /* La barra sigue: informa del tiempo restante, no es decoración. */
+  .nf-toast:hover {
+    transform: none;
+  }
 }
