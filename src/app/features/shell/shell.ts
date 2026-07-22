@@ -7,6 +7,7 @@ import { Auth, Session } from '../../core/auth';
 import { GroupDetailStore, GroupsStore, InvitationsStore } from '../../core/groups';
 import { MatchStore, MatchRoom } from '../../core/match-store';
 import { NotificationsStore, NotificationView, notificationView } from '../../core/notifications';
+import { RiotAccountStore } from '../../core/riot';
 import { ToastService } from '../../core/toast';
 import { NfButton, NfSkeleton, NfToastHost, NfWindow } from '../../ui';
 import { FeedbackDialog } from '../feedback/feedback-dialog';
@@ -44,6 +45,7 @@ export class Shell {
   /** Invitaciones pendientes: fuente de verdad de "¿este invite sigue vivo?". */
   readonly invitations = inject(InvitationsStore);
   private readonly groupDetail = inject(GroupDetailStore);
+  private readonly riot = inject(RiotAccountStore);
   private readonly toasts = inject(ToastService);
 
   /** Vista de presentación de la bandeja: título/mensaje/tiempo en español por notificación. */
@@ -263,6 +265,7 @@ export class Shell {
     this.invitations.clear();
     this.groups.clear();
     this.groupDetail.clear();
+    this.riot.clear();
     await this.auth.logout();
     await this.router.navigateByUrl('/');
   }

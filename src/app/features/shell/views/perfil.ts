@@ -6,6 +6,8 @@ import { GroupStore } from '../../../core/group-store';
 import { opggUrl } from '../../../core/member-detail';
 import { buildPlayerProfile } from '../../../core/player-profile';
 import { LANE_ROLES, LaneRole, PreferencesStore, RolePreferences } from '../../../core/preferences';
+import { RIOT_REGIONS, RiotAccount, RiotAccountStore, RiotRegion } from '../../../core/riot';
+import { errorMessage } from '../../../core/http';
 import { ToastService } from '../../../core/toast';
 
 /** "may 2025" — el chip lo pone en mayúsculas. Fijado a es-ES: la UI es en español. */
@@ -20,20 +22,13 @@ interface RoleTile {
   glyph: string;
 }
 
-/**
- * Cuenta de Riot vinculada al usuario. Mockup de UI: hoy vive en una signal
- * local del componente.
- *
- * BACKEND NOTE: la vinculación real la dueña el backend — `riotId` y `region`
- * los devolverá `GET /api/v1/me` (o un endpoint de cuentas vinculadas) junto a
- * la identidad Discord, y "vincular"/"desvincular" serán POST/DELETE. Al migrar,
- * borrar la signal semilla y leer del store; nunca mantener mock y real a la vez.
- */
-interface RiotLink {
-  /** Riot ID completo, formato `Nombre#TAG`. */
-  riotId: string;
-  region: string;
-}
+/** "23 jul, 10:00" — la fecha en que el cooldown de re-vinculación se levanta. */
+const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
+  day: 'numeric',
+  month: 'short',
+  hour: '2-digit',
+  minute: '2-digit',
+});
 
 /**
  * Personal player profile — a cross-group career card. Every figure here is
@@ -209,37 +204,63 @@ interface RiotLink {
           }
         }
 
-        <!-- Cuenta de Riot vinculada (mockup) -->
+        <!-- Cuenta de Riot vinculada -->
         <div class="view__label nf-mono">▸ CUENTA DE RIOT</div>
-        @if (riotAccount(); as riot) {
-          <div class="pf-riot pf-riot--linked">
-            <span class="pf-riot__logo nf-mono" aria-hidden="true">R</span>
-            <div class="pf-riot__meta">
-              <div class="pf-riot__id">{{ riot.riotId }}</div>
-              <div class="pf-riot__sub nf-mono">
-                <span class="pf-riot__chip"><span class="pf-ping"></span>{{ riot.region }}</span>
-                <span class="pf-riot__chip pf-riot__chip--ok">✓ VINCULADA</span>
+        @switch (riot.status()) {
+          @case ('loading') {
+            <!-- Mismo hueco que la tarjeta real: al llegar el dato no salta nada. -->
+            <div aria-busy="true"><nf-skeleton width="100%" height="84px" radius="10px" /></div>
+          }
+          @case ('error') {
+            <div class="pf-riot pf-riot--empty">
+              <div class="pf-riot__cta">
+                <div class="pf-riot__ctatitle">No hemos podido cargar tu cuenta de Riot</div>
+                <p class="pf-riot__ctatext">Puede ser un problema de conexión.</p>
               </div>
+              <button nfButton variant="ghost" size="md" (click)="retryRiot()">Reintentar</button>
             </div>
-            <div class="pf-riot__actions">
-              <a class="pf-hero__opgg nf-mono nf-caps nf-go" [href]="opgg(riot.riotId)" target="_blank" rel="noopener">
-                Ver en OP.GG
-              </a>
-              <button nfButton variant="ghost" size="sm" (click)="askUnlink()">Desvincular</button>
-            </div>
-          </div>
-        } @else {
-          <div class="pf-riot pf-riot--empty">
-            <div class="pf-riot__cta">
-              <div class="pf-riot__ctatitle">Sin cuenta de Riot vinculada</div>
-              <p class="pf-riot__ctatext">
-                Vincula tu cuenta para que tus estadísticas de invocador aparezcan en tu perfil.
-              </p>
-            </div>
-            <button nfButton variant="accent" size="md" (click)="startLinking()">
-              ＋ Vincular cuenta de Riot
-            </button>
-          </div>
+          }
+          @default {
+            @if (riot.account(); as account) {
+              <div class="pf-riot pf-riot--linked">
+                <span class="pf-riot__logo nf-mono" aria-hidden="true">R</span>
+                <div class="pf-riot__meta">
+                  <div class="pf-riot__id">{{ account.riotId }}</div>
+                  <div class="pf-riot__sub nf-mono">
+                    <span class="pf-riot__chip"><span class="pf-ping"></span>{{ account.region }}</span>
+                    <!-- Vinculada, NO verificada: nadie ha demostrado que la cuenta sea suya. -->
+                    <span class="pf-riot__chip pf-riot__chip--ok">✓ VINCULADA</span>
+                  </div>
+                </div>
+                <div class="pf-riot__actions">
+                  <a class="pf-hero__opgg nf-mono nf-caps nf-go" [href]="opgg(account.riotId)" target="_blank" rel="noopener">
+                    Ver en OP.GG
+                  </a>
+                  <button nfButton variant="ghost" size="sm" [disabled]="riot.saving()" (click)="askUnlink()">
+                    Desvincular
+                  </button>
+                </div>
+              </div>
+            } @else {
+              <div class="pf-riot pf-riot--empty">
+                <div class="pf-riot__cta">
+                  <div class="pf-riot__ctatitle">Sin cuenta de Riot vinculada</div>
+                  <p class="pf-riot__ctatext">
+                    Vincula tu cuenta para que tus estadísticas de invocador aparezcan en tu perfil.
+                    @if (relinkAvailableAt(); as until) {
+                      <br />
+                      Desvinculaste hace poco: puedes volver a poner <strong>la misma</strong> cuando
+                      quieras, pero para vincular una <strong>distinta</strong> tendrás que esperar
+                      hasta el {{ until }}.
+                    }
+                  </p>
+                </div>
+                <button nfButton variant="accent" size="md" [disabled]="riot.saving()" (click)="startLinking()">
+                  ＋ Vincular cuenta de Riot
+                </button>
+              </div>
+            }
+          }
         }
 
         <!-- Global record strip -->
@@ -410,7 +431,7 @@ interface RiotLink {
               <nf-select
                 [options]="regions"
                 [value]="regionDraft()"
-                (valueChange)="regionDraft.set($event)"
+                (valueChange)="setRegion($event)"
               />
             </div>
           </div>
@@ -426,28 +447,39 @@ interface RiotLink {
           </div>
 
           <div class="form-foot">
-            <button nfButton variant="primary" size="md" [disabled]="!linkValid()" (click)="confirmLink()" class="nf-go">
-              Vincular</button>
-            <button nfButton variant="ghost" size="md" (click)="cancelLinking()">Cancelar</button>
+            <button nfButton variant="primary" size="md" [disabled]="!canLink()" (click)="confirmLink()" class="nf-go">
+              {{ riot.saving() ? 'Vinculando…' : 'Vincular' }}</button>
+            <button nfButton variant="ghost" size="md" [disabled]="riot.saving()" (click)="cancelLinking()">
+              Cancelar
+            </button>
           </div>
         </nf-modal>
       }
 
       <!-- Desvincular: acción destructiva, siempre confirmada -->
-      @if (unlinking(); as riot) {
+      @if (unlinking(); as account) {
         <nf-modal title="desvincular_riot.exe" accent="pink" width="440px" (closed)="cancelUnlink()">
           <div class="settings-eyebrow nf-mono nf-eyebrow">Desvincular cuenta de Riot</div>
 
+          <!-- Lo que NO se pierde importa tanto como lo que sí: nada del histórico cuelga de la
+               cuenta de Riot, así que conviene decirlo antes de que el usuario se lo pregunte. -->
           <p class="confirm__text">
-            Vas a desvincular <strong>{{ riot.riotId }}</strong> de tu perfil. Dejaremos de mostrar
-            tus estadísticas de invocador. Podrás volver a vincularla cuando quieras.
+            Vas a desvincular <strong>{{ account.riotId }}</strong> de tu perfil. Dejaremos de
+            mostrar tus estadísticas de invocador. Tus partidas, tu rating y tus grupos
+            <strong>no se tocan</strong>: cuelgan de tu cuenta, no de la de Riot.
+          </p>
+          <p class="confirm__text">
+            Podrás volver a vincular <strong>esta misma</strong> cuenta cuando quieras; para
+            vincular una <strong>distinta</strong> tendrás que esperar 24 horas.
           </p>
 
           <div class="form-foot">
-            <button nfButton variant="danger" size="md" (click)="confirmUnlink()">
-              Sí, desvincular
+            <button nfButton variant="danger" size="md" [disabled]="riot.saving()" (click)="confirmUnlink()">
+              {{ riot.saving() ? 'Desvinculando…' : 'Sí, desvincular' }}
             </button>
-            <button nfButton variant="ghost" size="md" (click)="cancelUnlink()">Cancelar</button>
+            <button nfButton variant="ghost" size="md" [disabled]="riot.saving()" (click)="cancelUnlink()">
+              Cancelar
+            </button>
           </div>
         </nf-modal>
       }
@@ -480,8 +512,9 @@ export class Perfil {
   ];
 
   constructor() {
-    // Idempotente y deduplicado: si otra vista ya las pidió, no hay petición extra.
+    // Idempotentes y deduplicadas: si otra vista ya las pidió, no hay petición extra.
     this.prefs.ensureLoaded();
+    this.riot.ensureLoaded();
   }
 
   /**
@@ -599,57 +632,98 @@ export class Perfil {
   });
   readonly showAvatarImage = computed(() => !!this.session.avatarUrl() && !this.avatarBroken());
 
-  // ── Cuenta de Riot (mockup, sin backend) ──────────────────────────
-  /** Sembrada como "ya vinculada" para mostrar ese estado por defecto. */
-  readonly riotAccount = signal<RiotLink | null>({ riotId: 'N1ghtfang#LAN', region: 'LAN' });
+  // ── Cuenta de Riot vinculada ──────────────────────────────────────
+  /**
+   * Estado real del servidor. La vinculación es **declarativa**: el backend comprueba que el
+   * Riot ID tiene forma válida y que no lo tiene ya otro usuario, pero no que sea tuyo — eso
+   * solo lo demuestra RSO (el OAuth de Riot), de ahí el aviso del diálogo.
+   */
+  protected readonly riot = inject(RiotAccountStore);
+
   readonly linking = signal(false);
   /** Cuenta pendiente de confirmar su desvinculación (null = sin diálogo abierto). */
-  readonly unlinking = signal<RiotLink | null>(null);
+  readonly unlinking = signal<RiotAccount | null>(null);
   readonly riotIdDraft = signal('');
-  readonly regionDraft = signal('LAN');
-  readonly regions = ['LAN', 'LAS', 'NA', 'EUW', 'EUNE', 'KR', 'BR', 'OCE', 'TR', 'RU', 'JP'];
+  readonly regionDraft = signal<RiotRegion>('EUW');
+  readonly regions = [...RIOT_REGIONS];
 
-  /** Riot ID válido = `Nombre#TAG` con ambas partes no vacías. */
+  /** Riot ID con forma de `Nombre#TAG`; el backend es quien valida de verdad los límites. */
   readonly linkValid = computed(() => /^.+#.+$/.test(this.riotIdDraft().trim()));
+  readonly canLink = computed(() => this.linkValid() && !this.riot.saving());
+
+  /** Cuándo se levanta el cooldown, ya formateado; null si no hay ninguno vivo. */
+  readonly relinkAvailableAt = computed(() => {
+    const iso = this.riot.relinkAvailableAt();
+    return iso ? RELINK_FMT.format(new Date(iso)) : null;
+  });
+
+  /** Un fallo de red no deja el bloque muerto: el store vuelve a intentarlo desde cero. */
+  retryRiot(): void {
+    this.riot.reload();
+  }
+
+  /** `nf-select` emite `string`; aquí se estrecha al enum en vez de repartir `$any` por la vista. */
+  setRegion(value: string): void {
+    if ((RIOT_REGIONS as readonly string[]).includes(value)) this.regionDraft.set(value as RiotRegion);
+  }
 
   startLinking(): void {
     this.riotIdDraft.set('');
-    this.regionDraft.set('LAN');
+    this.regionDraft.set(this.riot.account()?.region ?? 'EUW');
     this.linking.set(true);
   }
 
   cancelLinking(): void {
+    if (this.riot.saving()) return;
     this.linking.set(false);
   }
 
-  confirmLink(): void {
-    if (!this.linkValid()) return;
-    // BACKEND NOTE: aquí irá el POST de vinculación. El backend podrá comprobar
-    // contra la API de Riot que la cuenta EXISTE y devolver su forma canónica,
-    // pero no que sea del usuario: la propiedad solo se demuestra con RSO
-    // (OAuth de Riot). Hasta entonces la vinculación es declarativa — de ahí el
-    // aviso del modal. Si algún día entra RSO, ese aviso desaparece.
-    this.riotAccount.set({ riotId: this.riotIdDraft().trim(), region: this.regionDraft() });
-    this.linking.set(false);
+  /**
+   * Escritura pesimista: el diálogo no se cierra hasta que el servidor confirma. Si rechaza
+   * (la cuenta ya la tiene otro, cooldown vivo, Riot ID inválido) el borrador sobrevive para
+   * corregirlo, y el motivo sale del `code` del ProblemDetail — nunca de un texto fijo.
+   */
+  async confirmLink(): Promise<void> {
+    if (!this.canLink()) return;
+    try {
+      const ok = await this.riot.link({
+        riotId: this.riotIdDraft().trim(),
+        region: this.regionDraft(),
+      });
+      if (!ok) return;
+      this.linking.set(false);
+      this.toast.success('Cuenta de Riot vinculada.');
+    } catch (error) {
+      this.toast.error(errorMessage(error));
+    }
   }
 
   /** Desvincular es destructivo: no se ejecuta sin pasar por el diálogo. */
   askUnlink(): void {
-    this.unlinking.set(this.riotAccount());
+    this.unlinking.set(this.riot.account());
   }
 
   cancelUnlink(): void {
+    if (this.riot.saving()) return;
     this.unlinking.set(null);
   }
 
-  confirmUnlink(): void {
-    // BACKEND NOTE: DELETE de la vinculación. Al migrar, esto es una escritura
-    // pesimista: deshabilitar el botón mientras esté en vuelo, esperar la
-    // confirmación del servidor y solo entonces cerrar el diálogo, avisar por
-    // toast y refetch de las estadísticas derivadas (no recalcularlas aquí).
-    this.riotAccount.set(null);
-    this.unlinking.set(null);
-    this.linking.set(false);
+  /**
+   * No hay nada que refrescar más allá de este bloque: ninguna partida, rating ni estadística
+   * cuelga de la cuenta de Riot — todas anclan en el usuario. Lo que deja de funcionar es solo
+   * lo que la necesita de aquí en adelante (resolver un import por `puuid`, sembrar un rating
+   * que aún no existe).
+   */
+  async confirmUnlink(): Promise<void> {
+    try {
+      const ok = await this.riot.unlink();
+      if (!ok) return;
+      this.unlinking.set(null);
+      this.linking.set(false);
+      this.toast.success('Cuenta de Riot desvinculada.');
+    } catch (error) {
+      this.toast.error(errorMessage(error));
+    }
   }
 
   /** Avatar radial gradient from a hue, matching the roster/ranking look. */
