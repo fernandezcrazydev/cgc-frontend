@@ -12,95 +12,101 @@ import { ToastService } from '../../../core/toast';
   imports: [NfWindow, NfToggle, NfSelect, NfSkeleton, NfButton],
   template: `
     <div class="view max-520">
-      <nf-window title="tema.exe" accent="cyan" bodyPadding="22px">
-        <div class="settings-eyebrow nf-mono nf-eyebrow">Apariencia</div>
+      <div class="view__head">
+        <h1 class="view__title">Ajustes</h1>
+      </div>
 
-        <div class="theme-grid" role="radiogroup" aria-label="Tema visual">
-          @for (t of themes; track t.id) {
-            <button
-              type="button"
-              role="radio"
-              class="theme-opt"
-              [class.is-active]="theme.theme() === t.id"
-              [attr.aria-checked]="theme.theme() === t.id"
-              (click)="theme.set(t.id)"
-            >
-              <span class="theme-opt__swatch" [attr.data-preview]="t.id" aria-hidden="true"></span>
-              <span class="theme-opt__text">
-                <span class="theme-opt__name">{{ t.label }}</span>
-                <span class="theme-opt__desc">{{ t.description }}</span>
-              </span>
-            </button>
-          }
-        </div>
-      </nf-window>
+      <div class="settings-stack">
+        <nf-window title="tema.exe" accent="cyan" bodyPadding="22px">
+          <div class="settings-eyebrow nf-mono nf-eyebrow">Apariencia</div>
 
-      <nf-window title="privacidad.exe" accent="cyan" bodyPadding="22px">
-        <div class="settings-eyebrow nf-mono nf-eyebrow">Invitaciones</div>
-
-        <div class="setting-row setting-row--last" [attr.aria-busy]="settings.isLoading() || null">
-          <div>
-            <div class="setting-title">Aceptar invitaciones a grupos</div>
-            <div class="setting-sub nf-mono">
-              Si lo apagas, nadie podrá invitarte a un grupo nuevo
-            </div>
-          </div>
-
-          @switch (settings.status()) {
-            @case ('error') {
-              <button nfButton variant="ghost" size="sm" (click)="retry()">Reintentar</button>
+          <div class="theme-grid" role="radiogroup" aria-label="Tema visual">
+            @for (t of themes; track t.id) {
+              <button
+                type="button"
+                role="radio"
+                class="theme-opt"
+                [class.is-active]="theme.theme() === t.id"
+                [attr.aria-checked]="theme.theme() === t.id"
+                (click)="theme.set(t.id)"
+              >
+                <span class="theme-opt__swatch" [attr.data-preview]="t.id" aria-hidden="true"></span>
+                <span class="theme-opt__text">
+                  <span class="theme-opt__name">{{ t.label }}</span>
+                  <span class="theme-opt__desc">{{ t.description }}</span>
+                </span>
+              </button>
             }
-            @default {
-              @if (allowInvites() === null) {
-                <nf-skeleton width="48px" height="28px" />
-              } @else {
-                <nf-toggle
-                  [checked]="!!allowInvites()"
-                  accent="cyan"
-                  ariaLabel="Aceptar invitaciones a grupos"
-                  [disabled]="settings.saving()"
-                  (checkedChange)="setAllowInvites($event)"
-                />
+          </div>
+        </nf-window>
+
+        <nf-window title="privacidad.exe" accent="cyan" bodyPadding="22px">
+          <div class="settings-eyebrow nf-mono nf-eyebrow">Invitaciones</div>
+
+          <div class="setting-row setting-row--last" [attr.aria-busy]="settings.isLoading() || null">
+            <div>
+              <div class="setting-title">Aceptar invitaciones a grupos</div>
+              <div class="setting-sub setting-sub--help">
+                Si lo apagas, nadie podrá invitarte a un grupo nuevo
+              </div>
+            </div>
+
+            @switch (settings.status()) {
+              @case ('error') {
+                <button nfButton variant="ghost" size="sm" (click)="retry()">Reintentar</button>
+              }
+              @default {
+                @if (allowInvites() === null) {
+                  <nf-skeleton width="48px" height="28px" />
+                } @else {
+                  <nf-toggle
+                    [checked]="!!allowInvites()"
+                    accent="cyan"
+                    ariaLabel="Aceptar invitaciones a grupos"
+                    [disabled]="settings.saving()"
+                    (checkedChange)="setAllowInvites($event)"
+                  />
+                }
               }
             }
-          }
-        </div>
-      </nf-window>
-
-      <nf-window title="config.exe" accent="pink" bodyPadding="22px">
-        <div class="settings-eyebrow nf-mono nf-eyebrow">Preferencias del lobby</div>
-
-        <div class="setting-row">
-          <div>
-            <div class="setting-title">Voz activada</div>
-            <div class="setting-sub nf-mono">CHAT DE VOZ EN EL LOBBY</div>
           </div>
-          <nf-toggle [checked]="voice()" accent="cyan" (checkedChange)="voice.set($event)" />
-        </div>
+        </nf-window>
 
-        <div class="setting-row">
-          <div>
-            <div class="setting-title">Partida clasificatoria</div>
-            <div class="setting-sub nf-mono">CUENTA PARA EL RANKING</div>
-          </div>
-          <nf-toggle [checked]="ranked()" accent="pink" (checkedChange)="ranked.set($event)" />
-        </div>
+        <nf-window title="config.exe" accent="pink" bodyPadding="22px">
+          <div class="settings-eyebrow nf-mono nf-eyebrow">Preferencias del lobby</div>
 
-        <div class="setting-row">
-          <div>
-            <div class="setting-title">Permitir espectadores</div>
-            <div class="setting-sub nf-mono">HASTA 5 OBSERVADORES</div>
+          <div class="setting-row">
+            <div>
+              <div class="setting-title">Voz activada</div>
+              <div class="setting-sub nf-mono nf-caps">Chat de voz en el lobby</div>
+            </div>
+            <nf-toggle [checked]="voice()" accent="cyan" (checkedChange)="voice.set($event)" />
           </div>
-          <nf-toggle [checked]="spectators()" accent="cyan" (checkedChange)="spectators.set($event)" />
-        </div>
 
-        <div class="setting-row setting-row--last">
-          <div class="setting-title">Región</div>
-          <div style="width:150px;">
-            <nf-select [options]="regionOptions" [value]="region()" (valueChange)="region.set($event)" />
+          <div class="setting-row">
+            <div>
+              <div class="setting-title">Partida clasificatoria</div>
+              <div class="setting-sub nf-mono nf-caps">Cuenta para el ranking</div>
+            </div>
+            <nf-toggle [checked]="ranked()" accent="pink" (checkedChange)="ranked.set($event)" />
           </div>
-        </div>
-      </nf-window>
+
+          <div class="setting-row">
+            <div>
+              <div class="setting-title">Permitir espectadores</div>
+              <div class="setting-sub nf-mono nf-caps">Hasta 5 observadores</div>
+            </div>
+            <nf-toggle [checked]="spectators()" accent="cyan" (checkedChange)="spectators.set($event)" />
+          </div>
+
+          <div class="setting-row setting-row--last">
+            <div class="setting-title">Región</div>
+            <div class="setting-row__control">
+              <nf-select [options]="regionOptions" [value]="region()" (valueChange)="region.set($event)" />
+            </div>
+          </div>
+        </nf-window>
+      </div>
     </div>
   `,
   styles: [

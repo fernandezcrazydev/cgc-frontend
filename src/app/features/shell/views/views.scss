@@ -327,18 +327,45 @@
 .champ__role { font-size: 9px; letter-spacing: 1px; color: var(--nf-text-dim); margin-top: 2px; }
 
 /* ---- ajustes ---- */
+
+/* Las tarjetas de ajustes se apilaban pegadas: `nf-window` no trae margen propio (es el
+   contenedor quien decide el ritmo) y aquí no había ninguno. El hueco va en el stack y no
+   en un `margin-bottom` de la ventana, para que la última no deje un vacío al final. */
+.settings-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
 .settings-eyebrow { font-size: 11px; letter-spacing: 2px; color: var(--nf-cyan); margin-bottom: 18px; }
 .setting-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 14px;
-  padding: 14px 0;
+  gap: 18px;
+  padding: 16px 0;
   border-bottom: 1px solid var(--nf-border);
 }
-.setting-row--last { border-bottom: none; padding: 18px 0 6px; }
+/* Primera y última fila respiran contra el borde de la tarjeta sin duplicar el padding
+   interno: si no, la separación entre el eyebrow y la primera fila es la mitad que entre
+   filas y la tarjeta se lee descolgada. Va por hermano adyacente y no por `:first-of-type`,
+   que aquí no casaría nunca: el primer `div` de la tarjeta es el eyebrow, no la fila. */
+.settings-eyebrow + .setting-row { padding-top: 4px; }
+.setting-row--last { border-bottom: none; padding-bottom: 4px; }
 .setting-title { font-weight: 700; font-size: 14px; color: var(--nf-text); }
 .setting-sub { font-size: 10px; letter-spacing: 0.5px; color: var(--nf-text-dim); margin-top: 3px; }
+/* Texto que EXPLICA la consecuencia de un ajuste, no la etiqueta de un dato: va en frase
+   normal y con interlineado de lectura, porque una frase entera en versalitas de 10px no
+   hay quien la lea. */
+.setting-sub--help {
+  font-size: 11.5px;
+  letter-spacing: 0;
+  line-height: 1.45;
+  margin-top: 5px;
+  max-width: 34ch;
+}
+/* El control de la derecha no debe encogerse ni estirarse con el texto de su izquierda. */
+.setting-row__control { flex: none; width: 150px; }
 
 /* ---- crear form ---- */
 .form-grid { display: flex; flex-direction: column; gap: 18px; }
