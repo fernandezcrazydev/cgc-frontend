@@ -102,17 +102,25 @@
   z-index: 0;
   pointer-events: none;
 }
+/* Duraciones y recorridos MUY por encima de los del legacy (18s/22s sobre
+   12vmax). Allí los resplandores estaban en páginas sueltas; aquí van detrás de
+   toda la app, siempre en pantalla, y a esa velocidad el fondo se seguía con la
+   vista y cansaba. Lo que se percibe es recorrido/tiempo: bajando el recorrido a
+   ~un tercio y estirando la duración ~4x, el movimiento va ~10 veces más lento
+   —queda "vivo" sin ser rastreable—. Si vuelves a tocarlo, mueve los dos a la
+   vez; subir solo la duración con el recorrido largo sigue mareando. */
 :root[data-theme='original'] body::before {
   background: radial-gradient(circle, #6366f1, transparent 60%);
   top: -10vmax;
   left: -10vmax;
-  animation: nf-drift-1 18s ease-in-out infinite alternate;
+  animation: nf-drift-1 75s ease-in-out infinite alternate;
 }
 :root[data-theme='original'] body::after {
   background: radial-gradient(circle, #d946ef, transparent 60%);
   bottom: -15vmax;
   right: -10vmax;
-  animation: nf-drift-2 22s ease-in-out infinite alternate;
+  /* Duración deliberadamente prima con la otra: así no vuelven a coincidir. */
+  animation: nf-drift-2 97s ease-in-out infinite alternate;
 }
 /* La app va por encima de los resplandores. */
 :root[data-theme='original'] app-root {
@@ -122,12 +130,12 @@
 
 @keyframes nf-drift-1 {
   to {
-    transform: translate(12vmax, 8vmax) scale(1.15);
+    transform: translate(4vmax, 2.5vmax) scale(1.06);
   }
 }
 @keyframes nf-drift-2 {
   to {
-    transform: translate(-10vmax, -6vmax) scale(1.2);
+    transform: translate(-3.5vmax, -2vmax) scale(1.07);
   }
 }
 
