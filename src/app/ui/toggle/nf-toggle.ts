@@ -10,6 +10,10 @@ export type NfToggleAccent = 'cyan' | 'pink';
  *
  * `ariaLabel` es obligatorio en la práctica: el switch no tiene texto propio, así
  * que sin él un lector de pantalla anuncia "conmutador" y poco más.
+ *
+ * `disabled` es lo que pinta un ajuste que aún no se puede tocar: mientras se guarda
+ * contra el servidor, o mientras su valor todavía no ha llegado. Sin él, el usuario
+ * conmuta un interruptor que luego vuelve solo a su sitio.
  */
 @Component({
   selector: 'nf-toggle',
@@ -24,6 +28,7 @@ export type NfToggleAccent = 'cyan' | 'pink';
       [class.nf-toggle--pink]="accent() === 'pink'"
       [attr.aria-checked]="checked()"
       [attr.aria-label]="ariaLabel() || null"
+      [disabled]="disabled()"
       (click)="checked.set(!checked())"
     >
       <span class="nf-toggle__knob"></span>
@@ -36,4 +41,5 @@ export class NfToggle {
   readonly checked = model(false);
   readonly accent = input<NfToggleAccent>('cyan');
   readonly ariaLabel = input<string>('');
+  readonly disabled = input(false);
 }

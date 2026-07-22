@@ -359,13 +359,18 @@ import { errorMessage } from '../../../core/http';
                   {{ initials(u.discordUsername) }}
                 }
               </span>
-              <span class="gd-invite__name nf-mono">{{ u.discordUsername }}</span>
+              <span class="gd-invite__name nf-mono">
+                {{ u.discordUsername }}
+                @if (!u.acceptsGroupInvites) {
+                  <span class="gd-invite__closed nf-mono">No acepta invitaciones</span>
+                }
+              </span>
               <button
                 nfButton
                 variant="primary"
                 size="sm"
-                [disabled]="invitations.inviting() || isInvited(u.userId)"
-                [class.nf-go]="!isInvited(u.userId)"
+                [disabled]="invitations.inviting() || isInvited(u.userId) || !u.acceptsGroupInvites"
+                [class.nf-go]="!isInvited(u.userId) && u.acceptsGroupInvites"
                 (click)="invite(u)"
               >{{ isInvited(u.userId) ? 'Invitado ✓' : 'Invitar' }}</button>
             </div>

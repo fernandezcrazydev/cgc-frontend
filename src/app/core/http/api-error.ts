@@ -68,6 +68,7 @@ const MESSAGES_BY_CODE: Record<string, string> = {
   INVITATION_NOT_FOUND: 'Esa invitación ya no existe.',
   INVITATION_NOT_PENDING: 'Esa invitación ya no está pendiente: se aceptó, se rechazó o se canceló.',
   INVITEE_NOT_FOUND: 'No se ha encontrado ese usuario.',
+  INVITEE_REFUSES_INVITATIONS: 'Este usuario no acepta invitaciones a grupos nuevos.',
   UNSUPPORTED_IMAGE: 'Ese formato de imagen no es válido. Usa JPEG o PNG.',
 };
 

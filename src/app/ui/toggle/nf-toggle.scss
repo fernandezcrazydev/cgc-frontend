@@ -14,6 +14,11 @@
 }
 .nf-toggle--pink { --toggle-accent: var(--nf-pink); }
 
+.nf-toggle:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
 .nf-toggle--on {
   border-color: var(--toggle-accent);
   background: color-mix(in srgb, var(--toggle-accent) 18%, var(--nf-inset));

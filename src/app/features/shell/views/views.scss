@@ -3758,6 +3758,14 @@
   border-top: 1px solid rgba(255, 95, 210, 0.12);
 }
 .gd-invite__name { flex: 1; min-width: 0; font-size: 13px; color: var(--nf-text); }
+/* Motivo por el que el botón de la fila está apagado: quien lee la lista tiene que poder
+   distinguir "no puedo invitarle" de "la app está rota". */
+.gd-invite__closed {
+  display: block;
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  color: var(--nf-text-dim);
+}
 
 .gd-confirm { font-size: 14px; line-height: 1.5; color: var(--nf-text); margin: 0 0 20px; }
 
