@@ -68,6 +68,12 @@ const MESSAGES_BY_CODE: Record<string, string> = {
   INVITATION_NOT_FOUND: 'Esa invitación ya no existe.',
   INVITATION_NOT_PENDING: 'Esa invitación ya no está pendiente: se aceptó, se rechazó o se canceló.',
   INVITEE_NOT_FOUND: 'No se ha encontrado ese usuario.',
+  INVALID_RIOT_ID: 'Ese Riot ID no es válido. Debe ser «Nombre#TAG», tal y como aparece en el cliente.',
+  RIOT_ACCOUNT_ALREADY_LINKED:
+    'Esa cuenta de Riot ya está vinculada por otro usuario. Si es tuya, pídele que la desvincule.',
+  RIOT_ACCOUNT_NOT_LINKED: 'No tienes ninguna cuenta de Riot vinculada.',
+  RIOT_RELINK_ON_COOLDOWN:
+    'Has desvinculado tu cuenta hace poco. Puedes volver a poner la misma, pero para vincular otra distinta tendrás que esperar.',
   UNSUPPORTED_IMAGE: 'Ese formato de imagen no es válido. Usa JPEG o PNG.',
 };
 
