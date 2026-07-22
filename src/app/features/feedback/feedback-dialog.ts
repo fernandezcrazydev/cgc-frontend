@@ -39,15 +39,6 @@ const KIND_NOUN: Record<FeedbackKind, string> = {
   template: `
     <nf-modal title="reportar.exe" accent="cyan" width="580px" (closed)="requestClose()">
       <div class="fb">
-        <div class="fb__notice" role="note">
-          <span class="fb__notice-glyph" aria-hidden="true">⚠</span>
-          <p class="fb__notice-text">
-            <strong>Este formulario todavía no funciona: es solo visual.</strong>
-            Aún no se envía nada. De momento, cualquier bug o sugerencia mándalo
-            <strong>directamente por WhatsApp</strong>.
-          </p>
-        </div>
-
         <div class="fb__eyebrow nf-mono">// ¿QUÉ NOS CUENTAS?</div>
 
         <div class="fb__kinds" role="radiogroup" aria-label="Tipo de reporte">
