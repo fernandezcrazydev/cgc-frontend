@@ -228,8 +228,18 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
                   <div class="pf-riot__id">{{ account.riotId }}</div>
                   <div class="pf-riot__sub nf-mono">
                     <span class="pf-riot__chip"><span class="pf-ping"></span>{{ account.region }}</span>
-                    <!-- Vinculada, NO verificada: nadie ha demostrado que la cuenta sea suya. -->
-                    <span class="pf-riot__chip pf-riot__chip--ok">✓ VINCULADA</span>
+                    <!-- El chip dice la verdad de cada peldaño: solo VERIFIED afirma titularidad. -->
+                    @switch (account.strength) {
+                      @case ('VERIFIED') {
+                        <span class="pf-riot__chip pf-riot__chip--ok">✓ VERIFICADA</span>
+                      }
+                      @case ('PAIRED') {
+                        <span class="pf-riot__chip">↔ VINCULADA DESDE EL CLIENTE</span>
+                      }
+                      @default {
+                        <span class="pf-riot__chip">SIN VERIFICAR</span>
+                      }
+                    }
                   </div>
                 </div>
                 <div class="pf-riot__actions">
@@ -241,6 +251,24 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
                   </button>
                 </div>
               </div>
+              @if (account.strength !== 'VERIFIED') {
+                <!-- Mientras no esté verificada, se invita a demostrar la titularidad con la app. -->
+                <div class="pf-riot pf-riot--empty">
+                  <div class="pf-riot__cta">
+                    <div class="pf-riot__ctatitle">Verifica que esta cuenta es tuya</div>
+                    <p class="pf-riot__ctatext">
+                      Con la app de escritorio confirmamos tu cuenta de verdad: te pedirá cambiar tu
+                      icono de invocador un momento y lo comprobaremos con Riot. Hasta entonces, tus
+                      estadísticas cuentan como no verificadas.
+                    </p>
+                  </div>
+                  <!-- Enlace externo, no botón: reutiliza las clases globales de nf-btn (el
+                       nfButton solo casa con <button>), así queda con el mismo aspecto accent. -->
+                  <a class="nf-btn nf-btn--accent nf-btn--md nf-go" [href]="desktopAppUrl" target="_blank" rel="noopener">
+                    Descargar la app
+                  </a>
+                </div>
+              }
             } @else {
               <div class="pf-riot pf-riot--empty">
                 <div class="pf-riot__cta">
@@ -255,9 +283,15 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
                     }
                   </p>
                 </div>
-                <button nfButton variant="accent" size="md" [disabled]="riot.saving()" (click)="startLinking()">
-                  ＋ Vincular cuenta de Riot
-                </button>
+                <div class="pf-riot__ctarow">
+                  <button nfButton variant="accent" size="md" [disabled]="riot.saving()" (click)="startLinking()">
+                    ＋ Escribir mi Riot ID
+                  </button>
+                  <!-- El camino fuerte: la app empareja y verifica. El manual queda como el rápido. -->
+                  <a class="nf-btn nf-btn--ghost nf-btn--md" [href]="desktopAppUrl" target="_blank" rel="noopener">
+                    Verificar con la app
+                  </a>
+                </div>
               </div>
             }
           }
@@ -646,6 +680,12 @@ export class Perfil {
   readonly riotIdDraft = signal('');
   readonly regionDraft = signal<RiotRegion>('EUW');
   readonly regions = [...RIOT_REGIONS];
+
+  /**
+   * Descarga de la app de escritorio (empareja y verifica la cuenta, y en el futuro sube customs).
+   * TODO(backend): apuntar a la release real cuando exista; hoy es el repositorio del scraper.
+   */
+  protected readonly desktopAppUrl = 'https://github.com/fernandezcrazydev/cgc-scraper/releases';
 
   /** Riot ID con forma de `Nombre#TAG`; el backend es quien valida de verdad los límites. */
   readonly linkValid = computed(() => /^.+#.+$/.test(this.riotIdDraft().trim()));
