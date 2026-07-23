@@ -62,6 +62,7 @@ function parseFieldErrors(raw: unknown): ApiFieldError[] {
  */
 const MESSAGES_BY_CODE: Record<string, string> = {
   ALREADY_MEMBER: 'Este usuario ya es miembro del grupo.',
+  DEVICE_NOT_FOUND: 'Ese dispositivo ya no estaba vinculado.',
   DUPLICATE_PENDING_INVITATION: 'Este usuario ya tiene una invitación pendiente.',
   GROUP_QUOTA_EXCEEDED: 'Has alcanzado el número máximo de grupos que puedes tener.',
   IMAGE_TOO_LARGE: 'La imagen es demasiado grande. Usa uno más ligero.',

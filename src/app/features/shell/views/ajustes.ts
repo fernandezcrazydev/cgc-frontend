@@ -3,8 +3,18 @@ import { NfButton, NfSelect, NfSkeleton, NfToggle, NfWindow } from '../../../ui'
 import { errorMessage } from '../../../core/http';
 import { REGION_OPTIONS } from '../../../core/lobby';
 import { SettingsStore } from '../../../core/settings';
+import { DevicesStore } from '../../../core/devices';
 import { THEMES, ThemeService } from '../../../core/theme';
 import { ToastService } from '../../../core/toast';
+
+/** "23 jul 2026" — la fecha en que se vinculó una sesión de escritorio. */
+const DEVICE_FMT = new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'short', year: 'numeric' });
+
+/** Copy amable de cada scope; un scope sin traducir se pinta tal cual (no rompe). */
+const SCOPE_LABELS: Record<string, string> = {
+  'profile:read': 'Leer perfil',
+  'matches:upload': 'Subir partidas',
+};
 
 @Component({
   selector: 'app-ajustes',
@@ -66,6 +76,56 @@ import { ToastService } from '../../../core/toast';
                     [disabled]="settings.saving()"
                     (checkedChange)="setAllowInvites($event)"
                   />
+                }
+              }
+            }
+          </div>
+        </nf-window>
+
+        <nf-window title="dispositivos.exe" accent="pink" bodyPadding="22px">
+          <div class="settings-eyebrow nf-mono nf-eyebrow">Dispositivos vinculados</div>
+          <div class="setting-sub setting-sub--help device-intro">
+            Sesiones de la app de escritorio con acceso a tu cuenta. Revoca la de una máquina que ya
+            no uses o que no reconozcas.
+          </div>
+
+          <div [attr.aria-busy]="devices.isLoading() || null">
+            @switch (devices.status()) {
+              @case ('loading') {
+                <nf-skeleton width="100%" height="52px" />
+                <nf-skeleton width="100%" height="52px" />
+              }
+              @case ('error') {
+                <div class="setting-row setting-row--last">
+                  <div class="setting-sub">No se han podido cargar los dispositivos.</div>
+                  <button nfButton variant="ghost" size="sm" (click)="retryDevices()">Reintentar</button>
+                </div>
+              }
+              @default {
+                @if (devices.devices(); as list) {
+                  @if (list.length === 0) {
+                    <div class="device-empty nf-mono">
+                      No tienes ninguna sesión de escritorio vinculada.
+                    </div>
+                  } @else {
+                    @for (device of list; track device.id; let last = $last) {
+                      <div class="setting-row" [class.setting-row--last]="last">
+                        <div>
+                          <div class="setting-title">Vinculado el {{ formatDeviceDate(device.linkedAt) }}</div>
+                          <div class="setting-sub nf-mono nf-caps">{{ scopeLabels(device.scopes) }}</div>
+                        </div>
+                        <button
+                          nfButton
+                          variant="danger"
+                          size="sm"
+                          [disabled]="devices.isRevoking(device.id)"
+                          (click)="revoke(device.id)"
+                        >
+                          Revocar
+                        </button>
+                      </div>
+                    }
+                  }
                 }
               }
             }
@@ -178,6 +238,15 @@ import { ToastService } from '../../../core/toast';
         color: var(--nf-text-mid);
         line-height: 1.4;
       }
+
+      .device-intro {
+        margin: 6px 0 16px;
+      }
+      .device-empty {
+        padding: 14px 2px 2px;
+        font-size: 12px;
+        color: var(--nf-text-mid);
+      }
     `,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -185,16 +254,45 @@ import { ToastService } from '../../../core/toast';
 export class Ajustes {
   readonly theme = inject(ThemeService);
   readonly settings = inject(SettingsStore);
+  readonly devices = inject(DevicesStore);
   private readonly toasts = inject(ToastService);
   readonly themes = THEMES;
   readonly regionOptions = REGION_OPTIONS;
 
   constructor() {
     void this.settings.ensureLoaded();
+    void this.devices.ensureLoaded();
   }
 
   retry(): void {
     void this.settings.reload();
+  }
+
+  retryDevices(): void {
+    void this.devices.reload();
+  }
+
+  formatDeviceDate(iso: string): string {
+    return DEVICE_FMT.format(new Date(iso));
+  }
+
+  scopeLabels(scopes: string[]): string {
+    return scopes.map((scope) => SCOPE_LABELS[scope] ?? scope).join(' · ');
+  }
+
+  /**
+   * Revoca una sesión de escritorio. Pesimista: el store solo la quita de la lista cuando el
+   * servidor confirma, y el botón queda deshabilitado mientras vuela (no reentrante). Un fallo se
+   * traduce con `errorMessage()`; el 404 de "ya no estaba" el store lo trata como éxito.
+   */
+  async revoke(id: string): Promise<void> {
+    if (this.devices.isRevoking(id)) return;
+    try {
+      await this.devices.revoke(id);
+      this.toasts.success('Dispositivo desvinculado');
+    } catch (e) {
+      this.toasts.error(errorMessage(e));
+    }
   }
 
   /**
