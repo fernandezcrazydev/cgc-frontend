@@ -1,11 +1,21 @@
 /**
+ * Escalera de evidencia de una cuenta de Riot (contrato con el backend, `RiotAccount.strength`).
+ * De menos a más fuerte:
+ *
+ * - `DECLARED`: el usuario tecleó el Riot ID en la web. No prueba nada.
+ * - `PAIRED`: la app de escritorio leyó el `puuid` de un cliente de League vivo. Prueba
+ *   procedencia, no titularidad — la evidencia la da nuestro propio cliente.
+ * - `VERIFIED`: el usuario puso un icono que sorteó el servidor y el servidor lo comprobó contra
+ *   Riot. Lo único que prueba titularidad.
+ *
+ * El usuario nunca ve tres pasos: hay dos acciones (teclear, o "conectar con la app", que empareja
+ * y verifica de una). Estos son estados del dato.
+ */
+export type RiotLinkStrength = 'DECLARED' | 'PAIRED' | 'VERIFIED';
+
+/**
  * Cuenta de League of Legends vinculada al perfil. Contrato de
  * `GET|PUT|DELETE /api/v1/me/riot-account`.
- *
- * La vinculación es **declarativa**: el backend no puede comprobar que la cuenta sea del
- * usuario (haría falta RSO, el OAuth de Riot). Por eso `verified` existe y hoy siempre es
- * `false` — el día que entre RSO, el flag cambia en el servidor y el aviso del diálogo se
- * puede retirar sin tocar el contrato.
  */
 export interface RiotAccount {
   /** Riot ID completo, `Nombre#TAG`. Lo que se pinta y lo que se pasa a op.gg. */
@@ -13,7 +23,10 @@ export interface RiotAccount {
   gameName: string;
   tagLine: string;
   region: RiotRegion;
-  verified: boolean;
+  /** Peldaño de la escalera; el chip del perfil conmuta sobre esto. */
+  strength: RiotLinkStrength;
+  /** Instante en que se probó la titularidad (ISO-8601), o null si aún no está verificada. */
+  verifiedAt: string | null;
   /** ISO-8601 tal cual lo manda el backend: formatear es cosa de la vista. */
   linkedAt: string;
 }

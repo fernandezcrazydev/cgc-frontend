@@ -9,7 +9,8 @@ const ACCOUNT: RiotAccount = {
   gameName: 'N1ghtfang',
   tagLine: 'LAN',
   region: 'LAN',
-  verified: false,
+  strength: 'DECLARED',
+  verifiedAt: null,
   linkedAt: '2026-07-20T18:00:00Z',
 };
 

@@ -3589,6 +3589,7 @@
 }
 .pf-riot__actions .pf-hero__opgg { margin-top: 0; }
 .pf-riot__cta { flex: 1; min-width: 220px; }
+.pf-riot__ctarow { display: flex; align-items: center; gap: 10px; flex: none; flex-wrap: wrap; }
 .pf-riot__ctatitle { font-weight: 700; font-size: 15px; color: var(--nf-text); margin-bottom: 4px; }
 .pf-riot__ctatext { margin: 0; font-size: 13px; color: var(--nf-text-dim); }
 @media (max-width: 560px) {
