@@ -1,7 +1,7 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { RiotAccountApi } from './riot-account-api';
-import { LinkRiotAccountRequest, RiotAccount } from './models';
+import { LinkRiotAccountRequest, PairingCode, RiotAccount } from './models';
 
 export type RiotAccountStatusState = 'idle' | 'loading' | 'ready' | 'error';
 
@@ -25,6 +25,7 @@ export class RiotAccountStore {
   private readonly _relinkAvailableAt = signal<string | null>(null);
   private readonly _status = signal<RiotAccountStatusState>('idle');
   private readonly _saving = signal(false);
+  private readonly _generatingCode = signal(false);
 
   /** La carga en vuelo, para que N llamadas concurrentes compartan una petición. */
   private inFlight: Promise<void> | null = null;
@@ -34,6 +35,8 @@ export class RiotAccountStore {
   readonly status = this._status.asReadonly();
   /** Hay una escritura en vuelo: la vista deshabilita los botones (anti doble submit). */
   readonly saving = this._saving.asReadonly();
+  /** Hay un código de emparejamiento generándose: el botón queda deshabilitado mientras. */
+  readonly generatingCode = this._generatingCode.asReadonly();
 
   readonly isLoading = computed(() => this._status() === 'loading');
   readonly isReady = computed(() => this._status() === 'ready');
@@ -98,6 +101,22 @@ export class RiotAccountStore {
       return true;
     } finally {
       this._saving.set(false);
+    }
+  }
+
+  /**
+   * Emite un código de emparejamiento para pegar en la app de escritorio. Devuelve `null` si ya hay
+   * uno generándose (anti doble submit). **No se cachea**: es una credencial de un solo uso y corta
+   * vida, así que vive solo en la vista que lo enseña, nunca en el estado compartido. Un fallo se
+   * propaga para que la vista lo traduzca.
+   */
+  async requestPairingCode(): Promise<PairingCode | null> {
+    if (this._generatingCode()) return null;
+    this._generatingCode.set(true);
+    try {
+      return await firstValueFrom(this.api.pairingCode());
+    } finally {
+      this._generatingCode.set(false);
     }
   }
 

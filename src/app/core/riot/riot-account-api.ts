@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { LinkRiotAccountRequest, RiotAccountStatus } from './models';
+import { LinkRiotAccountRequest, PairingCode, RiotAccountStatus } from './models';
 
 /**
  * La cuenta de Riot del usuario logueado. Único sitio que conoce la URL.
@@ -30,5 +30,13 @@ export class RiotAccountApi {
 
   unlink(): Observable<void> {
     return this.http.delete<void>(this.url);
+  }
+
+  /**
+   * Emite un código de emparejamiento para pegar en la app de escritorio. POST porque escribe:
+   * cada llamada minta un código nuevo y mata el anterior. Cuerpo vacío — el dueño sale del token.
+   */
+  pairingCode(): Observable<PairingCode> {
+    return this.http.post<PairingCode>(`${this.url}/pairing-code`, {});
   }
 }

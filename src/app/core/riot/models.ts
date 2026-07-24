@@ -69,3 +69,16 @@ export interface LinkRiotAccountRequest {
   riotId: string;
   region: RiotRegion;
 }
+
+/**
+ * Código de emparejamiento que la web emite para pegar en la app de escritorio (contrato de
+ * `POST /api/v1/me/riot-account/pairing-code`). Es una **credencial**: un solo uso, 5 min, y pedir
+ * otro invalida el anterior — no se persiste ni se loguea.
+ *
+ * `code` llega ya formateado (`K7QM-3XPD`), que es como se lee en voz alta y se reteclea.
+ * `expiresAt` (ISO-8601) permite la cuenta atrás en vez de descubrir la caducidad fallando.
+ */
+export interface PairingCode {
+  code: string;
+  expiresAt: string;
+}
