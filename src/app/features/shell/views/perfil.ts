@@ -1,4 +1,4 @@
-import { Component, computed, inject, linkedSignal, signal } from '@angular/core';
+import { Component, DestroyRef, computed, inject, linkedSignal, signal } from '@angular/core';
 import { NfWindow, NfButton, NfSelect, NfModal, NfToggle, NfSkeleton } from '../../../ui';
 import { Session } from '../../../core/auth';
 import { CURRENT_USER } from '../../../core/lobby';
@@ -6,7 +6,7 @@ import { GroupStore } from '../../../core/group-store';
 import { opggUrl } from '../../../core/member-detail';
 import { buildPlayerProfile } from '../../../core/player-profile';
 import { LANE_ROLES, LaneRole, PreferencesStore, RolePreferences } from '../../../core/preferences';
-import { RIOT_REGIONS, RiotAccount, RiotAccountStore, RiotRegion } from '../../../core/riot';
+import { PairingCode, RIOT_REGIONS, RiotAccount, RiotAccountStore, RiotRegion } from '../../../core/riot';
 import { errorMessage } from '../../../core/http';
 import { ToastService } from '../../../core/toast';
 
@@ -262,11 +262,9 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
                       estadísticas cuentan como no verificadas.
                     </p>
                   </div>
-                  <!-- Enlace externo, no botón: reutiliza las clases globales de nf-btn (el
-                       nfButton solo casa con <button>), así queda con el mismo aspecto accent. -->
-                  <a class="nf-btn nf-btn--accent nf-btn--md nf-go" [href]="desktopAppUrl" target="_blank" rel="noopener">
-                    Descargar la app
-                  </a>
+                  <button nfButton variant="accent" size="md" class="nf-go" (click)="openConnect()">
+                    Conectar la app
+                  </button>
                 </div>
               }
             } @else {
@@ -284,13 +282,13 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
                   </p>
                 </div>
                 <div class="pf-riot__ctarow">
-                  <button nfButton variant="accent" size="md" [disabled]="riot.saving()" (click)="startLinking()">
+                  <!-- El camino fuerte primero: la app empareja y verifica. El manual, como rápido. -->
+                  <button nfButton variant="accent" size="md" class="nf-go" (click)="openConnect()">
+                    Conectar la app
+                  </button>
+                  <button nfButton variant="ghost" size="md" [disabled]="riot.saving()" (click)="startLinking()">
                     ＋ Escribir mi Riot ID
                   </button>
-                  <!-- El camino fuerte: la app empareja y verifica. El manual queda como el rápido. -->
-                  <a class="nf-btn nf-btn--ghost nf-btn--md" [href]="desktopAppUrl" target="_blank" rel="noopener">
-                    Verificar con la app
-                  </a>
                 </div>
               </div>
             }
@@ -517,8 +515,114 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
           </div>
         </nf-modal>
       }
+
+      <!-- Conectar la app de escritorio: el deep-link es la vía cómoda; el código, el plan B -->
+      @if (connecting()) {
+        <nf-modal title="conectar_app.exe" accent="cyan" width="460px" (closed)="closeConnect()">
+          <div class="settings-eyebrow nf-mono nf-eyebrow">Conectar la app de escritorio</div>
+
+          <p class="riot-link__text">
+            La app empareja tu cuenta y la verifica de verdad: te pedirá cambiar tu icono de invocador
+            un momento y lo comprobaremos con Riot.
+          </p>
+
+          <!-- Vía cómoda: deep-link. La conduce la app, no la web. -->
+          <ol class="connect-steps">
+            <li>Abre la app de escritorio y pulsa <strong>«Conectar»</strong>.</li>
+            <li>Se abrirá tu navegador; como ya estás dentro, autorizas de un clic.</li>
+          </ol>
+
+          <!-- Plan B: el código, para cuando el navegador no se abre. -->
+          <div class="connect-fallback">
+            <div class="settings-eyebrow nf-mono nf-eyebrow nf-eyebrow--lower">¿No se abre el navegador?</div>
+            <p class="riot-link__text">Pega este código en la app:</p>
+
+            @if (pairingCode(); as pc) {
+              <div class="connect-code" [class.is-expired]="codeExpired()">
+                <span class="connect-code__value nf-mono">{{ pc.code }}</span>
+                <button nfButton variant="ghost" size="sm" (click)="copyCode(pc.code)">
+                  {{ copied() ? 'Copiado' : 'Copiar' }}
+                </button>
+              </div>
+              @if (codeExpired()) {
+                <p class="connect-code__hint nf-mono">Caducado. Genera otro para volver a intentarlo.</p>
+              } @else {
+                <p class="connect-code__hint nf-mono">Caduca en {{ codeCountdown() }}</p>
+              }
+              <button nfButton variant="ghost" size="sm" [disabled]="riot.generatingCode()" (click)="generateCode()">
+                {{ riot.generatingCode() ? 'Generando…' : 'Generar otro' }}
+              </button>
+            } @else {
+              <button nfButton variant="primary" size="md" [disabled]="riot.generatingCode()" (click)="generateCode()">
+                {{ riot.generatingCode() ? 'Generando…' : 'Generar código' }}
+              </button>
+            }
+          </div>
+
+          <p class="connect-get nf-mono">
+            ¿No tienes la app?
+            <a [href]="desktopAppUrl" target="_blank" rel="noopener">Descárgala aquí</a>.
+          </p>
+
+          <div class="form-foot">
+            <button nfButton variant="ghost" size="md" (click)="closeConnect()">Cerrar</button>
+          </div>
+        </nf-modal>
+      }
     </div>
   `,
+  styles: [
+    `
+      .connect-steps {
+        margin: 12px 0 18px;
+        padding-left: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        font-size: var(--fs-body);
+        color: var(--nf-text-mid);
+      }
+      .connect-fallback {
+        padding: 14px;
+        border: var(--bw-1) solid var(--nf-border);
+        border-radius: var(--nf-radius);
+        background: var(--nf-surface-2);
+      }
+      .connect-code {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin: 8px 0 4px;
+        padding: 10px 14px;
+        border: var(--bw-1) solid var(--nf-border-strong);
+        border-radius: var(--nf-radius-sm);
+        background: var(--nf-surface);
+      }
+      .connect-code.is-expired .connect-code__value {
+        opacity: 0.5;
+        text-decoration: line-through;
+      }
+      .connect-code__value {
+        font-size: 22px;
+        font-weight: var(--fw-bold);
+        letter-spacing: 3px;
+      }
+      .connect-code__hint {
+        font-size: 12px;
+        color: var(--nf-text-mid);
+        margin: 0 0 10px;
+      }
+      .connect-get {
+        margin-top: 14px;
+        font-size: 12px;
+        color: var(--nf-text-mid);
+      }
+      .connect-get a {
+        color: var(--nf-cyan);
+      }
+    `,
+  ],
 })
 export class Perfil {
   private readonly groups = inject(GroupStore);
@@ -536,6 +640,7 @@ export class Perfil {
   // ── Roles preferidos (preferencia global de cuenta) ────────────────
   protected readonly prefs = inject(PreferencesStore);
   private readonly toast = inject(ToastService);
+  private readonly destroyRef = inject(DestroyRef);
 
   protected readonly roleTiles: RoleTile[] = [
     { role: 'TOP', short: 'TOP', name: 'Top', glyph: '◤' },
@@ -549,6 +654,8 @@ export class Perfil {
     // Idempotentes y deduplicadas: si otra vista ya las pidió, no hay petición extra.
     this.prefs.ensureLoaded();
     this.riot.ensureLoaded();
+    // El temporizador de la cuenta atrás no debe sobrevivir a la vista.
+    this.destroyRef.onDestroy(() => this.stopTick());
   }
 
   /**
@@ -763,6 +870,88 @@ export class Perfil {
       this.toast.success('Cuenta de Riot desvinculada.');
     } catch (error) {
       this.toast.error(errorMessage(error));
+    }
+  }
+
+  // ── Conectar la app (deep-link + código de emparejamiento) ─────────
+  /** Modal de "Conectar la app" abierto. */
+  readonly connecting = signal(false);
+  /**
+   * Código que se está enseñando. Estado de UI **efímero**: es una credencial de un solo uso, así
+   * que vive aquí, en la vista, mientras el modal está abierto — nunca en el store compartido.
+   */
+  readonly pairingCode = signal<PairingCode | null>(null);
+  /** "Copiado" transitorio tras pulsar copiar. */
+  readonly copied = signal(false);
+
+  /** Reloj para la cuenta atrás; solo corre con el modal abierto (se limpia al cerrar y al destruir). */
+  private readonly now = signal(Date.now());
+  private tick: ReturnType<typeof setInterval> | null = null;
+
+  private readonly codeRemainingMs = computed(() => {
+    const pc = this.pairingCode();
+    if (!pc) return 0;
+    return Math.max(0, new Date(pc.expiresAt).getTime() - this.now());
+  });
+  readonly codeExpired = computed(() => this.pairingCode() !== null && this.codeRemainingMs() === 0);
+  /** "m:ss" para la cuenta atrás. */
+  readonly codeCountdown = computed(() => {
+    const total = Math.floor(this.codeRemainingMs() / 1000);
+    const seconds = total % 60;
+    return `${Math.floor(total / 60)}:${seconds.toString().padStart(2, '0')}`;
+  });
+
+  openConnect(): void {
+    this.pairingCode.set(null);
+    this.copied.set(false);
+    this.connecting.set(true);
+    this.startTick();
+  }
+
+  closeConnect(): void {
+    this.connecting.set(false);
+    this.pairingCode.set(null);
+    this.stopTick();
+  }
+
+  /**
+   * Emite un código nuevo (invalida el anterior). Pesimista y no reentrante: el botón queda
+   * deshabilitado mientras vuela (`riot.generatingCode()`). El código no se cachea en el store —
+   * es una credencial— y un fallo se traduce con `errorMessage`.
+   */
+  async generateCode(): Promise<void> {
+    if (this.riot.generatingCode()) return;
+    try {
+      const code = await this.riot.requestPairingCode();
+      if (!code) return;
+      this.copied.set(false);
+      this.now.set(Date.now());
+      this.pairingCode.set(code);
+    } catch (error) {
+      this.toast.error(errorMessage(error));
+    }
+  }
+
+  async copyCode(code: string): Promise<void> {
+    try {
+      await navigator.clipboard?.writeText(code);
+      this.copied.set(true);
+      setTimeout(() => this.copied.set(false), 2000);
+    } catch {
+      // Sin API de portapapeles o sin permiso: el código está a la vista para copiarlo a mano.
+    }
+  }
+
+  private startTick(): void {
+    this.stopTick();
+    this.now.set(Date.now());
+    this.tick = setInterval(() => this.now.set(Date.now()), 1000);
+  }
+
+  private stopTick(): void {
+    if (this.tick !== null) {
+      clearInterval(this.tick);
+      this.tick = null;
     }
   }
 
