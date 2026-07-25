@@ -4,11 +4,13 @@ import { Session } from '../../../core/auth';
 import { CURRENT_USER } from '../../../core/lobby';
 import { GroupStore } from '../../../core/group-store';
 import { opggUrl } from '../../../core/member-detail';
+import { NotificationsStore } from '../../../core/notifications';
 import { buildPlayerProfile } from '../../../core/player-profile';
 import { LANE_ROLES, LaneRole, PreferencesStore, RolePreferences } from '../../../core/preferences';
 import { PairingCode, RIOT_REGIONS, RiotAccount, RiotAccountStore, RiotRegion } from '../../../core/riot';
 import { errorMessage } from '../../../core/http';
 import { ToastService } from '../../../core/toast';
+import { wireConnectModalOnRiotEvent } from './perfil-connect-modal';
 
 /** "may 2025" — el chip lo pone en mayúsculas. Fijado a es-ES: la UI es en español. */
 const MEMBER_SINCE_FMT = new Intl.DateTimeFormat('es-ES', { month: 'short', year: 'numeric' });
@@ -641,6 +643,7 @@ export class Perfil {
   protected readonly prefs = inject(PreferencesStore);
   private readonly toast = inject(ToastService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly notifs = inject(NotificationsStore);
 
   protected readonly roleTiles: RoleTile[] = [
     { role: 'TOP', short: 'TOP', name: 'Top', glyph: '◤' },
@@ -656,6 +659,25 @@ export class Perfil {
     this.riot.ensureLoaded();
     // El temporizador de la cuenta atrás no debe sobrevivir a la vista.
     this.destroyRef.onDestroy(() => this.stopTick());
+
+    // Si el usuario está esperando en "conectar_app.exe" con el código pegado en la app, la
+    // confirmación del backend (emparejamiento o verificación) cierra el modal sola y avisa
+    // con un toast — es el pago real de todo el flujo: pegar el código y ver la web
+    // reaccionar sin recargar. El refetch de la cuenta ya lo dispara el `effect` global de
+    // `shell.ts`; aquí solo se atiende la UI local del modal. `lastArrived` de
+    // `NotificationsStore` solo se rellena con pushes en vivo del stream, nunca con la carga
+    // inicial de la bandeja, así que esto no puede dispararse con una notificación vieja al
+    // montar la vista. Si el evento llega con el modal ya cerrado, no hay toast que sacar: no
+    // pasa nada (el refresh ya corre por su cuenta). Extraído a `perfil-connect-modal.ts` para
+    // poder testear el cableado sin montar esta vista entera (ver ese fichero).
+    wireConnectModalOnRiotEvent(this.notifs, this.connecting, (riotId, type) => {
+      const message =
+        type === 'RIOT_ACCOUNT_PAIRED'
+          ? `Vinculamos ${riotId} desde la app de escritorio.`
+          : `Comprobamos con Riot que ${riotId} es tuya.`;
+      this.closeConnect();
+      this.toast.success(message);
+    });
   }
 
   /**

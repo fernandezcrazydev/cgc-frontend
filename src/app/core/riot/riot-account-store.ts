@@ -29,6 +29,10 @@ export class RiotAccountStore {
 
   /** La carga en vuelo, para que N llamadas concurrentes compartan una petición. */
   private inFlight: Promise<void> | null = null;
+  /** El refetch silencioso en vuelo (ver `refresh()`), independiente de `inFlight`. */
+  private refreshInFlight: Promise<void> | null = null;
+  /** El refetch encadenado detrás del que está en vuelo. Como mucho uno (ver `refresh()`). */
+  private refreshQueued: Promise<void> | null = null;
 
   /** `null` = no hay cuenta vinculada, o aún no se sabe (mirar `status`). */
   readonly account = this._account.asReadonly();
@@ -63,6 +67,52 @@ export class RiotAccountStore {
     this.inFlight = null;
     this._status.set('idle');
     return this.ensureLoaded();
+  }
+
+  /**
+   * Refetch silencioso: relee el backend sin pasar por `loading`. Existe para las
+   * notificaciones en vivo (`RIOT_ACCOUNT_PAIRED`/`VERIFIED`/`TAKEN_OVER`): el perfil ya
+   * está pintado con datos buenos cuando llega el evento, y `reload()` pone `status` en
+   * `idle`→`loading`, lo que resetea el skeleton del bloque entero — un parpadeo feo para
+   * un refresco que el usuario ni pidió. Aquí `status` se queda tal cual estaba (`ready`
+   * normalmente) durante toda la operación; solo se sustituyen `account`/`relinkAvailableAt`
+   * si la petición llega bien.
+   *
+   * Si falla, se traga el error y se queda con lo que ya había en pantalla: un refresco en
+   * vivo que no puede completarse no debe romper una vista que ya funcionaba (no hay UI de
+   * error para esto, no toca `status`).
+   *
+   * No reentrante, pero **encadenando, no compartiendo**: dos eventos seguidos (`PAIRED` y
+   * `VERIFIED` llegan con segundos de diferencia, ver la nota de diseño del contrato de
+   * vinculación) no pueden conformarse con una única respuesta. Si cuando llega el segundo
+   * ya hay un GET en vuelo, esa respuesta **salió del servidor antes** del cambio que el
+   * segundo evento anuncia: reutilizarla dejaría el perfil clavado en "vinculada desde el
+   * cliente" con la cuenta ya verificada, y nada volvería a pedirlo hasta que el usuario
+   * navegase. Por eso se encadena otro GET detrás — uno solo, por muchos eventos que
+   * lleguen: lo que hace falta es que la última lectura empiece después del último evento,
+   * no una lectura por evento. Nunca hay dos GET solapados que puedan resolver fuera de
+   * orden y pisarse.
+   */
+  refresh(): Promise<void> {
+    if (this.refreshInFlight === null) {
+      return (this.refreshInFlight = this.doRefresh());
+    }
+    return (this.refreshQueued ??= this.refreshInFlight.then(() => {
+      this.refreshQueued = null;
+      return (this.refreshInFlight = this.doRefresh());
+    }));
+  }
+
+  private async doRefresh(): Promise<void> {
+    try {
+      const status = await firstValueFrom(this.api.status());
+      this._account.set(status.account);
+      this._relinkAvailableAt.set(status.relinkAvailableAt);
+    } catch {
+      // Silencioso a propósito: nos quedamos con los datos que ya había en pantalla.
+    } finally {
+      this.refreshInFlight = null;
+    }
   }
 
   /**
@@ -123,6 +173,8 @@ export class RiotAccountStore {
   /** Al cerrar sesión no debe quedar rastro de la cuenta anterior en memoria. */
   clear(): void {
     this.inFlight = null;
+    this.refreshInFlight = null;
+    this.refreshQueued = null;
     this._account.set(null);
     this._relinkAvailableAt.set(null);
     this._status.set('idle');

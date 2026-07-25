@@ -56,6 +56,39 @@ export function notificationView(n: NotificationResponse, now = Date.now()): Not
         },
       };
     }
+    case 'RIOT_ACCOUNT_PAIRED': {
+      const riotId = n.data['riotId'] ?? 'tu cuenta de Riot';
+      return {
+        ...base,
+        title: 'CUENTA VINCULADA',
+        message: `Vinculamos ${riotId} desde la app de escritorio`,
+        accent: 'var(--nf-cyan)',
+        glyph: '↔',
+        invite: null,
+      };
+    }
+    case 'RIOT_ACCOUNT_VERIFIED': {
+      const riotId = n.data['riotId'] ?? 'tu cuenta de Riot';
+      return {
+        ...base,
+        title: 'CUENTA VERIFICADA',
+        message: `Comprobamos con Riot que ${riotId} es tuya`,
+        accent: 'var(--nf-green)',
+        glyph: '✓',
+        invite: null,
+      };
+    }
+    case 'RIOT_ACCOUNT_TAKEN_OVER': {
+      const riotId = n.data['riotId'] ?? 'tu cuenta de Riot';
+      return {
+        ...base,
+        title: 'CUENTA DESVINCULADA',
+        message: `Alguien demostró ser el dueño de ${riotId} y se ha desvinculado de tu perfil`,
+        accent: 'var(--nf-red)',
+        glyph: '⊘',
+        invite: null,
+      };
+    }
     default:
       // Un tipo que el backend añada y el front aún no conozca: se muestra, no se rompe.
       return {

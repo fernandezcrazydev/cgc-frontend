@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { Observable, of, throwError } from 'rxjs';
+import { Observable, Subject, of, throwError } from 'rxjs';
 import { RiotAccountApi } from './riot-account-api';
 import { RiotAccountStore } from './riot-account-store';
 import { LinkRiotAccountRequest, PairingCode, RiotAccount, RiotAccountStatus } from './models';
@@ -216,5 +216,129 @@ describe('RiotAccountStore', () => {
 
     expect(store.account()).toBeNull();
     expect(store.status()).toBe('idle');
+  });
+
+  /**
+   * `refresh()` es el refetch silencioso para las notificaciones en vivo de vinculación
+   * (`RIOT_ACCOUNT_PAIRED`/`VERIFIED`/`TAKEN_OVER`): a diferencia de `reload()`, no puede
+   * pasar por `loading` porque el perfil pintaría un skeleton sobre un bloque que ya
+   * funciona.
+   */
+  describe('refresh()', () => {
+    const OTHER_ACCOUNT: RiotAccount = {
+      ...ACCOUNT,
+      riotId: 'Otro#EUW',
+      gameName: 'Otro',
+      tagLine: 'EUW',
+      region: 'EUW',
+    };
+
+    /** La misma cuenta ya verificada: lo que devuelve el GET posterior al confirm del reto. */
+    const VERIFIED_ACCOUNT: RiotAccount = {
+      ...ACCOUNT,
+      strength: 'VERIFIED',
+      verifiedAt: '2026-07-25T10:03:40Z',
+    };
+
+    it('no toca status (se queda en ready durante y después) y sustituye los datos', async () => {
+      await store.ensureLoaded();
+      expect(store.status()).toBe('ready');
+
+      const subject = new Subject<RiotAccountStatus>();
+      api.status = () => subject.asObservable();
+
+      const pending = store.refresh();
+      // Mientras vuela, el skeleton NO debe reaparecer: sigue en ready.
+      expect(store.status()).toBe('ready');
+
+      subject.next({ account: OTHER_ACCOUNT, relinkAvailableAt: null });
+      subject.complete();
+      await pending;
+
+      expect(store.status()).toBe('ready');
+      expect(store.account()).toEqual(OTHER_ACCOUNT);
+    });
+
+    /**
+     * El caso que de verdad ocurre: `PAIRED` y `VERIFIED` llegan con segundos de diferencia y
+     * el GET del primero puede seguir en vuelo cuando entra el segundo. Si el segundo se
+     * conformase con esa respuesta —que salió del servidor ANTES de la verificación— el perfil
+     * se quedaría clavado en "vinculada desde el cliente" con la cuenta ya verificada, y nada
+     * lo volvería a pedir hasta que el usuario navegase. Si este test se pone rojo, ese es el
+     * bug que ha vuelto.
+     */
+    it('encadena otro GET cuando llega un evento con uno en vuelo, en vez de reutilizar su respuesta', async () => {
+      await store.ensureLoaded();
+      const subjects: Subject<RiotAccountStatus>[] = [];
+      api.status = () => {
+        const subject = new Subject<RiotAccountStatus>();
+        subjects.push(subject);
+        return subject.asObservable();
+      };
+
+      const first = store.refresh(); // llegó RIOT_ACCOUNT_PAIRED
+      const second = store.refresh(); // llegó RIOT_ACCOUNT_VERIFIED, con el anterior en vuelo
+      // Sin solaparse: el segundo espera su turno en vez de lanzar un GET en paralelo.
+      expect(subjects.length).toBe(1);
+
+      // El primer GET responde la cuenta aún sin verificar: salió antes del confirm.
+      subjects[0].next(LINKED);
+      subjects[0].complete();
+      await first;
+      await Promise.resolve();
+
+      expect(subjects.length).toBe(2);
+      subjects[1].next({ account: VERIFIED_ACCOUNT, relinkAvailableAt: null });
+      subjects[1].complete();
+      await second;
+
+      expect(store.account()).toEqual(VERIFIED_ACCOUNT);
+    });
+
+    it('encadena UNO solo por muchos eventos que lleguen: la última lectura empieza tras el último', async () => {
+      await store.ensureLoaded();
+      const subjects: Subject<RiotAccountStatus>[] = [];
+      api.status = () => {
+        const subject = new Subject<RiotAccountStatus>();
+        subjects.push(subject);
+        return subject.asObservable();
+      };
+
+      const all = [store.refresh(), store.refresh(), store.refresh(), store.refresh()];
+      subjects[0].next(LINKED);
+      subjects[0].complete();
+      await all[0];
+      await Promise.resolve();
+      subjects[1].next(LINKED);
+      subjects[1].complete();
+      await Promise.all(all);
+
+      // Cuatro eventos, dos lecturas: la del primero y una que empieza después del último.
+      expect(subjects.length).toBe(2);
+    });
+
+    it('permite un refresh nuevo una vez terminado el anterior', async () => {
+      await store.ensureLoaded();
+      let calls = 0;
+      api.status = () => {
+        calls++;
+        return of(LINKED);
+      };
+
+      await store.refresh();
+      await store.refresh();
+
+      expect(calls).toBe(2);
+    });
+
+    it('ante un fallo deja status intacto y conserva los datos previos (no rompe una vista que ya funcionaba)', async () => {
+      await store.ensureLoaded();
+      api.status = () => throwError(() => new Error('boom'));
+
+      await store.refresh();
+
+      expect(store.status()).toBe('ready');
+      expect(store.account()).toEqual(ACCOUNT);
+    });
   });
 });
