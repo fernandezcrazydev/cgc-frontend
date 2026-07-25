@@ -8,10 +8,18 @@
 
 /**
  * Tipos de notificación que la campana sabe mostrar (`NotificationType` en el backend).
- * Hoy solo existe uno; el backend añade tipos sin migración, así que el campo `type`
- * viaja como `string` y esta unión es solo la ayuda de tipado para lo ya conocido.
+ * El backend añade tipos sin migración, así que el campo `type` viaja como `string` y
+ * esta unión es solo la ayuda de tipado para lo ya conocido.
+ *
+ * `RIOT_ACCOUNT_PAIRED`/`RIOT_ACCOUNT_VERIFIED`/`RIOT_ACCOUNT_TAKEN_OVER` llegan cuando el
+ * usuario vincula, verifica o pierde su cuenta de Riot desde la app de escritorio
+ * (`cgc-scraper`); las tres traen `riotId` en `data` y las dos primeras también `region`.
  */
-export type NotificationType = 'INVITED_TO_GROUP';
+export type NotificationType =
+  | 'INVITED_TO_GROUP'
+  | 'RIOT_ACCOUNT_PAIRED'
+  | 'RIOT_ACCOUNT_VERIFIED'
+  | 'RIOT_ACCOUNT_TAKEN_OVER';
 
 /**
  * Una entrada de la campana. `type` es el nombre del enum; `data` es un mapa de

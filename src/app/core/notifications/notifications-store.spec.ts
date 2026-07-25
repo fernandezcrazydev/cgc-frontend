@@ -241,3 +241,66 @@ describe('NotificationsStore · recuperación del stream ante un 401', () => {
     expect(bearers).toHaveLength(2);
   });
 });
+
+/**
+ * Las notificaciones de vinculación de Riot (`RIOT_ACCOUNT_PAIRED`/`VERIFIED`/`TAKEN_OVER`)
+ * viajan por el mismo stream que las de grupo: aquí se comprueba que entran en la bandeja y en
+ * `lastArrived` (lo que observa el `effect` de `shell.ts`), pero que NO son `actionable` — esa
+ * lista es solo para notificaciones que piden un sí/no (hoy, invitaciones a grupo).
+ */
+describe('NotificationsStore · notificación de vinculación con Riot llegada por el stream', () => {
+  const realFetch = globalThis.fetch;
+  let store: NotificationsStore;
+  let api: ApiStub;
+
+  const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+  /** Mismo helper que `notification-stream.spec.ts`: un `Response` que emite `chunks` como SSE. */
+  function streamedResponse(chunks: string[]): Response {
+    const encoder = new TextEncoder();
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        for (const c of chunks) controller.enqueue(encoder.encode(c));
+        controller.close();
+      },
+    });
+    return new Response(body, { status: 200, headers: { 'Content-Type': 'text/event-stream' } });
+  }
+
+  const RIOT_NOTIF =
+    '{"id":"n-riot","type":"RIOT_ACCOUNT_PAIRED","data":{"riotId":"N1ghtfang#LAN","region":"LAN"},"read":false,"createdAt":"2026-07-25T12:00:00Z"}';
+
+  beforeEach(() => {
+    api = new ApiStub();
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [
+        NotificationsStore,
+        { provide: NotificationsApi, useValue: api },
+        { provide: OidcSecurityService, useValue: { getAccessToken: () => of('tok') } },
+        { provide: SessionRecovery, useValue: { refresh: () => Promise.resolve(false) } },
+      ],
+    });
+    store = TestBed.inject(NotificationsStore);
+  });
+
+  afterEach(() => {
+    store.clear();
+    globalThis.fetch = realFetch;
+  });
+
+  it('entra en la lista y en lastArrived, pero no aparece en actionable', async () => {
+    const frame = `event: notification\ndata: ${RIOT_NOTIF}\n\n`;
+    globalThis.fetch = (() => Promise.resolve(streamedResponse([frame]))) as typeof fetch;
+
+    await store.ensureLoaded();
+    store.connect();
+    await tick();
+    await tick();
+
+    expect(store.lastArrived()?.type).toBe('RIOT_ACCOUNT_PAIRED');
+    expect(store.lastArrived()?.id).toBe('n-riot');
+    expect(store.notifications().some((n) => n.id === 'n-riot')).toBe(true);
+    expect(store.actionable().some((n) => n.id === 'n-riot')).toBe(false);
+  });
+});

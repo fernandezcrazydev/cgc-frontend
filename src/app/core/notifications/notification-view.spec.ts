@@ -50,6 +50,53 @@ describe('notificationView', () => {
   });
 });
 
+describe('notificationView · vinculación con la app de escritorio', () => {
+  it('mapea RIOT_ACCOUNT_PAIRED con el riotId interpolado', () => {
+    const view = notificationView(
+      invite({ type: 'RIOT_ACCOUNT_PAIRED', data: { riotId: 'N1ghtfang#LAN', region: 'LAN' } }),
+      NOW,
+    );
+    expect(view.title).toBe('CUENTA VINCULADA');
+    expect(view.message).toBe('Vinculamos N1ghtfang#LAN desde la app de escritorio');
+    expect(view.accent).toBe('var(--nf-cyan)');
+    expect(view.glyph).toBe('↔');
+    expect(view.invite).toBeNull();
+  });
+
+  it('mapea RIOT_ACCOUNT_VERIFIED con el riotId interpolado', () => {
+    const view = notificationView(
+      invite({ type: 'RIOT_ACCOUNT_VERIFIED', data: { riotId: 'N1ghtfang#LAN', region: 'LAN' } }),
+      NOW,
+    );
+    expect(view.title).toBe('CUENTA VERIFICADA');
+    expect(view.message).toBe('Comprobamos con Riot que N1ghtfang#LAN es tuya');
+    expect(view.accent).toBe('var(--nf-green)');
+    expect(view.glyph).toBe('✓');
+    expect(view.invite).toBeNull();
+  });
+
+  it('mapea RIOT_ACCOUNT_TAKEN_OVER con el riotId interpolado', () => {
+    const view = notificationView(
+      invite({ type: 'RIOT_ACCOUNT_TAKEN_OVER', data: { riotId: 'N1ghtfang#LAN' } }),
+      NOW,
+    );
+    expect(view.title).toBe('CUENTA DESVINCULADA');
+    expect(view.message).toBe(
+      'Alguien demostró ser el dueño de N1ghtfang#LAN y se ha desvinculado de tu perfil',
+    );
+    expect(view.accent).toBe('var(--nf-red)');
+    expect(view.glyph).toBe('⊘');
+    expect(view.invite).toBeNull();
+  });
+
+  it('un tipo desconocido sigue cayendo en el genérico (no rompe con tipos nuevos del backend)', () => {
+    const view = notificationView(invite({ type: 'RIOT_ACCOUNT_SOMETHING_FUTURE', data: {} }), NOW);
+    expect(view.title).toBe('NOTIFICACIÓN');
+    expect(view.accent).toBe('var(--nf-yellow)');
+    expect(view.invite).toBeNull();
+  });
+});
+
 describe('timeAgo', () => {
   it('formatea la antigüedad de forma compacta', () => {
     expect(timeAgo('2026-07-18T11:59:30Z', NOW)).toBe('AHORA');

@@ -12,6 +12,7 @@ import { DevicesStore } from '../../core/devices';
 import { ToastService } from '../../core/toast';
 import { NfButton, NfSkeleton, NfToastHost, NfWindow } from '../../ui';
 import { FeedbackDialog } from '../feedback/feedback-dialog';
+import { wireRiotAccountRefresh } from './riot-account-refresh';
 
 /**
  * Sale perso app shell — desktop sidebar + sticky header + mobile bottom nav,
@@ -217,6 +218,14 @@ export class Shell {
       const latest = this.notifs.lastArrived();
       if (latest?.type === 'INVITED_TO_GROUP') void this.invitations.reload();
     });
+
+    // Vincular/verificar desde la app de escritorio (o perder la cuenta a manos de otro
+    // usuario) llega igual por SSE: refetch silencioso de la cuenta de Riot para que el
+    // perfil se vea fresco esté o no la vista abierta. Va aquí (global) y no en `perfil.ts`
+    // porque el usuario puede estar en cualquier otra pantalla cuando llega el evento.
+    // Extraído a una función aparte (`riot-account-refresh.ts`) para poder testear el
+    // cableado sin montar este componente entero.
+    wireRiotAccountRefresh(this.notifs, this.riot);
 
     // Responsive breakpoint (mirrors the dc.html matchMedia at 760px).
     const mq = window.matchMedia('(max-width: 760px)');
