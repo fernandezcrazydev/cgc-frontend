@@ -387,6 +387,11 @@
 :root[data-theme='original'] .shell__sheet {
   background: rgba(18, 21, 39, 0.98);
 }
+:root[data-theme='original'] .shell__notif .nf-window {
+  /* Sin overlay de scrim detrás (a diferencia de los modales), así que el
+     cristal genérico (4% blanco) no basta para leer el texto encima. */
+  background: rgba(18, 21, 39, 0.98);
+}
 :root[data-theme='original'] .shell__notif-item {
   border-bottom-color: rgba(255, 255, 255, 0.08);
 }
