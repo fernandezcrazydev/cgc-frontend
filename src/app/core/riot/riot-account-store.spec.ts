@@ -233,6 +233,13 @@ describe('RiotAccountStore', () => {
       region: 'EUW',
     };
 
+    /** La misma cuenta ya verificada: lo que devuelve el GET posterior al confirm del reto. */
+    const VERIFIED_ACCOUNT: RiotAccount = {
+      ...ACCOUNT,
+      strength: 'VERIFIED',
+      verifiedAt: '2026-07-25T10:03:40Z',
+    };
+
     it('no toca status (se queda en ready durante y después) y sustituye los datos', async () => {
       await store.ensureLoaded();
       expect(store.status()).toBe('ready');
@@ -252,22 +259,62 @@ describe('RiotAccountStore', () => {
       expect(store.account()).toEqual(OTHER_ACCOUNT);
     });
 
-    it('no reentra: dos refresh seguidos comparten la misma petición en vuelo', async () => {
+    /**
+     * El caso que de verdad ocurre: `PAIRED` y `VERIFIED` llegan con segundos de diferencia y
+     * el GET del primero puede seguir en vuelo cuando entra el segundo. Si el segundo se
+     * conformase con esa respuesta —que salió del servidor ANTES de la verificación— el perfil
+     * se quedaría clavado en "vinculada desde el cliente" con la cuenta ya verificada, y nada
+     * lo volvería a pedir hasta que el usuario navegase. Si este test se pone rojo, ese es el
+     * bug que ha vuelto.
+     */
+    it('encadena otro GET cuando llega un evento con uno en vuelo, en vez de reutilizar su respuesta', async () => {
       await store.ensureLoaded();
-      const subject = new Subject<RiotAccountStatus>();
-      let calls = 0;
+      const subjects: Subject<RiotAccountStatus>[] = [];
       api.status = () => {
-        calls++;
+        const subject = new Subject<RiotAccountStatus>();
+        subjects.push(subject);
         return subject.asObservable();
       };
 
-      const p1 = store.refresh();
-      const p2 = store.refresh();
-      subject.next(LINKED);
-      subject.complete();
-      await Promise.all([p1, p2]);
+      const first = store.refresh(); // llegó RIOT_ACCOUNT_PAIRED
+      const second = store.refresh(); // llegó RIOT_ACCOUNT_VERIFIED, con el anterior en vuelo
+      // Sin solaparse: el segundo espera su turno en vez de lanzar un GET en paralelo.
+      expect(subjects.length).toBe(1);
 
-      expect(calls).toBe(1);
+      // El primer GET responde la cuenta aún sin verificar: salió antes del confirm.
+      subjects[0].next(LINKED);
+      subjects[0].complete();
+      await first;
+      await Promise.resolve();
+
+      expect(subjects.length).toBe(2);
+      subjects[1].next({ account: VERIFIED_ACCOUNT, relinkAvailableAt: null });
+      subjects[1].complete();
+      await second;
+
+      expect(store.account()).toEqual(VERIFIED_ACCOUNT);
+    });
+
+    it('encadena UNO solo por muchos eventos que lleguen: la última lectura empieza tras el último', async () => {
+      await store.ensureLoaded();
+      const subjects: Subject<RiotAccountStatus>[] = [];
+      api.status = () => {
+        const subject = new Subject<RiotAccountStatus>();
+        subjects.push(subject);
+        return subject.asObservable();
+      };
+
+      const all = [store.refresh(), store.refresh(), store.refresh(), store.refresh()];
+      subjects[0].next(LINKED);
+      subjects[0].complete();
+      await all[0];
+      await Promise.resolve();
+      subjects[1].next(LINKED);
+      subjects[1].complete();
+      await Promise.all(all);
+
+      // Cuatro eventos, dos lecturas: la del primero y una que empieza después del último.
+      expect(subjects.length).toBe(2);
     });
 
     it('permite un refresh nuevo una vez terminado el anterior', async () => {

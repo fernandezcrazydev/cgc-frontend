@@ -31,6 +31,8 @@ export class RiotAccountStore {
   private inFlight: Promise<void> | null = null;
   /** El refetch silencioso en vuelo (ver `refresh()`), independiente de `inFlight`. */
   private refreshInFlight: Promise<void> | null = null;
+  /** El refetch encadenado detrás del que está en vuelo. Como mucho uno (ver `refresh()`). */
+  private refreshQueued: Promise<void> | null = null;
 
   /** `null` = no hay cuenta vinculada, o aún no se sabe (mirar `status`). */
   readonly account = this._account.asReadonly();
@@ -80,13 +82,25 @@ export class RiotAccountStore {
    * vivo que no puede completarse no debe romper una vista que ya funcionaba (no hay UI de
    * error para esto, no toca `status`).
    *
-   * No reentrante: dos eventos seguidos (p. ej. `PAIRED` y `VERIFIED` con segundos de
-   * diferencia, ver nota de diseño del contrato de vinculación) comparten la misma petición
-   * en vuelo en vez de lanzar dos GET solapados que podrían resolver fuera de orden y
-   * pisarse el uno al otro.
+   * No reentrante, pero **encadenando, no compartiendo**: dos eventos seguidos (`PAIRED` y
+   * `VERIFIED` llegan con segundos de diferencia, ver la nota de diseño del contrato de
+   * vinculación) no pueden conformarse con una única respuesta. Si cuando llega el segundo
+   * ya hay un GET en vuelo, esa respuesta **salió del servidor antes** del cambio que el
+   * segundo evento anuncia: reutilizarla dejaría el perfil clavado en "vinculada desde el
+   * cliente" con la cuenta ya verificada, y nada volvería a pedirlo hasta que el usuario
+   * navegase. Por eso se encadena otro GET detrás — uno solo, por muchos eventos que
+   * lleguen: lo que hace falta es que la última lectura empiece después del último evento,
+   * no una lectura por evento. Nunca hay dos GET solapados que puedan resolver fuera de
+   * orden y pisarse.
    */
   refresh(): Promise<void> {
-    return (this.refreshInFlight ??= this.doRefresh());
+    if (this.refreshInFlight === null) {
+      return (this.refreshInFlight = this.doRefresh());
+    }
+    return (this.refreshQueued ??= this.refreshInFlight.then(() => {
+      this.refreshQueued = null;
+      return (this.refreshInFlight = this.doRefresh());
+    }));
   }
 
   private async doRefresh(): Promise<void> {
@@ -160,6 +174,7 @@ export class RiotAccountStore {
   clear(): void {
     this.inFlight = null;
     this.refreshInFlight = null;
+    this.refreshQueued = null;
     this._account.set(null);
     this._relinkAvailableAt.set(null);
     this._status.set('idle');
