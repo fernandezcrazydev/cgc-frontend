@@ -510,7 +510,7 @@
    keeps a comfortable margin around it. */
 .modal--wide {
   max-width: 1040px;
-  max-height: calc(100vh - 40px);
+  max-height: calc(var(--nf-vh) * 100 - 40px);
   overflow-y: auto;
 }
 /* the window already pads the body (24px); drop the teams' own side padding so
@@ -1768,7 +1768,7 @@
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 12px;
   padding: 20px 24px;
-  max-height: min(46vh, 460px);
+  max-height: min(var(--nf-vh) * 46, 460px);
   overflow-y: auto;
 }
 .cp-pick {

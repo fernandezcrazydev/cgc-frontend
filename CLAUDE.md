@@ -228,6 +228,12 @@ Cuando se acuerde uno, documentarlo aquí y borrar la línea de pendientes.
   `ui/index.ts`. Antes de crear markup ad-hoc (modales, paginación...), mira si existe o debe
   existir una primitiva `nf-*`.
 - Los componentes **consumen** tokens `var(--nf-*)`; solo `src/styles/tokens/` los declara.
+- **Zoom de interfaz**: en escritorio (`min-width: 1000px`) la app se pinta al 110% vía
+  `zoom` en `:root` (`--nf-zoom`, en `tokens/base.css`). Consecuencia práctica: **nunca escribas
+  `100vh`/`100vw` a pelo** — el zoom pre-multiplica el valor usado y las unidades de viewport se
+  pasan un 10%. Usa `calc(var(--nf-vh) * 100)` / `var(--nf-vw)`, que ya compensan. Los `%` y los
+  anchos `auto` no necesitan nada. Los breakpoints (todos ≤ 860px) quedan fuera de la zona
+  escalada a propósito: las media queries miden el viewport sin escalar.
 - **Temas**: `core/theme` mantiene `<html data-theme>`; cada skin es un fichero en
   `src/styles/themes/` que redefine tokens y aplana los efectos firma (`nexus` = default,
   sin atributo). Skins actuales: `nexus`, `nocturne`, `original` (port del look legacy).

@@ -7,6 +7,36 @@
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
 
+/* ---- Zoom de interfaz ----
+   La densidad de la UI está pensada para verse al 110% en escritorio: en 1920x1080
+   el texto y los controles a escala 1 quedan pequeños para el ancho disponible.
+   `zoom` en :root se comporta igual que el zoom del navegador (reflow real, no un
+   transform), con dos matices que hay que tener presentes al escribir CSS:
+
+   1. Las unidades de viewport NO se dividen por el zoom — el valor usado de
+      cualquier propiedad se pre-multiplica por él (css-viewport-1), así que dentro
+      del elemento escalado `100vh` mide un 10% más que la ventana y desborda.
+      Por eso las medidas relativas al viewport se escriben con var(--nf-vh) /
+      var(--nf-vw), que ya llevan la compensación. Los anchos `auto` y `%` sí se
+      resuelven contra la caja real del padre: esos no hay que tocarlos.
+   2. Las media queries miden el viewport SIN escalar. Por eso el zoom solo se
+      aplica por encima de 1000px: el breakpoint más alto de la app es 860px, y a
+      1000px de ventana el ancho efectivo es 909px, así que ningún breakpoint cae
+      dentro de la zona escalada y el layout responsive sigue cuadrando.
+   Para cambiar la escala (o desactivarla) basta con tocar --nf-zoom aquí. */
+:root {
+  --nf-zoom: 1;
+  --nf-vh: calc(1vh / var(--nf-zoom));
+  --nf-vw: calc(1vw / var(--nf-zoom));
+}
+
+@media (min-width: 1000px) {
+  :root {
+    --nf-zoom: 1.1;
+    zoom: var(--nf-zoom);
+  }
+}
+
 body {
   background:
     radial-gradient(900px 480px at 85% -8%, rgba(255, 95, 210, 0.12), transparent 60%),
@@ -14,7 +44,7 @@ body {
   color: var(--nf-text);
   font-family: var(--nf-font);
   -webkit-font-smoothing: antialiased;
-  min-height: 100vh;
+  min-height: calc(var(--nf-vh) * 100);
 }
 
 ::selection { background: rgba(255, 95, 210, 0.35); color: #fff; }

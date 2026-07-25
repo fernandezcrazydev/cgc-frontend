@@ -2,7 +2,7 @@
 
 .shell {
   display: flex;
-  min-height: 100vh;
+  min-height: calc(var(--nf-vh) * 100);
   background:
     radial-gradient(120% 60% at 100% 0%, rgba(54, 224, 255, 0.07), transparent 50%),
     var(--nf-void);
@@ -14,7 +14,7 @@
   flex: none;
   position: sticky;
   top: 0;
-  height: 100vh;
+  height: calc(var(--nf-vh) * 100);
   display: flex;
   flex-direction: column;
   background: rgba(24, 10, 44, 0.5);
@@ -637,7 +637,7 @@
   top: 60px;
   right: clamp(12px, 4vw, 30px);
   width: 340px;
-  max-width: calc(100vw - 24px);
+  max-width: calc(var(--nf-vw) * 100 - 24px);
   animation: nf-pop 0.18s ease both;
   filter: drop-shadow(0 0 30px rgba(255, 95, 210, 0.12));
 }
@@ -662,7 +662,7 @@
 .shell__notif-clear:hover { color: var(--nf-text); }
 
 .shell__notif-list {
-  max-height: min(60vh, 380px);
+  max-height: min(var(--nf-vh) * 60, 380px);
   overflow-y: auto;
 }
 .shell__notif-item {
@@ -820,7 +820,7 @@
 }
 .shell__sheet {
   width: 100%;
-  max-height: 78vh;
+  max-height: calc(var(--nf-vh) * 78);
   display: flex;
   flex-direction: column;
   padding: 10px 16px max(18px, env(safe-area-inset-bottom));
