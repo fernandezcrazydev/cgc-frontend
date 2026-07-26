@@ -5,6 +5,7 @@
  *
  * Fuente: `com.cgc.cc.groups.adapters.in.controller` (request/ y response/) del backend.
  */
+import type { RiotLinkStrength } from '../riot';
 
 /** Región de juego. Enum cerrado en el backend (`Region`); mismos valores, mismo orden. */
 export const REGIONS = [
@@ -48,6 +49,11 @@ export interface GroupMembershipResponse {
  * Un miembro del roster de un grupo (`GroupMemberResponse` del backend). El `userId` es el UUID
  * que necesitan expulsar / cambiar rol / transferir; `discordUsername` y `avatarUrl` son para
  * pintar la fila. `role` es el nombre del enum; `joinedAt` es ISO-8601 (antigüedad).
+ *
+ * `riotId` (`Nombre#TAG`) y `riotStrength` van los dos a null o los dos con valor: null cuando el
+ * miembro no tiene cuenta de Riot enlazada. `riotStrength` reutiliza los mismos tres valores que
+ * `RiotAccount.strength` de `core/riot/models.ts` (`RiotLinkStrength`), así que el semáforo del
+ * roster puede compartir el mismo switch que ya pinta el chip del perfil.
  */
 export interface GroupMemberResponse {
   userId: string;
@@ -55,6 +61,8 @@ export interface GroupMemberResponse {
   avatarUrl: string | null;
   role: GroupRole;
   joinedAt: string;
+  riotId: string | null;
+  riotStrength: RiotLinkStrength | null;
 }
 
 /** Estado de una invitación (`InvitationStatus` en el backend). `REVOKED` = el grupo la retiró. */

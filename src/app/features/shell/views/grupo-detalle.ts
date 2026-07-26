@@ -175,6 +175,14 @@ import { errorMessage } from '../../../core/http';
                             {{ m.discordUsername }}@if (isMe(m)) {<span class="gd-member__you nf-mono"> · TÚ</span>}
                           </div>
                           <div class="gd-member__role nf-mono">{{ m.role }}</div>
+                          <div class="gd-member__riot nf-mono" [title]="riotLabel(m)">
+                            <span class="gd-member__riot-dot" [class]="'gd-member__riot-dot--' + riotDot(m)"></span>
+                            @if (m.riotId) {
+                              {{ m.riotId }}
+                            } @else {
+                              <span class="gd-member__riot-id--none">Sin vincular</span>
+                            }
+                          </div>
                         </div>
                         @if (m.role === 'OWNER') {
                           <nf-badge color="pink">OWNER</nf-badge>
@@ -520,6 +528,37 @@ export class GrupoDetalle {
   }
   isMe(m: GroupMemberResponse): boolean {
     return m.userId === this.session.user()?.userId;
+  }
+
+  /**
+   * Color del semáforo de vinculación de Riot, un peldaño más que la escalera del backend
+   * (`docs/verificacion-cuenta-riot.md` §1): "sin cuenta" es gris, distinto de DECLARED (rojo),
+   * porque para el resto del grupo "no ha hecho nada" y "escribió un nombre sin probarlo" no son
+   * lo mismo aunque ninguno de los dos pruebe titularidad.
+   */
+  riotDot(m: GroupMemberResponse): 'none' | 'declared' | 'paired' | 'verified' {
+    switch (m.riotStrength) {
+      case 'VERIFIED':
+        return 'verified';
+      case 'PAIRED':
+        return 'paired';
+      case 'DECLARED':
+        return 'declared';
+      default:
+        return 'none';
+    }
+  }
+  riotLabel(m: GroupMemberResponse): string {
+    switch (m.riotStrength) {
+      case 'VERIFIED':
+        return 'Cuenta de Riot verificada';
+      case 'PAIRED':
+        return 'Vinculada desde el cliente, titularidad sin probar';
+      case 'DECLARED':
+        return 'Riot ID escrito a mano, sin ninguna prueba';
+      default:
+        return 'Sin cuenta de Riot vinculada';
+    }
   }
 
   // ── Reglas de gestión (solo UX; el backend revalida) ────────────────
