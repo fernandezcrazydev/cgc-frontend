@@ -1,39 +1,27 @@
-import { Injectable } from '@angular/core';
-import { Observable, delay, of } from 'rxjs';
-import { RolePreferences } from './models';
+import { Injectable, inject } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import { environment } from '../../../environments/environment';
+import { RolePreferences, UpdateRolePreferencesRequest } from './models';
 
 /**
- * Acceso a las preferencias del jugador.
+ * Único sitio que conoce las URLs de los roles preferidos. No captura errores ni guarda
+ * estado — de eso se encarga `PreferencesStore`; aquí solo se traduce "un endpoint" a "un
+ * Observable tipado".
  *
- * PLACEHOLDER: hoy no hay endpoint, así que el cuerpo de los métodos es un mock
- * en memoria. Es el ÚNICO fichero del dominio que sabe que los datos son falsos:
- * el store y las vistas ya trabajan contra la firma definitiva (Observable,
- * latencia, posibilidad de fallo).
- *
- * BACKEND NOTE: al migrar, este fichero pasa a inyectar `HttpClient` y a llamar a
- * `GET/PUT ${environment.apiUrl}/me/preferences`, y `MOCK_PREFERENCES` se borra.
- * Las firmas no cambian, así que ni el store ni la vista se tocan.
+ * El Bearer lo añade `authInterceptor` porque `environment.apiUrl` está en `secureRoutes`.
  */
 @Injectable({ providedIn: 'root' })
 export class PreferencesApi {
-  /** Semilla del mock. Vive aquí (y solo aquí) para poder borrarla de un tirón. */
-  private mock: RolePreferences = { roles: ['JUNGLA', 'MID'], primary: 'MID' };
+  private readonly http = inject(HttpClient);
 
-  /** Latencia simulada: obliga a las vistas a tratar de verdad el estado `loading`. */
-  private static readonly LATENCY_MS = 400;
-
+  /** Los roles del usuario logueado. Quien nunca ha elegido recibe `{ roles: [], primary: null }`. */
   get(): Observable<RolePreferences> {
-    return of(this.clone(this.mock)).pipe(delay(PreferencesApi.LATENCY_MS));
+    return this.http.get<RolePreferences>(`${environment.apiUrl}/me/preferences`);
   }
 
   /** Escritura completa (PUT): el servidor devuelve el estado que ha quedado guardado. */
-  update(prefs: RolePreferences): Observable<RolePreferences> {
-    this.mock = this.clone(prefs);
-    return of(this.clone(this.mock)).pipe(delay(PreferencesApi.LATENCY_MS));
-  }
-
-  /** Copia defensiva: sin backend, el mock y el store compartirían el mismo array. */
-  private clone(p: RolePreferences): RolePreferences {
-    return { roles: [...p.roles], primary: p.primary };
+  update(prefs: UpdateRolePreferencesRequest): Observable<RolePreferences> {
+    return this.http.put<RolePreferences>(`${environment.apiUrl}/me/preferences`, prefs);
   }
 }

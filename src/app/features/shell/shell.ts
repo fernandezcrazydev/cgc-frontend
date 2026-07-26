@@ -9,6 +9,7 @@ import { MatchStore, MatchRoom } from '../../core/match-store';
 import { NotificationsStore, NotificationView, notificationView } from '../../core/notifications';
 import { RiotAccountStore } from '../../core/riot';
 import { DevicesStore } from '../../core/devices';
+import { PreferencesStore } from '../../core/preferences';
 import { ToastService } from '../../core/toast';
 import { NfButton, NfSkeleton, NfToastHost, NfWindow } from '../../ui';
 import { FeedbackDialog } from '../feedback/feedback-dialog';
@@ -49,6 +50,7 @@ export class Shell {
   private readonly groupDetail = inject(GroupDetailStore);
   private readonly riot = inject(RiotAccountStore);
   private readonly devices = inject(DevicesStore);
+  private readonly prefs = inject(PreferencesStore);
   private readonly toasts = inject(ToastService);
 
   /** Vista de presentación de la bandeja: título/mensaje/tiempo en español por notificación. */
@@ -278,6 +280,7 @@ export class Shell {
     this.groupDetail.clear();
     this.riot.clear();
     this.devices.clear();
+    this.prefs.clear();
     await this.auth.logout();
     await this.router.navigateByUrl('/');
   }

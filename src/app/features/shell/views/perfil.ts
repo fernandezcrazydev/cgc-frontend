@@ -123,6 +123,22 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
           }
         </div>
 
+        <!--
+          El malentendido que hay que evitar: creer que esto manda dentro del grupo. Va
+          fuera del @switch a propósito — es texto fijo, no dato de red, así que también
+          se lee mientras cargan los roles o si la carga falla.
+        -->
+        <div class="scope-note" role="note">
+          <span class="scope-note__icon" aria-hidden="true">ⓘ</span>
+          <p class="scope-note__text">
+            Los eliges tú, y solo sirven para <strong>inicializar tu perfil dentro de un grupo</strong>:
+            al entrar en uno nuevo se copiarán ahí como punto de partida. A partir de ese momento
+            manda la copia del grupo, que podréis cambiar tanto tú como cualquier
+            <strong>administrador</strong> — y eso no toca lo que elijas aquí. Al revés tampoco:
+            cambiarlos aquí no afecta a los grupos en los que ya estás.
+          </p>
+        </div>
+
         @switch (prefs.status()) {
           @case ('loading') {
             <div class="pf-roles" aria-busy="true">
@@ -193,12 +209,13 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
                   </div>
                 </div>
 
+                <!-- El "por qué" completo está en la nota de arriba; aquí solo lo accionable. -->
                 @if (!hasRoles()) {
                   <p class="pf-roles__warn nf-mono">⚠ SELECCIONA AL MENOS UN ROL</p>
-                } @else {
+                } @else if (!roleDraft().primary) {
                   <p class="pf-roles__hint">
-                    Se aplicarán automáticamente en cada <strong>grupo nuevo</strong> al que entres.
-                    Dentro de un grupo puedes ajustarlos sin tocar esta preferencia.
+                    Marca uno con la <strong>estrella</strong> si tienes rol principal. Es opcional: sin
+                    él, el reparto te dará igual cualquiera de los que has elegido.
                   </p>
                 }
               </div>
