@@ -262,7 +262,13 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
           @default {
             @if (riot.account(); as account) {
               <div class="pf-riot pf-riot--linked">
-                <span class="pf-riot__logo nf-mono" aria-hidden="true">R</span>
+                <nf-avatar
+                  class="pf-riot__logo"
+                  [src]="account.profileIconUrl"
+                  [fallback]="account.riotId"
+                  [size]="52"
+                  shape="square"
+                />
                 <div class="pf-riot__meta">
                   <div class="pf-riot__id">{{ account.riotId }}</div>
                   <div class="pf-riot__sub nf-mono">

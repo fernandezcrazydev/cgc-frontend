@@ -12,6 +12,7 @@ const ACCOUNT: RiotAccount = {
   strength: 'DECLARED',
   verifiedAt: null,
   linkedAt: '2026-07-20T18:00:00Z',
+  profileIconUrl: null,
 };
 
 const LINKED: RiotAccountStatus = { account: ACCOUNT, relinkAvailableAt: null };
