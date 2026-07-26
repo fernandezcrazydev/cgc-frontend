@@ -110,7 +110,21 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
           ajuste que el jugador querrá ver de un vistazo y tocar a menudo.
         -->
         <div class="view__label-row">
-          <div class="view__label nf-mono">▸ ROLES PREFERIDOS</div>
+          <div class="view__label-help">
+            <div class="view__label nf-mono">▸ ROLES PREFERIDOS</div>
+            <button
+              type="button"
+              class="view__help"
+              [class.view__help--on]="rolesHelp()"
+              [attr.aria-expanded]="rolesHelp()"
+              aria-controls="roles-help"
+              aria-label="Qué son los roles preferidos"
+              title="Qué son los roles preferidos"
+              (click)="rolesHelp.set(!rolesHelp())"
+            >
+              ?
+            </button>
+          </div>
           @if (rolesDirty()) {
             <div class="pf-roles__actions">
               <button nfButton variant="ghost" size="sm" [disabled]="prefs.saving()" (click)="discardRoles()">
@@ -124,20 +138,24 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
         </div>
 
         <!--
-          El malentendido que hay que evitar: creer que esto manda dentro del grupo. Va
-          fuera del @switch a propósito — es texto fijo, no dato de red, así que también
-          se lee mientras cargan los roles o si la carga falla.
+          El malentendido que hay que evitar: creer que esto manda dentro del grupo. Detrás
+          del "?" y no siempre visible: quien ya lo sabe no necesita leerlo cada vez. Va
+          fuera del @switch a propósito — es texto fijo, no dato de red, así que se puede
+          consultar también mientras cargan los roles o si la carga falla.
         -->
-        <div class="scope-note" role="note">
-          <span class="scope-note__icon" aria-hidden="true">ⓘ</span>
-          <p class="scope-note__text">
-            Los eliges tú, y solo sirven para <strong>inicializar tu perfil dentro de un grupo</strong>:
-            al entrar en uno nuevo se copiarán ahí como punto de partida. A partir de ese momento
-            manda la copia del grupo, que podréis cambiar tanto tú como cualquier
-            <strong>administrador</strong> — y eso no toca lo que elijas aquí. Al revés tampoco:
-            cambiarlos aquí no afecta a los grupos en los que ya estás.
-          </p>
-        </div>
+        @if (rolesHelp()) {
+          <div class="scope-note" role="note" id="roles-help">
+            <span class="scope-note__icon" aria-hidden="true">ⓘ</span>
+            <p class="scope-note__text">
+              Los eliges tú, y solo sirven para
+              <strong>inicializar tu perfil dentro de un grupo</strong>: al entrar en uno nuevo se
+              copiarán ahí como punto de partida. A partir de ese momento manda la copia del grupo,
+              que podréis cambiar tanto tú como cualquier <strong>administrador</strong> — y eso no
+              toca lo que elijas aquí. Al revés tampoco: cambiarlos aquí no afecta a los grupos en
+              los que ya estás.
+            </p>
+          </div>
+        }
 
         @switch (prefs.status()) {
           @case ('loading') {
@@ -661,6 +679,13 @@ export class Perfil {
   private readonly toast = inject(ToastService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly notifs = inject(NotificationsStore);
+
+  /**
+   * La explicación de qué son (y qué NO son) estos roles, plegada tras el "?". Estado de
+   * UI puro, así que vive aquí y no en el store. Arranca cerrada a propósito: el que ya lo
+   * sabe no tiene que volver a leerlo, y el que duda tiene el interrogante al lado.
+   */
+  protected readonly rolesHelp = signal(false);
 
   protected readonly roleTiles: RoleTile[] = [
     { role: 'TOP', short: 'TOP', name: 'Top', glyph: '◤' },
