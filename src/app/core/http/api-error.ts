@@ -62,8 +62,10 @@ function parseFieldErrors(raw: unknown): ApiFieldError[] {
  */
 const MESSAGES_BY_CODE: Record<string, string> = {
   ALREADY_MEMBER: 'Este usuario ya es miembro del grupo.',
+  CHAMPION_NOT_FOUND: 'No se ha encontrado ese campeón.',
   DEVICE_NOT_FOUND: 'Ese dispositivo ya no estaba vinculado.',
   DUPLICATE_PENDING_INVITATION: 'Este usuario ya tiene una invitación pendiente.',
+  GAME_DATA_UNAVAILABLE: 'El catálogo de datos del juego no está disponible ahora mismo. Inténtalo más tarde.',
   GROUP_QUOTA_EXCEEDED: 'Has alcanzado el número máximo de grupos que puedes tener.',
   IMAGE_TOO_LARGE: 'La imagen es demasiado grande. Usa uno más ligero.',
   INVALID_RIOT_ID: 'Ese Riot ID no es válido. Debe ser «Nombre#TAG», tal y como aparece en el cliente.',

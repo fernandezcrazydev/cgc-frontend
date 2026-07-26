@@ -2,14 +2,16 @@ import { Component, computed, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
-import { NfButton } from '../../../ui';
+import { NfAvatar, NfButton, NfSkeleton } from '../../../ui';
 import { GroupStore } from '../../../core/group-store';
 import { matchesByGroup, kdaRatio, shortGold } from '../../../core/match-history';
+import { hash } from '../../../core/group-ranking';
+import { GameDataStore } from '../../../core/game-data';
 
 @Component({
   selector: 'app-grupo-historial',
   standalone: true,
-  imports: [RouterLink, NfButton],
+  imports: [RouterLink, NfButton, NfAvatar, NfSkeleton],
   template: `
     <div class="view">
       @if (group(); as g) {
@@ -37,13 +39,22 @@ import { matchesByGroup, kdaRatio, shortGold } from '../../../core/match-history
                   <span class="mh-result__time nf-mono">{{ m.durationMin }} MIN</span>
                 </div>
 
-                <div class="mh-champ">
-                  <span
+                <div class="mh-champ" [attr.aria-busy]="champsLoading() ? 'true' : null">
+                  <nf-avatar
                     class="mh-champ__icon"
-                    [style.background]="'radial-gradient(circle at 32% 26%, ' + m.c1 + ', ' + m.c2 + ')'"
-                  >{{ m.initials }}</span>
+                    [loading]="champsLoading()"
+                    [src]="champion(m.championId)?.iconUrl ?? null"
+                    [fallback]="championName(m.championId)"
+                    [tint]="m.championId"
+                    [size]="48"
+                    shape="square"
+                  />
                   <div class="mh-champ__meta">
-                    <span class="mh-champ__name">{{ m.champion }}</span>
+                    @if (champsLoading()) {
+                      <nf-skeleton width="110px" height="14px" />
+                    } @else {
+                      <span class="mh-champ__name">{{ championName(m.championId) }}</span>
+                    }
                     <span class="mh-champ__group nf-mono">◆ {{ m.groupName }}</span>
                   </div>
                 </div>
@@ -65,11 +76,7 @@ import { matchesByGroup, kdaRatio, shortGold } from '../../../core/match-history
                 <div class="mh-items">
                   @for (it of m.items; track $index) {
                     @if (it) {
-                      <span
-                        class="mh-item"
-                        [style.background]="'linear-gradient(135deg, hsl(' + it.hue + ',70%,46%), hsl(' + it.hue + ',60%,24%))'"
-                        [title]="it.name"
-                      ></span>
+                      <span class="mh-item" [style.background]="itemTint(it)" [title]="it"></span>
                     } @else {
                       <span class="mh-item mh-item--empty"></span>
                     }
@@ -106,6 +113,26 @@ export class GrupoHistorial {
   readonly groups = inject(GroupStore);
   readonly ratio = kdaRatio;
   readonly gold = shortGold;
+
+  protected readonly gameData = inject(GameDataStore);
+  protected readonly champsLoading = computed(() => this.gameData.status() === 'loading');
+
+  constructor() {
+    this.gameData.ensureLoaded();
+  }
+
+  champion(id: number) {
+    return this.gameData.championById().get(id);
+  }
+
+  championName(id: number): string {
+    return this.champion(id)?.name ?? 'Campeón';
+  }
+
+  itemTint(name: string): string {
+    const h = hash(name) % 360;
+    return `linear-gradient(135deg, hsl(${h},70%,46%), hsl(${h},60%,24%))`;
+  }
 
   private readonly id = toSignal(
     this.route.paramMap.pipe(map((p) => p.get('id'))),

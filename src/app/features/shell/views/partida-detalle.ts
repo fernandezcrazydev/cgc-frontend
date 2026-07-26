@@ -2,21 +2,28 @@ import { Component, computed, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
-import { NfBadge, NfButton, NfWindow } from '../../../ui';
+import { NfAvatar, NfBadge, NfButton, NfSkeleton, NfWindow } from '../../../ui';
 import { matchById, kdaRatio } from '../../../core/match-history';
+import { hash } from '../../../core/group-ranking';
+import { GameDataStore } from '../../../core/game-data';
 
 @Component({
   selector: 'app-partida-detalle',
   standalone: true,
-  imports: [RouterLink, NfBadge, NfButton, NfWindow],
+  imports: [RouterLink, NfBadge, NfButton, NfWindow, NfAvatar, NfSkeleton],
   template: `
     <div class="view">
       @if (match(); as m) {
-        <div class="md-hero" [class.is-win]="m.win" [class.is-loss]="!m.win">
-          <span
+        <div class="md-hero" [class.is-win]="m.win" [class.is-loss]="!m.win" [attr.aria-busy]="champsLoading() ? 'true' : null">
+          <nf-avatar
             class="md-hero__icon"
-            [style.background]="'radial-gradient(circle at 32% 26%, ' + m.c1 + ', ' + m.c2 + ')'"
-          >{{ m.initials }}</span>
+            [loading]="champsLoading()"
+            [src]="champion(m.championId)?.iconUrl ?? null"
+            [fallback]="championName(m.championId)"
+            [tint]="m.championId"
+            [size]="68"
+            shape="square"
+          />
           <div class="md-hero__meta">
             <div class="md-hero__top nf-mono">
               <span class="md-hero__result">{{ m.win ? 'VICTORIA' : 'DERROTA' }}</span>
@@ -25,7 +32,11 @@ import { matchById, kdaRatio } from '../../../core/match-history';
               <span class="md-hero__dot">·</span>
               <span>{{ m.durationMin }} MIN</span>
             </div>
-            <h1 class="md-hero__champ">{{ m.champion }}</h1>
+            @if (champsLoading()) {
+              <nf-skeleton width="220px" height="clamp(22px, 5vw, 30px)" />
+            } @else {
+              <h1 class="md-hero__champ">{{ championName(m.championId) }}</h1>
+            }
             <div class="md-hero__sub nf-mono">◆ {{ m.groupName }} ▪ {{ m.date }}</div>
           </div>
           <nf-badge [color]="m.win ? 'green' : 'pink'" [dot]="true">{{ m.win ? 'WIN' : 'LOSS' }}</nf-badge>
@@ -52,15 +63,12 @@ import { matchById, kdaRatio } from '../../../core/match-history';
             @for (it of m.items; track $index) {
               @if (it) {
                 <div class="md-itemslot">
-                  <span
-                    class="md-itemslot__icon"
-                    [style.background]="'linear-gradient(135deg, hsl(' + it.hue + ',70%,46%), hsl(' + it.hue + ',60%,24%))'"
-                  ></span>
-                  <span class="md-itemslot__name nf-mono">{{ it.name }}</span>
+                  <nf-avatar class="md-itemslot__icon" [fallback]="it" [tint]="itemHue(it)" [size]="40" shape="square" />
+                  <span class="md-itemslot__name nf-mono">{{ it }}</span>
                 </div>
               } @else {
                 <div class="md-itemslot md-itemslot--empty">
-                  <span class="md-itemslot__icon"></span>
+                  <span class="md-itemslot__icon--empty"></span>
                   <span class="md-itemslot__name nf-mono">VACÍO</span>
                 </div>
               }
@@ -85,6 +93,26 @@ import { matchById, kdaRatio } from '../../../core/match-history';
 export class PartidaDetalle {
   private readonly route = inject(ActivatedRoute);
   readonly ratio = kdaRatio;
+
+  protected readonly gameData = inject(GameDataStore);
+  protected readonly champsLoading = computed(() => this.gameData.status() === 'loading');
+
+  constructor() {
+    this.gameData.ensureLoaded();
+  }
+
+  champion(id: number) {
+    return this.gameData.championById().get(id);
+  }
+
+  championName(id: number): string {
+    return this.champion(id)?.name ?? 'Campeón';
+  }
+
+  /** Tinte determinista (no `Math.random`) para el hueco de un objeto sin icono real todavía. */
+  itemHue(name: string): number {
+    return hash(name) % 360;
+  }
 
   private readonly id = toSignal(
     this.route.paramMap.pipe(map((p) => p.get('id'))),

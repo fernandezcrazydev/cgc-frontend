@@ -1,0 +1,45 @@
+/* NEXUS//FORGE · Avatar (global, ViewEncapsulation.None) */
+
+nf-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  overflow: hidden;
+  background: var(--nf-inset);
+  border: 1px solid var(--nf-border);
+  /* `--nf-avatar-size` lo fija el input `size` (inline, gana siempre). El hueco
+     `--nf-avatar-size-override` es a propósito para que una vista pueda recuperar
+     el salto de tamaño en una media query (p. ej. `.mh-champ__icon` a 52px en
+     móvil) sin pelearse con el inline: nadie más escribe `--nf-avatar-size`, así
+     que no hay disputa de cascada, solo de qué variable existe en cada breakpoint. */
+  width: var(--nf-avatar-size-override, var(--nf-avatar-size));
+  height: var(--nf-avatar-size-override, var(--nf-avatar-size));
+  /* Radio por defecto: una vista puede subir la especificidad con su propia clase
+     (`.mh-champ__icon`, `.md-hero__icon`...) para recuperar la jerarquía visual que
+     tenía cada icono antes de esta primitiva; ver `views.scss`. */
+  border-radius: var(--nf-radius);
+}
+
+.nf-avatar--round {
+  border-radius: 50%;
+}
+
+.nf-avatar__img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.nf-avatar__fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: #0b0d10;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.5px;
+}

@@ -2,7 +2,7 @@ import { Component, computed, effect, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
-import { NfBadge, NfButton, NfWindow } from '../../../ui';
+import { NfAvatar, NfBadge, NfButton, NfSkeleton, NfWindow } from '../../../ui';
 import { GroupStore } from '../../../core/group-store';
 import {
   MatchStore,
@@ -18,6 +18,7 @@ import { CURRENT_USER, Member } from '../../../core/lobby';
 import { memberDetail } from '../../../core/member-detail';
 import { matchmake, internalElo, MatchmakePlayer, MatchmakeSlot } from '../../../core/matchmaking';
 import { MemberBadge, badgesFor } from '../../../core/group-badges';
+import { ChampionSummary, GameDataStore } from '../../../core/game-data';
 
 /**
  * Detail of a single match room, rendered per status:
@@ -41,7 +42,7 @@ import { MemberBadge, badgesFor } from '../../../core/group-badges';
 @Component({
   selector: 'app-grupo-sala',
   standalone: true,
-  imports: [RouterLink, NfBadge, NfButton, NfWindow],
+  imports: [RouterLink, NfBadge, NfButton, NfWindow, NfAvatar, NfSkeleton],
   template: `
     <div class="view">
       @if (group(); as g) {
@@ -117,10 +118,20 @@ import { MemberBadge, badgesFor } from '../../../core/group-badges';
                     <div class="spec__label nf-mono">CAMPEONES RESERVADOS</div>
                     @if (d.reserved.length) {
                       @for (rv of d.reserved; track rv.tag) {
-                        <div class="spec__row">
-                          <span class="spec__champ" [style.background]="'linear-gradient(135deg,' + rv.champC1 + ',' + rv.champC2 + ')'">{{ rv.champInitials }}</span>
+                        <div class="spec__row" [attr.aria-busy]="champsLoading() ? 'true' : null">
+                          <nf-avatar
+                            class="spec__champ"
+                            [loading]="champsLoading()"
+                            [src]="champion(rv.championId)?.iconUrl ?? null"
+                            [fallback]="championName(rv.championId)"
+                            [tint]="rv.championId"
+                            [size]="28"
+                            shape="square"
+                          />
                           <span class="spec__row-name nf-mono">{{ rv.name }}</span>
-                          <span class="spec__row-val nf-mono">→ {{ rv.champ }}</span>
+                          @if (!champsLoading()) {
+                            <span class="spec__row-val nf-mono">→ {{ championName(rv.championId) }}</span>
+                          }
                         </div>
                       }
                     } @else {
@@ -189,10 +200,22 @@ import { MemberBadge, badgesFor } from '../../../core/group-badges';
                             }
                           }
                         </span>
-                        <span class="lm-champ nf-mono">
+                        <span class="lm-champ nf-mono" [attr.aria-busy]="champsLoading() ? 'true' : null">
                           @if (lane.blue.champ; as c) {
-                            <span class="lm-champ-ic" [style.background]="'linear-gradient(135deg,' + c.c1 + ',' + c.c2 + ')'">{{ c.initials }}</span>
-                            <span>{{ c.name }}</span>
+                            <nf-avatar
+                              class="lm-champ-ic"
+                              [loading]="champsLoading()"
+                              [src]="champion(c.championId)?.iconUrl ?? null"
+                              [fallback]="championName(c.championId)"
+                              [tint]="c.championId"
+                              [size]="24"
+                              shape="square"
+                            />
+                            @if (champsLoading()) {
+                              <nf-skeleton width="64px" height="12px" />
+                            } @else {
+                              <span>{{ championName(c.championId) }}</span>
+                            }
                           } @else {
                             <span class="lm-champ--none">sin campeón</span>
                           }
@@ -216,10 +239,22 @@ import { MemberBadge, badgesFor } from '../../../core/group-badges';
                             }
                           }
                         </span>
-                        <span class="lm-champ nf-mono">
+                        <span class="lm-champ nf-mono" [attr.aria-busy]="champsLoading() ? 'true' : null">
                           @if (lane.red.champ; as c) {
-                            <span class="lm-champ-ic" [style.background]="'linear-gradient(135deg,' + c.c1 + ',' + c.c2 + ')'">{{ c.initials }}</span>
-                            <span>{{ c.name }}</span>
+                            <nf-avatar
+                              class="lm-champ-ic"
+                              [loading]="champsLoading()"
+                              [src]="champion(c.championId)?.iconUrl ?? null"
+                              [fallback]="championName(c.championId)"
+                              [tint]="c.championId"
+                              [size]="24"
+                              shape="square"
+                            />
+                            @if (champsLoading()) {
+                              <nf-skeleton width="64px" height="12px" />
+                            } @else {
+                              <span>{{ championName(c.championId) }}</span>
+                            }
                           } @else {
                             <span class="lm-champ--none">sin campeón</span>
                           }
@@ -546,9 +581,21 @@ import { MemberBadge, badgesFor } from '../../../core/group-badges';
                               }
                             </div>
                             @if (s.champ; as c) {
-                              <span class="cp-slot__champ">
-                                <span class="cp-slot__champ-icon" [style.background]="'linear-gradient(135deg,' + c.c1 + ',' + c.c2 + ')'">{{ c.initials }}</span>
-                                <span class="cp-slot__champ-name nf-mono">{{ c.name }}</span>
+                              <span class="cp-slot__champ" [attr.aria-busy]="champsLoading() ? 'true' : null">
+                                <nf-avatar
+                                  class="cp-slot__champ-icon"
+                                  [loading]="champsLoading()"
+                                  [src]="champion(c.championId)?.iconUrl ?? null"
+                                  [fallback]="championName(c.championId)"
+                                  [tint]="c.championId"
+                                  [size]="26"
+                                  shape="square"
+                                />
+                                @if (champsLoading()) {
+                                  <nf-skeleton width="56px" height="11.5px" />
+                                } @else {
+                                  <span class="cp-slot__champ-name nf-mono">{{ championName(c.championId) }}</span>
+                                }
                               </span>
                             }
                           </div>
@@ -577,9 +624,21 @@ import { MemberBadge, badgesFor } from '../../../core/group-badges';
                               }
                             </div>
                             @if (s.champ; as c) {
-                              <span class="cp-slot__champ">
-                                <span class="cp-slot__champ-icon" [style.background]="'linear-gradient(135deg,' + c.c1 + ',' + c.c2 + ')'">{{ c.initials }}</span>
-                                <span class="cp-slot__champ-name nf-mono">{{ c.name }}</span>
+                              <span class="cp-slot__champ" [attr.aria-busy]="champsLoading() ? 'true' : null">
+                                <nf-avatar
+                                  class="cp-slot__champ-icon"
+                                  [loading]="champsLoading()"
+                                  [src]="champion(c.championId)?.iconUrl ?? null"
+                                  [fallback]="championName(c.championId)"
+                                  [tint]="c.championId"
+                                  [size]="26"
+                                  shape="square"
+                                />
+                                @if (champsLoading()) {
+                                  <nf-skeleton width="56px" height="11.5px" />
+                                } @else {
+                                  <span class="cp-slot__champ-name nf-mono">{{ championName(c.championId) }}</span>
+                                }
                               </span>
                             }
                           </div>
@@ -665,6 +724,17 @@ export class GrupoSala {
   private readonly route = inject(ActivatedRoute);
   readonly groups = inject(GroupStore);
   private readonly matches = inject(MatchStore);
+
+  private readonly gameData = inject(GameDataStore);
+  protected readonly champsLoading = computed(() => this.gameData.status() === 'loading');
+
+  champion(id: number): ChampionSummary | undefined {
+    return this.gameData.championById().get(id);
+  }
+
+  championName(id: number): string {
+    return this.champion(id)?.name ?? 'Campeón';
+  }
 
   private readonly id = toSignal(
     this.route.paramMap.pipe(map((p) => p.get('id'))),
@@ -1127,6 +1197,8 @@ export class GrupoSala {
   }
 
   constructor() {
+    this.gameData.ensureLoaded();
+
     // Keep the shell header/sidebar in sync with the active group on deep-link.
     effect(() => {
       const id = this.id();

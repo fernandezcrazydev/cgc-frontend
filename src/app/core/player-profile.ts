@@ -6,7 +6,7 @@
  * lands. The disclaimer in the view makes the cross-group scope explicit: for
  * exact per-group figures the user must open that group's Estadísticas.
  */
-import { Champion, CHAMPIONS, Group, GroupRole, Member } from './lobby';
+import { Group, GroupRole, Member, REAL_CHAMPION_IDS } from './lobby';
 import { hash, seeded } from './group-ranking';
 
 /** A group's contribution to the aggregate, from the user's point of view. */
@@ -38,9 +38,15 @@ export interface ProfileMatchup {
   wr: number;
 }
 
-/** A most-played champion across all groups. */
+/**
+ * A most-played champion across all groups.
+ * BACKEND NOTE: `championId` es un id real de ddragon elegido deterministamente
+ * de `REAL_CHAMPION_IDS` (ver `core/lobby.ts`) mientras no exista el endpoint
+ * de estadísticas. La vista resuelve `id → ChampionSummary` con
+ * `GameDataStore.championById()`.
+ */
 export interface ProfileChampion {
-  champion: Champion;
+  championId: number;
   games: number;
   wins: number;
   /** Win-rate percentage, rounded. */
@@ -212,14 +218,14 @@ export function buildPlayerProfile(
     : null;
 
   // Most-played champions across all groups.
-  const champs = pickDistinct(rnd, CHAMPIONS, 5);
+  const champs = pickDistinct(rnd, REAL_CHAMPION_IDS, 5);
   const topChampions: ProfileChampion[] = champs
-    .map((champion) => {
+    .map((championId) => {
       const cgames = 12 + Math.floor(rnd() * 60);
       const cwr = 0.38 + rnd() * 0.4;
       const cwins = Math.round(cgames * cwr);
       return {
-        champion,
+        championId,
         games: cgames,
         wins: cwins,
         wr: Math.round((cwins / cgames) * 100),
