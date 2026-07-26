@@ -11,7 +11,15 @@ function detailOf(role: GroupRole): GroupMembershipResponse {
   return { group: { groupId: 'g1', name: 'Los Cracks', region: 'EUW', avatarUrl: null }, role, joinedAt: '2026-07-18T12:00:00Z' };
 }
 function member(userId: string, role: GroupRole): GroupMemberResponse {
-  return { userId, discordUsername: userId, avatarUrl: null, role, joinedAt: '2026-07-18T12:00:00Z' };
+  return {
+    userId,
+    discordUsername: userId,
+    avatarUrl: null,
+    role,
+    joinedAt: '2026-07-18T12:00:00Z',
+    riotId: null,
+    riotStrength: null,
+  };
 }
 /** Una página del roster tal como la devuelve el backend (`page` 0-based). */
 function pageOf(

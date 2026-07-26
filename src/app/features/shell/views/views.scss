@@ -3810,6 +3810,29 @@
 .gd-member__role { margin-top: 3px; font-size: 10px; letter-spacing: 1.5px; color: var(--nf-text-dim); }
 .gd-member__actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
 
+/* Semáforo de vinculación de Riot: gris = sin cuenta, rojo = escrita sin prueba (DECLARED),
+   ámbar = emparejada desde el cliente sin verificar (PAIRED), verde = verificada (VERIFIED). */
+.gd-member__riot {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 3px;
+  font-size: 11px;
+  color: var(--nf-text-mid);
+}
+.gd-member__riot-id--none { color: var(--nf-text-dim); }
+.gd-member__riot-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--nf-text-dim);
+}
+.gd-member__riot-dot--none { background: var(--nf-text-dim); }
+.gd-member__riot-dot--declared { background: var(--nf-red); }
+.gd-member__riot-dot--paired { background: var(--nf-yellow); }
+.gd-member__riot-dot--verified { background: var(--nf-green); box-shadow: 0 0 6px rgba(95, 255, 160, 0.6); }
+
 .gd-invite { display: flex; flex-direction: column; gap: 10px; }
 .gd-invite__hint { font-size: 11px; letter-spacing: 1.5px; color: var(--nf-text-dim); }
 .gd-invite__row {
