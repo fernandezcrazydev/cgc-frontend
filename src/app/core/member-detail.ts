@@ -5,7 +5,7 @@
  * nightmare) drawn from real roster mates. Seeded by the member tag so a given
  * member always renders the same details until the backend lands.
  */
-import { Champion, CHAMPIONS, Member } from './lobby';
+import { Member, REAL_CHAMPION_IDS } from './lobby';
 import { hash, seeded } from './group-ranking';
 
 /** A head-to-head highlight against another player. */
@@ -23,8 +23,13 @@ export interface MemberMatchup {
 
 /** Everything shown in a member's expanded detail panel. */
 export interface MemberDetail {
-  /** Top champions (initials-gradient avatars). */
-  champions: Champion[];
+  /**
+   * Top champions. BACKEND NOTE: ids reales de ddragon elegidos de
+   * `REAL_CHAMPION_IDS` (ver `core/lobby.ts`) mientras no exista el endpoint
+   * de estadísticas; la vista resuelve `id → ChampionSummary` con
+   * `GameDataStore.championById()`.
+   */
+  championIds: number[];
   /** Role tags, e.g. ['FLEX'] or ['MID', 'ADC']. */
   roles: string[];
   /** Teammate this member wins with the most. */
@@ -77,7 +82,7 @@ function matchup(rnd: () => number, foe: Member, flavor: 'high' | 'low'): Member
 export function memberDetail(member: Member, roster: readonly Member[]): MemberDetail {
   const rnd = seeded(hash(member.tag));
 
-  const champions = pickDistinct(rnd, CHAMPIONS, 3);
+  const championIds = pickDistinct(rnd, REAL_CHAMPION_IDS, 3);
 
   // ~45% of members are flexible across roles; the rest main one or two.
   const roles = rnd() < 0.45 ? ['FLEX'] : pickDistinct(rnd, ROLE_POOL, 1 + (rnd() < 0.4 ? 1 : 0));
@@ -87,7 +92,7 @@ export function memberDetail(member: Member, roster: readonly Member[]): MemberD
   const foes = pickDistinct(rnd, [...others, ...FALLBACK_FOES], 3);
 
   return {
-    champions,
+    championIds,
     roles,
     bestDuo: matchup(rnd, foes[0], 'high'),
     favoriteVictim: matchup(rnd, foes[1], 'high'),

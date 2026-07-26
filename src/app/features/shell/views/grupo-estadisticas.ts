@@ -2,10 +2,11 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
-import { NfBadge, NfButton, NfWindow } from '../../../ui';
+import { NfAvatar, NfBadge, NfButton, NfSkeleton, NfWindow } from '../../../ui';
 import { GroupStore } from '../../../core/group-store';
 import { Member } from '../../../core/lobby';
 import { sparkPoints } from '../../../core/group-ranking';
+import { GameDataStore } from '../../../core/game-data';
 import {
   StatScope,
   SCOPE_OPTIONS,
@@ -22,7 +23,7 @@ type StatTab = 'resumen' | 'jugadores' | 'premios';
 @Component({
   selector: 'app-grupo-estadisticas',
   standalone: true,
-  imports: [RouterLink, NfBadge, NfButton, NfWindow],
+  imports: [RouterLink, NfBadge, NfButton, NfWindow, NfAvatar, NfSkeleton],
   template: `
     <div class="view">
       @if (group(); as g) {
@@ -137,7 +138,17 @@ type StatTab = 'resumen' | 'jugadores' | 'premios';
                         <span class="lb-avatar" [style.background]="grad(top.member.hue)">{{ top.member.initials }}</span>
                         <div class="sc__leader-meta">
                           <div class="sc__leader-name">{{ top.member.name }}</div>
-                          <div class="sc__leader-sub nf-mono">{{ top.sub }}</div>
+                          <div class="sc__leader-sub nf-mono">
+                            @if (top.championId !== undefined) {
+                              @if (champsLoading()) {
+                                <nf-skeleton width="60px" height="10px" />
+                              } @else {
+                                {{ championName(top.championId) }}
+                              }
+                            } @else {
+                              {{ top.sub }}
+                            }
+                          </div>
                         </div>
                         <div class="sc__leader-val">{{ top.value }}</div>
                       </div>
@@ -152,7 +163,17 @@ type StatTab = 'resumen' | 'jugadores' | 'premios';
                         <div class="sc__row">
                           <span class="sc__row-rank nf-mono">{{ r.rank }}</span>
                           <span class="sc__row-name nf-mono">{{ r.member.name }}</span>
-                          <span class="sc__row-sub nf-mono">{{ r.sub }}</span>
+                          <span class="sc__row-sub nf-mono">
+                            @if (r.championId !== undefined) {
+                              @if (champsLoading()) {
+                                <nf-skeleton width="50px" height="9px" />
+                              } @else {
+                                {{ championName(r.championId) }}
+                              }
+                            } @else {
+                              {{ r.sub }}
+                            }
+                          </span>
                           <span class="sc__row-val nf-mono">{{ r.value }}</span>
                         </div>
                       }
@@ -190,9 +211,21 @@ type StatTab = 'resumen' | 'jugadores' | 'premios';
                       <div class="member-detail">
                         <div class="member-detail__head">
                           <div class="member-detail__tag nf-mono">{{ p.member.tag }}</div>
-                          <span class="player-main nf-mono">
-                            <span class="champ-icon" [style.background]="'linear-gradient(135deg, ' + p.mainChampion.c1 + ', ' + p.mainChampion.c2 + ')'">{{ p.mainChampion.initials }}</span>
-                            Main: {{ p.mainChampion.name }} · {{ p.mainChampWr }}% WR
+                          <span class="player-main nf-mono" [attr.aria-busy]="champsLoading() ? 'true' : null">
+                            <nf-avatar
+                              class="champ-icon"
+                              [loading]="champsLoading()"
+                              [src]="champion(p.mainChampionId)?.iconUrl ?? null"
+                              [fallback]="championName(p.mainChampionId)"
+                              [tint]="p.mainChampionId"
+                              [size]="34"
+                              shape="square"
+                            />
+                            @if (champsLoading()) {
+                              <nf-skeleton width="120px" height="11px" />
+                            } @else {
+                              Main: {{ championName(p.mainChampionId) }} · {{ p.mainChampWr }}% WR
+                            }
                           </span>
                         </div>
                         <div class="ptiles">
@@ -243,6 +276,21 @@ type StatTab = 'resumen' | 'jugadores' | 'premios';
 export class GrupoEstadisticas {
   private readonly route = inject(ActivatedRoute);
   readonly groups = inject(GroupStore);
+
+  protected readonly gameData = inject(GameDataStore);
+  protected readonly champsLoading = computed(() => this.gameData.status() === 'loading');
+
+  champion(id: number) {
+    return this.gameData.championById().get(id);
+  }
+
+  championName(id: number): string {
+    return this.champion(id)?.name ?? 'Campeón';
+  }
+
+  constructor() {
+    this.gameData.ensureLoaded();
+  }
 
   readonly scopeOptions = SCOPE_OPTIONS;
   readonly tabs: { id: StatTab; label: string }[] = [

@@ -11,14 +11,6 @@ export interface MatchItem {
   c2: string;
 }
 
-export interface Champion {
-  name: string;
-  role: string;
-  initials: string;
-  c1: string;
-  c2: string;
-}
-
 export interface NavItem {
   id: string;
   glyph: string;
@@ -90,18 +82,33 @@ export const MATCHES: MatchItem[] = [
   { name: 'scrim_07.exe', mode: '5v5 · LAN', players: '10/10 JUGADORES', status: 'FINALIZADA', color: 'cyan', c1: 'hsl(190,90%,62%)', c2: 'hsl(205,78%,32%)' },
 ];
 
-const CHAMP_DATA: Array<[string, number, string]> = [
-  ['Aurelia', 330, 'MAGA'], ['Vex', 275, 'ASESINA'], ['Kael', 42, 'LUCHADOR'], ['Nyx', 195, 'SOPORTE'],
-  ['Orion', 220, 'TIRADOR'], ['Sera', 300, 'MAGA'], ['Drake', 14, 'TANQUE'], ['Lumen', 160, 'SOPORTE'],
-  ['Ravi', 100, 'LUCHADOR'], ['Zephyr', 250, 'ASESINA'], ['Mira', 320, 'TIRADOR'], ['Talon', 0, 'TANQUE'],
-];
-
-export const CHAMPIONS: Champion[] = CHAMP_DATA.map(([name, h, role]) => ({
-  name,
-  role,
-  initials: name.slice(0, 2).toUpperCase(),
-  c1: `hsl(${h},90%,66%)`,
-  c2: `hsl(${h},78%,30%)`,
-}));
-
 export const REGION_OPTIONS = ['LAN', 'BR', 'NA', 'EUW', 'KR'];
+
+/**
+ * BACKEND NOTE: lista corta (~15) de ids REALES de ddragon usada por los
+ * generadores deterministas de stats/historial (`player-profile.ts`,
+ * `group-stats.ts`, `member-detail.ts`, `match-history.ts`) mientras no
+ * exista el endpoint de partidas/estadísticas. Es exactamente la forma que
+ * tendrá el DTO real (el backend mandará un `championId`), así que el día
+ * del endpoint solo hay que borrar este array y los generadores que lo
+ * consumen — la vista ya resuelve `id → ChampionSummary` con
+ * `GameDataStore.championById()`. Nunca renderizar nombre/gradiente aquí:
+ * eso lo decide el catálogo real, no este mock.
+ */
+export const REAL_CHAMPION_IDS = [
+  103, // Ahri
+  64, // Lee Sin
+  157, // Yasuo
+  222, // Jinx
+  412, // Thresh
+  86, // Garen
+  238, // Zed
+  99, // Lux
+  22, // Ashe
+  11, // Master Yi
+  89, // Leona
+  245, // Ekko
+  55, // Katarina
+  30, // Karthus
+  33, // Rammus
+];

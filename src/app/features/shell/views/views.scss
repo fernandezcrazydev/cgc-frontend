@@ -302,27 +302,8 @@
   border-color: var(--nf-pink);
   box-shadow: 4px 4px 0 rgba(255, 95, 210, 0.4);
 }
-.champ__art {
-  position: relative;
-  aspect-ratio: 1;
-  border-radius: 4px;
-  overflow: hidden;
-}
-.champ__hatch {
-  position: absolute;
-  inset: 0;
-  background: repeating-linear-gradient(45deg, rgba(0, 0, 0, 0.16) 0 6px, transparent 6px 12px);
-}
-.champ__initials {
-  position: absolute;
-  left: 7px;
-  bottom: 6px;
-  font-family: var(--nf-mono);
-  font-weight: 700;
-  font-size: 13px;
-  color: #fff;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.55);
-}
+/* .champ__art (icono, 88px): el radio original era 4px, que coincide con el
+   `var(--nf-radius)` por defecto de `nf-avatar` — no hace falta override aquí. */
 .champ__name { font-weight: 700; font-size: 12.5px; color: var(--nf-text); }
 .champ__role { font-size: 9px; letter-spacing: 1px; color: var(--nf-text-dim); margin-top: 2px; }
 
@@ -750,20 +731,9 @@
 }
 .perk-chip--on[data-tone='neutral'] .perk-chip__mark { color: var(--nf-yellow); }
 .champ-icons { display: flex; gap: 6px; }
-.champ-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 6px;
-  border: 1.5px solid var(--nf-border);
-  font-family: var(--nf-mono);
-  font-weight: 700;
-  font-size: 11px;
-  color: #fff;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-}
+/* La caja (34px, borde) y el tinte de reserva ahora los da `nf-avatar`; el radio
+   (6px antes de la migración a iconos reales) se recupera aquí. */
+.champ-icon { border-radius: var(--nf-radius-lg); }
 
 /* head-to-head highlight cards */
 .matchup-grid {
@@ -1078,21 +1048,9 @@
 .mh-result__time { font-size: 9px; letter-spacing: 1px; color: var(--nf-text-dim); }
 
 .mh-champ { display: flex; align-items: center; gap: 12px; min-width: 0; }
-.mh-champ__icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 48px;
-  height: 48px;
-  flex: none;
-  border-radius: 8px;
-  border: 1.5px solid var(--nf-border);
-  font-family: var(--nf-mono);
-  font-weight: 700;
-  font-size: 15px;
-  color: #fff;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-}
+/* La caja (48px, borde) y el tinte de reserva ahora los da `nf-avatar`; el radio
+   (8px antes de la migración) se recupera aquí. */
+.mh-champ__icon { border-radius: 8px; }
 .mh-champ__meta { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .mh-champ__name { font-weight: 700; font-size: 14px; color: var(--nf-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .mh-champ__group { font-size: 9.5px; letter-spacing: 1px; color: var(--nf-text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -1137,7 +1095,10 @@
   }
 
   .mh-champ { grid-area: champ; }
-  .mh-champ__icon { width: 52px; height: 52px; font-size: 16px; }
+  /* Recupera el salto a 52px que tenía `.mh-champ__icon` en móvil antes de que
+     `nf-avatar` fijara el tamaño por input de JS: la primitiva expone el tamaño
+     como custom property con hueco de override justo para esto (ver nf-avatar.scss). */
+  .mh-champ__icon { --nf-avatar-size-override: 52px; }
   /* let the name wrap so it uses the space instead of truncating */
   .mh-champ__name { font-size: 16px; white-space: normal; }
   .mh-champ__group { font-size: 11px; white-space: normal; }
@@ -1202,21 +1163,9 @@
   border-left-color: var(--nf-red);
   background: linear-gradient(120deg, color-mix(in srgb, var(--nf-red) 18%, transparent), transparent 60%), var(--nf-surface-2);
 }
-.md-hero__icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 68px;
-  height: 68px;
-  flex: none;
-  border-radius: 12px;
-  border: 2px solid color-mix(in srgb, #fff 30%, transparent);
-  font-family: var(--nf-mono);
-  font-weight: 700;
-  font-size: 22px;
-  color: #fff;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
-}
+/* La caja (68px, borde) y el tinte de reserva ahora los da `nf-avatar`; el radio
+   (12px antes de la migración) se recupera aquí. */
+.md-hero__icon { border-radius: 12px; }
 .md-hero__meta { flex: 1; min-width: 0; }
 .md-hero__top { display: flex; align-items: center; gap: 8px; font-size: 11px; letter-spacing: 1px; color: var(--nf-text-mid); }
 .md-hero__result { font-weight: 700; }
@@ -1245,14 +1194,20 @@
 
 .md-items { display: flex; flex-wrap: wrap; gap: 12px; }
 .md-itemslot { display: flex; align-items: center; gap: 10px; min-width: 150px; }
-.md-itemslot__icon {
+/* La caja (40px, borde) ahora la da `nf-avatar`; el radio (7px antes de la
+   migración) se recupera aquí. El slot vacío sigue con su propio hueco discreto
+   (sin componente: no hay nada que resolver). */
+.md-itemslot__icon { border-radius: 7px; }
+.md-itemslot__icon--empty {
+  display: block;
   width: 40px;
   height: 40px;
   flex: none;
-  border-radius: 7px;
-  border: 1.5px solid var(--nf-border);
+  border-radius: var(--nf-radius);
+  border: 1.5px dashed var(--nf-border);
+  background: var(--nf-inset);
+  opacity: 0.6;
 }
-.md-itemslot--empty .md-itemslot__icon { background: var(--nf-inset); border-style: dashed; opacity: 0.6; }
 .md-itemslot--empty .md-itemslot__name { color: var(--nf-text-dim); opacity: 0.7; }
 .md-itemslot__name { font-size: 11px; letter-spacing: 0.5px; color: var(--nf-text-mid); }
 
@@ -2220,20 +2175,8 @@
   transition: background 0.14s;
 }
 .cp-reserved:hover { background: color-mix(in srgb, var(--nf-cyan) 18%, var(--nf-surface-2)); }
-.cp-reserved__icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
-  flex: none;
-  border-radius: 7px;
-  font-family: var(--nf-mono);
-  font-weight: 700;
-  font-size: 11px;
-  color: #fff;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-}
+/* La caja (30px) ahora la da `nf-avatar`; el radio (7px) se recupera aquí. */
+.cp-reserved__icon { border-radius: 7px; }
 .cp-reserved__name { font-size: 13px; font-weight: 700; color: var(--nf-text); }
 .cp-reserved__role { font-size: 9.5px; letter-spacing: 1px; color: var(--nf-text-dim); }
 .cp-reserved__clear {
@@ -2282,20 +2225,8 @@
   border-color: var(--nf-cyan);
   background: color-mix(in srgb, var(--nf-cyan) 8%, var(--nf-surface-2));
 }
-.cp-champ-opt__icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 38px;
-  height: 38px;
-  flex: none;
-  border-radius: 8px;
-  font-family: var(--nf-mono);
-  font-weight: 700;
-  font-size: 12px;
-  color: #fff;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-}
+/* La caja (38px) ahora la da `nf-avatar`; el radio (8px) se recupera aquí. */
+.cp-champ-opt__icon { border-radius: 8px; }
 .cp-champ-opt__meta { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
 .cp-champ-opt__name { font-size: 13px; font-weight: 700; color: var(--nf-text); }
 .cp-champ-opt__role { font-size: 9px; letter-spacing: 1px; color: var(--nf-text-dim); }
@@ -2443,19 +2374,8 @@
   color: var(--nf-yellow);
 }
 .cp-slot__champ { display: inline-flex; align-items: center; gap: 7px; flex: none; }
-.cp-slot__champ-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 26px;
-  border-radius: 6px;
-  font-family: var(--nf-mono);
-  font-weight: 700;
-  font-size: 9px;
-  color: #fff;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-}
+/* La caja (26px) ahora la da `nf-avatar`; el radio (6px) se recupera aquí. */
+.cp-slot__champ-icon { border-radius: var(--nf-radius-lg); }
 .cp-slot__champ-name { font-size: 11.5px; color: var(--nf-text-mid); }
 
 .cp-teams__foot {
@@ -2574,8 +2494,7 @@
   border: 1.5px solid var(--nf-border);
   background: var(--nf-surface-2);
 }
-.spec__chip-av,
-.spec__champ {
+.spec__chip-av {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2589,6 +2508,8 @@
   color: #fff;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
+/* .spec__champ: la caja (28px) ahora la da `nf-avatar`; el radio (7px) se
+   recupera aquí. */
 .spec__champ { border-radius: 7px; }
 .spec__chip-name { font-size: 12.5px; color: var(--nf-text); }
 .spec__row {
@@ -2708,20 +2629,8 @@
 .lm-elo { font-size: 11px; font-weight: 700; color: var(--nf-yellow); letter-spacing: 0.5px; }
 .lm-champ { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: var(--nf-text-mid); }
 .lm-champ--none { color: var(--nf-text-dim); font-style: italic; }
-.lm-champ-ic {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  flex: none;
-  border-radius: 6px;
-  font-family: var(--nf-mono);
-  font-weight: 700;
-  font-size: 9px;
-  color: #fff;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-}
+/* La caja (24px) ahora la da `nf-avatar`; el radio (6px) se recupera aquí. */
+.lm-champ-ic { border-radius: var(--nf-radius-lg); }
 .lm-role {
   position: relative;
   z-index: 1;

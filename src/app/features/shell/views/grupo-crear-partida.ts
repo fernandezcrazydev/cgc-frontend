@@ -3,12 +3,14 @@ import { FormsModule } from '@angular/forms';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
-import { NfBadge, NfButton, NfWindow } from '../../../ui';
+import { NfAvatar, NfBadge, NfButton, NfSkeleton, NfWindow } from '../../../ui';
 import { GroupStore } from '../../../core/group-store';
 import { MatchStore, DraftSnapshot, DraftRaw, RoomTeams, RoomTeamSlot } from '../../../core/match-store';
-import { CHAMPIONS, Champion, Member } from '../../../core/lobby';
+import { Member } from '../../../core/lobby';
 import { memberDetail } from '../../../core/member-detail';
 import { MemberBadge, badgesFor } from '../../../core/group-badges';
+import { ChampionSummary, GameDataStore } from '../../../core/game-data';
+import { championTagLabel } from '../../../shared/champion-tags';
 import {
   matchmake,
   internalElo,
@@ -52,7 +54,8 @@ interface TeamSlot {
   roleKey: string;
   roleLabel: string;
   member: Member;
-  champ: Champion | null;
+  /** Campeón reservado, o null. BACKEND NOTE: solo el id real de ddragon. */
+  champ: { championId: number } | null;
 }
 
 /** The generated Blue-vs-Red split shown on the launch step. */
@@ -97,7 +100,7 @@ interface GeneratedTeams {
 @Component({
   selector: 'app-grupo-crear-partida',
   standalone: true,
-  imports: [FormsModule, RouterLink, NfBadge, NfButton, NfWindow],
+  imports: [FormsModule, RouterLink, NfBadge, NfButton, NfWindow, NfAvatar, NfSkeleton],
   template: `
     <div class="view">
       @if (group(); as g) {
@@ -472,11 +475,23 @@ interface GeneratedTeams {
                         <div class="cp-champrow__head">
                           <span class="cp-pick__avatar" [style.background]="avatarBg(m.hue)">{{ m.initials }}</span>
                           <span class="cp-champrow__name nf-mono">{{ m.name }}</span>
-                          @if (reservedOf(m.tag); as c) {
-                            <button type="button" class="cp-reserved" (click)="togglePicker(m.tag)">
-                              <span class="cp-reserved__icon" [style.background]="champGradient(c)">{{ c.initials }}</span>
-                              <span class="cp-reserved__name nf-mono">{{ c.name }}</span>
-                              <span class="cp-reserved__role nf-mono">{{ c.role }}</span>
+                          @if (reservedIdOf(m.tag); as rid) {
+                            <button type="button" class="cp-reserved" [attr.aria-busy]="champsLoading() ? 'true' : null" (click)="togglePicker(m.tag)">
+                              <nf-avatar
+                                class="cp-reserved__icon"
+                                [loading]="champsLoading()"
+                                [src]="champion(rid)?.iconUrl ?? null"
+                                [fallback]="championName(rid)"
+                                [tint]="rid"
+                                [size]="30"
+                                shape="square"
+                              />
+                              @if (champsLoading()) {
+                                <nf-skeleton width="70px" height="11px" />
+                              } @else {
+                                <span class="cp-reserved__name nf-mono">{{ championName(rid) }}</span>
+                                <span class="cp-reserved__role nf-mono">{{ championRole(rid) }}</span>
+                              }
                             </button>
                             <button
                               type="button"
@@ -504,12 +519,12 @@ interface GeneratedTeams {
                             @if (champSearch()) {
                               <div class="cp-picker__label nf-mono">RESULTADOS</div>
                               <div class="cp-picker__grid">
-                                @for (c of champPool(); track c.name) {
-                                  <button type="button" class="cp-champ-opt" (click)="reserveChamp(m.tag, c.name)">
-                                    <span class="cp-champ-opt__icon" [style.background]="champGradient(c)">{{ c.initials }}</span>
+                                @for (c of champPool(); track c.id) {
+                                  <button type="button" class="cp-champ-opt" (click)="reserveChamp(m.tag, c.id)">
+                                    <nf-avatar class="cp-champ-opt__icon" [src]="c.iconUrl" [fallback]="c.name" [tint]="c.id" [size]="38" shape="square" />
                                     <span class="cp-champ-opt__meta">
                                       <span class="cp-champ-opt__name nf-mono">{{ c.name }}</span>
-                                      <span class="cp-champ-opt__role nf-mono">{{ c.role }}</span>
+                                      <span class="cp-champ-opt__role nf-mono">{{ tagLabel(c) }}</span>
                                     </span>
                                   </button>
                                 } @empty {
@@ -520,12 +535,12 @@ interface GeneratedTeams {
                               @if (mainsOf(m.tag).length) {
                                 <div class="cp-picker__label nf-mono">SUS MAINS · RECOMENDADOS</div>
                                 <div class="cp-picker__grid">
-                                  @for (c of mainsOf(m.tag); track c.name) {
-                                    <button type="button" class="cp-champ-opt" (click)="reserveChamp(m.tag, c.name)">
-                                      <span class="cp-champ-opt__icon" [style.background]="champGradient(c)">{{ c.initials }}</span>
+                                  @for (c of mainsOf(m.tag); track c.id) {
+                                    <button type="button" class="cp-champ-opt" (click)="reserveChamp(m.tag, c.id)">
+                                      <nf-avatar class="cp-champ-opt__icon" [src]="c.iconUrl" [fallback]="c.name" [tint]="c.id" [size]="38" shape="square" />
                                       <span class="cp-champ-opt__meta">
                                         <span class="cp-champ-opt__name nf-mono">{{ c.name }}</span>
-                                        <span class="cp-champ-opt__role nf-mono">{{ c.role }}</span>
+                                        <span class="cp-champ-opt__role nf-mono">{{ tagLabel(c) }}</span>
                                       </span>
                                     </button>
                                   }
@@ -623,9 +638,19 @@ interface GeneratedTeams {
                             </div>
                             <span class="cp-slot__elo nf-mono" title="Elo interno">◆ {{ elo(s.member.tag) }}</span>
                             @if (s.champ; as c) {
-                              <span class="cp-slot__champ" title="Campeón reservado para este jugador">
-                                <span class="cp-slot__champ-icon" [style.background]="champGradient(c)">{{ c.initials }}</span>
-                                <span class="cp-slot__champ-name nf-mono">{{ c.name }}</span>
+                              <span class="cp-slot__champ" title="Campeón reservado para este jugador" [attr.aria-busy]="champsLoading() ? 'true' : null">
+                                <nf-avatar
+                                  class="cp-slot__champ-icon"
+                                  [loading]="champsLoading()"
+                                  [src]="champion(c.championId)?.iconUrl ?? null"
+                                  [fallback]="championName(c.championId)"
+                                  [tint]="c.championId"
+                                  [size]="26"
+                                  shape="square"
+                                />
+                                @if (!champsLoading()) {
+                                  <span class="cp-slot__champ-name nf-mono">{{ championName(c.championId) }}</span>
+                                }
                               </span>
                             }
                           </div>
@@ -654,9 +679,19 @@ interface GeneratedTeams {
                             </div>
                             <span class="cp-slot__elo nf-mono" title="Elo interno">◆ {{ elo(s.member.tag) }}</span>
                             @if (s.champ; as c) {
-                              <span class="cp-slot__champ" title="Campeón reservado para este jugador">
-                                <span class="cp-slot__champ-icon" [style.background]="champGradient(c)">{{ c.initials }}</span>
-                                <span class="cp-slot__champ-name nf-mono">{{ c.name }}</span>
+                              <span class="cp-slot__champ" title="Campeón reservado para este jugador" [attr.aria-busy]="champsLoading() ? 'true' : null">
+                                <nf-avatar
+                                  class="cp-slot__champ-icon"
+                                  [loading]="champsLoading()"
+                                  [src]="champion(c.championId)?.iconUrl ?? null"
+                                  [fallback]="championName(c.championId)"
+                                  [tint]="c.championId"
+                                  [size]="26"
+                                  shape="square"
+                                />
+                                @if (!champsLoading()) {
+                                  <span class="cp-slot__champ-name nf-mono">{{ championName(c.championId) }}</span>
+                                }
                               </span>
                             }
                           </div>
@@ -1515,48 +1550,70 @@ export class GrupoCrearPartida {
   });
 
   // --- Step 4: champion reservations (OTP = protected from bans) --------------
-  /** tag -> reserved champion name. Reserving = guaranteed pick + can't be banned. */
-  readonly reserved = signal<Record<string, string>>({});
+  /**
+   * tag -> id real de ddragon reservado. Reserving = guaranteed pick + can't
+   * be banned. BACKEND NOTE: forma final del DTO (el backend mandará el id);
+   * la vista resuelve `id → ChampionSummary` con `GameDataStore.championById()`.
+   */
+  readonly reserved = signal<Record<string, number>>({});
   /** Which player's champion picker is open (one at a time), or null. */
   readonly pickerTag = signal<string | null>(null);
   readonly champSearch = signal('');
 
-  champByName(name: string): Champion | undefined {
-    return CHAMPIONS.find((c) => c.name === name);
+  private readonly gameData = inject(GameDataStore);
+  protected readonly champsLoading = computed(() => this.gameData.status() === 'loading');
+
+  champion(id: number): ChampionSummary | undefined {
+    return this.gameData.championById().get(id);
   }
 
-  reservedOf(tag: string): Champion | null {
-    const name = this.reserved()[tag];
-    return name ? this.champByName(name) ?? null : null;
+  championName(id: number): string {
+    return this.champion(id)?.name ?? 'Campeón';
+  }
+
+  championRole(id: number): string {
+    return this.tagLabel(this.champion(id));
+  }
+
+  tagLabel(c: ChampionSummary | undefined): string {
+    const tag = c?.tags[0];
+    return tag ? championTagLabel(tag) : '';
+  }
+
+  reservedIdOf(tag: string): number | null {
+    return this.reserved()[tag] ?? null;
   }
 
   /** Recommended champions = the player's top champs from their profile card. */
-  mainsOf(tag: string): Champion[] {
+  mainsOf(tag: string): ChampionSummary[] {
     const m = this.selectedMembers().find((x) => x.tag === tag);
-    return m ? memberDetail(m, this.roster()).champions : [];
+    if (!m) return [];
+    const byId = this.gameData.championById();
+    return memberDetail(m, this.roster())
+      .championIds.map((id) => byId.get(id))
+      .filter((c): c is ChampionSummary => !!c);
   }
 
   /**
    * Champion search results (capped). The pool is huge in the real game, so we
    * only ever render matches for a query — never the whole list at once.
    */
-  readonly champPool = computed<Champion[]>(() => {
+  readonly champPool = computed<ChampionSummary[]>(() => {
     const q = this.champSearch().trim().toLowerCase();
     if (!q) return [];
-    return CHAMPIONS.filter((c) => c.name.toLowerCase().includes(q)).slice(0, 24);
+    return this.gameData
+      .champions()
+      .filter((c) => c.name.toLowerCase().includes(q))
+      .slice(0, 24);
   });
-
-  champGradient(c: Champion): string {
-    return `linear-gradient(135deg, ${c.c1}, ${c.c2})`;
-  }
 
   togglePicker(tag: string): void {
     this.champSearch.set('');
     this.pickerTag.update((t) => (t === tag ? null : tag));
   }
 
-  reserveChamp(tag: string, name: string): void {
-    this.reserved.update((m) => ({ ...m, [tag]: name }));
+  reserveChamp(tag: string, championId: number): void {
+    this.reserved.update((m) => ({ ...m, [tag]: championId }));
     this.pickerTag.set(null);
   }
 
@@ -1572,14 +1629,14 @@ export class GrupoCrearPartida {
 
   /** Two players can't reserve the same champion (only one pick per game). */
   readonly champErrors = computed<string[]>(() => {
-    const byChamp = new Map<string, string[]>();
-    for (const [tag, name] of Object.entries(this.reserved())) {
-      byChamp.set(name, [...(byChamp.get(name) ?? []), tag]);
+    const byChamp = new Map<number, string[]>();
+    for (const [tag, id] of Object.entries(this.reserved())) {
+      byChamp.set(id, [...(byChamp.get(id) ?? []), tag]);
     }
     const errs: string[] = [];
-    for (const [name, tags] of byChamp) {
+    for (const [id, tags] of byChamp) {
       if (tags.length > 1) {
-        errs.push(`${tags.map((t) => this.nameOf(t)).join(' y ')} han reservado ${name}: un campeón solo lo puede jugar uno.`);
+        errs.push(`${tags.map((t) => this.nameOf(t)).join(' y ')} han reservado ${this.championName(id)}: un campeón solo lo puede jugar uno.`);
       }
     }
     return errs;
@@ -1634,7 +1691,13 @@ export class GrupoCrearPartida {
     const byTag = new Map(members.map((m) => [m.tag, m]));
     const toSlot = (s: MatchmakeSlot): TeamSlot => {
       const m = byTag.get(s.tag) as Member;
-      return { roleKey: s.roleKey, roleLabel: this.roleShort(s.roleKey), member: m, champ: this.reservedOf(m.tag) };
+      const rid = this.reservedIdOf(m.tag);
+      return {
+        roleKey: s.roleKey,
+        roleLabel: this.roleShort(s.roleKey),
+        member: m,
+        champ: rid !== null ? { championId: rid } : null,
+      };
     };
     return {
       blue: res.slots.filter((s) => s.team === 'blue').map(toSlot),
@@ -1699,9 +1762,7 @@ export class GrupoCrearPartida {
       roleLabel: s.roleLabel,
       member: s.member,
       elo: this.elo(s.member.tag),
-      champ: s.champ
-        ? { name: s.champ.name, initials: s.champ.initials, c1: s.champ.c1, c2: s.champ.c2 }
-        : null,
+      champ: s.champ ? { championId: s.champ.championId } : null,
     });
     return { blue: g.blue.map(conv), red: g.red.map(conv) };
   }
@@ -1761,17 +1822,11 @@ export class GrupoCrearPartida {
         aNames: r.a.map((t) => this.nameOf(t)),
         bNames: r.b.map((t) => this.nameOf(t)),
       })),
-      reserved: Object.entries(this.reserved()).map(([tag, name]) => {
-        const c = this.champByName(name);
-        return {
-          tag,
-          name: this.nameOf(tag),
-          champ: name,
-          champInitials: c?.initials ?? '',
-          champC1: c?.c1 ?? '',
-          champC2: c?.c2 ?? '',
-        };
-      }),
+      reserved: Object.entries(this.reserved()).map(([tag, championId]) => ({
+        tag,
+        name: this.nameOf(tag),
+        championId,
+      })),
       // Raw editor state so the wizard can resume this draft losslessly later.
       raw: {
         step: this.step(),
@@ -1784,6 +1839,8 @@ export class GrupoCrearPartida {
   }
 
   constructor() {
+    this.gameData.ensureLoaded();
+
     // Keep the shell header/sidebar in sync with the active group on deep-link.
     effect(() => {
       const id = this.id();
@@ -1816,8 +1873,8 @@ export class GrupoCrearPartida {
     }
     const slots = [...room.teams.blue, ...room.teams.red];
     this.selected.set(new Set(slots.map((s) => s.member.tag)));
-    const reserved: Record<string, string> = {};
-    for (const s of slots) if (s.champ) reserved[s.member.tag] = s.champ.name;
+    const reserved: Record<string, number> = {};
+    for (const s of slots) if (s.champ) reserved[s.member.tag] = s.champ.championId;
     this.reserved.set(reserved);
     this.mode.set('manual');
     this.step.set(2);

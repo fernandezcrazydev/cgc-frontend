@@ -1,5 +1,5 @@
 import { Component, DestroyRef, computed, inject, linkedSignal, signal } from '@angular/core';
-import { NfWindow, NfButton, NfSelect, NfModal, NfToggle, NfSkeleton } from '../../../ui';
+import { NfWindow, NfButton, NfSelect, NfModal, NfToggle, NfSkeleton, NfAvatar, NfLaneIcon } from '../../../ui';
 import { Session } from '../../../core/auth';
 import { CURRENT_USER } from '../../../core/lobby';
 import { GroupStore } from '../../../core/group-store';
@@ -10,6 +10,8 @@ import { LANE_ROLES, LaneRole, PreferencesStore, RolePreferences } from '../../.
 import { PairingCode, RIOT_REGIONS, RiotAccount, RiotAccountStore, RiotRegion } from '../../../core/riot';
 import { errorMessage } from '../../../core/http';
 import { ToastService } from '../../../core/toast';
+import { GameDataStore } from '../../../core/game-data';
+import { championTagLabel } from '../../../shared/champion-tags';
 import { wireConnectModalOnRiotEvent } from './perfil-connect-modal';
 
 /** "may 2025" — el chip lo pone en mayúsculas. Fijado a es-ES: la UI es en español. */
@@ -42,7 +44,7 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
 @Component({
   selector: 'app-perfil',
   standalone: true,
-  imports: [NfWindow, NfButton, NfSelect, NfModal, NfToggle, NfSkeleton],
+  imports: [NfWindow, NfButton, NfSelect, NfModal, NfToggle, NfSkeleton, NfAvatar, NfLaneIcon],
   template: `
     <div class="view">
       <!-- Cross-group scope disclaimer -->
@@ -190,7 +192,7 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
                       [attr.aria-label]="'Jugar ' + t.name"
                       (click)="toggleRole(t.role)"
                     >
-                      <span class="role-tile__glyph" aria-hidden="true">{{ t.glyph }}</span>
+                      <nf-lane-icon class="role-tile__glyph" [lane]="t.role" [fallbackGlyph]="t.glyph" />
                       <span class="role-tile__code nf-mono">{{ t.short }}</span>
                       <span class="role-tile__name">{{ t.name }}</span>
                     </button>
@@ -424,15 +426,27 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
         <!-- Most-played champions -->
         <div class="view__label nf-mono">▸ CAMPEONES MÁS JUGADOS</div>
         <nf-window class="pf-champ-window" title="campeones.exe" accent="cyan" bodyPadding="0">
-          <div class="pf-champs">
-            @for (c of p.topChampions; track c.champion.name) {
+          <div class="pf-champs" [attr.aria-busy]="champsLoading() ? 'true' : null">
+            @for (c of p.topChampions; track c.championId) {
               <div class="pf-champ">
-                <span
+                <nf-avatar
                   class="champ-icon"
-                  [style.background]="'linear-gradient(135deg, ' + c.champion.c1 + ', ' + c.champion.c2 + ')'"
-                >{{ c.champion.initials }}</span>
+                  [loading]="champsLoading()"
+                  [src]="champion(c.championId)?.iconUrl ?? null"
+                  [fallback]="championName(c.championId)"
+                  [tint]="c.championId"
+                  [size]="34"
+                  shape="square"
+                />
                 <div class="pf-champ__meta">
-                  <div class="pf-champ__name">{{ c.champion.name }} <span class="pf-champ__role nf-mono">{{ c.champion.role }}</span></div>
+                  <div class="pf-champ__name">
+                    @if (champsLoading()) {
+                      <nf-skeleton width="90px" height="12px" />
+                    } @else {
+                      {{ championName(c.championId) }}
+                      <span class="pf-champ__role nf-mono">{{ championRole(c.championId) }}</span>
+                    }
+                  </div>
                   <div class="pf-champ__bar">
                     <span class="pf-champ__fill" [class.pf-champ__fill--lo]="c.wr < 50" [style.width.%]="c.wr"></span>
                   </div>
@@ -674,6 +688,25 @@ export class Perfil {
     buildPlayerProfile(this.user, this.groups.groups(), (id) => this.groups.rosterOf(id)),
   );
 
+  // ── Catálogo de campeones reales (Data Dragon) ─────────────────────
+  protected readonly gameData = inject(GameDataStore);
+  protected readonly champsLoading = computed(() => this.gameData.status() === 'loading');
+
+  champion(id: number) {
+    return this.gameData.championById().get(id);
+  }
+
+  /** Nombre real si el catálogo ya lo resolvió; genérico si el id es desconocido. */
+  championName(id: number): string {
+    return this.champion(id)?.name ?? 'Campeón';
+  }
+
+  /** Primer tag traducido ("Mage" → "Maga"); vacío si el campeón aún no se resolvió. */
+  championRole(id: number): string {
+    const tag = this.champion(id)?.tags[0];
+    return tag ? championTagLabel(tag) : '';
+  }
+
   // ── Roles preferidos (preferencia global de cuenta) ────────────────
   protected readonly prefs = inject(PreferencesStore);
   private readonly toast = inject(ToastService);
@@ -699,6 +732,7 @@ export class Perfil {
     // Idempotentes y deduplicadas: si otra vista ya las pidió, no hay petición extra.
     this.prefs.ensureLoaded();
     this.riot.ensureLoaded();
+    this.gameData.ensureLoaded();
     // El temporizador de la cuenta atrás no debe sobrevivir a la vista.
     this.destroyRef.onDestroy(() => this.stopTick());
 

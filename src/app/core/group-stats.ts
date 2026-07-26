@@ -9,7 +9,7 @@
  *   - awardsFor()       → the PREMIOS trophy wall ("para reírse")
  *   - playerStatsFor()  → the JUGADORES per-member deep dive
  */
-import { Champion, CHAMPIONS, Member } from './lobby';
+import { Member, REAL_CHAMPION_IDS } from './lobby';
 import { hash, seeded } from './group-ranking';
 
 /** Time window every widget is scaled to. */
@@ -54,8 +54,13 @@ export interface MemberStats {
   triples: number;
   quadras: number;
   pentas: number;
-  /** This member's unofficial "main". */
-  mainChampion: Champion;
+  /**
+   * This member's unofficial "main". BACKEND NOTE: id real de ddragon elegido
+   * de `REAL_CHAMPION_IDS` (ver `core/lobby.ts`) mientras no exista el
+   * endpoint de estadísticas; la vista resuelve `id → ChampionSummary` con
+   * `GameDataStore.championById()`.
+   */
+  mainChampionId: number;
   mainChampWr: number;
   /** Longest current win streak within the scope. */
   streak: number;
@@ -101,7 +106,7 @@ export function statsFor(groupId: string, roster: readonly Member[], scope: Stat
     const quadras = Math.floor(rnd() * Math.max(1, games * 0.12));
     const pentas = rnd() < 0.35 ? Math.floor(rnd() * Math.max(1, games * 0.04)) : 0;
 
-    const mainChampion = pick(rnd, CHAMPIONS);
+    const mainChampionId = pick(rnd, REAL_CHAMPION_IDS);
     const mainChampWr = Math.round(45 + rnd() * 45);
 
     const streak = Math.floor(rnd() * Math.min(8, wins + 1));
@@ -141,7 +146,7 @@ export function statsFor(groupId: string, roster: readonly Member[], scope: Stat
       triples,
       quadras,
       pentas,
-      mainChampion,
+      mainChampionId,
       mainChampWr,
       streak,
       spark,
@@ -212,8 +217,15 @@ export interface StatLeaderRow {
   member: Member;
   /** Formatted headline value, e.g. "68%" or "7.4". */
   value: string;
-  /** Secondary line, e.g. "17V 8D" or "Ahri". */
+  /** Secondary line, e.g. "17V 8D". Empty for the "main" metric (see `championId`). */
   sub: string;
+  /**
+   * Solo lo lleva el leaderboard "WIN RATE POR MAIN": el generador no tiene
+   * acceso al catálogo real, así que no puede formatear un nombre de campeón
+   * en `sub`. La vista resuelve `id → ChampionSummary` con
+   * `GameDataStore.championById()`.
+   */
+  championId?: number;
 }
 
 export interface StatLeaderboard {
@@ -237,6 +249,8 @@ interface Metric {
   value: (s: MemberStats) => number;
   format: (s: MemberStats) => string;
   sub: (s: MemberStats) => string;
+  /** Solo 'main': el id a resolver en la vista (ver `StatLeaderRow.championId`). */
+  championId?: (s: MemberStats) => number;
   withSpark?: boolean;
 }
 
@@ -267,7 +281,10 @@ const METRICS: Metric[] = [
     accent: 'yellow',
     value: (s) => s.mainChampWr,
     format: (s) => `${s.mainChampWr}%`,
-    sub: (s) => s.mainChampion.name,
+    // El generador no conoce el catálogo real: no puede formatear un nombre
+    // de campeón. La vista resuelve `championId` con `GameDataStore`.
+    sub: () => '',
+    championId: (s) => s.mainChampionId,
   },
   {
     id: 'damage',
@@ -313,6 +330,7 @@ export function leaderboardsFor(stats: readonly MemberStats[], top = 4): StatLea
         member: s.member,
         value: m.format(s),
         sub: m.sub(s),
+        championId: m.championId?.(s),
       })),
       spark: m.withSpark && leader ? leader.spark : undefined,
       trend: m.withSpark && leader ? leader.trend : undefined,

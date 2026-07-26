@@ -31,14 +31,16 @@ export interface DraftRule {
   bNames: string[];
 }
 
-/** A reserved champion in the live draft (display-ready). */
+/**
+ * A reserved champion in the live draft.
+ * BACKEND NOTE: `championId` es un id real de ddragon; el follower view
+ * resuelve `id → ChampionSummary` con `GameDataStore.championById()` (nombre
+ * + icono), en vez de llevar nombre/gradiente ya resueltos como antes.
+ */
 export interface DraftReserve {
   tag: string;
   name: string;
-  champ: string;
-  champInitials: string;
-  champC1: string;
-  champC2: string;
+  championId: number;
 }
 
 /** Raw step-3 rule (admin-side shape), kept so the wizard can resume losslessly. */
@@ -60,8 +62,8 @@ export interface DraftRaw {
   /** tag -> explicit line role keys (TOP/JUNGLA/MID/ADC/SUPPORT); absent = profile. */
   lineRoles: Record<string, string[]>;
   rules: DraftRawRule[];
-  /** tag -> reserved champion name. */
-  reserved: Record<string, string>;
+  /** tag -> id real de ddragon reservado (ver `DraftReserve`). */
+  reserved: Record<string, number>;
 }
 
 /**
@@ -94,8 +96,11 @@ export interface RoomTeamSlot {
   member: Member;
   /** Internal elo at launch time. */
   elo: number;
-  /** Reserved champion, or null. */
-  champ: { name: string; initials: string; c1: string; c2: string } | null;
+  /**
+   * Reserved champion, or null. BACKEND NOTE: solo el id (real de ddragon);
+   * la vista resuelve nombre + icono con `GameDataStore.championById()`.
+   */
+  champ: { championId: number } | null;
   /**
    * A GUEST is someone who played but isn't in the group (resolved from an import
    * conflict). They're a GHOST: shown for an accurate lineup but counting for

@@ -1,12 +1,14 @@
-import { Component, computed, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { MATCH_HISTORY, kdaRatio, shortGold } from '../../../core/match-history';
-import { NfPagination } from '../../../ui';
+import { hash } from '../../../core/group-ranking';
+import { GameDataStore } from '../../../core/game-data';
+import { NfAvatar, NfPagination, NfSkeleton } from '../../../ui';
 
 @Component({
   selector: 'app-historial',
   standalone: true,
-  imports: [RouterLink, NfPagination],
+  imports: [RouterLink, NfPagination, NfAvatar, NfSkeleton],
   template: `
     <div class="view">
       <div class="view__head">
@@ -37,13 +39,22 @@ import { NfPagination } from '../../../ui';
               <span class="mh-result__time nf-mono">{{ m.durationMin }} MIN</span>
             </div>
 
-            <div class="mh-champ">
-              <span
+            <div class="mh-champ" [attr.aria-busy]="champsLoading() ? 'true' : null">
+              <nf-avatar
                 class="mh-champ__icon"
-                [style.background]="'radial-gradient(circle at 32% 26%, ' + m.c1 + ', ' + m.c2 + ')'"
-              >{{ m.initials }}</span>
+                [loading]="champsLoading()"
+                [src]="champion(m.championId)?.iconUrl ?? null"
+                [fallback]="championName(m.championId)"
+                [tint]="m.championId"
+                [size]="48"
+                shape="square"
+              />
               <div class="mh-champ__meta">
-                <span class="mh-champ__name">{{ m.champion }}</span>
+                @if (champsLoading()) {
+                  <nf-skeleton width="110px" height="14px" />
+                } @else {
+                  <span class="mh-champ__name">{{ championName(m.championId) }}</span>
+                }
                 <span class="mh-champ__group nf-mono">◆ {{ m.groupName }}</span>
               </div>
             </div>
@@ -67,8 +78,8 @@ import { NfPagination } from '../../../ui';
                 @if (it) {
                   <span
                     class="mh-item"
-                    [style.background]="'linear-gradient(135deg, hsl(' + it.hue + ',70%,46%), hsl(' + it.hue + ',60%,24%))'"
-                    [title]="it.name"
+                    [style.background]="itemTint(it)"
+                    [title]="it"
                   ></span>
                 } @else {
                   <span class="mh-item mh-item--empty"></span>
@@ -97,6 +108,27 @@ export class Historial {
   readonly matches = MATCH_HISTORY;
   readonly ratio = kdaRatio;
   readonly gold = shortGold;
+
+  protected readonly gameData = inject(GameDataStore);
+  protected readonly champsLoading = computed(() => this.gameData.status() === 'loading');
+
+  constructor() {
+    this.gameData.ensureLoaded();
+  }
+
+  champion(id: number) {
+    return this.gameData.championById().get(id);
+  }
+
+  championName(id: number): string {
+    return this.champion(id)?.name ?? 'Campeón';
+  }
+
+  /** Tinte determinista (no `Math.random`) para el hueco de un objeto sin icono real todavía. */
+  itemTint(name: string): string {
+    const h = hash(name) % 360;
+    return `linear-gradient(135deg, hsl(${h},70%,46%), hsl(${h},60%,24%))`;
+  }
 
   /** Records per page. Small here so the POC paginates with the mock data. */
   readonly pageSize = 4;
