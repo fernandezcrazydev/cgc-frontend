@@ -132,32 +132,6 @@ const SCOPE_LABELS: Record<string, string> = {
           </div>
         </nf-window>
 
-        <nf-window title="descargas.exe" accent="pink" bodyPadding="22px">
-          <div class="settings-eyebrow nf-mono nf-eyebrow">App de escritorio</div>
-          <div class="setting-sub setting-sub--help device-intro">
-            La app que exporta tus partidas desde el cliente de LoL. Estos enlaces son estáticos
-            (no dependen de sesión), servidos por el mismo dominio.
-          </div>
-          <div class="download-row">
-            <!-- <a>, no nfButton: el directivo solo aplica a <button> y estos tienen que ser
-                 enlaces de descarga reales (Guardar como…, abrir en pestaña nueva, etc). -->
-            <a
-              class="nf-btn nf-btn--primary nf-btn--md"
-              href="/downloads/scraper/latest/lol-match-exporter-windows-setup.exe"
-              download
-            >
-              Descargar para Windows
-            </a>
-            <a
-              class="nf-btn nf-btn--secondary nf-btn--md"
-              href="/downloads/scraper/latest/lol-match-exporter-macos.dmg"
-              download
-            >
-              Descargar para macOS
-            </a>
-          </div>
-        </nf-window>
-
         <nf-window title="config.exe" accent="pink" bodyPadding="22px">
           <div class="settings-eyebrow nf-mono nf-eyebrow">Preferencias del lobby</div>
 
@@ -272,13 +246,6 @@ const SCOPE_LABELS: Record<string, string> = {
         padding: 14px 2px 2px;
         font-size: 12px;
         color: var(--nf-text-mid);
-      }
-
-      .download-row {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-        margin-top: 14px;
       }
     `,
   ],

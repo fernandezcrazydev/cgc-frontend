@@ -197,8 +197,75 @@
   color: var(--nf-text-dim);
 }
 
-.shell__sidefoot {
+/* ---- descarga de la app de escritorio ---- */
+/* El margin-top:auto vive AQUÍ y no en .shell__sidefoot: en una columna flex, dos
+   márgenes automáticos se reparten el espacio libre entre ambos y quedaría un hueco
+   entre este bloque y el perfil. Con el auto solo en este, el bloque cae al final de
+   las opciones del menú y el perfil queda pegado justo debajo. */
+.shell__download {
   margin-top: auto;
+  padding: 12px 14px 0;
+}
+.shell__download-btn {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 11px 12px;
+  border-radius: 6px;
+  text-decoration: none;
+  color: #fff;
+  background: linear-gradient(135deg, rgba(255, 95, 210, 0.22), rgba(169, 107, 255, 0.14));
+  border: 2px solid var(--nf-pink);
+  box-shadow: 0 0 12px rgba(255, 95, 210, 0.18);
+  transition: background 0.16s, box-shadow 0.16s, border-color 0.16s;
+}
+.shell__download-btn:hover {
+  background: linear-gradient(135deg, rgba(255, 95, 210, 0.34), rgba(169, 107, 255, 0.2));
+  box-shadow: 0 0 18px rgba(255, 95, 210, 0.32);
+  border-color: var(--nf-cyan);
+}
+.shell__download-btn:focus-visible {
+  outline: 2px solid var(--nf-cyan);
+  outline-offset: 2px;
+}
+.shell__download-icon {
+  display: flex;
+  flex: none;
+  color: var(--nf-cyan);
+}
+.shell__download-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.shell__download-title {
+  font-weight: 800;
+  font-size: 12.5px;
+  letter-spacing: 0.6px;
+  line-height: 1.1;
+}
+.shell__download-os {
+  font-size: 9px;
+  letter-spacing: 1.4px;
+  color: var(--nf-text-mid);
+  margin-top: 3px;
+}
+.shell__download-alt {
+  display: block;
+  margin-top: 7px;
+  text-align: center;
+  font-size: 9.5px;
+  letter-spacing: 1px;
+  color: var(--nf-text-dim);
+  text-decoration: none;
+  transition: color 0.16s;
+}
+.shell__download-alt:hover {
+  color: var(--nf-cyan);
+  text-decoration: underline;
+}
+
+.shell__sidefoot {
   padding: 14px;
   border-top: 1px solid var(--nf-border);
 }

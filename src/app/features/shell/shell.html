@@ -89,6 +89,27 @@
         }
       </nav>
 
+      <!-- Descarga de la app de escritorio. Va pegada al final de las opciones del
+           menú (margin-top:auto en el SCSS), justo encima del bloque de perfil. -->
+      <div class="shell__download">
+        <a class="shell__download-btn" [href]="appDownload.href" download>
+          <span class="shell__download-icon" aria-hidden="true">
+            <svg width="17" height="17" viewBox="0 0 16 16" fill="none">
+              <path d="M8 2V10" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
+              <path d="M4.5 6.8L8 10.4L11.5 6.8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
+              <path d="M2.6 13H13.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
+            </svg>
+          </span>
+          <span class="shell__download-text">
+            <span class="shell__download-title">Descargar app</span>
+            <span class="shell__download-os nf-mono">PARA {{ appDownload.os }}</span>
+          </span>
+        </a>
+        <a class="shell__download-alt nf-mono" [href]="appDownloadAlt.href" download>
+          También para {{ appDownloadAlt.os }}
+        </a>
+      </div>
+
       <div class="shell__sidefoot">
         @if (session.user(); as me) {
           <a class="shell__profile" [routerLink]="['/app', 'perfil']">
