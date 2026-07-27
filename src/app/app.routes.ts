@@ -4,7 +4,7 @@ import { Login } from './features/login/login';
 import { Shell } from './features/shell/shell';
 
 export const routes: Routes = [
-  { path: '', component: Login, title: 'Acceso · Sale perso' },
+  { path: '', component: Login, title: 'Acceso · Sale Custom' },
   // Debe ir antes del comodín '**'. Es la redirectUri registrada en el backend.
   {
     path: 'callback',
@@ -19,81 +19,81 @@ export const routes: Routes = [
       { path: '', pathMatch: 'full', redirectTo: 'inicio' },
       {
         path: 'inicio',
-        title: 'Inicio · Sale perso',
+        title: 'Inicio · Sale Custom',
         loadComponent: () => import('./features/shell/views/inicio').then((m) => m.Inicio),
       },
       {
         path: 'historial',
-        title: 'Historial · Sale perso',
+        title: 'Historial · Sale Custom',
         loadComponent: () => import('./features/shell/views/historial').then((m) => m.Historial),
       },
       {
         path: 'historial/:id',
-        title: 'Partida · Sale perso',
+        title: 'Partida · Sale Custom',
         loadComponent: () =>
           import('./features/shell/views/partida-detalle').then((m) => m.PartidaDetalle),
       },
       {
         path: 'grupos',
-        title: 'Grupos · Sale perso',
+        title: 'Grupos · Sale Custom',
         loadComponent: () => import('./features/shell/views/grupos').then((m) => m.Grupos),
       },
       {
         path: 'grupos/:id',
-        title: 'Grupo · Sale perso',
+        title: 'Grupo · Sale Custom',
         loadComponent: () =>
           import('./features/shell/views/grupo-detalle').then((m) => m.GrupoDetalle),
       },
       {
         path: 'grupos/:id/crear-partida',
-        title: 'Crear partida · Sale perso',
+        title: 'Crear partida · Sale Custom',
         loadComponent: () =>
           import('./features/shell/views/grupo-crear-partida').then((m) => m.GrupoCrearPartida),
       },
       {
         path: 'grupos/:id/partidas',
-        title: 'Partidas activas · Sale perso',
+        title: 'Partidas activas · Sale Custom',
         loadComponent: () =>
           import('./features/shell/views/grupo-partidas').then((m) => m.GrupoPartidas),
       },
       {
         path: 'grupos/:id/partidas/:roomId',
-        title: 'Sala · Sale perso',
+        title: 'Sala · Sale Custom',
         loadComponent: () =>
           import('./features/shell/views/grupo-sala').then((m) => m.GrupoSala),
       },
       {
         path: 'grupos/:id/ranking',
-        title: 'Ranking · Sale perso',
+        title: 'Ranking · Sale Custom',
         loadComponent: () =>
           import('./features/shell/views/grupo-ranking').then((m) => m.GrupoRanking),
       },
       {
         path: 'grupos/:id/estadisticas',
-        title: 'Estadísticas · Sale perso',
+        title: 'Estadísticas · Sale Custom',
         loadComponent: () =>
           import('./features/shell/views/grupo-estadisticas').then((m) => m.GrupoEstadisticas),
       },
       {
         path: 'grupos/:id/historial',
-        title: 'Historial del grupo · Sale perso',
+        title: 'Historial del grupo · Sale Custom',
         loadComponent: () =>
           import('./features/shell/views/grupo-historial').then((m) => m.GrupoHistorial),
       },
       {
         path: 'perfil',
-        title: 'Perfil · Sale perso',
+        title: 'Perfil · Sale Custom',
         loadComponent: () => import('./features/shell/views/perfil').then((m) => m.Perfil),
       },
       {
         path: 'ajustes',
-        title: 'Ajustes · Sale perso',
+        title: 'Ajustes · Sale Custom',
         loadComponent: () => import('./features/shell/views/ajustes').then((m) => m.Ajustes),
       },
       // Administración: además del authGuard del padre, exige rol ADMIN (el backend revalida).
       {
         path: 'admin',
-        title: 'Administración · Sale perso',
+        title: 'Administración · Sale Custom',
         canActivate: [adminGuard],
         loadComponent: () => import('./features/shell/views/admin').then((m) => m.AdminDirectory),
       },

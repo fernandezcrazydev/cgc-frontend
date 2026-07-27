@@ -16,7 +16,7 @@ import { FeedbackDialog } from '../feedback/feedback-dialog';
 import { wireRiotAccountRefresh } from './riot-account-refresh';
 
 /**
- * Sale perso app shell — desktop sidebar + sticky header + mobile bottom nav,
+ * Sale Custom app shell — desktop sidebar + sticky header + mobile bottom nav,
  * with a routed <router-outlet> for the five views. Port of the APP SHELL block
  * in Login.dc.html.
  */
