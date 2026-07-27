@@ -29,6 +29,8 @@ export interface RiotAccount {
   verifiedAt: string | null;
   /** ISO-8601 tal cual lo manda el backend: formatear es cosa de la vista. */
   linkedAt: string;
+  /** URL absoluta del icono de invocador, ya resuelta por el backend. Null hasta el primer barrido nocturno. */
+  profileIconUrl: string | null;
 }
 
 /**
