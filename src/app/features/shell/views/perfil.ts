@@ -47,15 +47,6 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
   imports: [NfWindow, NfButton, NfSelect, NfModal, NfToggle, NfSkeleton, NfAvatar, NfLaneIcon],
   template: `
     <div class="view">
-      <!-- Cross-group scope disclaimer -->
-      <div class="scope-note" role="note">
-        <span class="scope-note__icon" aria-hidden="true">ⓘ</span>
-        <p class="scope-note__text">
-          Todas estas cifras son el <strong>agregado de todos tus grupos</strong>. Para datos exactos
-          de un grupo concreto, ábrelo y consulta sus <strong>Estadísticas</strong>.
-        </p>
-      </div>
-
       @if (profile(); as p) {
         <!-- Hero: identity (Discord) + headline win-rate ring -->
         <section class="pf-hero" [attr.aria-busy]="identityLoading() ? 'true' : null">
