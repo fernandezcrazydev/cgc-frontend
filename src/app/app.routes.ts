@@ -92,6 +92,12 @@ export const routes: Routes = [
       },
       // Administración: además del authGuard del padre, exige rol ADMIN (el backend revalida).
       {
+        path: 'admin',
+        title: 'Administración · Sale perso',
+        canActivate: [adminGuard],
+        loadComponent: () => import('./features/shell/views/admin').then((m) => m.AdminDirectory),
+      },
+      {
         path: 'admin/feedback',
         title: 'Feedback · Admin',
         canActivate: [adminGuard],

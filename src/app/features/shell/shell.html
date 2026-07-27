@@ -79,11 +79,12 @@
         @if (isAdmin()) {
           <a
             class="shell__nav-item"
-            [routerLink]="['/app', 'admin', 'feedback']"
+            [routerLink]="['/app', 'admin']"
             routerLinkActive="is-active"
+            [routerLinkActiveOptions]="{ exact: true }"
           >
             <span class="shell__nav-glyph">🛡</span>
-            Feedback
+            Admin
           </a>
         }
       </nav>
