@@ -33,6 +33,11 @@ import { wireRiotAccountRefresh } from './riot-account-refresh';
     NfToastHost,
     FeedbackDialog,
   ],
+  // Mismo idioma que nf-modal para cerrar con Escape. Es un no-op si el
+  // desplegable de descarga no está abierto.
+  host: {
+    '(document:keydown.escape)': 'showDownload.set(false)',
+  },
   templateUrl: './shell.html',
   styleUrl: './shell.scss',
 })
@@ -76,19 +81,15 @@ export class Shell {
 
   // ── Descarga de la app de escritorio ──────────────────────────────
   // Los instaladores los publica el workflow de cgc-scraper en /srv/cgc/downloads,
-  // que Caddy sirve bajo /downloads. Son enlaces estáticos, sin sesión: por eso son
-  // <a href download> y no pasan por el cliente HTTP.
-  //
-  // El UA se mira SOLO para decidir cuál va en el botón grande. El otro sistema
-  // queda como enlace debajo, así que un UA raro -- o Linux, que no tiene build --
-  // nunca deja a nadie sin poder descargar, solo con el botón menos acertado.
-  private readonly onMac = /mac/i.test(navigator.userAgent);
-  readonly appDownload = this.onMac
-    ? { href: '/downloads/scraper/latest/lol-match-exporter-macos.dmg', os: 'macOS' }
-    : { href: '/downloads/scraper/latest/lol-match-exporter-windows-setup.exe', os: 'Windows' };
-  readonly appDownloadAlt = this.onMac
-    ? { href: '/downloads/scraper/latest/lol-match-exporter-windows-setup.exe', os: 'Windows' }
-    : { href: '/downloads/scraper/latest/lol-match-exporter-macos.dmg', os: 'macOS' };
+  // que Caddy sirve bajo /downloads. Son ficheros estáticos y sin sesión, así que
+  // las URLs viven en la plantilla como <a download> y no pasan por el cliente HTTP.
+  // El desplegable enseña las dos plataformas y deja elegir, en vez de adivinar el
+  // sistema por el user-agent (que falla, y en Linux no hay build que ofrecer).
+  readonly showDownload = signal(false);
+
+  toggleDownload(): void {
+    this.showDownload.update((v) => !v);
+  }
 
   readonly isMobile = signal(false);
   readonly pageTitle = signal('Inicio');

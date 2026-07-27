@@ -89,25 +89,79 @@
         }
       </nav>
 
-      <!-- Descarga de la app de escritorio. Va pegada al final de las opciones del
-           menú (margin-top:auto en el SCSS), justo encima del bloque de perfil. -->
+      <!-- Descarga de la app de escritorio. Pegada al final de las opciones del menú
+           (margin-top:auto en el SCSS), justo encima del bloque de perfil.
+           Abre un popover con las dos plataformas en vez de descargar de golpe: así no
+           hay que acertar el sistema por el user-agent, y el logo se reconoce antes que
+           la palabra. Es el patrón de Slack/Notion/Linear para este mismo enlace. -->
       <div class="shell__download">
-        <a class="shell__download-btn" [href]="appDownload.href" download>
-          <span class="shell__download-icon" aria-hidden="true">
-            <svg width="17" height="17" viewBox="0 0 16 16" fill="none">
-              <path d="M8 2V10" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
-              <path d="M4.5 6.8L8 10.4L11.5 6.8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
-              <path d="M2.6 13H13.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
+        <button
+          type="button"
+          class="shell__nav-item shell__download-trigger"
+          [class.is-open]="showDownload()"
+          [attr.aria-expanded]="showDownload()"
+          aria-haspopup="menu"
+          (click)="toggleDownload()"
+        >
+          <span class="shell__nav-glyph shell__download-glyph" aria-hidden="true">
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+              <path d="M8 2v7.2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
+              <path d="M4.9 6.6 8 9.7l3.1-3.1" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
+              <path d="M2.8 12.9h10.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
             </svg>
           </span>
-          <span class="shell__download-text">
-            <span class="shell__download-title">Descargar app</span>
-            <span class="shell__download-os nf-mono">PARA {{ appDownload.os }}</span>
-          </span>
-        </a>
-        <a class="shell__download-alt nf-mono" [href]="appDownloadAlt.href" download>
-          También para {{ appDownloadAlt.os }}
-        </a>
+          Descargar app
+          <span class="shell__nav-caret">▾</span>
+        </button>
+
+        @if (showDownload()) {
+          <div class="shell__download-backdrop" (click)="showDownload.set(false)"></div>
+          <div class="shell__download-menu" role="menu" aria-label="Descargar la app de escritorio">
+            <div class="shell__download-head nf-mono nf-eyebrow">App de escritorio</div>
+
+            <!-- <a download> y no un botón: son ficheros estáticos servidos por el mismo
+                 dominio, sin sesión, y así funcionan "Guardar como…" y abrir en pestaña. -->
+            <a
+              class="shell__download-opt"
+              role="menuitem"
+              href="/downloads/scraper/latest/lol-match-exporter-windows-setup.exe"
+              download
+              (click)="showDownload.set(false)"
+            >
+              <span class="shell__download-logo" aria-hidden="true">
+                <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor">
+                  <path d="M0 2.4 6.4 1.5v6.2H0V2.4Z" />
+                  <path d="M7.3 1.37 16 .18V7.7H7.3V1.37Z" />
+                  <path d="M0 8.6h6.4v6.2L0 13.9V8.6Z" />
+                  <path d="M7.3 8.6H16v7.52L7.3 14.93V8.6Z" />
+                </svg>
+              </span>
+              <span class="shell__download-opt-text">
+                <span class="shell__download-opt-name">Windows</span>
+                <span class="shell__download-opt-sub nf-mono">INSTALADOR .EXE</span>
+              </span>
+            </a>
+
+            <a
+              class="shell__download-opt"
+              role="menuitem"
+              href="/downloads/scraper/latest/lol-match-exporter-macos.dmg"
+              download
+              (click)="showDownload.set(false)"
+            >
+              <span class="shell__download-logo" aria-hidden="true">
+                <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor">
+                  <path d="M11.03 8.42c-.02-1.72 1.4-2.55 1.47-2.59-.8-1.17-2.05-1.33-2.5-1.35-1.06-.11-2.07.62-2.61.62-.54 0-1.37-.61-2.25-.59-1.16.02-2.22.67-2.82 1.7-1.2 2.09-.31 5.18.86 6.88.57.83 1.26 1.76 2.16 1.73.87-.04 1.19-.56 2.24-.56 1.04 0 1.34.56 2.25.54.93-.02 1.52-.85 2.09-1.68.66-.96.93-1.89.94-1.94-.02-.01-1.81-.7-1.83-2.76Z" />
+                  <path d="M9.32 3.4c.48-.58.8-1.38.71-2.18-.69.03-1.52.46-2.01 1.03-.44.51-.83 1.33-.72 2.11.77.06 1.55-.39 2.02-.96Z" />
+                </svg>
+              </span>
+              <span class="shell__download-opt-text">
+                <span class="shell__download-opt-name">macOS</span>
+                <span class="shell__download-opt-sub nf-mono">IMAGEN .DMG</span>
+              </span>
+            </a>
+          </div>
+        }
       </div>
 
       <div class="shell__sidefoot">
