@@ -11,7 +11,10 @@ export {
 export { groupView, groupViewFrom, initialsOf, bannerColors, type GroupView } from './group-view';
 export {
   REGIONS,
+  MATCHMAKING_PRESETS,
+  MATCHMAKING_PRESET_INFO,
   type Region,
+  type MatchmakingPreset,
   type GroupRole,
   type CreateGroupRequest,
   type GroupResponse,

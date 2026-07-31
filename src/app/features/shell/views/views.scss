@@ -365,6 +365,22 @@
   box-sizing: border-box;
   transition: border-color 0.16s, box-shadow 0.16s;
 }
+/* Explica qué hace la opción elegida: frase entera, así que interlineado de lectura y sin
+   letter-spacing, igual que `.setting-sub--help`. Los gaps del `.field` ya lo separan. */
+.field__hint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--nf-text-dim);
+}
+/* Avisa de una consecuencia irreversible. Amarillo y no rojo: no es un error, es algo que el
+   usuario tiene que leer ANTES de darle a crear. */
+.field__warning {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--nf-yellow);
+}
 .field__input::placeholder { color: var(--nf-text-dim); }
 .field__input:focus {
   outline: none;

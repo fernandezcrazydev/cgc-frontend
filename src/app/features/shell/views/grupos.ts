@@ -3,7 +3,14 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { NfAvatarPicker, NfButton, NfSelect, NfSkeleton, NfWindow } from '../../../ui';
 import { NfBadge } from '../../../ui';
-import { GroupsStore, REGIONS, Region } from '../../../core/groups';
+import {
+  GroupsStore,
+  MATCHMAKING_PRESETS,
+  MATCHMAKING_PRESET_INFO,
+  MatchmakingPreset,
+  REGIONS,
+  Region,
+} from '../../../core/groups';
 import { ToastService } from '../../../core/toast';
 import { errorMessage } from '../../../core/http';
 import { initialsOf } from '../../../core/groups';
@@ -118,6 +125,16 @@ import { initialsOf } from '../../../core/groups';
                 <label class="field__label nf-mono">REGIÓN</label>
                 <nf-select [options]="regionOptions" [value]="region()" (valueChange)="setRegion($event)" />
               </div>
+
+              <div class="field">
+                <label class="field__label nf-mono">ALGORITMO DE MATCHEO</label>
+                <nf-select [options]="presetOptions" [value]="preset()" (valueChange)="setPreset($event)" />
+                <p class="field__hint">{{ presetDescription() }}</p>
+                <p class="field__warning">
+                  Se elige ahora y no se puede cambiar más adelante. Para usar otro habría que crear
+                  un grupo nuevo.
+                </p>
+              </div>
             </div>
 
             <div class="form-foot">
@@ -146,10 +163,19 @@ export class Grupos {
 
   readonly regionOptions = [...REGIONS];
 
+  /** El valor viaja como el enum del backend; lo que se lee es el nombre en español. */
+  readonly presetOptions = MATCHMAKING_PRESETS.map((preset) => ({
+    value: preset,
+    label: MATCHMAKING_PRESET_INFO[preset].label,
+  }));
+
   readonly creating = signal(false);
   readonly name = signal('');
   readonly region = signal<Region>('EUW');
+  readonly preset = signal<MatchmakingPreset>('BALANCED');
   readonly avatar = signal<string | null>(null);
+
+  readonly presetDescription = computed(() => MATCHMAKING_PRESET_INFO[this.preset()].description);
 
   readonly canCreate = computed(() => this.name().trim().length > 0);
 
@@ -169,9 +195,14 @@ export class Grupos {
     this.region.set(value as Region);
   }
 
+  setPreset(value: string): void {
+    this.preset.set(value as MatchmakingPreset);
+  }
+
   openCreate(): void {
     this.name.set('');
     this.region.set('EUW');
+    this.preset.set('BALANCED');
     this.avatar.set(null);
     this.creating.set(true);
   }
@@ -193,6 +224,7 @@ export class Grupos {
       const group = await this.groups.create({
         name: this.name(),
         region: this.region(),
+        matchmakingPreset: this.preset(),
         avatarDataUrl: this.avatar(),
       });
       this.creating.set(false);
