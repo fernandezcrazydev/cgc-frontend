@@ -14,13 +14,20 @@ interface AdminDirectoryItem {
   glyph: string;
 }
 
-/** Hoy solo hay dos tarjetas; el `id` decide qué renderiza el `@switch` del template. */
+/** El `id` decide qué renderiza el `@switch` del template. */
 const ITEMS: AdminDirectoryItem[] = [
   {
     id: 'feedback',
     label: 'Feedback',
     description: 'Triaje de bugs, propuestas e incidencias reportadas por usuarios.',
     glyph: '🛡',
+  },
+  {
+    id: 'riot-metrics',
+    label: 'Métricas API Riot',
+    description:
+      'Endpoints más consumidos, horas punta, quién gasta más cuota y la evolución de las llamadas. Toda la app depende de la API de Riot: aquí se ve qué le pedimos.',
+    glyph: '📊',
   },
   {
     id: 'riot-profile-icons-sync',
@@ -54,6 +61,16 @@ const ITEMS: AdminDirectoryItem[] = [
           @switch (item.id) {
             @case ('feedback') {
               <a class="ad-card" [routerLink]="['/app', 'admin', 'feedback']">
+                <span class="ad-card__glyph">{{ item.glyph }}</span>
+                <span class="ad-card__body">
+                  <span class="ad-card__label">{{ item.label }}</span>
+                  <span class="ad-card__desc">{{ item.description }}</span>
+                </span>
+                <span class="ad-card__cta nf-mono nf-caps nf-go">Abrir</span>
+              </a>
+            }
+            @case ('riot-metrics') {
+              <a class="ad-card" [routerLink]="['/app', 'admin', 'riot-metricas']">
                 <span class="ad-card__glyph">{{ item.glyph }}</span>
                 <span class="ad-card__body">
                   <span class="ad-card__label">{{ item.label }}</span>

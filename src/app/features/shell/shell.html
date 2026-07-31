@@ -236,6 +236,13 @@
         <h2 class="shell__title">{{ pageTitle() }}</h2>
       }
       <div class="shell__header-right">
+        <!-- Uso del rate limit de la API de Riot. Solo admins, y solo en escritorio: por debajo
+             de 760 px la cabecera ya lleva la barra de grupo y dos botones, y una barra más la
+             rompe. El @if es además lo que garantiza que a un usuario normal no se le arranque
+             el polling: sin él, el componente se instanciaría y su constructor lo lanzaría. -->
+        @if (isAdmin() && !isMobile()) {
+          <app-riot-usage-indicator />
+        }
         <button
           type="button"
           class="shell__feedback"

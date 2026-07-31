@@ -1,0 +1,86 @@
+/* NEXUS//FORGE Meter — barra de uso sobre un total conocido. */
+
+.nf-meter {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.nf-meter__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+
+.nf-meter__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 9.5px;
+  letter-spacing: 2px;
+  color: var(--nf-text-dim);
+}
+
+.nf-meter__value {
+  flex: none;
+  font-size: 11px;
+  color: var(--nf-text-mid);
+  font-variant-numeric: tabular-nums;
+}
+
+.nf-meter__track {
+  position: relative;
+  height: 6px;
+  background: var(--nf-inset);
+  border: 1px solid var(--nf-border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.nf-meter__fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--nf-cyan);
+  /* La ventana se vacía sola cada 2 min: sin transición la barra daría saltos secos. */
+  transition: width 0.35s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.nf-meter[data-level='warn'] .nf-meter__fill {
+  background: var(--nf-yellow);
+}
+
+.nf-meter[data-level='danger'] .nf-meter__fill {
+  background: var(--nf-red);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--nf-red) 55%, transparent);
+}
+
+.nf-meter[data-level='danger'] .nf-meter__value {
+  color: var(--nf-red);
+}
+
+/* Variante de cabecera: sin etiqueta, más estrecha y con el valor a la derecha de la barra. */
+.nf-meter--compact {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.nf-meter--compact .nf-meter__track {
+  width: 64px;
+  height: 5px;
+}
+
+.nf-meter--compact .nf-meter__value {
+  font-size: 10.5px;
+  letter-spacing: 0.5px;
+}
+
+/* Quien prefiera no ver movimiento no lo ve; el ancho sigue siendo correcto. */
+@media (prefers-reduced-motion: reduce) {
+  .nf-meter__fill {
+    transition: none;
+  }
+}
