@@ -1,15 +1,20 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { GroupsApi } from './groups-api';
-import { GroupResponse, GroupRole, Region } from './models';
+import { GroupResponse, GroupRole, MatchmakingPreset, Region } from './models';
 import { GroupView, groupView } from './group-view';
 
 export type GroupsStatus = 'idle' | 'loading' | 'ready' | 'error';
 
-/** Lo que la vista de creación recoge del usuario: nombre, región y (opcional) la foto. */
+/**
+ * Lo que la vista de creación recoge del usuario: nombre, región, algoritmo de matcheo y
+ * (opcional) la foto.
+ */
 export interface CreateGroupInput {
   name: string;
   region: Region;
+  /** Se fija aquí para siempre: el backend no ofrece ninguna forma de cambiarlo. */
+  matchmakingPreset: MatchmakingPreset;
   /** Foto como data URL (lo que emite `NfAvatarPicker`), o null/omitida si no hay. */
   avatarDataUrl?: string | null;
 }
@@ -107,7 +112,14 @@ export class GroupsStore {
     try {
       const avatar = input.avatarDataUrl ? dataUrlToBlob(input.avatarDataUrl) : null;
       const group = await firstValueFrom(
-        this.api.create({ name: input.name.trim(), region: input.region }, avatar),
+        this.api.create(
+          {
+            name: input.name.trim(),
+            region: input.region,
+            matchmakingPreset: input.matchmakingPreset,
+          },
+          avatar,
+        ),
       );
       await this.reload();
       return group;

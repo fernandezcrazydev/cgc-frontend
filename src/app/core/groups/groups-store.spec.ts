@@ -6,7 +6,7 @@ import { CreateGroupRequest, GroupMembershipResponse, GroupResponse, GroupRole }
 
 function membership(groupId: string, role: GroupRole, name = groupId): GroupMembershipResponse {
   return {
-    group: { groupId, name, region: 'EUW', avatarUrl: null },
+    group: { groupId, name, region: 'EUW', matchmakingPreset: 'BALANCED', avatarUrl: null },
     role,
     joinedAt: '2026-07-18T12:00:00Z',
   };
@@ -31,8 +31,8 @@ class GroupsApiStub {
   myGroupsImpl: () => Observable<GroupMembershipResponse[]> = () =>
     of([membership('g1', 'OWNER', 'Los Cracks'), membership('g2', 'MEMBER', 'Otro')]);
 
-  created: GroupResponse = { groupId: 'g1', name: 'Los Cracks', region: 'EUW', avatarUrl: null };
-  uploaded: GroupResponse = { groupId: 'g1', name: 'Los Cracks', region: 'EUW', avatarUrl: 'http://cdn/g1.jpg' };
+  created: GroupResponse = { groupId: 'g1', name: 'Los Cracks', region: 'EUW', matchmakingPreset: 'BALANCED', avatarUrl: null };
+  uploaded: GroupResponse = { groupId: 'g1', name: 'Los Cracks', region: 'EUW', matchmakingPreset: 'BALANCED', avatarUrl: 'http://cdn/g1.jpg' };
 
   myGroups(): Observable<GroupMembershipResponse[]> {
     this.myGroupsCalls++;
@@ -94,16 +94,16 @@ describe('GroupsStore', () => {
   });
 
   it('sin foto hace una sola llamada (POST /groups) sin avatar', async () => {
-    const group = await store.create({ name: 'Los Cracks', region: 'EUW' });
+    const group = await store.create({ name: 'Los Cracks', region: 'EUW', matchmakingPreset: 'BALANCED' });
 
-    expect(api.createCalls).toEqual([{ name: 'Los Cracks', region: 'EUW' }]);
+    expect(api.createCalls).toEqual([{ name: 'Los Cracks', region: 'EUW', matchmakingPreset: 'BALANCED' }]);
     expect(api.createAvatars).toEqual([null]);
     expect(api.uploadCalls).toHaveLength(0);
     expect(group).toEqual(api.created);
   });
 
   it('con foto hace una sola llamada multipart que ya lleva el avatar dentro', async () => {
-    const group = await store.create({ name: 'Los Cracks', region: 'EUW', avatarDataUrl: PNG });
+    const group = await store.create({ name: 'Los Cracks', region: 'EUW', matchmakingPreset: 'BALANCED', avatarDataUrl: PNG });
 
     // Una sola llamada: la foto viaja en el mismo POST, no en un segundo paso (adiós huérfanos).
     expect(api.order).toEqual(['create']);
@@ -112,15 +112,21 @@ describe('GroupsStore', () => {
     expect(group).toEqual(api.uploaded);
   });
 
+  /** El store no puede sustituirlo por el default: es la única oportunidad de fijarlo. */
+  it('reenvía el preset elegido tal cual', async () => {
+    await store.create({ name: 'Los Cracks', region: 'EUW', matchmakingPreset: 'CHAOS' });
+    expect(api.createCalls[0]?.matchmakingPreset).toBe('CHAOS');
+  });
+
   it('recorta el nombre antes de enviarlo', async () => {
-    await store.create({ name: '  Los Cracks  ', region: 'NA' });
-    expect(api.createCalls[0]).toEqual({ name: 'Los Cracks', region: 'NA' });
+    await store.create({ name: '  Los Cracks  ', region: 'NA', matchmakingPreset: 'BALANCED' });
+    expect(api.createCalls[0]).toEqual({ name: 'Los Cracks', region: 'NA', matchmakingPreset: 'BALANCED' });
   });
 
   it('pending es false al terminar y una segunda creación concurrente se rechaza', async () => {
-    const first = store.create({ name: 'A', region: 'EUW' });
+    const first = store.create({ name: 'A', region: 'EUW', matchmakingPreset: 'BALANCED' });
     // Reentrante mientras la primera está en vuelo: se rechaza (guard anti doble submit).
-    await expect(store.create({ name: 'B', region: 'EUW' })).rejects.toThrow();
+    await expect(store.create({ name: 'B', region: 'EUW', matchmakingPreset: 'BALANCED' })).rejects.toThrow();
     await first;
     expect(store.pending()).toBe(false);
   });
@@ -185,7 +191,7 @@ describe('GroupsStore', () => {
   });
 
   it('create refetch la lista tras crear', async () => {
-    await store.create({ name: 'Nuevo', region: 'EUW' });
+    await store.create({ name: 'Nuevo', region: 'EUW', matchmakingPreset: 'BALANCED' });
     expect(api.myGroupsCalls).toBe(1);
   });
 

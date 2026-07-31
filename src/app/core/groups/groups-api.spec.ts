@@ -21,30 +21,45 @@ describe('GroupsApi', () => {
 
   afterEach(() => http.verify());
 
-  it('create hace POST /groups multipart con el nombre y la región', () => {
-    const expected: GroupResponse = { groupId: 'g1', name: 'Los Cracks', region: 'EUW', avatarUrl: null };
+  it('create hace POST /groups multipart con el nombre, la región y el preset', () => {
+    const expected: GroupResponse = { groupId: 'g1', name: 'Los Cracks', region: 'EUW', matchmakingPreset: 'BALANCED', avatarUrl: null };
     let received: GroupResponse | undefined;
-    api.create({ name: 'Los Cracks', region: 'EUW' }).subscribe((g) => (received = g));
+    api.create({ name: 'Los Cracks', region: 'EUW', matchmakingPreset: 'BALANCED' }).subscribe((g) => (received = g));
 
     const req = http.expectOne(`${API}/groups`);
     expect(req.request.method).toBe('POST');
-    // FormData con name/region y sin fichero; el Content-Type lo pone el navegador con su boundary.
+    // FormData con name/region/preset y sin fichero; el Content-Type lo pone el navegador con su
+    // boundary.
     expect(req.request.body).toBeInstanceOf(FormData);
     const body = req.request.body as FormData;
     expect(body.get('name')).toBe('Los Cracks');
     expect(body.get('region')).toBe('EUW');
+    expect(body.get('matchmakingPreset')).toBe('BALANCED');
     expect(body.has('file')).toBe(false);
     expect(req.request.headers.has('Content-Type')).toBe(false);
     req.flush(expected);
     expect(received).toEqual(expected);
   });
 
+  /**
+   * El preset se elige una vez y nunca más: si el `create` lo perdiera por el camino, el backend
+   * respondería 422 y no habría forma de arreglarlo desde la app. Se comprueba con `CHAOS` para que
+   * el test falle también si alguien lo cablea a `BALANCED` por defecto.
+   */
+  it('create manda el preset elegido, no uno por defecto', () => {
+    api.create({ name: 'Los Cracks', region: 'EUW', matchmakingPreset: 'CHAOS' }).subscribe();
+
+    const req = http.expectOne(`${API}/groups`);
+    expect((req.request.body as FormData).get('matchmakingPreset')).toBe('CHAOS');
+    req.flush({ groupId: 'g1', name: 'Los Cracks', region: 'EUW', matchmakingPreset: 'CHAOS', avatarUrl: null });
+  });
+
   it('create con avatar mete el campo file en el mismo multipart', () => {
     const expected: GroupResponse = {
-      groupId: 'g1', name: 'Los Cracks', region: 'EUW', avatarUrl: 'http://cdn/x.jpg',
+      groupId: 'g1', name: 'Los Cracks', region: 'EUW', matchmakingPreset: 'BALANCED', avatarUrl: 'http://cdn/x.jpg',
     };
     const file = new Blob([new Uint8Array([1, 2, 3])], { type: 'image/png' });
-    api.create({ name: 'Los Cracks', region: 'EUW' }, file).subscribe();
+    api.create({ name: 'Los Cracks', region: 'EUW', matchmakingPreset: 'BALANCED' }, file).subscribe();
 
     const req = http.expectOne(`${API}/groups`);
     expect(req.request.method).toBe('POST');
@@ -56,7 +71,7 @@ describe('GroupsApi', () => {
 
   it('uploadAvatar hace PUT multipart con el campo file al id del grupo', () => {
     const expected: GroupResponse = {
-      groupId: 'g1', name: 'Los Cracks', region: 'EUW', avatarUrl: 'http://cdn/x.jpg',
+      groupId: 'g1', name: 'Los Cracks', region: 'EUW', matchmakingPreset: 'BALANCED', avatarUrl: 'http://cdn/x.jpg',
     };
     const file = new Blob([new Uint8Array([1, 2, 3])], { type: 'image/png' });
     let received: GroupResponse | undefined;
@@ -83,7 +98,7 @@ describe('GroupsApi', () => {
     api.detail('g1').subscribe();
     const req = http.expectOne(`${API}/groups/g1`);
     expect(req.request.method).toBe('GET');
-    req.flush({ group: { groupId: 'g1', name: 'X', region: 'EUW', avatarUrl: null }, role: 'OWNER', joinedAt: '2026-01-01T00:00:00Z' });
+    req.flush({ group: { groupId: 'g1', name: 'X', region: 'EUW', matchmakingPreset: 'BALANCED', avatarUrl: null }, role: 'OWNER', joinedAt: '2026-01-01T00:00:00Z' });
   });
 
   it('members hace GET /groups/{id}/members con page y size', () => {

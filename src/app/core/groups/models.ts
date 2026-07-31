@@ -17,6 +17,46 @@ export type Region = (typeof REGIONS)[number];
 export type GroupRole = 'OWNER' | 'ADMIN' | 'MEMBER';
 
 /**
+ * Cómo quiere el grupo que se equilibren sus partidas. Enum cerrado en el backend
+ * (`MatchmakingPreset`); mismos valores, mismo orden.
+ *
+ * Se elige AL CREAR el grupo y **no se puede cambiar después**: no hay endpoint que lo
+ * actualice, y no es un olvido. Cambiarlo a mitad de vida contaminaría el rating sin arreglo
+ * (`docs/diseno-matchmaking.md` §14.1 del backend). Por eso el diálogo de creación tiene que
+ * avisarlo — es la única oportunidad que tiene el usuario de acertar.
+ *
+ * "Capitanes" no está: el draft por capitanes es un modo de sala, no un algoritmo.
+ */
+export const MATCHMAKING_PRESETS = ['BALANCED', 'PRECISION', 'CHAOS'] as const;
+export type MatchmakingPreset = (typeof MATCHMAKING_PRESETS)[number];
+
+/**
+ * El nombre y la explicación que se enseñan de cada preset. Vive aquí y no en la vista porque
+ * es la traducción del enum del backend, igual que `REGIONS`: la vista pinta, no decide qué
+ * significa `CHAOS`. Los textos salen de la issue #32.
+ */
+export const MATCHMAKING_PRESET_INFO: Record<MatchmakingPreset, { label: string; description: string }> = {
+  BALANCED: {
+    label: 'Equilibrado',
+    description:
+      'Busca la partida más balanceada posible mientras rota posiciones, incluso forzando ' +
+      'autofill si hace falta. Partidas más variadas: distintos matchups, líneas y equipos.',
+  },
+  PRECISION: {
+    label: 'Competitivo',
+    description:
+      'Busca el matchup más ajustado posible, tanto en MMR total como en el cara a cara por ' +
+      'línea. Puede repetir equipos a menudo, pero todas las partidas salen igualadas.',
+  },
+  CHAOS: {
+    label: 'Caos',
+    description:
+      'Asigna a cada jugador su peor rol y fuerza matchups descompensados a propósito, ' +
+      'como handicap.',
+  },
+};
+
+/**
  * Campos de texto de `POST /api/v1/groups`. La foto viaja en la MISMA petición como parte
  * multipart `file` (opcional) —no en un segundo paso—, así que no cabe en esta interfaz: el
  * `GroupsApi.create` la recibe aparte como `Blob` y arma el `FormData`.
@@ -24,6 +64,8 @@ export type GroupRole = 'OWNER' | 'ADMIN' | 'MEMBER';
 export interface CreateGroupRequest {
   name: string;
   region: Region;
+  /** Inmutable una vez creado el grupo: no hay ningún otro request que lo lleve. */
+  matchmakingPreset: MatchmakingPreset;
 }
 
 /**
@@ -34,6 +76,8 @@ export interface GroupResponse {
   groupId: string;
   name: string;
   region: Region | null;
+  /** El preset elegido al crear. El backend NO manda el algoritmo que lo sirve: es interno. */
+  matchmakingPreset: MatchmakingPreset;
   avatarUrl: string | null;
 }
 

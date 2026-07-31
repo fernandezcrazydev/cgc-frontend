@@ -25,15 +25,20 @@ export class GroupsApi {
   private readonly http = inject(HttpClient);
 
   /**
-   * Crea el grupo en UNA sola llamada multipart: nombre, región y —opcional— la foto en el campo
-   * `file`. El backend valida la imagen ANTES de crear la fila, así que un avatar inválido es un
-   * 400 que NO deja grupo huérfano. Como en `uploadAvatar`, NO se fija `Content-Type` a mano: con
-   * `FormData` el navegador pone el `multipart/form-data` con su boundary. 409 si supera el tope.
+   * Crea el grupo en UNA sola llamada multipart: nombre, región, algoritmo de matcheo y —opcional—
+   * la foto en el campo `file`. El backend valida la imagen ANTES de crear la fila, así que un
+   * avatar inválido es un 400 que NO deja grupo huérfano. Como en `uploadAvatar`, NO se fija
+   * `Content-Type` a mano: con `FormData` el navegador pone el `multipart/form-data` con su
+   * boundary. 409 si supera el tope.
+   *
+   * Esta es la ÚNICA petición de toda la API que lleva `matchmakingPreset`: el backend no expone
+   * ninguna forma de cambiarlo después.
    */
   create(body: CreateGroupRequest, avatar?: Blob | null, filename = 'avatar'): Observable<GroupResponse> {
     const form = new FormData();
     form.append('name', body.name);
     form.append('region', body.region);
+    form.append('matchmakingPreset', body.matchmakingPreset);
     if (avatar) {
       form.append('file', avatar, filename);
     }

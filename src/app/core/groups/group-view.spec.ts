@@ -4,7 +4,7 @@ import { GroupMembershipResponse } from './models';
 describe('groupView', () => {
   it('mapea una membresía a la vista con rol, región e iniciales', () => {
     const m: GroupMembershipResponse = {
-      group: { groupId: 'g1', name: 'Los Cracks', region: 'EUW', avatarUrl: 'http://cdn/x.jpg' },
+      group: { groupId: 'g1', name: 'Los Cracks', region: 'EUW', matchmakingPreset: 'BALANCED', avatarUrl: 'http://cdn/x.jpg' },
       role: 'ADMIN',
       joinedAt: '2026-07-18T12:00:00Z',
     };

@@ -8,7 +8,7 @@ import { GroupMemberResponse, GroupMembershipResponse, GroupRole } from './model
 import { PageResponse } from '../http';
 
 function detailOf(role: GroupRole): GroupMembershipResponse {
-  return { group: { groupId: 'g1', name: 'Los Cracks', region: 'EUW', avatarUrl: null }, role, joinedAt: '2026-07-18T12:00:00Z' };
+  return { group: { groupId: 'g1', name: 'Los Cracks', region: 'EUW', matchmakingPreset: 'BALANCED', avatarUrl: null }, role, joinedAt: '2026-07-18T12:00:00Z' };
 }
 function member(userId: string, role: GroupRole): GroupMemberResponse {
   return {
