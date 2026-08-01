@@ -4,6 +4,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
 import { NfAvatar, NfBadge, NfButton, NfSkeleton, NfWindow } from '../../../ui';
+import { GroupBridge } from '../../../core/groups';
 import { GroupStore } from '../../../core/group-store';
 import { MatchStore, DraftSnapshot, DraftRaw, RoomTeams, RoomTeamSlot } from '../../../core/match-store';
 import { Member } from '../../../core/lobby';
@@ -103,7 +104,29 @@ interface GeneratedTeams {
   imports: [FormsModule, RouterLink, NfBadge, NfButton, NfWindow, NfAvatar, NfSkeleton],
   template: `
     <div class="view">
-      @if (group(); as g) {
+      @if (loading()) {
+        <!-- El roster llega por HTTP: sin esto parpadearía un "FALTAN JUGADORES" falso. -->
+        <div class="cp" aria-busy="true">
+          <div class="cp-head">
+            <div class="cp-head__titles"><nf-skeleton width="200px" height="30px" /></div>
+          </div>
+          <nf-window title="crear_partida.exe" accent="cyan" bodyPadding="0">
+            <div class="cp-pad">
+              <div class="cp-modes">
+                <nf-skeleton width="100%" height="180px" radius="14px" />
+                <nf-skeleton width="100%" height="180px" radius="14px" />
+              </div>
+            </div>
+          </nf-window>
+        </div>
+      } @else if (bridge.status() === 'error') {
+        <div class="empty-state">
+          <div class="empty-state__icon">⚠</div>
+          <div class="empty-state__text nf-mono nf-eyebrow">Error al cargar</div>
+          <p class="empty-state__hint">No se pudieron cargar los miembros del grupo.</p>
+          <button nfButton variant="secondary" size="md" (click)="retry()">Reintentar</button>
+        </div>
+      } @else if (group(); as g) {
         <div class="cp">
           <div class="cp-head">
             <div class="cp-head__titles">
@@ -876,6 +899,7 @@ interface GeneratedTeams {
           <div class="view__eyebrow nf-mono nf-eyebrow">Error 404</div>
           <h1 class="view__title">Grupo no encontrado</h1>
         </div>
+        <p class="empty-state__hint">Este grupo no existe o ya no eres miembro.</p>
         <button nfButton variant="secondary" size="md" [routerLink]="['/app', 'grupos']">← Volver a grupos</button>
       }
     </div>
@@ -885,6 +909,8 @@ export class GrupoCrearPartida {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   readonly groups = inject(GroupStore);
+  /** Trae del backend la identidad y el roster reales del grupo (puente temporal al mock). */
+  readonly bridge = inject(GroupBridge);
   private readonly matches = inject(MatchStore);
 
   readonly MAX = 10;
@@ -929,6 +955,20 @@ export class GrupoCrearPartida {
     const g = this.group();
     return g ? this.groups.rosterOf(g.id) : [];
   });
+
+  /**
+   * El grupo y sus miembros aún viajan. Cubre también `idle`: entrar por URL directa (F5) monta
+   * esta vista sin pasar por el detalle, así que hasta que el efecto dispara no hay nada cargado
+   * y pintar el gate del 5v5 con un roster vacío sería mentir.
+   */
+  readonly loading = computed(
+    () => this.bridge.status() === 'loading' || this.bridge.status() === 'idle',
+  );
+
+  retry(): void {
+    const id = this.id();
+    if (id) void this.bridge.reload(id);
+  }
 
   /** Stable per-member role tags (TOP/JUNGLA/MID/ADC/SUPPORT or FLEX) for filtering. */
   private readonly memberRoles = computed(() => {
@@ -1840,6 +1880,13 @@ export class GrupoCrearPartida {
 
   constructor() {
     this.gameData.ensureLoaded();
+
+    // Trae identidad + roster reales al store mock. Idempotente: al llegar desde el detalle ya
+    // están cargados y no se pide nada; entrando por URL directa, esta es la única carga.
+    effect(() => {
+      const id = this.id();
+      if (id) void this.bridge.ensure(id);
+    });
 
     // Keep the shell header/sidebar in sync with the active group on deep-link.
     effect(() => {

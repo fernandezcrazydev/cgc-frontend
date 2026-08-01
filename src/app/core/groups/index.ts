@@ -3,6 +3,7 @@
  * cambiar sin arrastrar a nadie. */
 export { GroupsStore, type CreateGroupInput, type GroupsStatus } from './groups-store';
 export { GroupDetailStore, type GroupDetailStatus } from './group-detail-store';
+export { GroupBridge, type GroupBridgeStatus } from './group-bridge';
 export { InvitationsStore, type InvitationsStatus } from './invitations-store';
 export {
   GroupInvitationsStore,

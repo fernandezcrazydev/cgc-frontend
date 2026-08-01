@@ -15,6 +15,7 @@ import {
 } from '../../../ui';
 import { Session } from '../../../core/auth';
 import {
+  GroupBridge,
   GroupDetailStore,
   GroupInvitationResponse,
   GroupInvitationsStore,
@@ -23,7 +24,6 @@ import {
   bannerColors,
   initialsOf,
 } from '../../../core/groups';
-import { GroupStore } from '../../../core/group-store';
 import { UserSearchResult, UsersApi } from '../../../core/users';
 import { ToastService } from '../../../core/toast';
 import { errorMessage } from '../../../core/http';
@@ -396,7 +396,7 @@ export class GrupoDetalle {
   private readonly session = inject(Session);
   private readonly toasts = inject(ToastService);
   private readonly router = inject(Router);
-  private readonly mockGroups = inject(GroupStore);
+  private readonly bridge = inject(GroupBridge);
   private readonly destroyRef = inject(DestroyRef);
 
   /** Id del grupo desde la ruta. */
@@ -477,22 +477,14 @@ export class GrupoDetalle {
       if (id) void this.store.load(id);
     });
 
-    // Puente identidad → store mock, para que los sub-views placeholder de matchmaking
-    // (crear-partida/sala/partidas/ranking/stats/historial) resuelvan su cabecera.
+    // Puente identidad + roster → store mock, para que los sub-views placeholder de matchmaking
+    // (crear-partida/sala/partidas/ranking/stats/historial) resuelvan cabecera y jugadores.
+    // Se adelanta aquí para que al pulsar "Crear partida" el wizard ya tenga el roster. Es
+    // `reload` y no `ensure` a propósito: entrar en el detalle es el momento natural de
+    // refrescarlo, porque el roster pudo cambiar sin que este cliente hiciera nada.
     effect(() => {
-      const g = this.store.group();
-      if (!g) return;
-      this.mockGroups.ensureStub({
-        id: g.id,
-        name: g.name,
-        tag: g.region ?? 'LAN',
-        initials: g.initials,
-        role: g.role === 'OWNER' ? 'OWNER' : 'MIEMBRO',
-        members: this.store.memberCount(),
-        c1: g.c1,
-        c2: g.c2,
-        avatar: g.avatarUrl ?? undefined,
-      });
+      const id = this.routeId();
+      if (id) void this.bridge.reload(id);
     });
 
     // Invitaciones pendientes del grupo (pestaña "Invitados"): solo owner/admin las ve. Se cargan una
@@ -623,6 +615,9 @@ export class GrupoDetalle {
     try {
       await action();
       this.toasts.success(ok);
+      // El roster cambió: que el puente del wizard no se quede con la foto anterior.
+      const id = this.routeId();
+      if (id) void this.bridge.reload(id);
     } catch {
       await this.store.reloadRoster();
       this.toasts.error('No se pudo completar la acción. Se ha actualizado el grupo.');

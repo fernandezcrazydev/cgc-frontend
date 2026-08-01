@@ -106,16 +106,24 @@ export class GroupStore {
   }
 
   /**
-   * PUENTE TEMPORAL mock↔real. Registra la IDENTIDAD de un grupo real (por su UUID) para que
-   * los sub-views placeholder de matchmaking (crear-partida, sala, partidas, ranking, stats,
-   * historial) —que aún leen de este store mock— resuelvan su cabecera al navegar desde el
-   * detalle real. Solo identidad + roster vacío: los datos de matchmaking siguen siendo mock
-   * (vacíos) hasta que ese dominio migre al backend, momento en que este puente se borra.
+   * PUENTE TEMPORAL mock↔real. Siembra la IDENTIDAD y el ROSTER reales de un grupo (por su
+   * UUID) para que los sub-views placeholder de matchmaking (crear-partida, sala, partidas,
+   * ranking, stats, historial) —que aún leen de este store mock— trabajen con los miembros de
+   * verdad. Lo llama `GroupBridge` (`core/groups`), que es quien los trae del backend; el resto
+   * de datos de matchmaking siguen siendo mock hasta que ese dominio migre, momento en que este
+   * puente se borra.
+   *
+   * Re-siembra siempre (no es un "ensure"): al volver a entrar en el grupo el roster puede haber
+   * cambiado, y quedarse con la primera foto haría que el wizard contase jugadores que ya no
+   * están —o le faltasen los recién invitados—.
    */
-  ensureStub(group: Group): void {
-    if (this.byId(group.id)) return;
-    this.groups.update((list) => [...list, group]);
-    this.rosters.update((map) => ({ ...map, [group.id]: [] }));
+  syncFromBackend(group: Group, roster: Member[]): void {
+    this.groups.update((list) =>
+      list.some((g) => g.id === group.id)
+        ? list.map((g) => (g.id === group.id ? group : g))
+        : [...list, group],
+    );
+    this.rosters.update((map) => ({ ...map, [group.id]: roster }));
   }
 
   /** Reactive read of a group's members; empty array for unknown ids. */
