@@ -390,8 +390,19 @@
               <div
                 class="shell__notif-item"
                 [class.is-unread]="!n.read"
+                [class.is-clickable]="!!n.link"
                 [style.--notif-accent]="n.accent"
               >
+                @if (n.link) {
+                  <!-- Capa pulsable sobre toda la fila: da clic Y foco de teclado sin anidar
+                       botones (la × y las acciones de invitación quedan por encima). -->
+                  <button
+                    type="button"
+                    class="shell__notif-open"
+                    [attr.aria-label]="'Abrir: ' + n.title + ' — ' + n.message"
+                    (click)="openNotif(n)"
+                  ></button>
+                }
                 <button
                   type="button"
                   class="shell__notif-dismiss nf-mono"
@@ -400,7 +411,9 @@
                 >×</button>
                 <div class="shell__notif-icon">{{ n.glyph }}</div>
                 <div class="shell__notif-text">
-                  <div class="shell__notif-title nf-mono">{{ n.title }}</div>
+                  <!-- nf-caps: las mayúsculas del antetítulo las pone la skin, no el copy. Los
+                       títulos que aún llegan gritados en el literal no cambian con esto. -->
+                  <div class="shell__notif-title nf-mono nf-caps">{{ n.title }}</div>
                   <div class="shell__notif-msg nf-mono">{{ n.message }}</div>
                   <div class="shell__notif-time nf-mono">{{ n.time }}</div>
                   @if (n.invite; as inv) {

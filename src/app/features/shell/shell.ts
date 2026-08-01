@@ -175,6 +175,22 @@ export class Shell {
   }
 
   /**
+   * Abre la notificación: navega a donde apunte, cierra el panel y la da por leída. Genérico
+   * a propósito (lee `view.link`, no el `type`): el siguiente tipo que lleve a algún sitio solo
+   * tiene que rellenar el enlace en `notificationView`, sin tocar la campana.
+   *
+   * Navega sin esperar al `markRead`: es una escritura de comodidad —optimista y con rollback
+   * dentro del store, nunca rechaza—, y una red lenta no debe retrasar el clic. Una ya leída
+   * la descarta el propio store.
+   */
+  openNotif(view: NotificationView): void {
+    if (!view.link) return;
+    this.closeNotifications();
+    void this.router.navigate([...view.link]);
+    void this.notifs.markRead(view.id);
+  }
+
+  /**
    * ¿Se puede aún aceptar/rechazar esta invitación? Si conocemos las pendientes (status
    * ready), solo si sigue en la lista; si no las conocemos todavía, se permite y el 409
    * del backend nos corrige. Evita botones muertos para invitaciones ya respondidas en
