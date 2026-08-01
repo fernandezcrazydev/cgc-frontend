@@ -4,7 +4,7 @@ import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } fro
 import { filter, map, startWith } from 'rxjs';
 import { NAV } from '../../core/lobby';
 import { Auth, Session } from '../../core/auth';
-import { GroupDetailStore, GroupsStore, InvitationsStore } from '../../core/groups';
+import { GroupBridge, GroupDetailStore, GroupsStore, InvitationsStore } from '../../core/groups';
 import { MatchStore, MatchRoom } from '../../core/match-store';
 import { NotificationsStore, NotificationView, notificationView } from '../../core/notifications';
 import { RiotAccountStore } from '../../core/riot';
@@ -56,6 +56,7 @@ export class Shell {
   /** Invitaciones pendientes: fuente de verdad de "¿este invite sigue vivo?". */
   readonly invitations = inject(InvitationsStore);
   private readonly groupDetail = inject(GroupDetailStore);
+  private readonly groupBridge = inject(GroupBridge);
   private readonly riot = inject(RiotAccountStore);
   private readonly devices = inject(DevicesStore);
   private readonly prefs = inject(PreferencesStore);
@@ -301,6 +302,7 @@ export class Shell {
     this.invitations.clear();
     this.groups.clear();
     this.groupDetail.clear();
+    this.groupBridge.clear();
     this.riot.clear();
     this.devices.clear();
     this.prefs.clear();
