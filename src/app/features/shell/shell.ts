@@ -11,8 +11,10 @@ import { RiotAccountStore } from '../../core/riot';
 import { DevicesStore } from '../../core/devices';
 import { PreferencesStore } from '../../core/preferences';
 import { ToastService } from '../../core/toast';
+import { RiotMetricsStore, RiotUsageStore } from '../../core/admin';
 import { NfButton, NfSkeleton, NfToastHost, NfWindow } from '../../ui';
 import { FeedbackDialog } from '../feedback/feedback-dialog';
+import { RiotUsageIndicator } from './riot-usage-indicator';
 import { wireRiotAccountRefresh } from './riot-account-refresh';
 
 /**
@@ -32,6 +34,7 @@ import { wireRiotAccountRefresh } from './riot-account-refresh';
     NfSkeleton,
     NfToastHost,
     FeedbackDialog,
+    RiotUsageIndicator,
   ],
   // Mismo idioma que nf-modal para cerrar con Escape. Es un no-op si el
   // desplegable de descarga no está abierto.
@@ -57,6 +60,9 @@ export class Shell {
   private readonly devices = inject(DevicesStore);
   private readonly prefs = inject(PreferencesStore);
   private readonly toasts = inject(ToastService);
+  /** Solo para poder pararlos y vaciarlos al cerrar sesión; el indicador se arranca solo. */
+  private readonly riotUsage = inject(RiotUsageStore);
+  private readonly riotMetrics = inject(RiotMetricsStore);
 
   /** Vista de presentación de la bandeja: título/mensaje/tiempo en español por notificación. */
   readonly notifViews = computed(() => this.notifs.notifications().map((n) => notificationView(n)));
@@ -298,6 +304,10 @@ export class Shell {
     this.riot.clear();
     this.devices.clear();
     this.prefs.clear();
+    // Además de vaciar el dato, esto para el polling: si no, el siguiente usuario (que puede no
+    // ser admin) heredaría una petición cada 10 s a un endpoint que le va a devolver 403.
+    this.riotUsage.clear();
+    this.riotMetrics.clear();
     await this.auth.logout();
     await this.router.navigateByUrl('/');
   }

@@ -111,6 +111,13 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/shell/views/admin-feedback-detalle').then((m) => m.AdminFeedbackDetalle),
       },
+      {
+        path: 'admin/riot-metricas',
+        title: 'Métricas API Riot · Admin',
+        canActivate: [adminGuard],
+        loadComponent: () =>
+          import('./features/shell/views/admin-riot-metricas').then((m) => m.AdminRiotMetricas),
+      },
     ],
   },
   { path: '**', redirectTo: '' },
