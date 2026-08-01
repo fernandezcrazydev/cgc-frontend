@@ -15,6 +15,10 @@ import {
  * guarda estado — de eso se encarga `FeedbackAdminStore`; aquí solo se traduce cada
  * endpoint a un Observable tipado. El Bearer lo pone `authInterceptor`; el backend revalida
  * el rol ADMIN, así que esto solo funciona para un admin real.
+ *
+ * El `id` va siempre por `encodeURIComponent`: llega del `:id` del router ya URL-decodificado,
+ * así que interpolarlo tal cual deja que un valor como `../../otra-cosa` reescriba la ruta de
+ * la petición en vez de identificar un reporte.
  */
 @Injectable({ providedIn: 'root' })
 export class FeedbackAdminApi {
@@ -31,11 +35,14 @@ export class FeedbackAdminApi {
 
   /** Detalle completo de un reporte. 404 si no existe. */
   detail(id: string): Observable<FeedbackDetail> {
-    return this.http.get<FeedbackDetail>(`${environment.apiUrl}/admin/feedback/${id}`);
+    return this.http.get<FeedbackDetail>(`${environment.apiUrl}/admin/feedback/${encodeURIComponent(id)}`);
   }
 
   /** Mueve estado y/o nota interna. 409 si la transición es ilegal. Devuelve el detalle actualizado. */
   update(id: string, body: UpdateFeedbackRequest): Observable<FeedbackDetail> {
-    return this.http.patch<FeedbackDetail>(`${environment.apiUrl}/admin/feedback/${id}`, body);
+    return this.http.patch<FeedbackDetail>(
+      `${environment.apiUrl}/admin/feedback/${encodeURIComponent(id)}`,
+      body,
+    );
   }
 }
