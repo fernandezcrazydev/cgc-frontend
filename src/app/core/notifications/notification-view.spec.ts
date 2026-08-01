@@ -97,6 +97,75 @@ describe('notificationView · vinculación con la app de escritorio', () => {
   });
 });
 
+describe('notificationView · reporte de feedback (solo admins)', () => {
+  function feedback(data: Record<string, string>): NotificationResponse {
+    return invite({ type: 'FEEDBACK_SUBMITTED', data });
+  }
+
+  it('mapea un bug con su antetítulo, el título del reporte y el enlace al detalle', () => {
+    const view = notificationView(
+      feedback({ feedbackId: 'f1', kind: 'BUG', title: 'El draft se queda colgado' }),
+      NOW,
+    );
+    expect(view.title).toBe('Nuevo bug');
+    expect(view.message).toBe('El draft se queda colgado');
+    expect(view.accent).toBe('var(--nf-purple)');
+    expect(view.glyph).toBe('⚑');
+    expect(view.link).toEqual(['/app', 'admin', 'feedback', 'f1']);
+    expect(view.invite).toBeNull();
+  });
+
+  it('concuerda el género del antetítulo con la clase de reporte', () => {
+    expect(notificationView(feedback({ feedbackId: 'f1', kind: 'PROPOSAL', title: 't' }), NOW).title)
+      .toBe('Nueva sugerencia');
+    expect(notificationView(feedback({ feedbackId: 'f1', kind: 'INCIDENT', title: 't' }), NOW).title)
+      .toBe('Nueva incidencia');
+  });
+
+  /**
+   * El copy va en frase normal: las mayúsculas del antetítulo son de la skin (`nf-caps`), no del
+   * texto (CLAUDE.md § UI kit). Si alguien vuelve a gritar aquí, este test se pone rojo.
+   */
+  it('escribe el antetítulo en frase normal, sin mayúsculas de decoración', () => {
+    const title = notificationView(feedback({ feedbackId: 'f1', kind: 'BUG', title: 't' }), NOW).title;
+    expect(title).not.toBe(title.toUpperCase());
+  });
+
+  /** Si el backend añade una clase de reporte, la campana la enseña en genérico, no se rompe. */
+  it('cae a un antetítulo genérico ante un kind desconocido', () => {
+    const view = notificationView(feedback({ feedbackId: 'f1', kind: 'QUESTION', title: 't' }), NOW);
+    expect(view.title).toBe('Nuevo reporte');
+    expect(view.link).toEqual(['/app', 'admin', 'feedback', 'f1']);
+  });
+
+  /** Un clic que aterriza en un 404 es peor que una fila que solo informa. */
+  it('no navega a ninguna parte si falta el feedbackId', () => {
+    expect(notificationView(feedback({ kind: 'BUG', title: 't' }), NOW).link).toBeNull();
+  });
+
+  it('cae a un mensaje genérico si falta el título', () => {
+    expect(notificationView(feedback({ feedbackId: 'f1', kind: 'BUG' }), NOW).message)
+      .toBe('Alguien ha enviado un reporte');
+  });
+
+  /**
+   * El id llega interpolado en la ruta, así que se pasa como comando de router y no como URL
+   * en texto: el router codifica el segmento y un id con barras no puede reescribir la ruta.
+   */
+  it('deja el id como un segmento propio, sin construir la URL a mano', () => {
+    const view = notificationView(feedback({ feedbackId: '../../ajustes', kind: 'BUG', title: 't' }), NOW);
+    expect(view.link).toEqual(['/app', 'admin', 'feedback', '../../ajustes']);
+  });
+});
+
+describe('notificationView · enlace', () => {
+  it('las notificaciones que no llevan a ninguna parte no traen enlace', () => {
+    expect(notificationView(invite(), NOW).link).toBeNull();
+    expect(notificationView(invite({ type: 'RIOT_ACCOUNT_PAIRED', data: {} }), NOW).link).toBeNull();
+    expect(notificationView(invite({ type: 'SOMETHING_NEW', data: {} }), NOW).link).toBeNull();
+  });
+});
+
 describe('timeAgo', () => {
   it('formatea la antigüedad de forma compacta', () => {
     expect(timeAgo('2026-07-18T11:59:30Z', NOW)).toBe('AHORA');

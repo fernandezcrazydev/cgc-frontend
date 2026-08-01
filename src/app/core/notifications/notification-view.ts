@@ -19,6 +19,12 @@ export interface NotificationView {
   read: boolean;
   /** Presente en `INVITED_TO_GROUP`: habilita las acciones aceptar/rechazar. */
   invite: InviteView | null;
+  /**
+   * A dónde lleva pulsar la notificación, en comandos de router (`['/app', 'admin', …]`), o
+   * `null` si no lleva a ninguna parte. Comandos y no una URL en texto a propósito: el router
+   * codifica cada segmento, así que un id con `/` o `..` no puede reescribir la ruta.
+   */
+  link: readonly string[] | null;
 }
 
 export interface InviteView {
@@ -29,12 +35,30 @@ export interface InviteView {
   invitedByName: string | null;
 }
 
+/**
+ * Antetítulo por clase de reporte (`kind` de `FEEDBACK_SUBMITTED`). El género cambia con la
+ * palabra ("nuevo bug" pero "nueva sugerencia"), así que se escribe entero en vez de componerlo.
+ * Un `kind` que el backend añada y este mapa no tenga cae al genérico, no rompe la campana.
+ *
+ * En frase normal a propósito: las MAYÚSCULAS del antetítulo son decoración de la skin y las
+ * pone `nf-caps` en la plantilla, no el copy (CLAUDE.md § UI kit). Los otros títulos de este
+ * fichero siguen gritando en el literal; es deuda anterior, no el patrón a copiar.
+ */
+const FEEDBACK_EYEBROW: Record<string, string> = {
+  BUG: 'Nuevo bug',
+  PROPOSAL: 'Nueva sugerencia',
+  INCIDENT: 'Nueva incidencia',
+};
+
 /** Mapea un DTO de notificación a su modelo de presentación. `now` inyectable para tests. */
 export function notificationView(n: NotificationResponse, now = Date.now()): NotificationView {
   const base = {
     id: n.id,
     read: n.read,
     time: timeAgo(n.createdAt, now),
+    // Por defecto una notificación no navega: informa. Cada `case` que sí lleve a algún
+    // sitio lo sobrescribe.
+    link: null,
   };
   switch (n.type) {
     case 'INVITED_TO_GROUP': {
@@ -87,6 +111,22 @@ export function notificationView(n: NotificationResponse, now = Date.now()): Not
         accent: 'var(--nf-red)',
         glyph: '⊘',
         invite: null,
+      };
+    }
+    case 'FEEDBACK_SUBMITTED': {
+      // Solo la reciben los ADMIN, así que el destino existe para quien la ve. `title` ya
+      // viene recortado del backend (se copia una fila por admin), no se recorta otra vez.
+      const feedbackId = n.data['feedbackId'] ?? '';
+      return {
+        ...base,
+        title: FEEDBACK_EYEBROW[n.data['kind'] ?? ''] ?? 'Nuevo reporte',
+        message: n.data['title'] ?? 'Alguien ha enviado un reporte',
+        accent: 'var(--nf-purple)',
+        glyph: '⚑',
+        invite: null,
+        // Sin id no hay detalle al que ir: mejor una fila que informa y no navega que un
+        // clic que aterriza en un 404.
+        link: feedbackId ? ['/app', 'admin', 'feedback', feedbackId] : null,
       };
     }
     default:

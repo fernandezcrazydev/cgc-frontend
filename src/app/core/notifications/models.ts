@@ -14,12 +14,17 @@
  * `RIOT_ACCOUNT_PAIRED`/`RIOT_ACCOUNT_VERIFIED`/`RIOT_ACCOUNT_TAKEN_OVER` llegan cuando el
  * usuario vincula, verifica o pierde su cuenta de Riot desde la app de escritorio
  * (`cgc-scraper`); las tres traen `riotId` en `data` y las dos primeras también `region`.
+ *
+ * `FEEDBACK_SUBMITTED` llega cuando alguien envía un reporte, y **solo a los ADMIN** (nunca
+ * al propio autor, aunque lo sea): trae `feedbackId`, `kind` (`BUG`/`PROPOSAL`/`INCIDENT`) y
+ * `title`, este último ya recortado por el backend para caber en la campana.
  */
 export type NotificationType =
   | 'INVITED_TO_GROUP'
   | 'RIOT_ACCOUNT_PAIRED'
   | 'RIOT_ACCOUNT_VERIFIED'
-  | 'RIOT_ACCOUNT_TAKEN_OVER';
+  | 'RIOT_ACCOUNT_TAKEN_OVER'
+  | 'FEEDBACK_SUBMITTED';
 
 /**
  * Una entrada de la campana. `type` es el nombre del enum; `data` es un mapa de
