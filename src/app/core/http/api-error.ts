@@ -65,6 +65,8 @@ const MESSAGES_BY_CODE: Record<string, string> = {
   CHAMPION_NOT_FOUND: 'No se ha encontrado ese campeón.',
   DEVICE_NOT_FOUND: 'Ese dispositivo ya no estaba vinculado.',
   DUPLICATE_PENDING_INVITATION: 'Este usuario ya tiene una invitación pendiente.',
+  FEEDBACK_QUOTA_EXCEEDED:
+    'Has enviado demasiados reportes en las últimas 24 horas. Prueba de nuevo más tarde.',
   GAME_DATA_UNAVAILABLE: 'El catálogo de datos del juego no está disponible ahora mismo. Inténtalo más tarde.',
   GROUP_QUOTA_EXCEEDED: 'Has alcanzado el número máximo de grupos que puedes tener.',
   IMAGE_TOO_LARGE: 'La imagen es demasiado grande. Usa uno más ligero.',
