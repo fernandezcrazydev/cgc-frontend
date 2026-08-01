@@ -11,5 +11,6 @@ export * from './avatar-picker/nf-avatar-picker';
 export * from './toast/nf-toast';
 export * from './segmented/nf-segmented';
 export * from './skeleton/nf-skeleton';
+export * from './meter/nf-meter';
 export * from './avatar/nf-avatar';
 export * from './lane-icon/nf-lane-icon';

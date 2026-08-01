@@ -68,6 +68,8 @@ const MESSAGES_BY_CODE: Record<string, string> = {
   GAME_DATA_UNAVAILABLE: 'El catálogo de datos del juego no está disponible ahora mismo. Inténtalo más tarde.',
   GROUP_QUOTA_EXCEEDED: 'Has alcanzado el número máximo de grupos que puedes tener.',
   IMAGE_TOO_LARGE: 'La imagen es demasiado grande. Usa uno más ligero.',
+  INVALID_METRICS_WINDOW:
+    'Ese periodo no es válido. Solo guardamos las llamadas a Riot de los últimos 7 días.',
   INVALID_RIOT_ID: 'Ese Riot ID no es válido. Debe ser «Nombre#TAG», tal y como aparece en el cliente.',
   INVITATION_NOT_FOUND: 'Esa invitación ya no existe.',
   INVITATION_NOT_PENDING: 'Esa invitación ya no está pendiente: se aceptó, se rechazó o se canceló.',
