@@ -3916,16 +3916,139 @@
   color: var(--nf-text-dim);
 }
 
-/* El formulario de convocar: selector de hora + botón de añadir. */
+/* ── Convocar: elegir horas ──────────────────────────────────────────────────
+   El camino rápido son los chips de horas típicas; el selector libre queda
+   plegado detrás de un <details> para quien necesite un finde por la tarde. */
+/* Los chips agrupados en su propio panel: dice "elige aquí" sin necesidad de un rótulo. */
+.qh-panel {
+  margin: 16px 0 4px;
+  padding: 4px 16px;
+  border: 1px solid var(--nf-border);
+  border-radius: 14px;
+  background: var(--nf-surface-2);
+}
+
+.qh-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 0;
+  & + & { border-top: 1px solid var(--nf-border); }
+}
+.qh-row__day {
+  flex: 0 0 78px;
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--nf-text-dim);
+}
+.qh-row__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.qh-chip {
+  padding: 9px 18px;
+  border: 1px solid var(--nf-border);
+  border-radius: 999px;
+  /* Un tono por encima del panel para que el chip se lea como algo pulsable. */
+  background: var(--nf-surface);
+  color: var(--nf-text);
+  font-size: 13.5px;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s, transform 0.1s;
+}
+.qh-chip:hover:not(:disabled) {
+  border-color: var(--nf-cyan);
+  color: var(--nf-cyan);
+  transform: translateY(-1px);
+}
+/* Elegida: el chip ES el estado, así que tiene que cantar sin leer nada más. */
+.qh-chip.is-on {
+  border-color: var(--nf-pink);
+  background: color-mix(in srgb, var(--nf-pink) 20%, transparent);
+  color: var(--nf-pink);
+  font-weight: 600;
+}
+.qh-chip:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.qh-other { margin-top: 6px; }
+.qh-other__toggle {
+  display: inline-block;
+  padding: 6px 0;
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: var(--nf-text-dim);
+  cursor: pointer;
+  &:hover { color: var(--nf-cyan); }
+}
+.qh-other[open] .qh-other__toggle { color: var(--nf-cyan); }
+
 .cp-slotform {
   display: flex;
   gap: 10px;
   align-items: center;
-  margin-bottom: 12px;
+  margin: 10px 0 4px;
 }
-.cp-slotform__input { flex: 1; }
+.cp-slotform__input {
+  flex: 1;
+  /* El icono nativo del datetime-local es negro sobre fondo oscuro: invisible. */
+  color-scheme: dark;
+}
+.qh-add {
+  padding: 9px 16px;
+  border: 1px solid var(--nf-cyan);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--nf-cyan);
+  font-size: 11px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.qh-add:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* Lo elegido, en un bloque aparte: es el resumen de lo que se va a publicar. */
+.qh-picked {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--nf-border);
+}
+.qh-picked__label {
+  margin-bottom: 8px;
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  color: var(--nf-text-dim);
+}
+.qh-picked__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-height: 34px;
+}
+.qh-picked__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 12px;
+  border: 1px solid var(--nf-pink);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--nf-pink) 12%, transparent);
+  color: var(--nf-text);
+  font-size: 12px;
+  cursor: pointer;
+}
+.qh-picked__item:hover { background: color-mix(in srgb, var(--nf-red) 18%, transparent); }
+.qh-picked__x { color: var(--nf-text-dim); font-size: 11px; }
+.qh-picked__item:hover .qh-picked__x { color: var(--nf-red); }
+.qh-picked__empty { font-size: 12px; color: var(--nf-text-dim); }
+
+.qh-note { margin-top: 14px; }
 
 @media (max-width: 560px) {
+  .qh-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+  .qh-row__day { flex-basis: auto; }
   .cp-slotform { flex-direction: column; align-items: stretch; }
   .lb-slot__head { flex-wrap: wrap; }
   .lb-slot__when { flex-basis: 100%; }

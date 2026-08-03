@@ -72,11 +72,18 @@ export class LobbyDetailStore {
    * Refetch silencioso: NO vacía lo que hay en pantalla ni vuelve a `loading`. Lo llama el aviso
    * en vivo, que puede llegar en cualquier momento — parpadear la sala entera cada vez que
    * alguien se apunta sería peor que no tener aviso.
+   *
+   * NO incrementa `seq`, y esa línea que no está es justo la que arreglaba el bug del esqueleto
+   * eterno: al entrar en la sala, el efecto del aviso dispara un refresh mientras el `load()`
+   * inicial todavía viaja. Si el refresh subía el contador, el `load()` se creía obsoleto al
+   * volver y retornaba SIN poner `ready` — y como el refresh no toca el estado, la vista se
+   * quedaba en `loading` para siempre. El refresh solo se descarta a sí mismo si un `load()`
+   * nuevo empezó mientras tanto; nunca cancela a nadie.
    */
   async refresh(): Promise<void> {
     const lobbyId = this.currentId;
     if (!lobbyId) return;
-    const seq = ++this.seq;
+    const seq = this.seq;
     try {
       const lobby = await firstValueFrom(this.api.detail(lobbyId));
       if (seq === this.seq && this.currentId === lobbyId) this._lobby.set(lobby);

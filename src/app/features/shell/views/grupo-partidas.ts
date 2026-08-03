@@ -6,6 +6,7 @@ import { NfBadge, NfBadgeColor, NfButton, NfSkeleton, NfWindow } from '../../../
 import { GroupStore } from '../../../core/group-store';
 import { MatchStore, MatchRoom } from '../../../core/match-store';
 import { LobbiesStore, LobbyResponse } from '../../../core/lobbies';
+import { GroupBridge } from '../../../core/groups';
 import { NotificationsStore } from '../../../core/notifications';
 
 /**
@@ -19,7 +20,12 @@ import { NotificationsStore } from '../../../core/notifications';
   imports: [RouterLink, NfBadge, NfButton, NfSkeleton, NfWindow],
   template: `
     <div class="view">
-      @if (group(); as g) {
+      @if (loadingGroup()) {
+        <div aria-busy="true">
+          <nf-skeleton width="240px" height="30px" />
+          <nf-skeleton width="100%" height="120px" radius="14px" />
+        </div>
+      } @else if (group(); as g) {
         <div class="cp-head">
           <div class="cp-head__titles">
             <h1 class="view__title">Partidas activas</h1>
@@ -177,6 +183,17 @@ export class GrupoPartidas {
   // ── Convocatorias reales ──────────────────────────────────────────
   readonly lobbies = inject(LobbiesStore);
   private readonly notifs = inject(NotificationsStore);
+  /** Trae identidad y roster reales al store mock; sin esto, un F5 aquí daba "Grupo no encontrado". */
+  readonly bridge = inject(GroupBridge);
+
+  /**
+   * El grupo todavía viaja. Cubre `idle` porque entrar por URL directa monta esta vista antes de
+   * que el efecto dispare, y pintar el 404 en ese hueco es acusar de inexistente a un grupo que
+   * simplemente no ha llegado.
+   */
+  readonly loadingGroup = computed(
+    () => this.bridge.status() === 'loading' || this.bridge.status() === 'idle',
+  );
 
   /**
    * Qué se enseña como "cuándo": la hora ya cuadrada si está confirmada, y si no, cuántas horas
@@ -220,6 +237,12 @@ export class GrupoPartidas {
     effect(() => {
       const id = this.id();
       if (id && this.groups.byId(id)) this.groups.select(id);
+    });
+
+    // Identidad + roster reales, para que entrar por URL directa no caiga en el 404 del mock.
+    effect(() => {
+      const id = this.id();
+      if (id) void this.bridge.ensure(id);
     });
 
     // Convocatorias del grupo. `ensureLoaded` no repite la petición al volver a la vista.
