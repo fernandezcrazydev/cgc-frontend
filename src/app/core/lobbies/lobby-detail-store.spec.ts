@@ -180,6 +180,34 @@ describe('LobbyDetailStore', () => {
     expect(store.lobby()?.code).toBe('AB12');
   });
 
+  /**
+   * El bug del esqueleto eterno, reproducido. Al entrar en la sala llegaba un aviso en vivo
+   * (el que quedaba de haberte apuntado antes) mientras el `load()` inicial seguía viajando; el
+   * refresh subía el contador de secuencia, el `load()` se creía obsoleto al volver y salía sin
+   * poner `ready`, y la vista se quedaba en `loading` para siempre. Si esto se pone rojo, la sala
+   * vuelve a quedarse en esqueleto.
+   */
+  it('un refresh en vuelo no deja la carga inicial colgada en loading', async () => {
+    let finishLoad: (value: LobbyResponse) => void = () => {};
+    api.detailImpl = () => new Observable((sub) => {
+      finishLoad = (value) => {
+        sub.next(value);
+        sub.complete();
+      };
+    });
+    const loading = store.load(LOBBY_ID);
+
+    // El aviso en vivo llega ANTES de que la carga inicial haya respondido.
+    api.detailImpl = () => of(lobby());
+    await store.refresh();
+
+    finishLoad(lobby());
+    await loading;
+
+    expect(store.status()).toBe('ready');
+    expect(store.lobby()).not.toBeNull();
+  });
+
   it('un refresh que falla deja el dato anterior en pantalla', async () => {
     await store.load(LOBBY_ID);
     api.detailImpl = () => throwError(() => new HttpErrorResponse({ status: 0 }));

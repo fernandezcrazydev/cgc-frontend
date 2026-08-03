@@ -815,51 +815,78 @@ interface GeneratedTeams {
                   {{ MAX + 1 }} en adelante quedan de <b>suplentes</b>, y si alguien se cae entran ellos.
                 </div>
 
-                <div class="cp-slotform">
-                  <input
-                    class="field__input cp-slotform__input"
-                    type="datetime-local"
-                    [min]="minSlotValue()"
-                    [ngModel]="slotDraft()"
-                    (ngModelChange)="slotDraft.set($event)"
-                    aria-label="Día y hora que quieres proponer"
-                  />
-                  <button
-                    type="button"
-                    class="cp-rb__add nf-mono nf-caps"
-                    [disabled]="!canAddSlot()"
-                    (click)="addSlot()"
-                  >＋ Añadir hora</button>
+                <!-- Horas típicas de custom. Es el camino rápido: un toque y ya está. -->
+                <div class="qh-panel">
+                  @for (day of quickDays(); track day.label) {
+                    <div class="qh-row">
+                      <span class="qh-row__day nf-mono">{{ day.label }}</span>
+                      <div class="qh-row__chips">
+                        @for (q of day.slots; track q.value) {
+                          <button
+                            type="button"
+                            class="qh-chip nf-mono"
+                            [class.is-on]="slotDrafts().includes(q.value)"
+                            [disabled]="!slotDrafts().includes(q.value) && atSlotLimit()"
+                            (click)="toggleQuick(q.value)"
+                          >{{ q.label }}</button>
+                        }
+                      </div>
+                    </div>
+                  }
                 </div>
+
+                <!-- Salida de emergencia para una hora que no esté arriba (un finde por la tarde). -->
+                <details class="qh-other">
+                  <summary class="qh-other__toggle nf-mono">¿Otro día u otra hora?</summary>
+                  <div class="cp-slotform">
+                    <input
+                      class="field__input cp-slotform__input"
+                      type="datetime-local"
+                      [min]="minSlotValue()"
+                      [ngModel]="slotDraft()"
+                      (ngModelChange)="slotDraft.set($event)"
+                      aria-label="Día y hora que quieres proponer"
+                    />
+                    <button
+                      type="button"
+                      class="qh-add nf-mono nf-caps"
+                      [disabled]="!canAddSlot()"
+                      (click)="addSlot()"
+                    >＋ Añadir</button>
+                  </div>
+                </details>
+
                 @if (slotError(); as e) {
                   <div class="cp-diag">
                     <div class="cp-diag__item cp-diag__item--err nf-mono">✗ {{ e }}</div>
                   </div>
                 }
 
-                <div class="cp-rules">
-                  @for (slot of slotDrafts(); track slot) {
-                    <div class="cp-rule" data-kind="together">
-                      <span class="cp-rule__ico" aria-hidden="true">🕘</span>
-                      <div class="cp-rule__body">
-                        <span class="cp-rule__label nf-mono">{{ formatSlot(slot) }}</span>
-                      </div>
+                <div class="qh-picked">
+                  <div class="qh-picked__label nf-mono">
+                    HORAS PROPUESTAS · {{ slotDrafts().length }}/{{ MAX_SLOTS }}
+                  </div>
+                  <div class="qh-picked__list">
+                    @for (slot of slotDrafts(); track slot) {
                       <button
                         type="button"
-                        class="cp-rule__del"
+                        class="qh-picked__item nf-mono"
                         [attr.aria-label]="'Quitar ' + formatSlot(slot)"
                         (click)="removeSlot(slot)"
-                      >✕</button>
-                    </div>
-                  } @empty {
-                    <div class="cp-rules__empty nf-mono">
-                      Aún no has propuesto ninguna hora. Añade al menos una.
-                    </div>
-                  }
+                      >
+                        <span class="qh-picked__when">{{ formatSlot(slot) }}</span>
+                        <span class="qh-picked__x" aria-hidden="true">✕</span>
+                      </button>
+                    } @empty {
+                      <span class="qh-picked__empty nf-mono">
+                        Toca una hora de arriba para empezar.
+                      </span>
+                    }
+                  </div>
                 </div>
 
                 <input
-                  class="field__input"
+                  class="field__input qh-note"
                   type="text"
                   placeholder="Nota para el grupo (opcional)"
                   [maxlength]="MAX_NOTE_LENGTH"
@@ -1054,6 +1081,26 @@ export class GrupoCrearPartida {
   readonly canAddSlot = computed(
     () => !!this.slotDraft() && this.slotDrafts().length < MAX_SLOTS,
   );
+
+  readonly atSlotLimit = computed(() => this.slotDrafts().length >= MAX_SLOTS);
+
+  /**
+   * Las horas a las que de verdad se juegan customs, listas para tocar. Se calculan una vez al
+   * montar: el usuario no va a tener el formulario abierto tanto tiempo como para que "hoy"
+   * cambie de significado, y hacerlo reactivo al reloj costaría un temporizador para nada.
+   */
+  readonly quickDays = signal<QuickDay[]>(buildQuickDays(new Date()));
+
+  /** Un toque añade la hora; otro la quita. El chip es el estado, no un botón de "añadir". */
+  toggleQuick(value: string): void {
+    if (this.slotDrafts().includes(value)) {
+      this.removeSlot(value);
+      return;
+    }
+    if (this.atSlotLimit()) return;
+    this.slotError.set(null);
+    this.slotDrafts.update((slots) => [...slots, value].sort());
+  }
 
   addSlot(): void {
     const value = this.slotDraft();
@@ -1972,6 +2019,59 @@ export class GrupoCrearPartida {
     this.mode.set('manual');
     this.step.set(2);
   }
+}
+
+/** Un día con sus horas sugeridas, para la fila de chips del formulario de convocar. */
+export interface QuickDay {
+  label: string;
+  slots: { value: string; label: string }[];
+}
+
+/**
+ * Las horas a las que este grupo juega de verdad. No es una rejilla de 24 horas: una custom de
+ * diez personas entre semana sale de noche, así que ofrecer las seis de la franja buena vale más
+ * que ofrecerlas todas y obligar a buscar.
+ */
+const QUICK_HOURS = ['21:00', '21:30', '22:00', '22:30', '23:00', '23:30'];
+
+/** Cuántos días se ofrecen. Hoy y mañana cubren el caso normal; más sería una agenda. */
+const QUICK_DAYS = 2;
+
+/**
+ * Construye los días sugeridos a partir de `now`. Las horas de hoy que ya han pasado se caen —
+ * ofrecer las 21:00 a las 23:00 sería ofrecer un error 400— y si hoy no queda ninguna, entra el
+ * día siguiente en su lugar, de modo que siempre hay {@link QUICK_DAYS} días con algo que tocar.
+ *
+ * Función pura sobre `now` para poder probarla sin tocar el reloj.
+ */
+export function buildQuickDays(now: Date): QuickDay[] {
+  const days: QuickDay[] = [];
+  // Se miran cuatro días para poder descartar los que se queden vacíos y aun así llenar el cupo.
+  for (let offset = 0; offset < 4 && days.length < QUICK_DAYS; offset++) {
+    const slots = QUICK_HOURS.map((hour) => {
+      const [hh, mm] = hour.split(':').map(Number);
+      const at = new Date(now);
+      at.setDate(at.getDate() + offset);
+      at.setHours(hh, mm, 0, 0);
+      return { value: toLocalInputValue(at), label: hour, at };
+    })
+      .filter((slot) => slot.at.getTime() > now.getTime())
+      .map(({ value, label }) => ({ value, label }));
+
+    if (slots.length) {
+      days.push({ label: dayLabel(offset), slots });
+    }
+  }
+  return days;
+}
+
+/** "Hoy" / "Mañana" / el día de la semana, que es como se habla de esto en el grupo. */
+function dayLabel(offset: number): string {
+  if (offset === 0) return 'Hoy';
+  if (offset === 1) return 'Mañana';
+  const date = new Date();
+  date.setDate(date.getDate() + offset);
+  return new Intl.DateTimeFormat('es-ES', { weekday: 'long' }).format(date);
 }
 
 /**
