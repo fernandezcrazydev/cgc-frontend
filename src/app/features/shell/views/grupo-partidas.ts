@@ -116,7 +116,10 @@ import { NotificationsStore } from '../../../core/notifications';
               </nf-window>
             }
           </div>
-        } @else {
+        } @else if (nothingActive()) {
+          <!-- Vacío solo cuando NO hay NADA: ni convocatorias ni salas del wizard. Mirar solo
+               las salas del mock hacía que saliera "no hay partidas activas" justo debajo de
+               una convocatoria que acababas de crear. -->
           <nf-window title="partidas_activas.exe" accent="cyan" bodyPadding="0">
             <div class="cp-pad">
               <div class="empty-state">
@@ -193,6 +196,15 @@ export class GrupoPartidas {
    */
   readonly loadingGroup = computed(
     () => this.bridge.status() === 'loading' || this.bridge.status() === 'idle',
+  );
+
+  /**
+   * No hay absolutamente nada que enseñar. Cuenta las dos fuentes —las convocatorias reales y
+   * las salas del wizard—, y espera a que las convocatorias hayan cargado: decir "no hay nada"
+   * mientras aún viajan es afirmar algo que no se sabe.
+   */
+  readonly nothingActive = computed(
+    () => !this.rooms().length && !this.lobbies.open().length && !this.lobbies.isLoading(),
   );
 
   /**

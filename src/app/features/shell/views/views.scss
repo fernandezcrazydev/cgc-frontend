@@ -3919,63 +3919,111 @@
 /* ── Convocar: elegir horas ──────────────────────────────────────────────────
    El camino rápido son los chips de horas típicas; el selector libre queda
    plegado detrás de un <details> para quien necesite un finde por la tarde. */
-/* Los chips agrupados en su propio panel: dice "elige aquí" sin necesidad de un rótulo. */
-.qh-panel {
-  margin: 16px 0 4px;
-  padding: 4px 16px;
-  border: 1px solid var(--nf-border);
-  border-radius: 14px;
-  background: var(--nf-surface-2);
-}
-
-.qh-row {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 14px 0;
-  & + & { border-top: 1px solid var(--nf-border); }
-}
-.qh-row__day {
-  flex: 0 0 78px;
-  font-size: 11px;
-  letter-spacing: 1.5px;
+/* ── Convocar: elegir día y hora ─────────────────────────────────────────────
+   Dos pasos, como cualquier app de reservas: una tira de días que se desliza y
+   una rejilla de horas del día elegido. Sin inputs nativos de fecha, que se
+   pintan distinto en cada navegador y en un móvil abren un diálogo del sistema
+   en mitad del flujo. Todo con altura de dedo. */
+.dp-step__label {
+  margin: 18px 0 10px;
+  font-size: 12px;
+  letter-spacing: 1.2px;
   text-transform: uppercase;
   color: var(--nf-text-dim);
 }
-.qh-row__chips {
+
+.dp-days {
   display: flex;
-  flex-wrap: wrap;
   gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  scroll-snap-type: x proximity;
+  /* La barra nativa parte el diseño en escritorio y en móvil no se ve igualmente. */
+  scrollbar-width: none;
+  &::-webkit-scrollbar { display: none; }
 }
 
-.qh-chip {
-  padding: 9px 18px;
+.dp-day {
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: 58px;
+  padding: 10px 0 8px;
   border: 1px solid var(--nf-border);
-  border-radius: 999px;
-  /* Un tono por encima del panel para que el chip se lea como algo pulsable. */
-  background: var(--nf-surface);
+  border-radius: 14px;
+  background: var(--nf-surface-2);
   color: var(--nf-text);
-  font-size: 13.5px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, transform 0.1s;
+}
+.dp-day:hover { border-color: var(--nf-cyan); transform: translateY(-1px); }
+.dp-day.is-active {
+  border-color: var(--nf-cyan);
+  background: color-mix(in srgb, var(--nf-cyan) 18%, transparent);
+}
+.dp-day__weekday {
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: var(--nf-text-dim);
+}
+.dp-day.is-active .dp-day__weekday { color: var(--nf-cyan); }
+.dp-day__number { font-size: 19px; font-weight: 600; line-height: 1.1; }
+
+/* Los puntos dicen "aquí ya elegiste algo" sin tener que volver al día para comprobarlo. */
+.dp-day__dots {
+  display: flex;
+  gap: 3px;
+  height: 5px;
+  margin-top: 2px;
+}
+.dp-day__dots i {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--nf-pink);
+}
+
+.dp-hours {
+  display: grid;
+  /* Se refluye sola: cuatro por fila en escritorio, dos o tres en un móvil. */
+  grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+  gap: 8px;
+}
+.dp-hour {
+  /* 44px es el mínimo cómodo para un dedo; por debajo se falla el toque. */
+  min-height: 44px;
+  border: 1px solid var(--nf-border);
+  border-radius: 12px;
+  background: var(--nf-surface-2);
+  color: var(--nf-text);
+  font-size: 14px;
   font-variant-numeric: tabular-nums;
   cursor: pointer;
   transition: border-color 0.15s, background 0.15s, color 0.15s, transform 0.1s;
 }
-.qh-chip:hover:not(:disabled) {
-  border-color: var(--nf-cyan);
-  color: var(--nf-cyan);
-  transform: translateY(-1px);
-}
-/* Elegida: el chip ES el estado, así que tiene que cantar sin leer nada más. */
-.qh-chip.is-on {
+.dp-hour:hover:not(:disabled) { border-color: var(--nf-cyan); color: var(--nf-cyan); }
+.dp-hour.is-on {
   border-color: var(--nf-pink);
-  background: color-mix(in srgb, var(--nf-pink) 20%, transparent);
+  background: color-mix(in srgb, var(--nf-pink) 22%, transparent);
   color: var(--nf-pink);
   font-weight: 600;
 }
-.qh-chip:disabled { opacity: 0.35; cursor: not-allowed; }
+.dp-hour:disabled { opacity: 0.3; cursor: not-allowed; }
+.dp-hours__empty {
+  padding: 14px;
+  border: 1px dashed var(--nf-border);
+  border-radius: 12px;
+  font-size: 12px;
+  color: var(--nf-text-dim);
+}
 
-.qh-other { margin-top: 6px; }
-.qh-other__toggle {
+/* Una hora fuera de la franja (un sábado por la mañana). Secundaria de verdad, no el camino
+   principal escondido: el día y las horas normales están arriba a la vista. */
+.dp-custom { margin-top: 12px; }
+.dp-custom__toggle {
   display: inline-block;
   padding: 6px 0;
   font-size: 11px;
@@ -3984,72 +4032,73 @@
   cursor: pointer;
   &:hover { color: var(--nf-cyan); }
 }
-.qh-other[open] .qh-other__toggle { color: var(--nf-cyan); }
-
-.cp-slotform {
+.dp-custom__row {
   display: flex;
   gap: 10px;
-  align-items: center;
-  margin: 10px 0 4px;
+  margin-top: 8px;
 }
-.cp-slotform__input {
-  flex: 1;
-  /* El icono nativo del datetime-local es negro sobre fondo oscuro: invisible. */
+.dp-custom__time {
+  flex: 0 0 140px;
   color-scheme: dark;
+  font-variant-numeric: tabular-nums;
 }
-.qh-add {
-  padding: 9px 16px;
+.dp-custom__add {
+  flex: 1;
+  min-height: 44px;
   border: 1px solid var(--nf-cyan);
-  border-radius: 8px;
+  border-radius: 12px;
   background: transparent;
   color: var(--nf-cyan);
   font-size: 11px;
   cursor: pointer;
-  white-space: nowrap;
 }
-.qh-add:disabled { opacity: 0.4; cursor: not-allowed; }
+.dp-custom__add:disabled { opacity: 0.4; cursor: not-allowed; }
 
-/* Lo elegido, en un bloque aparte: es el resumen de lo que se va a publicar. */
-.qh-picked {
-  margin-top: 14px;
-  padding-top: 14px;
+/* El carrito: lo que se va a publicar. Siempre a la vista y siempre quitable de un toque. */
+.dp-cart {
+  margin-top: 18px;
+  padding-top: 16px;
   border-top: 1px solid var(--nf-border);
 }
-.qh-picked__label {
-  margin-bottom: 8px;
-  font-size: 10px;
-  letter-spacing: 1.5px;
+.dp-cart__label {
+  margin-bottom: 10px;
+  font-size: 12px;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
   color: var(--nf-text-dim);
 }
-.qh-picked__list {
+.dp-cart__list {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  min-height: 34px;
+  min-height: 40px;
 }
-.qh-picked__item {
+.dp-cart__item {
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  padding: 7px 12px;
+  min-height: 38px;
+  padding: 0 12px;
   border: 1px solid var(--nf-pink);
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--nf-pink) 12%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--nf-pink) 14%, transparent);
   color: var(--nf-text);
-  font-size: 12px;
+  font-size: 12.5px;
   cursor: pointer;
 }
-.qh-picked__item:hover { background: color-mix(in srgb, var(--nf-red) 18%, transparent); }
-.qh-picked__x { color: var(--nf-text-dim); font-size: 11px; }
-.qh-picked__item:hover .qh-picked__x { color: var(--nf-red); }
-.qh-picked__empty { font-size: 12px; color: var(--nf-text-dim); }
+.dp-cart__item:hover { background: color-mix(in srgb, var(--nf-red) 20%, transparent); }
+.dp-cart__x { color: var(--nf-text-dim); font-size: 11px; }
+.dp-cart__item:hover .dp-cart__x { color: var(--nf-red); }
+.dp-cart__empty { font-size: 12px; color: var(--nf-text-dim); }
 
-.qh-note { margin-top: 14px; }
+.qh-note { margin-top: 16px; }
 
 @media (max-width: 560px) {
-  .qh-row { flex-direction: column; align-items: flex-start; gap: 6px; }
-  .qh-row__day { flex-basis: auto; }
-  .cp-slotform { flex-direction: column; align-items: stretch; }
+  .dp-custom__row { flex-direction: column; }
+  .dp-custom__time { flex-basis: auto; }
+}
+
+@media (max-width: 560px) {
   .lb-slot__head { flex-wrap: wrap; }
   .lb-slot__when { flex-basis: 100%; }
 }
