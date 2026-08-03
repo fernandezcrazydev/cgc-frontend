@@ -815,58 +815,74 @@ interface GeneratedTeams {
                   {{ MAX + 1 }} en adelante quedan de <b>suplentes</b>, y si alguien se cae entran ellos.
                 </div>
 
-                <!-- Cualquier día y cualquier hora, y a la vista: es lo principal, no una
-                     opción escondida. Día y hora en campos separados en vez de un
-                     datetime-local, que se pinta distinto en cada navegador y en varios deja
-                     el calendario en un icono minúsculo. -->
-                <div class="qh-pick">
-                  <div class="qh-pick__label nf-mono">Elige día y hora</div>
-                  <div class="qh-pick__row">
+                <!-- Paso 1 · el día. Tira horizontal deslizable: en un móvil se recorren dos
+                     semanas con el pulgar sin abrir ningún calendario nativo. -->
+                <div class="dp-step__label nf-mono">1 · ¿Qué día?</div>
+                <div class="dp-days" role="tablist" aria-label="Elige el día">
+                  @for (d of days(); track d.value) {
+                    <button
+                      type="button"
+                      role="tab"
+                      class="dp-day"
+                      [class.is-active]="selectedDay() === d.value"
+                      [class.has-picks]="countForDay(d.value) > 0"
+                      [attr.aria-selected]="selectedDay() === d.value"
+                      (click)="selectedDay.set(d.value)"
+                    >
+                      <span class="dp-day__weekday nf-mono">{{ d.weekday }}</span>
+                      <span class="dp-day__number">{{ d.dayNumber }}</span>
+                      <!-- Cuántas horas llevas elegidas ESE día. Sin esto, al cambiar de día
+                           pierdes de vista lo que ya habías marcado en los otros. -->
+                      <span class="dp-day__dots" aria-hidden="true">
+                        @for (dot of dotsFor(d.value); track $index) {
+                          <i></i>
+                        }
+                      </span>
+                    </button>
+                  }
+                </div>
+
+                <!-- Paso 2 · las horas de ese día. Rejilla que se refluye sola: cuatro por fila
+                     en escritorio, dos o tres en un móvil, y todas con altura de dedo. -->
+                <div class="dp-step__label nf-mono">2 · ¿A qué hora?</div>
+                @if (hoursForSelectedDay().length) {
+                  <div class="dp-hours">
+                    @for (h of hoursForSelectedDay(); track h.value) {
+                      <button
+                        type="button"
+                        class="dp-hour nf-mono"
+                        [class.is-on]="slotDrafts().includes(h.value)"
+                        [disabled]="!slotDrafts().includes(h.value) && atSlotLimit()"
+                        [attr.aria-pressed]="slotDrafts().includes(h.value)"
+                        (click)="toggleQuick(h.value)"
+                      >{{ h.label }}</button>
+                    }
+                  </div>
+                } @else {
+                  <div class="dp-hours__empty nf-mono">
+                    Hoy ya no quedan horas. Elige otro día arriba.
+                  </div>
+                }
+
+                <details class="dp-custom">
+                  <summary class="dp-custom__toggle nf-mono">Otra hora distinta</summary>
+                  <div class="dp-custom__row">
                     <input
-                      class="field__input qh-pick__date"
-                      type="date"
-                      [min]="todayValue()"
-                      [ngModel]="dayDraft()"
-                      (ngModelChange)="dayDraft.set($event)"
-                      aria-label="Día"
-                    />
-                    <input
-                      class="field__input qh-pick__time"
+                      class="field__input dp-custom__time"
                       type="time"
                       step="300"
                       [ngModel]="timeDraft()"
                       (ngModelChange)="timeDraft.set($event)"
-                      aria-label="Hora"
+                      aria-label="Hora concreta"
                     />
                     <button
                       type="button"
-                      class="qh-add nf-mono nf-caps"
+                      class="dp-custom__add nf-mono nf-caps"
                       [disabled]="!canAddSlot()"
                       (click)="addSlot()"
-                    >＋ Añadir</button>
+                    >Añadir a {{ selectedDayLabel() }}</button>
                   </div>
-                </div>
-
-                <!-- Atajo para lo que se elige el 90% de las veces. -->
-                <div class="qh-panel">
-                  <div class="qh-panel__label nf-mono">O toca una hora de siempre</div>
-                  @for (day of quickDays(); track day.label) {
-                    <div class="qh-row">
-                      <span class="qh-row__day nf-mono">{{ day.label }}</span>
-                      <div class="qh-row__chips">
-                        @for (q of day.slots; track q.value) {
-                          <button
-                            type="button"
-                            class="qh-chip nf-mono"
-                            [class.is-on]="slotDrafts().includes(q.value)"
-                            [disabled]="!slotDrafts().includes(q.value) && atSlotLimit()"
-                            (click)="toggleQuick(q.value)"
-                          >{{ q.label }}</button>
-                        }
-                      </div>
-                    </div>
-                  }
-                </div>
+                </details>
 
                 @if (slotError(); as e) {
                   <div class="cp-diag">
@@ -874,24 +890,25 @@ interface GeneratedTeams {
                   </div>
                 }
 
-                <div class="qh-picked">
-                  <div class="qh-picked__label nf-mono">
-                    HORAS PROPUESTAS · {{ slotDrafts().length }}/{{ MAX_SLOTS }}
+                <!-- El carrito: lo que se va a publicar, siempre visible y siempre quitable. -->
+                <div class="dp-cart">
+                  <div class="dp-cart__label nf-mono">
+                    Vas a proponer · {{ slotDrafts().length }}/{{ MAX_SLOTS }}
                   </div>
-                  <div class="qh-picked__list">
+                  <div class="dp-cart__list">
                     @for (slot of slotDrafts(); track slot) {
                       <button
                         type="button"
-                        class="qh-picked__item nf-mono"
+                        class="dp-cart__item nf-mono"
                         [attr.aria-label]="'Quitar ' + formatSlot(slot)"
                         (click)="removeSlot(slot)"
                       >
-                        <span class="qh-picked__when">{{ formatSlot(slot) }}</span>
-                        <span class="qh-picked__x" aria-hidden="true">✕</span>
+                        <span>{{ formatSlot(slot) }}</span>
+                        <span class="dp-cart__x" aria-hidden="true">✕</span>
                       </button>
                     } @empty {
-                      <span class="qh-picked__empty nf-mono">
-                        Toca una hora de arriba para empezar.
+                      <span class="dp-cart__empty nf-mono">
+                        Todavía nada. Toca una hora de arriba.
                       </span>
                     }
                   </div>
@@ -1076,34 +1093,46 @@ export class GrupoCrearPartida {
 
   /** Horas propuestas, en el formato local de `datetime-local` ("2026-08-07T22:00"). */
   readonly slotDrafts = signal<string[]>([]);
-  /** Día del selector libre ("2026-08-07"). Arranca en hoy, que es el caso normal. */
-  readonly dayDraft = signal(toLocalInputValue(new Date()).slice(0, 10));
-  /** Hora del selector libre ("22:00"). Arranca a la hora a la que se juega. */
+  /** Hora del campo "otra hora distinta", para lo que se salga de la rejilla. */
   readonly timeDraft = signal('22:00');
   readonly note = signal('');
   readonly slotError = signal<string | null>(null);
 
   /**
-   * Suelo del selector de día: hoy. Evita el 400 `SLOT_IN_THE_PAST` en el caso más común
-   * (equivocarse de día), aunque el servidor sigue siendo quien decide — el reloj del navegador
-   * se puede cambiar.
+   * Los días que se pueden proponer: dos semanas. Se calculan una vez al montar — nadie tiene
+   * este formulario abierto el tiempo suficiente para que "hoy" cambie de significado, y hacerlo
+   * reactivo al reloj costaría un temporizador a cambio de nada.
    */
-  todayValue(): string {
-    return toLocalInputValue(new Date()).slice(0, 10);
-  }
+  readonly days = signal<DayOption[]>(buildDays(new Date(), DAYS_AHEAD));
 
-  readonly canAddSlot = computed(
-    () => !!this.dayDraft() && !!this.timeDraft() && this.slotDrafts().length < MAX_SLOTS,
-  );
+  /** El día cuya rejilla de horas se está mirando. Arranca en hoy. */
+  readonly selectedDay = signal(this.days()[0].value);
 
   readonly atSlotLimit = computed(() => this.slotDrafts().length >= MAX_SLOTS);
 
+  readonly canAddSlot = computed(() => !!this.timeDraft() && !this.atSlotLimit());
+
   /**
-   * Las horas a las que de verdad se juegan customs, listas para tocar. Se calculan una vez al
-   * montar: el usuario no va a tener el formulario abierto tanto tiempo como para que "hoy"
-   * cambie de significado, y hacerlo reactivo al reloj costaría un temporizador para nada.
+   * Las horas ofrecidas para el día elegido. Si es hoy, las que ya han pasado no aparecen:
+   * ofrecerlas sería ofrecer un 400 `SLOT_IN_THE_PAST`.
    */
-  readonly quickDays = signal<QuickDay[]>(buildQuickDays(new Date()));
+  readonly hoursForSelectedDay = computed(() => buildHours(this.selectedDay(), new Date()));
+
+  /** "hoy" / "mañana" / "jue 6", para el botón de añadir una hora suelta. */
+  readonly selectedDayLabel = computed(() => {
+    const day = this.days().find((d) => d.value === this.selectedDay());
+    return day ? day.longLabel : '';
+  });
+
+  /** Cuántas horas llevas elegidas de ese día, para el indicador del chip. */
+  countForDay(dayValue: string): number {
+    return this.slotDrafts().filter((slot) => slot.startsWith(`${dayValue}T`)).length;
+  }
+
+  /** Los puntitos del chip de día, topados para que un día con seis no reviente el diseño. */
+  dotsFor(dayValue: string): number[] {
+    return Array.from({ length: Math.min(3, this.countForDay(dayValue)) }, (_, i) => i);
+  }
 
   /** Un toque añade la hora; otro la quita. El chip es el estado, no un botón de "añadir". */
   toggleQuick(value: string): void {
@@ -1118,9 +1147,9 @@ export class GrupoCrearPartida {
 
   addSlot(): void {
     if (!this.canAddSlot()) return;
-    // Los dos campos se juntan en el mismo formato que producen los chips, así que a partir de
-    // aquí da igual por dónde entró la hora: una sola lista y una sola comparación.
-    const value = `${this.dayDraft()}T${this.timeDraft()}`;
+    // La hora suelta se pega al día que está seleccionado arriba y produce el MISMO formato que
+    // la rejilla, así que de aquí en adelante da igual por dónde entró: una sola lista.
+    const value = `${this.selectedDay()}T${this.timeDraft()}`;
     if (new Date(value).getTime() <= Date.now()) {
       this.slotError.set('Esa hora ya ha pasado. Elige una futura.');
       return;
@@ -2036,57 +2065,81 @@ export class GrupoCrearPartida {
   }
 }
 
-/** Un día con sus horas sugeridas, para la fila de chips del formulario de convocar. */
-export interface QuickDay {
+/** Un día de la tira horizontal del selector. */
+export interface DayOption {
+  /** "2026-08-03". Es el prefijo con el que se agrupan las horas elegidas de ese día. */
+  value: string;
+  /** "HOY", "MAR"… lo que va arriba del chip. */
+  weekday: string;
+  /** "3". El número grande. */
+  dayNumber: string;
+  /** "hoy", "mañana", "jue 6": para frases dentro de un botón. */
+  longLabel: string;
+}
+
+/** Una hora ofrecida en la rejilla del día elegido. */
+export interface HourOption {
+  /** "2026-08-03T22:00", ya listo para la lista de propuestas. */
+  value: string;
+  /** "22:00". */
   label: string;
-  slots: { value: string; label: string }[];
 }
 
 /**
- * Las horas a las que este grupo juega de verdad. No es una rejilla de 24 horas: una custom de
- * diez personas entre semana sale de noche, así que ofrecer las seis de la franja buena vale más
- * que ofrecerlas todas y obligar a buscar.
+ * Cuántos días se pueden proponer. Dos semanas: cubre "este finde" y "el que viene", que es lo
+ * más lejos que un grupo de amigos se organiza de verdad, y cabe en un par de gestos de pulgar.
  */
-const QUICK_HOURS = ['21:00', '21:30', '22:00', '22:30', '23:00', '23:30'];
-
-/** Cuántos días se ofrecen. Hoy y mañana cubren el caso normal; más sería una agenda. */
-const QUICK_DAYS = 2;
+const DAYS_AHEAD = 14;
 
 /**
- * Construye los días sugeridos a partir de `now`. Las horas de hoy que ya han pasado se caen —
- * ofrecer las 21:00 a las 23:00 sería ofrecer un error 400— y si hoy no queda ninguna, entra el
- * día siguiente en su lugar, de modo que siempre hay {@link QUICK_DAYS} días con algo que tocar.
- *
- * Función pura sobre `now` para poder probarla sin tocar el reloj.
+ * La franja horaria que se ofrece en la rejilla. De la tarde a medianoche, en tramos de media
+ * hora: es cuando se juegan las customs. Lo de fuera existe (un sábado por la mañana) y tiene su
+ * campo de hora suelta, pero ofrecer las 24 horas en pastillas obligaría a buscar entre 48.
  */
-export function buildQuickDays(now: Date): QuickDay[] {
-  const days: QuickDay[] = [];
-  // Se miran cuatro días para poder descartar los que se queden vacíos y aun así llenar el cupo.
-  for (let offset = 0; offset < 4 && days.length < QUICK_DAYS; offset++) {
-    const slots = QUICK_HOURS.map((hour) => {
-      const [hh, mm] = hour.split(':').map(Number);
-      const at = new Date(now);
-      at.setDate(at.getDate() + offset);
-      at.setHours(hh, mm, 0, 0);
-      return { value: toLocalInputValue(at), label: hour, at };
-    })
-      .filter((slot) => slot.at.getTime() > now.getTime())
-      .map(({ value, label }) => ({ value, label }));
+const HOUR_FROM = 17;
+const HOUR_TO = 23;
 
-    if (slots.length) {
-      days.push({ label: dayLabel(offset), slots });
-    }
+/** Construye los días seleccionables desde `now`. Puro sobre `now`, para poder probarlo. */
+export function buildDays(now: Date, howMany: number): DayOption[] {
+  const days: DayOption[] = [];
+  for (let offset = 0; offset < howMany; offset++) {
+    const date = new Date(now);
+    date.setDate(date.getDate() + offset);
+    const weekday = new Intl.DateTimeFormat('es-ES', { weekday: 'short' })
+      .format(date)
+      .replace('.', '')
+      .toUpperCase();
+    days.push({
+      value: toLocalInputValue(date).slice(0, 10),
+      weekday: offset === 0 ? 'HOY' : offset === 1 ? 'MAÑ' : weekday,
+      dayNumber: String(date.getDate()),
+      longLabel:
+        offset === 0
+          ? 'hoy'
+          : offset === 1
+            ? 'mañana'
+            : `${weekday.toLowerCase()} ${date.getDate()}`,
+    });
   }
   return days;
 }
 
-/** "Hoy" / "Mañana" / el día de la semana, que es como se habla de esto en el grupo. */
-function dayLabel(offset: number): string {
-  if (offset === 0) return 'Hoy';
-  if (offset === 1) return 'Mañana';
-  const date = new Date();
-  date.setDate(date.getDate() + offset);
-  return new Intl.DateTimeFormat('es-ES', { weekday: 'long' }).format(date);
+/**
+ * Las horas ofrecidas para un día. Si el día es hoy, las que ya han pasado se caen — ofrecerlas
+ * sería ofrecer un 400 `SLOT_IN_THE_PAST`, y devolver la lista vacía es lo que hace que la vista
+ * pueda decir "hoy ya no quedan horas" en vez de enseñar una rejilla muerta.
+ */
+export function buildHours(dayValue: string, now: Date): HourOption[] {
+  const hours: HourOption[] = [];
+  for (let hour = HOUR_FROM; hour <= HOUR_TO; hour++) {
+    for (const minute of [0, 30]) {
+      const label = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+      const at = new Date(`${dayValue}T${label}`);
+      if (Number.isNaN(at.getTime()) || at.getTime() <= now.getTime()) continue;
+      hours.push({ value: `${dayValue}T${label}`, label });
+    }
+  }
+  return hours;
 }
 
 /**

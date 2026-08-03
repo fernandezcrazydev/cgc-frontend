@@ -1,58 +1,71 @@
-import { buildQuickDays } from './grupo-crear-partida';
+import { buildDays, buildHours } from './grupo-crear-partida';
 
 /**
- * Las horas sugeridas del formulario de convocar. Función pura sobre el instante que se le pasa,
- * precisamente para poder probar los bordes sin tocar el reloj del sistema.
+ * Las dos funciones puras del selector de día y hora. Reciben el instante en vez de leer el
+ * reloj, precisamente para poder probar los bordes sin tocar la hora del sistema.
  */
-describe('buildQuickDays', () => {
-  it('por la tarde ofrece las horas de hoy que quedan, y mañana', () => {
-    // Un lunes a las 18:00: todas las horas de la noche están por venir.
-    const days = buildQuickDays(new Date(2026, 7, 3, 18, 0));
+describe('buildDays', () => {
+  it('empieza en hoy y ofrece tantos días como se le pidan', () => {
+    const days = buildDays(new Date(2026, 7, 3, 18, 0), 14);
 
-    expect(days).toHaveLength(2);
-    expect(days[0].label).toBe('Hoy');
-    expect(days[0].slots.map((s) => s.label)).toEqual([
-      '21:00', '21:30', '22:00', '22:30', '23:00', '23:30',
-    ]);
-    expect(days[1].label).toBe('Mañana');
+    expect(days).toHaveLength(14);
+    expect(days[0].value).toBe('2026-08-03');
+    expect(days[13].value).toBe('2026-08-16');
   });
 
-  /** Ofrecer las 21:00 a las 22:15 sería ofrecer un 400 `SLOT_IN_THE_PAST`. */
-  it('las horas de hoy que ya han pasado no se ofrecen', () => {
-    const days = buildQuickDays(new Date(2026, 7, 3, 22, 15));
+  it('los dos primeros días se nombran hoy y mañana, el resto por su día de la semana', () => {
+    const days = buildDays(new Date(2026, 7, 3, 18, 0), 4);
 
-    expect(days[0].label).toBe('Hoy');
-    expect(days[0].slots.map((s) => s.label)).toEqual(['22:30', '23:00', '23:30']);
+    expect(days.map((d) => d.weekday)).toEqual(['HOY', 'MAÑ', 'MIÉ', 'JUE']);
+    expect(days.map((d) => d.longLabel)).toEqual(['hoy', 'mañana', 'mié 5', 'jue 6']);
   });
 
-  /** De madrugada "hoy" ya no tiene nada que ofrecer: el día entero se cae de la lista. */
-  it('pasadas todas las horas, hoy desaparece y entra el día siguiente', () => {
-    const days = buildQuickDays(new Date(2026, 7, 3, 23, 45));
+  it('el número es el del día del mes, para el chip', () => {
+    const days = buildDays(new Date(2026, 7, 3, 18, 0), 3);
 
-    expect(days).toHaveLength(2);
-    expect(days.map((d) => d.label)).toEqual(['Mañana', 'miércoles']);
+    expect(days.map((d) => d.dayNumber)).toEqual(['3', '4', '5']);
   });
 
-  it('el valor es el que entiende un datetime-local, en hora local', () => {
-    const days = buildQuickDays(new Date(2026, 7, 3, 18, 0));
+  /** Sin esto, un cambio de mes daría "2026-08-32" y ninguna hora de ese día ligaría. */
+  it('cruza bien el fin de mes y el fin de año', () => {
+    expect(buildDays(new Date(2026, 7, 31, 12, 0), 2)[1].value).toBe('2026-09-01');
+    expect(buildDays(new Date(2026, 11, 31, 12, 0), 2)[1].value).toBe('2027-01-01');
+  });
+});
 
-    expect(days[0].slots[0].value).toBe('2026-08-03T21:00');
-    // Mañana es el día siguiente, no la misma fecha con otra hora.
-    expect(days[1].slots[0].value).toBe('2026-08-04T21:00');
+describe('buildHours', () => {
+  it('ofrece la franja de tarde-noche en tramos de media hora', () => {
+    const hours = buildHours('2026-08-10', new Date(2026, 7, 3, 12, 0));
+
+    expect(hours[0].label).toBe('17:00');
+    expect(hours[hours.length - 1].label).toBe('23:30');
+    expect(hours).toHaveLength(14);
   });
 
-  /** Sin esto, un cambio de mes o de año daría "2026-08-32" y el input lo rechazaría en silencio. */
-  it('cruza bien el fin de mes', () => {
-    const days = buildQuickDays(new Date(2026, 7, 31, 23, 45));
+  it('el valor ya viene listo para la lista de propuestas', () => {
+    const hours = buildHours('2026-08-10', new Date(2026, 7, 3, 12, 0));
 
-    expect(days[0].slots[0].value).toBe('2026-09-01T21:00');
+    expect(hours[0].value).toBe('2026-08-10T17:00');
   });
 
-  it('siempre devuelve dos días con horas disponibles', () => {
-    for (const hour of [0, 6, 12, 20, 21, 22, 23]) {
-      const days = buildQuickDays(new Date(2026, 7, 3, hour, 0));
-      expect(days).toHaveLength(2);
-      expect(days.every((d) => d.slots.length > 0)).toBe(true);
-    }
+  /** Ofrecer las 17:00 a las 22:15 sería ofrecer un 400 `SLOT_IN_THE_PAST`. */
+  it('en el día de hoy, las horas que ya pasaron no se ofrecen', () => {
+    const hours = buildHours('2026-08-03', new Date(2026, 7, 3, 22, 15));
+
+    expect(hours.map((h) => h.label)).toEqual(['22:30', '23:00', '23:30']);
+  });
+
+  /**
+   * De madrugada no queda ninguna, y devolver la lista vacía es lo que permite a la vista decir
+   * "hoy ya no quedan horas" en vez de enseñar una rejilla muerta.
+   */
+  it('devuelve vacío cuando el día de hoy ya se ha agotado', () => {
+    expect(buildHours('2026-08-03', new Date(2026, 7, 3, 23, 45))).toEqual([]);
+  });
+
+  it('un día futuro ofrece la franja entera aunque hoy esté agotado', () => {
+    const hours = buildHours('2026-08-04', new Date(2026, 7, 3, 23, 45));
+
+    expect(hours).toHaveLength(14);
   });
 });
