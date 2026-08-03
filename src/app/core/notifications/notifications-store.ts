@@ -82,6 +82,18 @@ export class NotificationsStore {
   readonly lastArrived = this._lastArrived.asReadonly();
 
   /**
+   * El último aviso de "algo cambió, vuelve a leerlo" llegado por el stream. NO es una
+   * notificación: no se guarda, no se pinta y no va a la campana — solo trae los ids de lo que
+   * hay que refrescar, y quien esté mirando esa pantalla decide si le concierne.
+   *
+   * Va aquí y no en el store de convocatorias porque el stream es uno por usuario y lo posee
+   * este store; repartirlo sería abrir una segunda conexión para el mismo canal. Un `effect` en
+   * la vista lo observa. Null hasta el primer aviso.
+   */
+  private readonly _lastNudge = signal<{ event: string; data: Record<string, string> } | null>(null);
+  readonly lastNudge = this._lastNudge.asReadonly();
+
+  /**
    * Devuelve la bandeja, cargándola si hace falta. Idempotente y deduplicada; nunca
    * lanza — un fallo se traduce en `status === 'error'` y lista vacía.
    */
@@ -255,6 +267,10 @@ export class NotificationsStore {
         if (generation !== this.streamGeneration) return;
         this.ingest(notification);
       },
+      onNudge: (event, data) => {
+        if (generation !== this.streamGeneration) return;
+        this._lastNudge.set({ event, data });
+      },
       onClose: (reason) => {
         if (reason.aborted || generation !== this.streamGeneration) return;
         if (reason.status === 401) {
@@ -332,5 +348,6 @@ export class NotificationsStore {
     this._notifications.set([]);
     this._status.set('idle');
     this._lastArrived.set(null);
+    this._lastNudge.set(null);
   }
 }

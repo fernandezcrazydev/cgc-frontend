@@ -281,8 +281,8 @@
       <button type="button" class="shell__pending" (click)="openPendingRoom(r)">
         <span class="shell__pending-pulse" aria-hidden="true"></span>
         <span class="shell__pending-text">
-          <span class="shell__pending-title nf-mono">SALA ABIERTA · {{ r.seats.length }}/{{ r.capacity }} APUNTADOS</span>
-          <span class="shell__pending-sub nf-mono">Sala {{ r.code }} esperando jugadores — toca para entrar</span>
+          <span class="shell__pending-title nf-mono">PARTIDA ABIERTA · {{ pendingSignedUp(r) }}/{{ r.capacity }} APUNTADOS</span>
+          <span class="shell__pending-sub nf-mono">Sala {{ r.code }} — di a qué horas puedes</span>
         </span>
         <span class="shell__pending-cta nf-mono nf-caps nf-go">Entrar</span>
       </button>
@@ -328,8 +328,8 @@
           <button type="button" class="shell__sheet-pending" (click)="openPendingRoom(r)">
             <span class="shell__pending-pulse" aria-hidden="true"></span>
             <span class="shell__pending-text">
-              <span class="shell__pending-title nf-mono">SALA ABIERTA · {{ r.seats.length }}/{{ r.capacity }}</span>
-              <span class="shell__pending-sub nf-mono">Sala {{ r.code }} esperando jugadores</span>
+              <span class="shell__pending-title nf-mono">PARTIDA ABIERTA · {{ pendingSignedUp(r) }}/{{ r.capacity }}</span>
+              <span class="shell__pending-sub nf-mono">Sala {{ r.code }} — di a qué horas puedes</span>
             </span>
             <span class="shell__pending-cta nf-mono nf-caps nf-go">Entrar</span>
           </button>

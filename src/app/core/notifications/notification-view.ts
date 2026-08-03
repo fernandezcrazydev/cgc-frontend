@@ -50,6 +50,33 @@ const FEEDBACK_EYEBROW: Record<string, string> = {
   INCIDENT: 'Nueva incidencia',
 };
 
+/**
+ * A dónde lleva una notificación de convocatoria: a su sala dentro del grupo. Sin los dos ids no
+ * hay destino, y entonces la fila informa pero no navega — mejor eso que un clic que aterriza en
+ * un 404 (mismo criterio que `FEEDBACK_SUBMITTED`).
+ */
+function lobbyLink(n: NotificationResponse): readonly string[] | null {
+  const groupId = n.data['groupId'];
+  const lobbyId = n.data['lobbyId'];
+  return groupId && lobbyId ? ['/app', 'grupos', groupId, 'partidas', lobbyId] : null;
+}
+
+/**
+ * Instante ISO-8601 → "jue 7, 22:00" en la zona del que lee. Formatear aquí y no en la plantilla
+ * porque el texto de la notificación se compone entero en este fichero; el backend siempre manda
+ * UTC y quién lo lee decide en qué hora lo ve.
+ */
+function formatKickoff(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  return new Intl.DateTimeFormat('es-ES', {
+    weekday: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date);
+}
+
 /** Mapea un DTO de notificación a su modelo de presentación. `now` inyectable para tests. */
 export function notificationView(n: NotificationResponse, now = Date.now()): NotificationView {
   const base = {
@@ -127,6 +154,62 @@ export function notificationView(n: NotificationResponse, now = Date.now()): Not
         // Sin id no hay detalle al que ir: mejor una fila que informa y no navega que un
         // clic que aterriza en un 404.
         link: feedbackId ? ['/app', 'admin', 'feedback', feedbackId] : null,
+      };
+    }
+    case 'LOBBY_OPENED': {
+      const who = n.data['openedByName'] ?? 'Alguien';
+      const groupName = n.data['groupName'] ?? 'tu grupo';
+      return {
+        ...base,
+        title: 'PARTIDA CONVOCADA',
+        message: `${who} ha convocado una partida en ${groupName}. Di a qué horas puedes`,
+        accent: 'var(--nf-cyan)',
+        glyph: '📣',
+        invite: null,
+        link: lobbyLink(n),
+      };
+    }
+    case 'LOBBY_CONFIRMED': {
+      const startsAt = n.data['startsAt'];
+      return {
+        ...base,
+        title: 'PARTIDA CONFIRMADA',
+        // La hora es EL dato de esta notificación, así que va en el texto y no solo en el detalle.
+        message: startsAt
+          ? `Ya hay hora: ${formatKickoff(startsAt)}`
+          : 'La partida ya tiene hora',
+        accent: 'var(--nf-green)',
+        glyph: '✓',
+        invite: null,
+        link: lobbyLink(n),
+      };
+    }
+    case 'LOBBY_PROMOTED': {
+      const startsAt = n.data['startsAt'];
+      return {
+        ...base,
+        title: 'ENTRAS A JUGAR',
+        // La única de la familia que es urgente de verdad: cambia lo que tienes que hacer esta
+        // noche sin que tú hayas hecho nada.
+        message: startsAt
+          ? `Se ha caído alguien y entras tú: ${formatKickoff(startsAt)}`
+          : 'Se ha caído alguien y entras tú',
+        accent: 'var(--nf-pink)',
+        glyph: '▲',
+        invite: null,
+        link: lobbyLink(n),
+      };
+    }
+    case 'LOBBY_CANCELLED': {
+      const groupName = n.data['groupName'] ?? 'tu grupo';
+      return {
+        ...base,
+        title: 'PARTIDA CANCELADA',
+        message: `Se ha cancelado la partida de ${groupName}`,
+        accent: 'var(--nf-red)',
+        glyph: '⊘',
+        invite: null,
+        // Sin enlace: la sala sigue existiendo pero no hay nada que hacer en ella.
       };
     }
     default:

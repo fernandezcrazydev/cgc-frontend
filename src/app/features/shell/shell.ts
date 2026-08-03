@@ -5,6 +5,7 @@ import { filter, map, startWith } from 'rxjs';
 import { NAV } from '../../core/lobby';
 import { Auth, Session } from '../../core/auth';
 import { GroupBridge, GroupDetailStore, GroupsStore, InvitationsStore } from '../../core/groups';
+import { LobbiesStore, LobbyDetailStore, LobbyResponse } from '../../core/lobbies';
 import { MatchStore, MatchRoom } from '../../core/match-store';
 import { NotificationsStore, NotificationView, notificationView } from '../../core/notifications';
 import { RiotAccountStore } from '../../core/riot';
@@ -57,6 +58,8 @@ export class Shell {
   readonly invitations = inject(InvitationsStore);
   private readonly groupDetail = inject(GroupDetailStore);
   private readonly groupBridge = inject(GroupBridge);
+  private readonly lobbies = inject(LobbiesStore);
+  private readonly lobbyDetail = inject(LobbyDetailStore);
   private readonly riot = inject(RiotAccountStore);
   private readonly devices = inject(DevicesStore);
   private readonly prefs = inject(PreferencesStore);
@@ -72,13 +75,21 @@ export class Shell {
    * The selected group's open room still waiting for players, if any. Surfaced as
    * a pending-room banner so members can jump in without hunting for the notification.
    */
-  readonly pendingRoom = computed<MatchRoom | null>(() => {
+  readonly pendingRoom = computed<LobbyResponse | null>(() => {
     const g = this.groups.selected();
-    return g ? this.matches.waitingOf(g.id)[0] ?? null : null;
+    if (!g) return null;
+    // La primera que sigue esperando gente. Una ya confirmada no va aquí: el banner es para
+    // "falta gente, entra", no para recordarte una partida que ya tiene hora.
+    return this.lobbies.open().find((lobby) => lobby.status === 'POLLING') ?? null;
   });
 
+  /** Cuánta gente ha juntado la franja que mejor va, para el contador del banner. */
+  pendingSignedUp(lobby: LobbyResponse): number {
+    return lobby.slots.reduce((best, slot) => Math.max(best, slot.signedUp), 0);
+  }
+
   /** Jump into the pending room's lobby (also closes the mobile group sheet). */
-  openPendingRoom(room: MatchRoom): void {
+  openPendingRoom(room: LobbyResponse): void {
     this.showGroupSheet.set(false);
     this.router.navigate(['/app', 'grupos', room.groupId, 'partidas', room.id]);
   }
@@ -261,6 +272,23 @@ export class Shell {
       if (latest?.type === 'INVITED_TO_GROUP') void this.invitations.reload();
     });
 
+    // Convocatorias del grupo activo, para el banner de "hay una partida abierta". Va en el
+    // shell y no en una vista porque el banner se ve desde cualquier pantalla — que era el
+    // punto: enterarte sin que nadie te pase un enlace. `ensureLoaded` no repite la petición.
+    effect(() => {
+      const g = this.groups.selected();
+      if (g) void this.lobbies.ensureLoaded(g.id);
+    });
+
+    // Alguien convocó o se apuntó: el banner se actualiza solo.
+    effect(() => {
+      const nudge = this.notifs.lastNudge();
+      const g = this.groups.selected();
+      if (nudge?.event === 'lobby' && g && nudge.data['groupId'] === g.id) {
+        void this.lobbies.reload();
+      }
+    });
+
     // Vincular/verificar desde la app de escritorio (o perder la cuenta a manos de otro
     // usuario) llega igual por SSE: refetch silencioso de la cuenta de Riot para que el
     // perfil se vea fresco esté o no la vista abierta. Va aquí (global) y no en `perfil.ts`
@@ -319,6 +347,8 @@ export class Shell {
     this.groups.clear();
     this.groupDetail.clear();
     this.groupBridge.clear();
+    this.lobbies.clear();
+    this.lobbyDetail.clear();
     this.riot.clear();
     this.devices.clear();
     this.prefs.clear();

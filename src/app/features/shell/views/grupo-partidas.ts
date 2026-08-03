@@ -2,9 +2,11 @@ import { Component, computed, effect, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
-import { NfBadge, NfBadgeColor, NfButton, NfWindow } from '../../../ui';
+import { NfBadge, NfBadgeColor, NfButton, NfSkeleton, NfWindow } from '../../../ui';
 import { GroupStore } from '../../../core/group-store';
 import { MatchStore, MatchRoom } from '../../../core/match-store';
+import { LobbiesStore, LobbyResponse } from '../../../core/lobbies';
+import { NotificationsStore } from '../../../core/notifications';
 
 /**
  * Active matches of a group: every open room still filling up plus every live
@@ -14,7 +16,7 @@ import { MatchStore, MatchRoom } from '../../../core/match-store';
 @Component({
   selector: 'app-grupo-partidas',
   standalone: true,
-  imports: [RouterLink, NfBadge, NfButton, NfWindow],
+  imports: [RouterLink, NfBadge, NfButton, NfSkeleton, NfWindow],
   template: `
     <div class="view">
       @if (group(); as g) {
@@ -28,6 +30,58 @@ import { MatchStore, MatchRoom } from '../../../core/match-store';
         </div>
 
         <p class="view__intro">Salas abiertas esperando jugadores y partidas en curso de {{ g.name }}.</p>
+
+        <!-- Convocatorias reales del backend. Van primero porque son las que esperan una acción. -->
+        @if (lobbies.isLoading()) {
+          <div class="cards" aria-busy="true">
+            <nf-window title="convocatorias.exe" accent="pink" bodyPadding="16px">
+              <nf-skeleton width="60%" height="16px" />
+              <nf-skeleton width="40%" height="12px" />
+            </nf-window>
+          </div>
+        } @else if (lobbies.status() === 'error') {
+          <nf-window title="convocatorias.exe" accent="pink" bodyPadding="16px">
+            <p class="empty-state__hint">No se pudieron cargar las convocatorias.</p>
+            <button nfButton variant="secondary" size="sm" (click)="reloadLobbies()">Reintentar</button>
+          </nf-window>
+        } @else if (lobbies.open().length) {
+          <div class="cards">
+            @for (lb of lobbies.open(); track lb.id) {
+              <nf-window
+                [title]="'sala_' + lb.code + '.exe'"
+                [accent]="lb.status === 'CONFIRMED' ? 'cyan' : 'pink'"
+                bodyPadding="16px"
+              >
+                <div class="pm-head">
+                  <div
+                    class="pm-avatar"
+                    [style.background]="'radial-gradient(circle at 32% 26%, ' + g.c1 + ', ' + g.c2 + ')'"
+                  ></div>
+                  <div>
+                    <div class="pm-mode">
+                      {{ lb.status === 'CONFIRMED' ? 'Partida confirmada' : 'Convocatoria abierta' }}
+                    </div>
+                    <div class="pm-players nf-mono">
+                      {{ lobbyWhen(lb) }} · CONVOCÓ {{ lb.openedBy.discordUsername ?? '—' }}
+                    </div>
+                  </div>
+                </div>
+                <div class="pm-foot">
+                  <nf-badge [color]="lb.status === 'CONFIRMED' ? 'green' : 'yellow'" [dot]="true">
+                    {{ lobbySignedUp(lb) }}/{{ lb.capacity }}
+                  </nf-badge>
+                  <button
+                    nfButton
+                    variant="ghost"
+                    size="sm"
+                    class="nf-go"
+                    [routerLink]="['/app', 'grupos', g.id, 'partidas', lb.id]"
+                  >{{ lb.status === 'CONFIRMED' ? 'Ver partida' : 'Decir cuándo puedo' }}</button>
+                </div>
+              </nf-window>
+            }
+          </div>
+        }
 
         @if (rooms().length) {
           <div class="cards">
@@ -120,11 +174,66 @@ export class GrupoPartidas {
     return r.status === 'live' ? 'Ver partida' : r.status === 'drafting' ? 'Ver en directo' : 'Ver sala';
   }
 
+  // ── Convocatorias reales ──────────────────────────────────────────
+  readonly lobbies = inject(LobbiesStore);
+  private readonly notifs = inject(NotificationsStore);
+
+  /**
+   * Qué se enseña como "cuándo": la hora ya cuadrada si está confirmada, y si no, cuántas horas
+   * hay sobre la mesa. Son dos preguntas distintas y merecen dos frases distintas.
+   */
+  lobbyWhen(lobby: LobbyResponse): string {
+    const confirmed = lobby.slots.find((slot) => slot.id === lobby.confirmedSlotId);
+    if (confirmed) return this.formatKickoff(confirmed.startsAt).toUpperCase();
+    const count = lobby.slots.length;
+    return `${count} HORA${count === 1 ? '' : 'S'} PROPUESTA${count === 1 ? '' : 'S'}`;
+  }
+
+  /**
+   * El contador de la tarjeta. Con varias franjas vivas no hay un único número, así que se
+   * enseña el de la franja que más gente ha juntado: es la que va camino de confirmarse.
+   */
+  lobbySignedUp(lobby: LobbyResponse): number {
+    const confirmed = lobby.slots.find((slot) => slot.id === lobby.confirmedSlotId);
+    if (confirmed) return confirmed.signedUp;
+    return lobby.slots.reduce((best, slot) => Math.max(best, slot.signedUp), 0);
+  }
+
+  private formatKickoff(iso: string): string {
+    const date = new Date(iso);
+    if (Number.isNaN(date.getTime())) return iso;
+    return new Intl.DateTimeFormat('es-ES', {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(date);
+  }
+
+  reloadLobbies(): void {
+    void this.lobbies.reload();
+  }
+
   constructor() {
     // Keep the shell header/sidebar in sync with the active group on deep-link.
     effect(() => {
       const id = this.id();
       if (id && this.groups.byId(id)) this.groups.select(id);
+    });
+
+    // Convocatorias del grupo. `ensureLoaded` no repite la petición al volver a la vista.
+    effect(() => {
+      const id = this.id();
+      if (id) void this.lobbies.ensureLoaded(id);
+    });
+
+    // Alguien se apuntó o convocó: la lista se actualiza sola sin recargar la página.
+    effect(() => {
+      const nudge = this.notifs.lastNudge();
+      if (nudge?.event !== 'lobby') return;
+      if (nudge.data['groupId'] !== this.id()) return;
+      void this.lobbies.reload();
     });
   }
 }
