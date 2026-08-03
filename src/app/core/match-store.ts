@@ -268,9 +268,13 @@ function seedRooms(): MatchRoom[] {
  * drive the group's active-match list, the lobby/sala detail, the live follower
  * view and the pending-room banner in the shell.
  *
+ * MIGRADO EN PARTE: el modo ABIERTO ya no vive aquí. Las convocatorias (proponer horas,
+ * apuntarse, suplentes) son reales y viven en `core/lobbies` contra el backend; de ahí que
+ * `openRoom`/`waitingOf` hayan desaparecido. Lo que queda es el wizard manual y la partida en
+ * curso, que siguen siendo maqueta hasta que migre el matchmaking.
+ *
  * Sources that WRITE here:
  * - create-match wizard (manual): startDraft → syncDraft (live) → promoteToLive.
- * - create-match wizard (open):   openRoom → addSeat/removeSeat → (promote later).
  *
  * BACKEND NOTE: today everything is in-memory signals (single browser instance,
  * no cross-user sync). To make followers see another user's draft in real time,
@@ -302,38 +306,6 @@ export class MatchStore {
   /** Physically drop drafts past the TTL. BACKEND NOTE: a scheduled job owns this. */
   pruneStaleDrafts(): void {
     this.rooms.update((list) => list.filter((r) => !this.isExpired(r)));
-  }
-
-  /** Rooms still pending players (waiting + not yet full) for a group. */
-  waitingOf(groupId: string): MatchRoom[] {
-    return this.activeOf(groupId).filter(
-      (r) => r.status === 'waiting' && r.seats.length < r.capacity,
-    );
-  }
-
-  /**
-   * Open (or resume) an open room for a group. Idempotent: if the captain already
-   * has a waiting open room here, that one is returned instead of creating a copy.
-   * Seat 0 is the captain who opened it.
-   */
-  openRoom(groupId: string, captain: Member): MatchRoom {
-    const existing = this.waitingOf(groupId).find(
-      (r) => r.mode === 'open' && r.openedBy === captain.name,
-    );
-    if (existing) return existing;
-    const room: MatchRoom = {
-      id: `${groupId}-${makeCode().toLowerCase()}`,
-      groupId,
-      code: makeCode(),
-      mode: 'open',
-      status: 'waiting',
-      capacity: CAPACITY,
-      seats: [{ ...captain, role: 'CAPITÁN · ABRIÓ LA SALA' }],
-      openedBy: captain.name,
-      createdAt: Date.now(),
-    };
-    this.rooms.update((list) => [...list, room]);
-    return room;
   }
 
   /**

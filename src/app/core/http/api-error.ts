@@ -77,12 +77,16 @@ const MESSAGES_BY_CODE: Record<string, string> = {
   INVITATION_NOT_PENDING: 'Esa invitación ya no está pendiente: se aceptó, se rechazó o se canceló.',
   INVITEE_NOT_FOUND: 'No se ha encontrado ese usuario.',
   INVITEE_REFUSES_INVITATIONS: 'Este usuario no acepta invitaciones a grupos nuevos.',
+  LOBBY_NOT_FOUND: 'Esa partida ya no existe.',
+  LOBBY_NOT_OPEN: 'Esta partida ya no admite gente: se canceló o ya se está jugando.',
+  LOBBY_SLOT_NOT_FOUND: 'Esa hora ya no está disponible. Puede que se haya cerrado otra.',
   PRIMARY_LANE_NOT_CHOSEN: 'Tu rol principal tiene que ser uno de los roles que has seleccionado.',
   RIOT_ACCOUNT_ALREADY_LINKED:
     'Esa cuenta de Riot ya está vinculada por otro usuario. Si es tuya, pídele que la desvincule.',
   RIOT_ACCOUNT_NOT_LINKED: 'No tienes ninguna cuenta de Riot vinculada.',
   RIOT_RELINK_ON_COOLDOWN:
     'Has desvinculado tu cuenta hace poco. Puedes volver a poner la misma, pero para vincular otra distinta tendrás que esperar.',
+  SLOT_IN_THE_PAST: 'Esa hora ya ha pasado. Elige una futura.',
   UNSUPPORTED_IMAGE: 'Ese formato de imagen no es válido. Usa JPEG o PNG.',
 };
 

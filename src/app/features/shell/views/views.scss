@@ -3802,3 +3802,131 @@
   text-align: center;
 }
 .gd-invites-empty__text { font-size: 12px; letter-spacing: 1.5px; color: var(--nf-text-dim); }
+
+/* ── Convocatorias: franjas horarias, apuntados y banquillo ──────────────────
+   La sala de una convocatoria. Cada bloque es una hora candidata con su gente;
+   al confirmarse solo queda una y se marca con `is-confirmed`. */
+.cp-room__note {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--nf-text-dim);
+}
+
+.lb-slot {
+  padding: 14px;
+  border: 1px solid var(--nf-border);
+  border-radius: 12px;
+  background: var(--nf-surface-2);
+  & + & { margin-top: 12px; }
+}
+/* La franja que ya se cuadró: es la única que importa, así que se despega del resto. */
+.lb-slot.is-confirmed {
+  border-color: var(--nf-green);
+  box-shadow: 0 0 0 1px var(--nf-green) inset;
+}
+
+.lb-slot__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.lb-slot__when {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.lb-slot__count {
+  font-size: 13px;
+  color: var(--nf-text-dim);
+}
+
+/* Un único botón que alterna: si ya puedo, quitarme; si no, apuntarme. */
+.lb-slot__cta {
+  padding: 6px 14px;
+  border: 1px solid var(--nf-border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--nf-text);
+  font-size: 11px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.lb-slot__cta:hover:not(:disabled) { border-color: var(--nf-cyan); color: var(--nf-cyan); }
+.lb-slot__cta.is-in {
+  border-color: var(--nf-green);
+  background: color-mix(in srgb, var(--nf-green) 16%, transparent);
+  color: var(--nf-green);
+}
+.lb-slot__cta:disabled { opacity: 0.5; cursor: default; }
+
+.lb-slot__bar {
+  position: relative;
+  height: 5px;
+  margin: 10px 0 12px;
+  border-radius: 999px;
+  background: var(--nf-surface-3);
+  overflow: hidden;
+}
+.lb-slot__fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--nf-cyan), var(--nf-green));
+  transition: width 0.25s ease;
+}
+
+.lb-slot__label {
+  margin-bottom: 6px;
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  color: var(--nf-text-dim);
+}
+.lb-slot__label:not(:first-of-type) { margin-top: 12px; }
+
+.lb-slot__empty {
+  font-size: 12px;
+  color: var(--nf-text-dim);
+}
+
+.lb-people {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.lb-person {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px 4px 4px;
+  border: 1px solid var(--nf-border);
+  border-radius: 999px;
+  background: var(--nf-surface);
+}
+/* Encontrarte en una lista de doce nombres no debería costar un segundo. */
+.lb-person.is-me {
+  border-color: var(--nf-cyan);
+  background: color-mix(in srgb, var(--nf-cyan) 12%, transparent);
+}
+.lb-person__name { font-size: 12px; }
+.lb-people--bench .lb-person { opacity: 0.75; }
+.lb-person__pos {
+  min-width: 16px;
+  padding-left: 4px;
+  font-size: 10px;
+  color: var(--nf-text-dim);
+}
+
+/* El formulario de convocar: selector de hora + botón de añadir. */
+.cp-slotform {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.cp-slotform__input { flex: 1; }
+
+@media (max-width: 560px) {
+  .cp-slotform { flex-direction: column; align-items: stretch; }
+  .lb-slot__head { flex-wrap: wrap; }
+  .lb-slot__when { flex-basis: 100%; }
+}

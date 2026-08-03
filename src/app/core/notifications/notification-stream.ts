@@ -15,11 +15,20 @@ export interface NotificationStreamClose {
 export interface NotificationStreamHandlers {
   /** Una notificación nueva (evento `notification`), ya parseada. */
   onNotification: (notification: NotificationResponse) => void;
+  /**
+   * Un aviso de "algo cambió, vuelve a leerlo" (evento `lobby`). NO trae el dato: solo los ids
+   * de lo que hay que refrescar, porque la fuente de verdad es Postgres y no este mensaje. Por
+   * eso perder uno solo cuesta una pantalla desactualizada hasta la siguiente acción.
+   */
+  onNudge?: (event: string, data: Record<string, string>) => void;
   /** La conexión se abrió (útil para reintentos: resetear el backoff). */
   onOpen?: () => void;
   /** La conexión terminó o falló. Ver `NotificationStreamClose`. */
   onClose?: (reason: NotificationStreamClose) => void;
 }
+
+/** Eventos que NO son de la campana y llegan por el mismo stream, como avisos de refetch. */
+const NUDGE_EVENTS = new Set(['lobby']);
 
 /**
  * Abre el stream SSE de notificaciones con un `fetch` que SÍ puede poner el Bearer
@@ -67,7 +76,7 @@ export function openNotificationStream(
         while ((sep = indexOfFrameEnd(buffer)) !== -1) {
           const frame = buffer.slice(0, sep);
           buffer = buffer.slice(sep).replace(/^(\r?\n){1,2}/, '');
-          emitFrame(frame, handlers.onNotification);
+          emitFrame(frame, handlers);
         }
       }
       handlers.onClose?.({ aborted: false, status: null });
@@ -91,11 +100,15 @@ function indexOfFrameEnd(buffer: string): number {
 }
 
 /**
- * Parsea un frame SSE (`event: ...`, `data: ...`) y, si es un `notification` con JSON
- * válido, lo emite. Varias líneas `data:` se concatenan con `\n` (estándar SSE). Ignora
- * silenciosamente comentarios (`:` heartbeat) y frames de otros tipos.
+ * Parsea un frame SSE (`event: ...`, `data: ...`) y lo despacha por su NOMBRE de evento: la
+ * campana (`notification`) y los avisos de refetch (`lobby`) comparten un único stream por
+ * usuario. Varias líneas `data:` se concatenan con `\n` (estándar SSE).
+ *
+ * Un nombre desconocido se ignora en silencio, y eso es deliberado: el backend puede añadir un
+ * tipo de evento sin romper a un cliente que todavía no sabe qué hacer con él. Los comentarios
+ * (`:` del heartbeat que manda el servidor cada 15 s para que el túnel no corte) también.
  */
-function emitFrame(frame: string, onNotification: (n: NotificationResponse) => void): void {
+function emitFrame(frame: string, handlers: NotificationStreamHandlers): void {
   let event = 'message';
   const dataLines: string[] = [];
   for (const rawLine of frame.split('\n')) {
@@ -109,9 +122,14 @@ function emitFrame(frame: string, onNotification: (n: NotificationResponse) => v
     if (field === 'event') event = value;
     else if (field === 'data') dataLines.push(value);
   }
-  if (event !== 'notification' || dataLines.length === 0) return;
+  if (dataLines.length === 0) return;
   try {
-    onNotification(JSON.parse(dataLines.join('\n')) as NotificationResponse);
+    const payload = JSON.parse(dataLines.join('\n'));
+    if (event === 'notification') {
+      handlers.onNotification(payload as NotificationResponse);
+    } else if (NUDGE_EVENTS.has(event)) {
+      handlers.onNudge?.(event, payload as Record<string, string>);
+    }
   } catch {
     // Un frame corrupto no debe tumbar el stream: se descarta y seguimos leyendo.
   }

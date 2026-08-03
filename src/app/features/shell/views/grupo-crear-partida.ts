@@ -5,6 +5,9 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
 import { NfAvatar, NfBadge, NfButton, NfSkeleton, NfWindow } from '../../../ui';
 import { GroupBridge } from '../../../core/groups';
+import { LobbiesStore, MAX_NOTE_LENGTH, MAX_SLOTS } from '../../../core/lobbies';
+import { errorMessage } from '../../../core/http';
+import { ToastService } from '../../../core/toast';
 import { GroupStore } from '../../../core/group-store';
 import { MatchStore, DraftSnapshot, DraftRaw, RoomTeams, RoomTeamSlot } from '../../../core/match-store';
 import { Member } from '../../../core/lobby';
@@ -793,85 +796,93 @@ interface GeneratedTeams {
               </div>
             }
           } @else {
-            <!-- ===== MODO SALA ABIERTA · configurar + sala de espera ===== -->
-            <nf-window title="sala_abierta.exe" accent="pink" bodyPadding="0">
+            <!-- ===== MODO SALA ABIERTA · convocar proponiendo horas ===== -->
+            <nf-window title="convocar.exe" accent="pink" bodyPadding="0">
               <div class="cp-room__bar">
                 <div class="cp-room__barmeta">
-                  <div class="cp-room__sub nf-mono">CUALQUIER MIEMBRO DEL GRUPO PUEDE APUNTARSE</div>
+                  <div class="cp-room__sub nf-mono">
+                    PROPÓN UNA O VARIAS HORAS · EL GRUPO DIRÁ A CUÁLES PUEDE
+                  </div>
                 </div>
-                <nf-badge [color]="openFull() ? 'green' : 'yellow'">{{ openCount() }}/{{ MAX }}</nf-badge>
+                <nf-badge [color]="slotDrafts().length ? 'green' : 'yellow'">
+                  {{ slotDrafts().length }}/{{ MAX_SLOTS }}
+                </nf-badge>
               </div>
 
-              <div class="cp-seats" [class.is-complete]="openFull()">
-                @for (slot of seatSlots(); track $index) {
-                  @if (slot; as m) {
-                    <div class="cp-seat" [class.cp-seat--captain]="m.owner">
-                      <span class="cp-seat__avatar" [style.background]="avatarBg(m.hue)">{{ m.initials }}</span>
-                      <span class="cp-seat__meta">
-                        <span class="cp-seat__name nf-mono">{{ m.name }}</span>
-                        <span class="cp-seat__role nf-mono">{{ m.owner ? 'CAPITÁN · ABRIÓ LA SALA' : 'APUNTADO' }}</span>
-                        @if (badgesOf(m.name); as bs) {
-                          @if (bs.length) {
-                            <div class="mbadges mbadges--tight">
-                              @for (b of bs; track b.id) {
-                                <span class="mbadge" [attr.data-color]="b.color" [title]="b.title + ' · ' + b.detail">{{ b.glyph }}</span>
-                              }
-                            </div>
-                          }
-                        }
-                      </span>
-                      @if (!m.owner) {
-                        <button
-                          type="button"
-                          class="cp-seat__kick"
-                          [attr.aria-label]="'Quitar a ' + m.name"
-                          (click)="leaveSeat(m)"
-                        >✕</button>
-                      }
-                    </div>
-                  } @else {
-                    <div class="cp-seat cp-seat--open">
-                      <span class="cp-seat__slot" aria-hidden="true"><span class="cp-spinner"></span></span>
-                      <span class="cp-seat__meta">
-                        <span class="cp-seat__name nf-mono">ASIENTO ABIERTO</span>
-                        <span class="cp-seat__role nf-mono">
-                          ESPERANDO JUGADOR<span class="cp-dots" aria-hidden="true"><i></i><i></i><i></i></span>
-                        </span>
-                      </span>
-                    </div>
-                  }
-                }
-              </div>
+              <div class="cp-pad">
+                <div class="cp-cover__legend nf-mono">
+                  La franja que junte {{ MAX }} jugadores se confirma sola y avisa a todos. Del
+                  {{ MAX + 1 }} en adelante quedan de <b>suplentes</b>, y si alguien se cae entran ellos.
+                </div>
 
-              <div class="cp-room__actions">
-                @if (!openFull()) {
-                  <button type="button" class="cp-sim nf-mono" [disabled]="!openPool().length" (click)="simulateJoin()">
-                    ▶ simular que alguien se apunta ({{ openPool().length }} disponibles)
-                  </button>
-                  <p class="form-note nf-mono" style="margin:0">
-                    MAQUETA · EN REAL, LOS MIEMBROS RECIBIRÍAN UNA NOTIFICACIÓN Y SE APUNTARÍAN DESDE SU CUENTA.
-                  </p>
-                } @else {
-                  <div class="cp-room__ready nf-mono">
-                    <span class="cp-room__ready-glyph">✓</span>
-                    SALA COMPLETA · LISTA PARA CONFIGURAR Y LANZAR
+                <div class="cp-slotform">
+                  <input
+                    class="field__input cp-slotform__input"
+                    type="datetime-local"
+                    [min]="minSlotValue()"
+                    [ngModel]="slotDraft()"
+                    (ngModelChange)="slotDraft.set($event)"
+                    aria-label="Día y hora que quieres proponer"
+                  />
+                  <button
+                    type="button"
+                    class="cp-rb__add nf-mono nf-caps"
+                    [disabled]="!canAddSlot()"
+                    (click)="addSlot()"
+                  >＋ Añadir hora</button>
+                </div>
+                @if (slotError(); as e) {
+                  <div class="cp-diag">
+                    <div class="cp-diag__item cp-diag__item--err nf-mono">✗ {{ e }}</div>
                   </div>
                 }
+
+                <div class="cp-rules">
+                  @for (slot of slotDrafts(); track slot) {
+                    <div class="cp-rule" data-kind="together">
+                      <span class="cp-rule__ico" aria-hidden="true">🕘</span>
+                      <div class="cp-rule__body">
+                        <span class="cp-rule__label nf-mono">{{ formatSlot(slot) }}</span>
+                      </div>
+                      <button
+                        type="button"
+                        class="cp-rule__del"
+                        [attr.aria-label]="'Quitar ' + formatSlot(slot)"
+                        (click)="removeSlot(slot)"
+                      >✕</button>
+                    </div>
+                  } @empty {
+                    <div class="cp-rules__empty nf-mono">
+                      Aún no has propuesto ninguna hora. Añade al menos una.
+                    </div>
+                  }
+                </div>
+
+                <input
+                  class="field__input"
+                  type="text"
+                  placeholder="Nota para el grupo (opcional)"
+                  [maxlength]="MAX_NOTE_LENGTH"
+                  [ngModel]="note()"
+                  (ngModelChange)="note.set($event)"
+                />
               </div>
             </nf-window>
 
             <div class="cp-foot">
               <button nfButton variant="ghost" size="md" (click)="resetMode()">← Modo</button>
-              <div class="cp-foot__status nf-mono">{{ openCount() }}/{{ MAX }} APUNTADOS</div>
+              <div class="cp-foot__status nf-mono">
+                {{ slotDrafts().length }} HORA{{ slotDrafts().length === 1 ? '' : 'S' }} PROPUESTA{{ slotDrafts().length === 1 ? '' : 'S' }}
+              </div>
               <button
                 nfButton
                 variant="primary"
                 size="md"
                 class="cp-cta nf-go"
-                [class.cp-cta--ready]="openFull()"
-                [disabled]="!openFull()"
-                (click)="continueToRestrictions()"
-              >Continuar a restricciones</button>
+                [class.cp-cta--ready]="slotDrafts().length > 0"
+                [disabled]="!slotDrafts().length || lobbies.creating()"
+                (click)="publishLobby()"
+              >{{ lobbies.creating() ? 'Convocando…' : 'Convocar partida' }}</button>
             </div>
           }
         </div>
@@ -911,6 +922,9 @@ export class GrupoCrearPartida {
   readonly groups = inject(GroupStore);
   /** Trae del backend la identidad y el roster reales del grupo (puente temporal al mock). */
   readonly bridge = inject(GroupBridge);
+  /** Convocatorias reales: el modo abierto ya no es maqueta. */
+  readonly lobbies = inject(LobbiesStore);
+  private readonly toasts = inject(ToastService);
   private readonly matches = inject(MatchStore);
 
   readonly MAX = 10;
@@ -992,38 +1006,109 @@ export class GrupoCrearPartida {
   );
 
   /**
-   * Open mode has two phases: `filling` (the waiting room collects sign-ups) and
-   * `configuring` (once full, the admin runs the SAME restriction steps 2-5 as
-   * manual mode, on the 10 players who joined).
+   * El wizard de restricciones es solo del modo MANUAL.
+   *
+   * Antes el modo abierto desembocaba aquí al llenarse la sala. Ya no: una convocatoria vive en
+   * el backend y se configura desde su propia sala cuando llegue esa fase. Mezclar las dos cosas
+   * significaba que salir del wizard cancelaba una sala en la que había gente apuntada.
    */
-  readonly openPhase = signal<'filling' | 'configuring'>('filling');
-
-  /** The step wizard (breadcrumb + steps) renders for manual, or open-configuring. */
-  readonly showStepWizard = computed(
-    () => this.mode() === 'manual' || (this.mode() === 'open' && this.openPhase() === 'configuring'),
-  );
+  readonly showStepWizard = computed(() => this.mode() === 'manual');
 
   chooseMode(m: CreateMode): void {
-    // Both modes create a persistent room the group can follow: an open room that
-    // fills up, or a "drafting" room the admin configures live. Seat 0 = captain.
-    const g = this.group();
-    const captain = this.roster()[0];
-    if (g && captain) {
-      const room = m === 'open' ? this.matches.openRoom(g.id, captain) : this.matches.startDraft(g.id, captain);
-      this.roomId.set(room.id);
-      // Resuming an abandoned draft: rehydrate the wizard from its raw state.
-      if (m === 'manual' && room.draft?.raw.selectedTags.length) this.hydrateFromDraft(room.draft.raw);
+    // Solo el modo MANUAL sigue creando una sala mock: es el wizard, que aún no está migrado.
+    // El modo abierto ya no crea nada al entrar — la convocatoria nace en el backend cuando se
+    // pulsa "Convocar", así que entrar a mirar el formulario y salirse no deja basura detrás.
+    if (m === 'manual') {
+      const g = this.group();
+      const captain = this.roster()[0];
+      if (g && captain) {
+        const room = this.matches.startDraft(g.id, captain);
+        this.roomId.set(room.id);
+        // Resuming an abandoned draft: rehydrate the wizard from its raw state.
+        if (room.draft?.raw.selectedTags.length) this.hydrateFromDraft(room.draft.raw);
+      }
     }
-    if (m === 'open') this.openPhase.set('filling');
     this.mode.set(m);
   }
 
-  /** Once the open room is full, carry its 10 players into the restriction steps. */
-  continueToRestrictions(): void {
-    if (!this.openFull()) return;
-    this.selected.set(new Set(this.seats().map((m) => m.tag)));
-    this.step.set(2);
-    this.openPhase.set('configuring');
+  // --- Modo abierto: convocar proponiendo horas -------------------------------
+  readonly MAX_SLOTS = MAX_SLOTS;
+  readonly MAX_NOTE_LENGTH = MAX_NOTE_LENGTH;
+
+  /** Horas propuestas, en el formato local de `datetime-local` ("2026-08-07T22:00"). */
+  readonly slotDrafts = signal<string[]>([]);
+  /** Lo que hay escrito en el selector antes de añadirlo. */
+  readonly slotDraft = signal('');
+  readonly note = signal('');
+  readonly slotError = signal<string | null>(null);
+
+  /**
+   * Suelo del selector: ahora. Evita el 400 `SLOT_IN_THE_PAST` del backend en el caso más
+   * común (equivocarse de día), aunque el servidor sigue siendo quien decide — el reloj del
+   * navegador se puede cambiar.
+   */
+  minSlotValue(): string {
+    return toLocalInputValue(new Date());
+  }
+
+  readonly canAddSlot = computed(
+    () => !!this.slotDraft() && this.slotDrafts().length < MAX_SLOTS,
+  );
+
+  addSlot(): void {
+    const value = this.slotDraft();
+    if (!value || this.slotDrafts().length >= MAX_SLOTS) return;
+    if (new Date(value).getTime() <= Date.now()) {
+      this.slotError.set('Esa hora ya ha pasado. Elige una futura.');
+      return;
+    }
+    if (this.slotDrafts().includes(value)) {
+      this.slotError.set('Ya has propuesto esa hora.');
+      return;
+    }
+    this.slotError.set(null);
+    this.slotDrafts.update((slots) => [...slots, value].sort());
+    this.slotDraft.set('');
+  }
+
+  removeSlot(value: string): void {
+    this.slotDrafts.update((slots) => slots.filter((slot) => slot !== value));
+    this.slotError.set(null);
+  }
+
+  /** "2026-08-07T22:00" → "jue 7 ago, 22:00", en la zona de quien mira. */
+  formatSlot(value: string): string {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return new Intl.DateTimeFormat('es-ES', {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(date);
+  }
+
+  /**
+   * Publica la convocatoria. PESIMISTA: espera la confirmación del backend antes de navegar,
+   * así nadie acaba en una sala que no llegó a existir. El botón queda bloqueado mientras
+   * (`lobbies.creating()`), de modo que un doble clic no convoca dos partidas.
+   */
+  async publishLobby(): Promise<void> {
+    const g = this.group();
+    if (!g || !this.slotDrafts().length || this.lobbies.creating()) return;
+    try {
+      const created = await this.lobbies.create(g.id, {
+        // El selector da hora local sin zona; el backend quiere instantes. La conversión la
+        // hace `Date`, que ya sabe en qué zona está este navegador.
+        slotStartTimes: this.slotDrafts().map((value) => new Date(value).toISOString()),
+        note: this.note().trim() || null,
+      });
+      this.toasts.success('Partida convocada. Ya puede apuntarse el grupo.');
+      this.router.navigate(['/app', 'grupos', g.id, 'partidas', created.id]);
+    } catch (error) {
+      this.toasts.error(errorMessage(error));
+    }
   }
 
   /** Restore the wizard's signals from a persisted draft (resume after leaving). */
@@ -1037,10 +1122,9 @@ export class GrupoCrearPartida {
   }
 
   resetMode(): void {
-    const id = this.roomId();
-    // Open rooms are cancelled when you back out. Manual drafts are KEPT so the
-    // admin can resume later (auto-pruned after 24h) — see MatchStore.startDraft.
-    if (id && this.mode() === 'open') this.matches.remove(id);
+    // El borrador manual se CONSERVA para poder retomarlo (se poda solo a las 24 h, ver
+    // MatchStore.startDraft). Del modo abierto no hay nada que deshacer: el formulario aún no
+    // ha creado nada en el backend.
     this.roomId.set(null);
     this.mode.set(null);
   }
@@ -1068,11 +1152,6 @@ export class GrupoCrearPartida {
 
   goStep(n: number): void {
     if (n > this.step()) return;
-    // In open mode, "step 1 / participants" is the fill phase, not the picker.
-    if (this.mode() === 'open' && this.openPhase() === 'configuring' && n === 1) {
-      this.openPhase.set('filling');
-      return;
-    }
     this.step.set(n);
   }
 
@@ -1111,8 +1190,7 @@ export class GrupoCrearPartida {
   }
 
   /**
-   * "Back": in open-configuring, step 2 returns to the waiting room (fill phase);
-   * in manual, step 1 returns to the mode chooser; otherwise the previous step.
+   * "Back": step 1 returns to the mode chooser; otherwise the previous step.
    */
   back(): void {
     clearTimeout(this.genTimer);
@@ -1121,11 +1199,6 @@ export class GrupoCrearPartida {
     const rc = this.reconfigureRoomId();
     if (rc) {
       if (this.step() <= 2) this.exitReconfigure(rc);
-      else this.step.update((s) => s - 1);
-      return;
-    }
-    if (this.mode() === 'open' && this.openPhase() === 'configuring') {
-      if (this.step() <= 2) this.openPhase.set('filling');
       else this.step.update((s) => s - 1);
       return;
     }
@@ -1807,42 +1880,15 @@ export class GrupoCrearPartida {
     return { blue: g.blue.map(conv), red: g.red.map(conv) };
   }
 
-  // --- Open mode: waiting room (persisted in MatchStore) ---------------------
-  /** Id of the open room being filled, or null before "sala abierta" is chosen. */
+  // --- Manual mode: the draft room the followers watch ----------------------
+  /** Id of the drafting room, or null before "partida manual" is chosen. */
   readonly roomId = signal<string | null>(null);
 
-  /** Seats taken so far; seat 0 is always the captain who opened the room. */
+  /** Players in the draft; mirrors the wizard's selection. */
   readonly seats = computed<Member[]>(() => {
     const id = this.roomId();
     return id ? this.matches.byId(id)?.seats ?? [] : [];
   });
-  readonly openCount = computed(() => this.seats().length);
-  readonly openFull = computed(() => this.openCount() >= this.MAX);
-
-  /** Exactly 10 slots: a member when filled, null when still open. */
-  readonly seatSlots = computed<(Member | null)[]>(() => {
-    const s = this.seats();
-    return Array.from({ length: this.MAX }, (_, i) => s[i] ?? null);
-  });
-
-  /** Group members not yet seated (the pool a real join would draw from). */
-  readonly openPool = computed<Member[]>(() =>
-    this.roster().filter((m) => !this.seats().some((x) => x.tag === m.tag)),
-  );
-
-  /** Mock: pull the next available member into an open seat. */
-  simulateJoin(): void {
-    const id = this.roomId();
-    const next = this.openPool()[0];
-    if (id && next) this.matches.addSeat(id, next);
-  }
-
-  /** Free a seat (the captain's seat can't be vacated). */
-  leaveSeat(m: Member): void {
-    const id = this.roomId();
-    if (m.owner || !id) return;
-    this.matches.removeSeat(id, m.tag);
-  }
 
   /** Display-ready snapshot of the current config, streamed to followers. */
   private buildSnapshot(): DraftSnapshot {
@@ -1926,4 +1972,19 @@ export class GrupoCrearPartida {
     this.mode.set('manual');
     this.step.set(2);
   }
+}
+
+/**
+ * `Date` → el valor que entiende un `<input type="datetime-local">` ("2026-08-07T22:00").
+ *
+ * A mano y no con `toISOString()`: ese devuelve UTC, y el input interpreta lo que recibe como
+ * hora LOCAL. Usarlo desplazaría el mínimo tantas horas como diga la zona del usuario, que en
+ * España son una o dos — suficiente para dejar elegir una hora ya pasada.
+ */
+function toLocalInputValue(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return (
+    `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +
+    `T${pad(date.getHours())}:${pad(date.getMinutes())}`
+  );
 }

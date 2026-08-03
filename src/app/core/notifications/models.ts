@@ -18,13 +18,22 @@
  * `FEEDBACK_SUBMITTED` llega cuando alguien envía un reporte, y **solo a los ADMIN** (nunca
  * al propio autor, aunque lo sea): trae `feedbackId`, `kind` (`BUG`/`PROPOSAL`/`INCIDENT`) y
  * `title`, este último ya recortado por el backend para caber en la campana.
+ *
+ * Los `LOBBY_*` son las convocatorias de partida. Todas traen `lobbyId`, `groupId`, `groupName`
+ * y `code`; además `LOBBY_OPENED` trae `openedByName`, y `LOBBY_CONFIRMED`/`LOBBY_PROMOTED`
+ * traen `startsAt` (la hora que se cuadró). `LOBBY_PROMOTED` es la única urgente de la familia:
+ * significa que alguien se ha caído y el que la recibe pasa de suplente a jugar.
  */
 export type NotificationType =
   | 'INVITED_TO_GROUP'
   | 'RIOT_ACCOUNT_PAIRED'
   | 'RIOT_ACCOUNT_VERIFIED'
   | 'RIOT_ACCOUNT_TAKEN_OVER'
-  | 'FEEDBACK_SUBMITTED';
+  | 'FEEDBACK_SUBMITTED'
+  | 'LOBBY_OPENED'
+  | 'LOBBY_CONFIRMED'
+  | 'LOBBY_PROMOTED'
+  | 'LOBBY_CANCELLED';
 
 /**
  * Una entrada de la campana. `type` es el nombre del enum; `data` es un mapa de

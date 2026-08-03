@@ -1,4 +1,4 @@
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import { Component, DestroyRef, computed, effect, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
@@ -15,6 +15,11 @@ import {
   RoomTeamSlot,
 } from '../../../core/match-store';
 import { CURRENT_USER, Member } from '../../../core/lobby';
+import { LobbyDetailStore, LobbySlotResponse } from '../../../core/lobbies';
+import { Session } from '../../../core/auth';
+import { NotificationsStore } from '../../../core/notifications';
+import { errorMessage } from '../../../core/http';
+import { ToastService } from '../../../core/toast';
 import { memberDetail } from '../../../core/member-detail';
 import { matchmake, internalElo, MatchmakePlayer, MatchmakeSlot } from '../../../core/matchmaking';
 import { MemberBadge, badgesFor } from '../../../core/group-badges';
@@ -45,7 +50,153 @@ import { ChampionSummary, GameDataStore } from '../../../core/game-data';
   imports: [RouterLink, NfBadge, NfButton, NfWindow, NfAvatar, NfSkeleton],
   template: `
     <div class="view">
-      @if (group(); as g) {
+      <!-- ===== CONVOCATORIA REAL (backend) ===== -->
+      @if (lobbyLoading()) {
+        <div class="cp" aria-busy="true">
+          <div class="cp-head">
+            <div class="cp-head__titles"><nf-skeleton width="180px" height="30px" /></div>
+          </div>
+          <nf-window title="sala.exe" accent="pink" bodyPadding="0">
+            <div class="cp-pad">
+              <nf-skeleton width="100%" height="72px" radius="12px" />
+              <nf-skeleton width="100%" height="72px" radius="12px" />
+            </div>
+          </nf-window>
+        </div>
+      } @else if (lobbies.status() === 'error') {
+        <div class="empty-state">
+          <div class="empty-state__icon">⚠</div>
+          <div class="empty-state__text nf-mono nf-eyebrow">Error al cargar</div>
+          <p class="empty-state__hint">No se pudo cargar la partida.</p>
+          <button nfButton variant="secondary" size="md" (click)="retryLobby()">Reintentar</button>
+        </div>
+      } @else if (lobby(); as lb) {
+        <div class="cp">
+          <div class="cp-head">
+            <div class="cp-head__titles">
+              <h1 class="view__title">Sala {{ lb.code }}</h1>
+            </div>
+            <a class="view-back cp-back" [routerLink]="['/app', 'grupos', lb.groupId, 'partidas']">
+              <span class="view-back__arrow">←</span> PARTIDAS ACTIVAS
+            </a>
+          </div>
+
+          <nf-window [title]="lb.status === 'CONFIRMED' ? 'partida.exe' : 'convocatoria.exe'"
+                     [accent]="lb.status === 'CONFIRMED' ? 'cyan' : 'pink'" bodyPadding="0">
+            <div class="cp-room__bar">
+              <div class="cp-room__barmeta">
+                <div class="cp-room__sub nf-mono">
+                  @switch (lb.status) {
+                    @case ('POLLING') { ¿A QUÉ HORAS PUEDES? · TOCA LAS QUE TE VENGAN BIEN }
+                    @case ('CONFIRMED') { PARTIDA CONFIRMADA · {{ formatKickoff(confirmedStartsAt()) }} }
+                    @case ('CANCELLED') { ESTA PARTIDA SE CANCELÓ }
+                    @default { {{ lb.status }} }
+                  }
+                </div>
+                @if (lb.note) {
+                  <div class="cp-room__note">{{ lb.note }}</div>
+                }
+              </div>
+              <nf-badge [color]="lb.status === 'CONFIRMED' ? 'green' : lb.status === 'CANCELLED' ? 'red' : 'yellow'">
+                {{ lb.status === 'CANCELLED' ? 'CANCELADA' : lb.status === 'CONFIRMED' ? 'CONFIRMADA' : 'ABIERTA' }}
+              </nf-badge>
+            </div>
+
+            <div class="cp-pad">
+              @for (slot of slots(); track slot.id) {
+                <div class="lb-slot" [class.is-confirmed]="slot.id === lb.confirmedSlotId">
+                  <div class="lb-slot__head">
+                    <span class="lb-slot__when nf-mono">{{ formatKickoff(slot.startsAt) }}</span>
+                    <span class="lb-slot__count nf-mono">{{ slot.signedUp }}/{{ lb.capacity }}</span>
+                    @if (lb.status !== 'CANCELLED') {
+                      <button
+                        type="button"
+                        class="lb-slot__cta nf-mono nf-caps"
+                        [class.is-in]="amIn(slot)"
+                        [disabled]="detail.isActing(slot.id)"
+                        (click)="toggleSlot(slot)"
+                      >
+                        {{ detail.isActing(slot.id) ? '…' : amIn(slot) ? '✓ Puedo' : 'Puedo' }}
+                      </button>
+                    }
+                  </div>
+
+                  <div class="lb-slot__bar" aria-hidden="true">
+                    <div class="lb-slot__fill" [style.width.%]="fillPercent(slot, lb.capacity)"></div>
+                  </div>
+
+                  @if (slot.starters.length) {
+                    <div class="lb-slot__label nf-mono">
+                      {{ lb.status === 'CONFIRMED' ? 'JUEGAN' : 'APUNTADOS' }}
+                    </div>
+                    <div class="lb-people">
+                      @for (p of slot.starters; track p.userId) {
+                        <span class="lb-person" [class.is-me]="isMe(p.userId)">
+                          <nf-avatar [src]="p.avatarUrl" [fallback]="p.discordUsername ?? '?'" [tint]="p.userId.length" [size]="26" />
+                          <span class="lb-person__name nf-mono">{{ p.discordUsername ?? 'Sin nombre' }}</span>
+                        </span>
+                      }
+                    </div>
+                  }
+
+                  @if (slot.bench.length) {
+                    <div class="lb-slot__label nf-mono">SUPLENTES · POR ORDEN DE LLEGADA</div>
+                    <div class="lb-people lb-people--bench">
+                      @for (p of slot.bench; track p.userId; let i = $index) {
+                        <span class="lb-person" [class.is-me]="isMe(p.userId)">
+                          <span class="lb-person__pos nf-mono">{{ i + 1 }}</span>
+                          <nf-avatar [src]="p.avatarUrl" [fallback]="p.discordUsername ?? '?'" [tint]="p.userId.length" [size]="22" />
+                          <span class="lb-person__name nf-mono">{{ p.discordUsername ?? 'Sin nombre' }}</span>
+                        </span>
+                      }
+                    </div>
+                  }
+
+                  @if (!slot.signedUp) {
+                    <div class="lb-slot__empty nf-mono">Nadie ha dicho todavía que pueda a esta hora.</div>
+                  }
+                </div>
+              }
+            </div>
+          </nf-window>
+
+          <div class="cp-foot">
+            <a class="view-back" [routerLink]="['/app', 'grupos', lb.groupId, 'partidas']">← Partidas</a>
+            <div class="cp-foot__status nf-mono">
+              CONVOCÓ {{ lb.openedBy.discordUsername ?? '—' }}
+            </div>
+            @if (lb.status !== 'CANCELLED') {
+              <button
+                nfButton
+                variant="danger"
+                size="md"
+                [disabled]="detail.cancelling()"
+                (click)="confirmCancel.set(true)"
+              >Cancelar partida</button>
+            }
+          </div>
+        </div>
+
+        @if (confirmCancel()) {
+          <div class="modal-overlay" (click)="confirmCancel.set(false)">
+            <div class="modal" (click)="$event.stopPropagation()">
+              <nf-window title="cancelar_partida.exe" accent="pink" bodyPadding="24px">
+                <div class="settings-eyebrow nf-mono nf-eyebrow">Cancelar partida</div>
+                <p class="remove-msg">¿Seguro que quieres cancelar esta partida?</p>
+                <div class="remove-warn nf-mono">
+                  ⚠ Se avisará a todos los que se habían apuntado. Esto no se puede deshacer.
+                </div>
+                <div class="form-foot">
+                  <button nfButton variant="ghost" size="md" (click)="confirmCancel.set(false)">Volver</button>
+                  <button nfButton variant="danger" size="md" [disabled]="detail.cancelling()" (click)="doCancel()">
+                    {{ detail.cancelling() ? 'Cancelando…' : 'Cancelar partida' }}
+                  </button>
+                </div>
+              </nf-window>
+            </div>
+          </div>
+        }
+      } @else if (group(); as g) {
         @if (room(); as r) {
           <div class="cp-head">
             <div class="cp-head__titles">
@@ -722,6 +873,7 @@ import { ChampionSummary, GameDataStore } from '../../../core/game-data';
 })
 export class GrupoSala {
   private readonly route = inject(ActivatedRoute);
+  private readonly destroyRef = inject(DestroyRef);
   readonly groups = inject(GroupStore);
   private readonly matches = inject(MatchStore);
 
@@ -750,6 +902,86 @@ export class GrupoSala {
     const id = this.id();
     return id ? this.groups.byId(id) ?? null : null;
   });
+
+  // ── Convocatoria real (backend) ───────────────────────────────────
+  // PUENTE TEMPORAL: esta ruta sirve dos cosas a la vez. Si el :roomId es una convocatoria del
+  // backend, manda ella; si el backend dice que no existe, se cae a la sala mock de MatchStore,
+  // que es lo que siguen usando el wizard y las partidas en curso. Cuando esos dos migren, todo
+  // el bloque mock de esta vista se borra y esto deja de ser una bifurcación.
+  readonly detail = inject(LobbyDetailStore);
+  readonly lobbies = this.detail;
+  private readonly session = inject(Session);
+  private readonly notifs = inject(NotificationsStore);
+  private readonly toasts = inject(ToastService);
+
+  readonly lobby = this.detail.lobby;
+  readonly slots = this.detail.slots;
+
+  /** Cargando de verdad: `idle` cuenta como cargando porque el efecto aún no ha disparado. */
+  readonly lobbyLoading = computed(
+    () => this.detail.status() === 'loading' || this.detail.status() === 'idle',
+  );
+
+  readonly confirmCancel = signal(false);
+
+  /** Instante de la franja confirmada, para la cabecera. */
+  readonly confirmedStartsAt = computed(() => this.detail.confirmedSlot()?.startsAt ?? '');
+
+  isMe(userId: string): boolean {
+    return this.session.user()?.userId === userId;
+  }
+
+  /** ¿Estoy apuntado a esta franja? Da igual si de titular o de suplente. */
+  amIn(slot: LobbySlotResponse): boolean {
+    return [...slot.starters, ...slot.bench].some((p) => this.isMe(p.userId));
+  }
+
+  fillPercent(slot: LobbySlotResponse, capacity: number): number {
+    return Math.min(100, Math.round((slot.starters.length / capacity) * 100));
+  }
+
+  /** ISO-8601 → "jue 7 ago, 22:00" en la zona de quien mira. */
+  formatKickoff(iso: string): string {
+    if (!iso) return '';
+    const date = new Date(iso);
+    if (Number.isNaN(date.getTime())) return iso;
+    return new Intl.DateTimeFormat('es-ES', {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(date);
+  }
+
+  /** Un solo botón por franja: si estoy, me quito; si no, me apunto. */
+  async toggleSlot(slot: LobbySlotResponse): Promise<void> {
+    const wasIn = this.amIn(slot);
+    try {
+      if (wasIn) await this.detail.withdraw(slot.id);
+      else await this.detail.signUp(slot.id);
+    } catch (error) {
+      this.toasts.error(errorMessage(error));
+      // El 404 de franja y el 409 de sala cerrada significan que lo que hay en pantalla ya no
+      // es cierto: recargar es más útil que dejar al usuario mirando un botón que no funciona.
+      void this.detail.refresh();
+    }
+  }
+
+  async doCancel(): Promise<void> {
+    try {
+      await this.detail.cancel();
+      this.confirmCancel.set(false);
+      this.toasts.success('Partida cancelada.');
+    } catch (error) {
+      this.toasts.error(errorMessage(error));
+    }
+  }
+
+  retryLobby(): void {
+    const id = this.roomId();
+    if (id) void this.detail.load(id);
+  }
 
   /** The room, but only when it actually belongs to this group's URL. */
   readonly room = computed(() => {
@@ -1204,5 +1436,24 @@ export class GrupoSala {
       const id = this.id();
       if (id && this.groups.byId(id)) this.groups.select(id);
     });
+
+    // Carga la convocatoria real. Si el backend responde 404 es una sala mock del wizard, y el
+    // template cae al bloque de abajo.
+    effect(() => {
+      const roomId = this.roomId();
+      if (roomId) void this.detail.load(roomId);
+    });
+
+    // Aviso en vivo: cuando otro se apunta, esta pantalla se actualiza sola. El evento solo trae
+    // ids, así que lo que hace es un refetch —y `refresh()` no vacía lo que ya está pintado, para
+    // que la sala no parpadee cada vez que alguien pulsa "puedo".
+    effect(() => {
+      const nudge = this.notifs.lastNudge();
+      if (nudge?.event !== 'lobby') return;
+      if (nudge.data['lobbyId'] !== this.detail.showingId) return;
+      void this.detail.refresh();
+    });
+
+    this.destroyRef.onDestroy(() => this.detail.clear());
   }
 }
