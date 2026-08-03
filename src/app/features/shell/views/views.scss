@@ -3919,13 +3919,45 @@
 /* ── Convocar: elegir horas ──────────────────────────────────────────────────
    El camino rápido son los chips de horas típicas; el selector libre queda
    plegado detrás de un <details> para quien necesite un finde por la tarde. */
-/* Los chips agrupados en su propio panel: dice "elige aquí" sin necesidad de un rótulo. */
+/* El selector libre. Va primero y a la vista: poder elegir CUALQUIER dia y hora es lo
+   principal, y esconderlo detras de un desplegable hacia creer que solo habia seis horas. */
+.qh-pick { margin: 16px 0 18px; }
+.qh-pick__label {
+  margin-bottom: 8px;
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--nf-text-dim);
+}
+.qh-pick__row {
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+}
+/* `color-scheme: dark` es lo que hace visible el icono nativo del calendario y del reloj:
+   por defecto se pinta en negro sobre un fondo casi negro. */
+.qh-pick__date,
+.qh-pick__time {
+  color-scheme: dark;
+  font-variant-numeric: tabular-nums;
+}
+.qh-pick__date { flex: 1 1 60%; }
+.qh-pick__time { flex: 1 1 40%; }
+
+/* Los chips agrupados en su propio panel: el atajo, subordinado al selector de arriba. */
 .qh-panel {
-  margin: 16px 0 4px;
-  padding: 4px 16px;
+  margin: 0 0 4px;
+  padding: 12px 16px 4px;
   border: 1px solid var(--nf-border);
   border-radius: 14px;
   background: var(--nf-surface-2);
+}
+.qh-panel__label {
+  margin-bottom: 4px;
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--nf-text-dim);
 }
 
 .qh-row {
@@ -3974,29 +4006,6 @@
 }
 .qh-chip:disabled { opacity: 0.35; cursor: not-allowed; }
 
-.qh-other { margin-top: 6px; }
-.qh-other__toggle {
-  display: inline-block;
-  padding: 6px 0;
-  font-size: 11px;
-  letter-spacing: 1px;
-  color: var(--nf-text-dim);
-  cursor: pointer;
-  &:hover { color: var(--nf-cyan); }
-}
-.qh-other[open] .qh-other__toggle { color: var(--nf-cyan); }
-
-.cp-slotform {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  margin: 10px 0 4px;
-}
-.cp-slotform__input {
-  flex: 1;
-  /* El icono nativo del datetime-local es negro sobre fondo oscuro: invisible. */
-  color-scheme: dark;
-}
 .qh-add {
   padding: 9px 16px;
   border: 1px solid var(--nf-cyan);
@@ -4049,7 +4058,8 @@
 @media (max-width: 560px) {
   .qh-row { flex-direction: column; align-items: flex-start; gap: 6px; }
   .qh-row__day { flex-basis: auto; }
-  .cp-slotform { flex-direction: column; align-items: stretch; }
+  .qh-pick__row { flex-wrap: wrap; }
+  .qh-pick__date, .qh-pick__time { flex-basis: 100%; }
   .lb-slot__head { flex-wrap: wrap; }
   .lb-slot__when { flex-basis: 100%; }
 }

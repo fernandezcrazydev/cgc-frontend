@@ -815,8 +815,41 @@ interface GeneratedTeams {
                   {{ MAX + 1 }} en adelante quedan de <b>suplentes</b>, y si alguien se cae entran ellos.
                 </div>
 
-                <!-- Horas típicas de custom. Es el camino rápido: un toque y ya está. -->
+                <!-- Cualquier día y cualquier hora, y a la vista: es lo principal, no una
+                     opción escondida. Día y hora en campos separados en vez de un
+                     datetime-local, que se pinta distinto en cada navegador y en varios deja
+                     el calendario en un icono minúsculo. -->
+                <div class="qh-pick">
+                  <div class="qh-pick__label nf-mono">Elige día y hora</div>
+                  <div class="qh-pick__row">
+                    <input
+                      class="field__input qh-pick__date"
+                      type="date"
+                      [min]="todayValue()"
+                      [ngModel]="dayDraft()"
+                      (ngModelChange)="dayDraft.set($event)"
+                      aria-label="Día"
+                    />
+                    <input
+                      class="field__input qh-pick__time"
+                      type="time"
+                      step="300"
+                      [ngModel]="timeDraft()"
+                      (ngModelChange)="timeDraft.set($event)"
+                      aria-label="Hora"
+                    />
+                    <button
+                      type="button"
+                      class="qh-add nf-mono nf-caps"
+                      [disabled]="!canAddSlot()"
+                      (click)="addSlot()"
+                    >＋ Añadir</button>
+                  </div>
+                </div>
+
+                <!-- Atajo para lo que se elige el 90% de las veces. -->
                 <div class="qh-panel">
+                  <div class="qh-panel__label nf-mono">O toca una hora de siempre</div>
                   @for (day of quickDays(); track day.label) {
                     <div class="qh-row">
                       <span class="qh-row__day nf-mono">{{ day.label }}</span>
@@ -834,27 +867,6 @@ interface GeneratedTeams {
                     </div>
                   }
                 </div>
-
-                <!-- Salida de emergencia para una hora que no esté arriba (un finde por la tarde). -->
-                <details class="qh-other">
-                  <summary class="qh-other__toggle nf-mono">¿Otro día u otra hora?</summary>
-                  <div class="cp-slotform">
-                    <input
-                      class="field__input cp-slotform__input"
-                      type="datetime-local"
-                      [min]="minSlotValue()"
-                      [ngModel]="slotDraft()"
-                      (ngModelChange)="slotDraft.set($event)"
-                      aria-label="Día y hora que quieres proponer"
-                    />
-                    <button
-                      type="button"
-                      class="qh-add nf-mono nf-caps"
-                      [disabled]="!canAddSlot()"
-                      (click)="addSlot()"
-                    >＋ Añadir</button>
-                  </div>
-                </details>
 
                 @if (slotError(); as e) {
                   <div class="cp-diag">
@@ -1064,22 +1076,24 @@ export class GrupoCrearPartida {
 
   /** Horas propuestas, en el formato local de `datetime-local` ("2026-08-07T22:00"). */
   readonly slotDrafts = signal<string[]>([]);
-  /** Lo que hay escrito en el selector antes de añadirlo. */
-  readonly slotDraft = signal('');
+  /** Día del selector libre ("2026-08-07"). Arranca en hoy, que es el caso normal. */
+  readonly dayDraft = signal(toLocalInputValue(new Date()).slice(0, 10));
+  /** Hora del selector libre ("22:00"). Arranca a la hora a la que se juega. */
+  readonly timeDraft = signal('22:00');
   readonly note = signal('');
   readonly slotError = signal<string | null>(null);
 
   /**
-   * Suelo del selector: ahora. Evita el 400 `SLOT_IN_THE_PAST` del backend en el caso más
-   * común (equivocarse de día), aunque el servidor sigue siendo quien decide — el reloj del
-   * navegador se puede cambiar.
+   * Suelo del selector de día: hoy. Evita el 400 `SLOT_IN_THE_PAST` en el caso más común
+   * (equivocarse de día), aunque el servidor sigue siendo quien decide — el reloj del navegador
+   * se puede cambiar.
    */
-  minSlotValue(): string {
-    return toLocalInputValue(new Date());
+  todayValue(): string {
+    return toLocalInputValue(new Date()).slice(0, 10);
   }
 
   readonly canAddSlot = computed(
-    () => !!this.slotDraft() && this.slotDrafts().length < MAX_SLOTS,
+    () => !!this.dayDraft() && !!this.timeDraft() && this.slotDrafts().length < MAX_SLOTS,
   );
 
   readonly atSlotLimit = computed(() => this.slotDrafts().length >= MAX_SLOTS);
@@ -1103,8 +1117,10 @@ export class GrupoCrearPartida {
   }
 
   addSlot(): void {
-    const value = this.slotDraft();
-    if (!value || this.slotDrafts().length >= MAX_SLOTS) return;
+    if (!this.canAddSlot()) return;
+    // Los dos campos se juntan en el mismo formato que producen los chips, así que a partir de
+    // aquí da igual por dónde entró la hora: una sola lista y una sola comparación.
+    const value = `${this.dayDraft()}T${this.timeDraft()}`;
     if (new Date(value).getTime() <= Date.now()) {
       this.slotError.set('Esa hora ya ha pasado. Elige una futura.');
       return;
@@ -1115,7 +1131,6 @@ export class GrupoCrearPartida {
     }
     this.slotError.set(null);
     this.slotDrafts.update((slots) => [...slots, value].sort());
-    this.slotDraft.set('');
   }
 
   removeSlot(value: string): void {
