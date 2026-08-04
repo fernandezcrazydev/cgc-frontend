@@ -110,13 +110,18 @@ import { ChampionSummary, GameDataStore } from '../../../core/game-data';
                     <span class="lb-slot__count nf-mono">{{ slot.signedUp }}/{{ lb.capacity }}</span>
                     @if (lb.status !== 'CANCELLED') {
                       <button
-                        type="button"
-                        class="lb-slot__cta nf-mono nf-caps"
+                        nfButton
+                        variant="secondary"
+                        size="sm"
+                        class="lb-slot__cta"
                         [class.is-in]="amIn(slot)"
+                        [class.nf-go]="!amIn(slot) && !detail.isActing(slot.id)"
                         [disabled]="detail.isActing(slot.id)"
+                        [attr.aria-label]="slotCtaLabel(slot)"
+                        [title]="slotCtaLabel(slot)"
                         (click)="toggleSlot(slot)"
                       >
-                        {{ detail.isActing(slot.id) ? '…' : amIn(slot) ? '✓ Puedo' : 'Puedo' }}
+                        {{ detail.isActing(slot.id) ? '…' : amIn(slot) ? '✓ Apuntado' : 'Apuntarse' }}
                       </button>
                     }
                   </div>
@@ -934,6 +939,16 @@ export class GrupoSala {
   /** ¿Estoy apuntado a esta franja? Da igual si de titular o de suplente. */
   amIn(slot: LobbySlotResponse): boolean {
     return [...slot.starters, ...slot.bench].some((p) => this.isMe(p.userId));
+  }
+
+  /**
+   * Etiqueta del botón de la franja para lector de pantalla y tooltip: hay uno idéntico
+   * por hora, así que "Apuntarse" a secas no dice a cuál, y el estado "✓ Apuntado" no
+   * dice que al pulsarlo te quitas.
+   */
+  slotCtaLabel(slot: LobbySlotResponse): string {
+    const when = this.formatKickoff(slot.startsAt);
+    return this.amIn(slot) ? `Quitarme de ${when}` : `Apuntarme a ${when}`;
   }
 
   fillPercent(slot: LobbySlotResponse, capacity: number): number {
