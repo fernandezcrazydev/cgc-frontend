@@ -213,9 +213,6 @@ const SCOPE_LABELS: Record<string, string> = {
         border-radius: var(--nf-radius-sm);
         border: 1px solid rgba(255, 255, 255, 0.14);
       }
-      .theme-opt__swatch[data-preview='nexus'] {
-        background: linear-gradient(135deg, #36e0ff, #ff5fd2 60%, #180a2c);
-      }
       .theme-opt__swatch[data-preview='nocturne'] {
         background: linear-gradient(135deg, #3a3a3c, #0a84ff 65%, #000);
       }

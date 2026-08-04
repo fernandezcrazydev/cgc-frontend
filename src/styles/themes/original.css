@@ -7,12 +7,13 @@
    de las clases Tailwind que usaba LobbyView.
 
    Es una SKIN: redefine tokens --nf-* bajo
-   :root[data-theme="original"] y aplana los efectos "firma"
-   que los componentes hardcodean fuera de token.
+   :root[data-theme="original"]. Solo CSS, sin excepciones.
 
-   ÚNICA excepción no-CSS: `NfWindow` no renderiza la barra de
-   ventana retro bajo este tema (el semáforo es markup, no un
-   token) y pinta `.nf-window__heading` en su lugar.
+   El grueso de lo que este fichero hacía antes era apagar el
+   vaporwave de la base (sombras duras, glows, mayúsculas,
+   tracking ancho). Eso ya no existe en la base, así que aquí
+   solo queda lo propio del look legacy: cristal, resplandores
+   de fondo y su paleta índigo/fucsia.
    ============================================================ */
 
 :root[data-theme='original'] {
@@ -145,33 +146,11 @@
 }
 
 /* ============================================================
-   Aplanado de efectos "firma" del UI kit
+   Cristal en las superficies del UI kit
    (selectores globales, ViewEncapsulation.None).
    ============================================================ */
 
-/* ---- Botones: pill suave, sin mayúsculas, sin sombra dura ---- */
-:root[data-theme='original'] .nf-btn {
-  text-transform: none;
-  letter-spacing: 0;
-  font-weight: 600;
-  border-radius: var(--nf-radius);
-  box-shadow: none !important;
-}
-:root[data-theme='original'] .nf-btn:hover:not(:disabled) {
-  transform: none;
-  filter: brightness(1.1);
-}
-:root[data-theme='original'] .nf-btn:active:not(:disabled) {
-  transform: scale(0.97);
-  filter: brightness(0.95);
-}
-:root[data-theme='original'] .nf-btn--danger {
-  color: #fff;
-}
-
-/* ---- Ventana → tarjeta de cristal ----
-   La barra ya no se renderiza (lo decide NfWindow); aquí se le da al contenedor
-   el aspecto `.glass` del legacy. */
+/* ---- Ventana → tarjeta de cristal (el `.glass` del legacy) ---- */
 :root[data-theme='original'] .nf-window {
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -183,7 +162,7 @@
   background: transparent;
 }
 
-/* ---- Toasts: cristal con sombra difusa, sin sombra dura ni glow ---- */
+/* ---- Toasts: cristal, con más blur que el de la base ---- */
 :root[data-theme='original'] .nf-toast {
   background: rgba(23, 26, 46, 0.92);
   backdrop-filter: blur(12px);
@@ -238,32 +217,6 @@
    Overrides de vistas (views.scss)
    ============================================================ */
 
-/* Tracking: el legacy nunca separaba letras. Mismo truco que Nocturne: el
-   combinador [class] (0,2,0) gana a los `.foo { letter-spacing: 3px }` (0,1,0)
-   sin !important. */
-:root[data-theme='original'] [class] {
-  letter-spacing: normal;
-}
-
-/* Eyebrows: sin el marcador "// " y sin mayúsculas. El texto ya está escrito en
-   frase normal en las plantillas (ver .nf-eyebrow en tokens/base.css), así que
-   aquí basta con no vestirlo. Cubre también --asis y --lower: (0,2,0) gana. */
-:root[data-theme='original'] .nf-eyebrow {
-  text-transform: none;
-}
-:root[data-theme='original'] .nf-eyebrow::before {
-  content: none;
-}
-
-/* Etiquetas en mayúsculas fuera de botón, y la puntita ► de los CTA: ambas son
-   decoración retro. El copy ya está en frase normal en las plantillas. */
-:root[data-theme='original'] .nf-caps {
-  text-transform: none;
-}
-:root[data-theme='original'] .nf-go::after {
-  content: none;
-}
-
 /* Otras mayúsculas puestas por CSS. */
 :root[data-theme='original'] .member-detail__label,
 :root[data-theme='original'] .perks-edit__heading {
@@ -287,21 +240,6 @@
 :root[data-theme='original'] .cp-mode:hover {
   transform: translateY(-2px);
   box-shadow: var(--nf-shadow-card);
-}
-
-/* Glows neón fuera. */
-:root[data-theme='original'] .hl__big {
-  filter: none;
-}
-:root[data-theme='original'] .resume-hero__avatar,
-:root[data-theme='original'] .group-hero__avatar {
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
-}
-:root[data-theme='original'] .field__input:focus {
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.35);
-}
-:root[data-theme='original'] .seg__btn.is-active {
-  background: rgba(255, 255, 255, 0.1);
 }
 
 /* Texto sobre relleno índigo: blanco (antes era oscuro sobre neón). */
@@ -365,17 +303,6 @@
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
 }
 
-/* Glows del logo / campana / notificaciones fuera. */
-:root[data-theme='original'] .shell__logo,
-:root[data-theme='original'] .shell__bell.is-active,
-:root[data-theme='original'] .shell__notif {
-  filter: none;
-}
-:root[data-theme='original'] .shell__bell.is-active,
-:root[data-theme='original'] .shell__bell-badge {
-  box-shadow: none;
-}
-
 /* Paneles flotantes: cristal, no violeta. */
 :root[data-theme='original'] .shell__bottomnav {
   background: rgba(7, 9, 18, 0.9);
@@ -407,18 +334,6 @@
    en su lugar se dejan ver los resplandores del body.
    ============================================================ */
 
-:root[data-theme='original'] .login {
-  background: transparent;
-}
-:root[data-theme='original'] .login__sun,
-:root[data-theme='original'] .login__grid {
-  display: none;
-}
-/* La puntita del CTA de Discord ya vive en su propio span: aquí basta ocultarla
-   (es el equivalente a .nf-go para un glifo que ya estaba separado del copy). */
-:root[data-theme='original'] .login__discord-arrow {
-  display: none;
-}
 :root[data-theme='original'] .login__wordmark {
   background: linear-gradient(110deg, #818cf8, #e879f9 60%, #f0abfc);
   -webkit-background-clip: text;
