@@ -23,10 +23,10 @@ const STATUS_LABEL: Record<FeedbackStatusTag, string> = {
   REJECTED: 'Rechazado',
 };
 const STATUS_COLOR: Record<FeedbackStatusTag, NfBadgeColor> = {
-  NEW: 'yellow',
-  IN_REVIEW: 'cyan',
-  RESOLVED: 'green',
-  REJECTED: 'red',
+  NEW: 'warning',
+  IN_REVIEW: 'secondary',
+  RESOLVED: 'success',
+  REJECTED: 'danger',
 };
 const FREQUENCY_LABEL: Record<string, string> = {
   ALWAYS: 'Siempre',

@@ -9,11 +9,11 @@
    Es una SKIN: redefine tokens --nf-* bajo
    :root[data-theme="original"]. Solo CSS, sin excepciones.
 
-   El grueso de lo que este fichero hacía antes era apagar el
-   vaporwave de la base (sombras duras, glows, mayúsculas,
-   tracking ancho). Eso ya no existe en la base, así que aquí
-   solo queda lo propio del look legacy: cristal, resplandores
-   de fondo y su paleta índigo/fucsia.
+   El grueso de lo que este fichero hacía antes era neutralizar
+   los efectos de la base (sombras duras, resplandores,
+   mayúsculas, tracking ancho). Eso ya no existe en la base, así
+   que aquí solo queda lo propio del look legacy: cristal,
+   resplandores de fondo y su paleta índigo/fucsia.
    ============================================================ */
 
 :root[data-theme='original'] {
@@ -328,11 +328,7 @@
   background: rgba(7, 9, 18, 0.72);
 }
 
-/* ============================================================
-   Login: fuera el sol neón y la rejilla en perspectiva. Es la
-   pieza más vaporwave de la app y no pinta nada en Original;
-   en su lugar se dejan ver los resplandores del body.
-   ============================================================ */
+/* ---- Login: el wordmark con el degradado del legacy ---- */
 
 :root[data-theme='original'] .login__wordmark {
   background: linear-gradient(110deg, #818cf8, #e879f9 60%, #f0abfc);

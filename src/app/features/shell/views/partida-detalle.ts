@@ -39,7 +39,7 @@ import { GameDataStore } from '../../../core/game-data';
             }
             <div class="md-hero__sub nf-mono">◆ {{ m.groupName }} ▪ {{ m.date }}</div>
           </div>
-          <nf-badge [color]="m.win ? 'green' : 'pink'" [dot]="true">{{ m.win ? 'Win' : 'Loss' }}</nf-badge>
+          <nf-badge [color]="m.win ? 'success' : 'primary'" [dot]="true">{{ m.win ? 'Win' : 'Loss' }}</nf-badge>
         </div>
 
         <div class="md-grid">

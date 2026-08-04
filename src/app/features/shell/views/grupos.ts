@@ -80,7 +80,7 @@ import { groupRoleLabel, initialsOf } from '../../../core/groups';
                 <div class="group-card__body">
                   <div class="group-card__top">
                     <span class="group-card__name">{{ g.name }}</span>
-                    <nf-badge [color]="g.role === 'OWNER' ? 'pink' : 'cyan'">{{ roleLabel(g.role) }}</nf-badge>
+                    <nf-badge [color]="g.role === 'OWNER' ? 'primary' : 'secondary'">{{ roleLabel(g.role) }}</nf-badge>
                   </div>
                   <div class="group-card__tag nf-mono">{{ g.region ?? '—' }}</div>
                 </div>

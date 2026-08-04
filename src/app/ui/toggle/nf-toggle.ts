@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, ViewEncapsulation, input, model } from '@angular/core';
 
-export type NfToggleAccent = 'cyan' | 'pink';
+export type NfToggleAccent = 'secondary' | 'primary';
 
 /**
  * NEXUS//FORGE Toggle — boxy 48×28 switch with a neon track when on.
@@ -25,7 +25,7 @@ export type NfToggleAccent = 'cyan' | 'pink';
       role="switch"
       class="nf-toggle"
       [class.nf-toggle--on]="checked()"
-      [class.nf-toggle--pink]="accent() === 'pink'"
+      [class.nf-toggle--primary]="accent() === 'primary'"
       [attr.aria-checked]="checked()"
       [attr.aria-label]="ariaLabel() || null"
       [disabled]="disabled()"
@@ -39,7 +39,7 @@ export type NfToggleAccent = 'cyan' | 'pink';
 })
 export class NfToggle {
   readonly checked = model(false);
-  readonly accent = input<NfToggleAccent>('cyan');
+  readonly accent = input<NfToggleAccent>('secondary');
   readonly ariaLabel = input<string>('');
   readonly disabled = input(false);
 }

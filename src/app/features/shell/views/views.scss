@@ -69,7 +69,8 @@
 .actions__matches--live .actions__count { background: var(--nf-success); }
 
 /* ---- RETOMAR (inicio): active rooms across all your groups ---- */
-/* status accent: live=green, waiting=yellow, drafting=cyan (matches the badges) */
+/* Acento por estado: en curso = success, esperando = warning, draft = secondary
+   (los mismos que usan los badges). */
 .resume-hero,
 .resume-row { --rs: var(--nf-secondary); }
 .resume-hero[data-status='live'],
@@ -625,12 +626,12 @@
   border: 1px solid color-mix(in srgb, var(--mbadge-c) 55%, transparent);
   background: color-mix(in srgb, var(--mbadge-c) 16%, transparent);
 }
-.mbadge[data-color='pink']   { --mbadge-c: var(--nf-primary); }
-.mbadge[data-color='cyan']   { --mbadge-c: var(--nf-secondary); }
-.mbadge[data-color='yellow'] { --mbadge-c: var(--nf-warning); }
-.mbadge[data-color='green']  { --mbadge-c: var(--nf-success); }
-.mbadge[data-color='purple'] { --mbadge-c: var(--nf-tertiary); }
-.mbadge[data-color='red']    { --mbadge-c: var(--nf-danger); }
+.mbadge[data-color='primary']   { --mbadge-c: var(--nf-primary); }
+.mbadge[data-color='secondary']   { --mbadge-c: var(--nf-secondary); }
+.mbadge[data-color='warning'] { --mbadge-c: var(--nf-warning); }
+.mbadge[data-color='success']  { --mbadge-c: var(--nf-success); }
+.mbadge[data-color='tertiary'] { --mbadge-c: var(--nf-tertiary); }
+.mbadge[data-color='danger']    { --mbadge-c: var(--nf-danger); }
 
 /* ── expanded member detail panel ─────────────────────────────────────── */
 .member-detail {
@@ -1378,9 +1379,9 @@
   border-top: 2px solid color-mix(in srgb, var(--ac) 60%, var(--nf-border));
   background: var(--nf-surface-2);
 }
-.hl[data-accent='pink'] { --ac: var(--nf-primary); }
-.hl[data-accent='cyan'] { --ac: var(--nf-secondary); }
-.hl[data-accent='yellow'] { --ac: var(--nf-warning); }
+.hl[data-accent='primary'] { --ac: var(--nf-primary); }
+.hl[data-accent='secondary'] { --ac: var(--nf-secondary); }
+.hl[data-accent='warning'] { --ac: var(--nf-warning); }
 .hl__eyebrow { font-size: 12px; color: var(--ac); }
 .hl__hero { display: flex; align-items: center; gap: 14px; }
 .hl__avatar {
@@ -1460,9 +1461,9 @@
   border-top: 2px solid color-mix(in srgb, var(--ac) 60%, var(--nf-border));
   background: var(--nf-surface-2);
 }
-.sc[data-accent='pink'] { --ac: var(--nf-primary); }
-.sc[data-accent='cyan'] { --ac: var(--nf-secondary); }
-.sc[data-accent='yellow'] { --ac: var(--nf-warning); }
+.sc[data-accent='primary'] { --ac: var(--nf-primary); }
+.sc[data-accent='secondary'] { --ac: var(--nf-secondary); }
+.sc[data-accent='warning'] { --ac: var(--nf-warning); }
 .sc__head { display: flex; align-items: center; gap: 9px; margin-bottom: 14px; }
 .sc__glyph { font-size: 16px; line-height: 1; }
 .sc__title { font-size: 11px; color: var(--ac); font-weight: 700; }
@@ -1505,9 +1506,9 @@
 }
 .ptile__val { font-size: 20px; font-weight: 800; color: var(--nf-text); line-height: 1; }
 .ptile__lbl { font-size: 11px; color: var(--nf-text-dim); margin-top: 6px; }
-.ptile[data-accent='cyan'] .ptile__val { color: var(--nf-secondary); }
-.ptile[data-accent='pink'] .ptile__val { color: var(--nf-primary); }
-.ptile[data-accent='yellow'] .ptile__val { color: var(--nf-warning); }
+.ptile[data-accent='secondary'] .ptile__val { color: var(--nf-secondary); }
+.ptile[data-accent='primary'] .ptile__val { color: var(--nf-primary); }
+.ptile[data-accent='warning'] .ptile__val { color: var(--nf-warning); }
 
 /* ---- PREMIOS: trophy wall ---- */
 .trophy-grid {
@@ -1531,12 +1532,12 @@
   transition: transform 0.14s, box-shadow 0.14s;
 }
 .trophy:hover { transform: translateY(-3px); box-shadow: 0 8px 26px color-mix(in srgb, var(--tc) 22%, transparent); }
-.trophy[data-color='pink'] { --tc: var(--nf-primary); }
-.trophy[data-color='cyan'] { --tc: var(--nf-secondary); }
-.trophy[data-color='yellow'] { --tc: var(--nf-warning); }
-.trophy[data-color='green'] { --tc: var(--nf-success); }
-.trophy[data-color='purple'] { --tc: var(--nf-tertiary); }
-.trophy[data-color='red'] { --tc: var(--nf-danger); }
+.trophy[data-color='primary'] { --tc: var(--nf-primary); }
+.trophy[data-color='secondary'] { --tc: var(--nf-secondary); }
+.trophy[data-color='warning'] { --tc: var(--nf-warning); }
+.trophy[data-color='success'] { --tc: var(--nf-success); }
+.trophy[data-color='tertiary'] { --tc: var(--nf-tertiary); }
+.trophy[data-color='danger'] { --tc: var(--nf-danger); }
 .trophy__glyph { font-size: 38px; line-height: 1; }
 .trophy__title { font-size: 12px; font-weight: 800; color: var(--tc); }
 .trophy__winner { display: flex; align-items: center; gap: 8px; }
@@ -2030,7 +2031,7 @@
   font-weight: 700;
   color: var(--nf-void);
 }
-/* side A (azul/cyan) / side B (rojo); together selection uses the cyan look too */
+/* lado A (azul) / lado B (rojo); la seleccion conjunta usa el mismo azul que A */
 .cp-pchip[data-side='a'] { border-color: var(--nf-secondary); background: color-mix(in srgb, var(--nf-secondary) 14%, var(--nf-surface-2)); }
 .cp-pchip[data-side='a'] .cp-pchip__side { background: var(--nf-secondary); }
 .cp-pchip[data-side='b'] { border-color: var(--nf-danger); background: color-mix(in srgb, var(--nf-danger) 14%, var(--nf-surface-2)); }
@@ -2927,7 +2928,7 @@
   cursor: pointer;
   transition: transform 0.14s, box-shadow 0.14s, border-color 0.14s;
 }
-.cp-mode--pink { --ac: var(--nf-primary); }
+.cp-mode--primary { --ac: var(--nf-primary); }
 .cp-mode:hover {
   border-color: color-mix(in srgb, var(--ac) 70%, transparent);
   box-shadow: var(--nf-shadow-card);
@@ -3567,7 +3568,7 @@
 .pf-pill--w { color: var(--nf-success); background: color-mix(in srgb, var(--nf-success) 16%, transparent); border: 1px solid color-mix(in srgb, var(--nf-success) 40%, transparent); }
 .pf-pill--l { color: var(--nf-danger); background: color-mix(in srgb, var(--nf-danger) 14%, transparent); border: 1px solid color-mix(in srgb, var(--nf-danger) 36%, transparent); }
 
-/* ---- Head-to-head: caption follows the card accent (not forced pink) ---- */
+/* ---- Head-to-head: el pie sigue el acento de la tarjeta ---- */
 .pf-h2h .hl__score {
   color: var(--ac);
   background: color-mix(in srgb, var(--ac) 12%, transparent);

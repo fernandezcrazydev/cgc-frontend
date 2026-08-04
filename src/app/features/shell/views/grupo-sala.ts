@@ -97,7 +97,7 @@ import { ChampionSummary, GameDataStore } from '../../../core/game-data';
                   <div class="cp-room__note">{{ lb.note }}</div>
                 }
               </div>
-              <nf-badge [color]="lb.status === 'CONFIRMED' ? 'green' : lb.status === 'CANCELLED' ? 'red' : 'yellow'">
+              <nf-badge [color]="lb.status === 'CONFIRMED' ? 'success' : lb.status === 'CANCELLED' ? 'danger' : 'warning'">
                 {{ lb.status === 'CANCELLED' ? 'Cancelada' : lb.status === 'CONFIRMED' ? 'Confirmada' : 'Abierta' }}
               </nf-badge>
             </div>
@@ -218,7 +218,7 @@ import { ChampionSummary, GameDataStore } from '../../../core/game-data';
                 <div class="cp-room__barmeta">
                   <div class="cp-room__sub nf-mono">Configurando · {{ r.openedBy }} está montando la partida</div>
                 </div>
-                <nf-badge color="yellow" [dot]="true">Paso {{ r.draft?.step ?? 1 }}/5</nf-badge>
+                <nf-badge color="warning" [dot]="true">Paso {{ r.draft?.step ?? 1 }}/5</nf-badge>
               </div>
 
               @if (r.draft; as d) {
@@ -312,7 +312,7 @@ import { ChampionSummary, GameDataStore } from '../../../core/game-data';
                     : 'Cualquier miembro del grupo puede apuntarse' }}
                 </div>
               </div>
-              <nf-badge [color]="r.status === 'live' ? 'green' : full() ? 'green' : 'yellow'" [dot]="true">
+              <nf-badge [color]="r.status === 'live' ? 'success' : full() ? 'success' : 'warning'" [dot]="true">
                 {{ r.seats.length }}/{{ r.capacity }}
               </nf-badge>
             </div>

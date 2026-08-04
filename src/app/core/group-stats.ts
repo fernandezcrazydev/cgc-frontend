@@ -210,7 +210,7 @@ export function summaryFor(stats: readonly MemberStats[], scope: StatScope): Sta
 
 // ===================== STAT CARDS (mini-leaderboards) =====================
 
-export type StatAccent = 'cyan' | 'pink' | 'yellow';
+export type StatAccent = 'secondary' | 'primary' | 'warning';
 
 export interface StatLeaderRow {
   rank: number;
@@ -259,7 +259,7 @@ const METRICS: Metric[] = [
     id: 'winrate',
     title: 'Win rate',
     glyph: '🏆',
-    accent: 'pink',
+    accent: 'primary',
     value: (s) => s.wr,
     format: (s) => `${s.wr}%`,
     sub: (s) => `${s.wins}V ${s.losses}D`,
@@ -269,7 +269,7 @@ const METRICS: Metric[] = [
     id: 'kda',
     title: 'KDA medio',
     glyph: '⚔️',
-    accent: 'cyan',
+    accent: 'secondary',
     value: (s) => s.kda,
     format: (s) => `${s.kda}`,
     sub: (s) => `${s.kills} / ${s.deaths} / ${s.assists}`,
@@ -278,7 +278,7 @@ const METRICS: Metric[] = [
     id: 'main',
     title: 'Win rate por main',
     glyph: '★',
-    accent: 'yellow',
+    accent: 'warning',
     value: (s) => s.mainChampWr,
     format: (s) => `${s.mainChampWr}%`,
     // El generador no conoce el catálogo real: no puede formatear un nombre
@@ -290,7 +290,7 @@ const METRICS: Metric[] = [
     id: 'damage',
     title: 'Daño a campeones',
     glyph: '🔥',
-    accent: 'pink',
+    accent: 'primary',
     value: (s) => s.dmgK,
     format: (s) => `${s.dmgK}k`,
     sub: (s) => `por partida`,
@@ -299,7 +299,7 @@ const METRICS: Metric[] = [
     id: 'cs',
     title: 'CS por minuto',
     glyph: '🌾',
-    accent: 'cyan',
+    accent: 'secondary',
     value: (s) => s.csPerMin,
     format: (s) => `${s.csPerMin}`,
     sub: (s) => `${s.goldPerMin} oro/min`,
@@ -308,7 +308,7 @@ const METRICS: Metric[] = [
     id: 'vision',
     title: 'Puntuación de visión',
     glyph: '👁',
-    accent: 'yellow',
+    accent: 'warning',
     value: (s) => s.visionScore,
     format: (s) => `${s.visionScore}`,
     sub: (s) => `${s.wardsPlaced} wards`,
@@ -340,7 +340,7 @@ export function leaderboardsFor(stats: readonly MemberStats[], top = 4): StatLea
 
 // ===================== PREMIOS (trophy wall) =====================
 
-export type AwardColor = 'pink' | 'cyan' | 'yellow' | 'green' | 'purple' | 'red';
+export type AwardColor = 'primary' | 'secondary' | 'warning' | 'success' | 'tertiary' | 'danger';
 
 export interface StatAward {
   id: string;
@@ -374,7 +374,7 @@ export function awardsFor(stats: readonly MemberStats[]): StatAward[] {
       id: 'farmer',
       glyph: '🌾',
       title: 'El granjero',
-      color: 'green',
+      color: 'success',
       member: farmer.member,
       value: `${farmer.csPerMin} cs/min`,
       blurb: 'Mucho minion, poca sangre.',
@@ -383,7 +383,7 @@ export function awardsFor(stats: readonly MemberStats[]): StatAward[] {
       id: 'silent-carry',
       glyph: '🥷',
       title: 'Carry silencioso',
-      color: 'pink',
+      color: 'primary',
       member: silentCarry.member,
       value: `${silentCarry.dmgK}k daño`,
       blurb: `Solo ${silentCarry.deaths} muertes de media.`,
@@ -392,7 +392,7 @@ export function awardsFor(stats: readonly MemberStats[]): StatAward[] {
       id: 'ward-simp',
       glyph: '👁',
       title: 'Ward simp',
-      color: 'cyan',
+      color: 'secondary',
       member: wardSimp.member,
       value: `${wardSimp.wardsPlaced} wards`,
       blurb: `Visión ${wardSimp.visionScore}, el más cotilla.`,
@@ -401,7 +401,7 @@ export function awardsFor(stats: readonly MemberStats[]): StatAward[] {
       id: 'penta-hunter',
       glyph: '🎯',
       title: 'Penta hunter',
-      color: 'yellow',
+      color: 'warning',
       member: pentaHunter.member,
       value: `${pentaHunter.pentas}P · ${pentaHunter.quadras}Q`,
       blurb: 'Cazador de multikills.',
@@ -410,7 +410,7 @@ export function awardsFor(stats: readonly MemberStats[]): StatAward[] {
       id: 'cc-lord',
       glyph: '🧊',
       title: 'Señor del CC',
-      color: 'purple',
+      color: 'tertiary',
       member: ccLord.member,
       value: `${ccLord.ccTime}s CC`,
       blurb: 'Nadie se mueve cuando él juega.',
@@ -419,7 +419,7 @@ export function awardsFor(stats: readonly MemberStats[]): StatAward[] {
       id: 'feeder',
       glyph: '💀',
       title: 'El donante',
-      color: 'red',
+      color: 'danger',
       member: feeder.member,
       value: `${feeder.deaths} muertes`,
       blurb: 'Reparte oro al enemigo con cariño.',
@@ -438,15 +438,15 @@ export interface PlayerTile {
 /** The stat tiles shown in a player's expanded JUGADORES panel. */
 export function playerTiles(s: MemberStats): PlayerTile[] {
   return [
-    { label: 'Partidas', value: `${s.games}`, accent: 'cyan' },
-    { label: 'Win rate', value: `${s.wr}%`, accent: 'pink' },
-    { label: 'KDA', value: `${s.kda}`, accent: 'cyan' },
+    { label: 'Partidas', value: `${s.games}`, accent: 'secondary' },
+    { label: 'Win rate', value: `${s.wr}%`, accent: 'primary' },
+    { label: 'KDA', value: `${s.kda}`, accent: 'secondary' },
     { label: 'K / D / A', value: `${s.kills} / ${s.deaths} / ${s.assists}` },
     { label: 'CS/min', value: `${s.csPerMin}` },
     { label: 'Oro/min', value: `${s.goldPerMin}` },
-    { label: 'Daño/part.', value: `${s.dmgK}k`, accent: 'pink' },
+    { label: 'Daño/part.', value: `${s.dmgK}k`, accent: 'primary' },
     { label: 'Visión', value: `${s.visionScore}` },
-    { label: 'Pentas', value: `${s.pentas}`, accent: 'yellow' },
-    { label: 'Racha', value: `${s.streak}W`, accent: 'yellow' },
+    { label: 'Pentas', value: `${s.pentas}`, accent: 'warning' },
+    { label: 'Racha', value: `${s.streak}W`, accent: 'warning' },
   ];
 }

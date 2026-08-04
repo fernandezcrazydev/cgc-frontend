@@ -77,9 +77,9 @@ export const GROUPS: Group[] = [
 ];
 
 export const MATCHES: MatchItem[] = [
-  { name: 'Sala de partida', mode: '5v5 · LAN', players: '8/10 jugadores', status: 'En curso', color: 'green', c1: 'hsl(150,90%,60%)', c2: 'hsl(150,78%,28%)' },
-  { name: 'Draft final', mode: '5v5 · BR', players: '10/10 jugadores', status: 'Esperando', color: 'yellow', c1: 'hsl(48,95%,62%)', c2: 'hsl(38,80%,32%)' },
-  { name: 'Scrim 07', mode: '5v5 · LAN', players: '10/10 jugadores', status: 'Finalizada', color: 'cyan', c1: 'hsl(190,90%,62%)', c2: 'hsl(205,78%,32%)' },
+  { name: 'Sala de partida', mode: '5v5 · LAN', players: '8/10 jugadores', status: 'En curso', color: 'success', c1: 'hsl(150,90%,60%)', c2: 'hsl(150,78%,28%)' },
+  { name: 'Draft final', mode: '5v5 · BR', players: '10/10 jugadores', status: 'Esperando', color: 'warning', c1: 'hsl(48,95%,62%)', c2: 'hsl(38,80%,32%)' },
+  { name: 'Scrim 07', mode: '5v5 · LAN', players: '10/10 jugadores', status: 'Finalizada', color: 'secondary', c1: 'hsl(190,90%,62%)', c2: 'hsl(205,78%,32%)' },
 ];
 
 export const REGION_OPTIONS = ['LAN', 'BR', 'NA', 'EUW', 'KR'];

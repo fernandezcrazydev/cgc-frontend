@@ -105,7 +105,7 @@ import { errorMessage } from '../../../core/http';
                 <div class="group-hero__tag nf-mono">{{ g.region ?? '—' }}</div>
                 <h1 class="group-hero__name">{{ g.name }}</h1>
                 <div class="group-hero__badges">
-                  <nf-badge [color]="g.role === 'OWNER' ? 'pink' : 'cyan'">{{ roleLabel(g.role) }}</nf-badge>
+                  <nf-badge [color]="g.role === 'OWNER' ? 'primary' : 'secondary'">{{ roleLabel(g.role) }}</nf-badge>
                   <span class="group-hero__count nf-mono">◉ {{ store.memberCount() }} miembros</span>
                 </div>
               </div>
@@ -185,9 +185,9 @@ import { errorMessage } from '../../../core/http';
                           </div>
                         </div>
                         @if (m.role === 'OWNER') {
-                          <nf-badge color="pink">Owner</nf-badge>
+                          <nf-badge color="primary">Owner</nf-badge>
                         } @else if (m.role === 'ADMIN') {
-                          <nf-badge color="cyan">Admin</nf-badge>
+                          <nf-badge color="secondary">Admin</nf-badge>
                         }
                         <div class="gd-member__actions">
                           @if (canPromote(m)) {

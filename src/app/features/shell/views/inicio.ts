@@ -14,10 +14,10 @@ interface ResumeItem {
 }
 
 /** Per-status presentation for the "Retomar" cards (badge + call to action). */
-const STATUS_META: Record<RoomStatus, { label: string; color: 'green' | 'yellow' | 'cyan'; cta: string }> = {
-  live: { label: 'En curso', color: 'green', cta: 'Volver a la sala' },
-  waiting: { label: 'Esperando', color: 'yellow', cta: 'Entrar' },
-  drafting: { label: 'En preparación', color: 'cyan', cta: 'Seguir en directo' },
+const STATUS_META: Record<RoomStatus, { label: string; color: 'success' | 'warning' | 'secondary'; cta: string }> = {
+  live: { label: 'En curso', color: 'success', cta: 'Volver a la sala' },
+  waiting: { label: 'Esperando', color: 'warning', cta: 'Entrar' },
+  drafting: { label: 'En preparación', color: 'secondary', cta: 'Seguir en directo' },
 };
 
 /** Sort key so live rooms float above waiting, and waiting above drafts. */

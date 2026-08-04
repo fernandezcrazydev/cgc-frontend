@@ -176,7 +176,7 @@ interface GeneratedTeams {
                 </p>
                 <span class="cp-mode__cta nf-mono">Elegir</span>
               </button>
-              <button type="button" class="cp-mode cp-mode--pink" (click)="chooseMode('open')">
+              <button type="button" class="cp-mode cp-mode--primary" (click)="chooseMode('open')">
                 <div class="cp-mode__glyph">📣</div>
                 <div class="cp-mode__title nf-mono">Sala abierta</div>
                 <p class="cp-mode__desc">
@@ -274,7 +274,7 @@ interface GeneratedTeams {
                           <span class="cp-pick__roles nf-mono">{{ rolesLabel(m) }}</span>
                         </span>
                         @if (m.owner) {
-                          <nf-badge color="pink">Owner</nf-badge>
+                          <nf-badge color="primary">Owner</nf-badge>
                         }
                       </button>
                     } @empty {
@@ -803,7 +803,7 @@ interface GeneratedTeams {
                     Propón una o varias horas · el grupo dirá a cuáles puede
                   </div>
                 </div>
-                <nf-badge [color]="slotDrafts().length ? 'green' : 'yellow'">
+                <nf-badge [color]="slotDrafts().length ? 'success' : 'warning'">
                   {{ slotDrafts().length }}/{{ MAX_SLOTS }}
                 </nf-badge>
               </div>

@@ -72,7 +72,7 @@ import { NotificationsStore } from '../../../core/notifications';
                   </div>
                 </div>
                 <div class="pm-foot">
-                  <nf-badge [color]="lb.status === 'CONFIRMED' ? 'green' : 'yellow'" [dot]="true">
+                  <nf-badge [color]="lb.status === 'CONFIRMED' ? 'success' : 'warning'" [dot]="true">
                     {{ lobbySignedUp(lb) }}/{{ lb.capacity }}
                   </nf-badge>
                   <button
@@ -172,7 +172,7 @@ export class GrupoPartidas {
   }
 
   statusColor(r: MatchRoom): NfBadgeColor {
-    return r.status === 'live' ? 'green' : r.status === 'drafting' ? 'purple' : 'yellow';
+    return r.status === 'live' ? 'success' : r.status === 'drafting' ? 'tertiary' : 'warning';
   }
 
   ctaLabel(r: MatchRoom): string {

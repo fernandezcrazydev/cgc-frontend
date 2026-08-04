@@ -68,7 +68,7 @@ type StatTab = 'resumen' | 'jugadores' | 'premios';
             @if (summary(); as sm) {
               <div class="hl-grid">
                 <!-- MVP -->
-                <div class="hl hl--mvp" data-accent="pink">
+                <div class="hl hl--mvp" data-accent="primary">
                   <div class="hl__eyebrow nf-mono">★ MVP · {{ scopeLabel() }}</div>
                   <div class="hl__hero">
                     <span
@@ -84,7 +84,7 @@ type StatTab = 'resumen' | 'jugadores' | 'premios';
                 </div>
 
                 <!-- Best combo -->
-                <div class="hl hl--combo" data-accent="cyan">
+                <div class="hl hl--combo" data-accent="secondary">
                   <div class="hl__eyebrow nf-mono">🤝 Mejor dúo</div>
                   <div class="hl__duo">
                     <span class="hl__avatar hl__avatar--sm" [style.background]="grad(sm.bestCombo.a.hue)">{{ sm.bestCombo.a.initials }}</span>
@@ -96,7 +96,7 @@ type StatTab = 'resumen' | 'jugadores' | 'premios';
                 </div>
 
                 <!-- Hot streak -->
-                <div class="hl hl--streak" data-accent="yellow">
+                <div class="hl hl--streak" data-accent="warning">
                   <div class="hl__eyebrow nf-mono">🔥 Racha caliente</div>
                   <div class="hl__big nf-mono">{{ sm.hotStreak.streak }}<span class="hl__big-unit">W</span></div>
                   <div class="hl__name hl__name--sm">{{ sm.hotStreak.member.name }}</div>

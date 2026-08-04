@@ -380,7 +380,7 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
         <div class="view__label nf-mono">▸ Cara a cara · todos los grupos</div>
         <div class="hl-grid pf-h2h">
           @if (p.bestAlly; as a) {
-            <div class="hl" data-accent="cyan">
+            <div class="hl" data-accent="secondary">
               <div class="hl__eyebrow nf-mono">🤝 Mejor aliado</div>
               <div class="hl__hero">
                 <span class="hl__avatar" [style.background]="grad(a.hue)">{{ a.initials }}</span>
@@ -393,7 +393,7 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
             </div>
           }
           @if (p.nemesis; as n) {
-            <div class="hl" data-accent="pink">
+            <div class="hl" data-accent="primary">
               <div class="hl__eyebrow nf-mono">💀 Némesis</div>
               <div class="hl__hero">
                 <span class="hl__avatar" [style.background]="grad(n.hue)">{{ n.initials }}</span>
@@ -406,7 +406,7 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
             </div>
           }
           @if (p.favoriteVictim; as v) {
-            <div class="hl" data-accent="yellow">
+            <div class="hl" data-accent="warning">
               <div class="hl__eyebrow nf-mono">🎯 Víctima favorita</div>
               <div class="hl__hero">
                 <span class="hl__avatar" [style.background]="grad(v.hue)">{{ v.initials }}</span>

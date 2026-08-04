@@ -12,7 +12,7 @@
   cursor: pointer;
   transition: border-color 0.16s, background 0.16s, box-shadow 0.16s;
 }
-.nf-toggle--pink { --toggle-accent: var(--nf-primary); }
+.nf-toggle--primary { --toggle-accent: var(--nf-primary); }
 
 .nf-toggle:disabled {
   cursor: not-allowed;

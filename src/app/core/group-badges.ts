@@ -57,7 +57,7 @@ export function badgesFor(
     glyph: '★',
     title: 'MVP',
     detail: `Rating ${mvp.rating}`,
-    color: 'pink',
+    color: 'primary',
   });
 
   // Trophy-wall awards — one badge each, on its winner.
