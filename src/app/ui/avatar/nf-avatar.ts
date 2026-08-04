@@ -21,7 +21,7 @@ export type NfAvatarShape = 'square' | 'round';
 export type NfAvatarTint = number | readonly [string, string];
 
 /**
- * NEXUS//FORGE Avatar — la primitiva de icono/avatar que faltaba. Unifica el
+ * Avatar — la primitiva de icono/avatar que faltaba. Unifica el
  * patrón `@if (avatarUrl) {<img>} @else {iniciales}` que hoy está duplicado en
  * 6+ vistas, y sirve igual para el avatar de un usuario/grupo que para el
  * icono de un campeón/objeto de Data Dragon.

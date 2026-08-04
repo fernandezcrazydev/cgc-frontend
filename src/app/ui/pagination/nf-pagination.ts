@@ -4,7 +4,7 @@ import { Component, EventEmitter, Input, Output, ViewEncapsulation, computed, si
 type PageItem = { kind: 'page'; n: number } | { kind: 'gap' };
 
 /**
- * NEXUS//FORGE Pagination — presentational pager for any list view.
+ * Pagination — presentational pager for any list view.
  *
  * Stateless about the data: the parent owns the full collection, this only
  * reports which page is wanted. Give it the total item count + page size and

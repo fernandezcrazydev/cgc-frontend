@@ -17,7 +17,7 @@ export interface NfSegmentOption {
 export type NfSegmentedVariant = 'pill' | 'tabs';
 
 /**
- * NEXUS//FORGE Segmented — control segmentado para elegir entre pocas opciones
+ * Segmented — control segmentado para elegir entre pocas opciones
  * mutuamente excluyentes. Estilado con tokens, así que adopta el look del tema activo.
  *
  *   <nf-segmented

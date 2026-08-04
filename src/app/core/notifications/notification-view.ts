@@ -40,9 +40,8 @@ export interface InviteView {
  * palabra ("nuevo bug" pero "nueva sugerencia"), así que se escribe entero en vez de componerlo.
  * Un `kind` que el backend añada y este mapa no tenga cae al genérico, no rompe la campana.
  *
- * En frase normal a propósito: las MAYÚSCULAS del antetítulo son decoración de la skin y las
- * pone `nf-caps` en la plantilla, no el copy (CLAUDE.md § UI kit). Los otros títulos de este
- * fichero siguen gritando en el literal; es deuda anterior, no el patrón a copiar.
+ * En frase normal, como todo el copy de la app (CLAUDE.md § UI kit): ningún componente
+ * transforma el texto que recibe, así que lo que se escribe aquí es lo que se pinta.
  */
 const FEEDBACK_EYEBROW: Record<string, string> = {
   BUG: 'Nuevo bug',

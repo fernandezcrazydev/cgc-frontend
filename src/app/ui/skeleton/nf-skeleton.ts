@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, ViewEncapsulation, input } from '@angular/core';
 
 /**
- * NEXUS//FORGE Skeleton — hueco con barrido de luz que ocupa el sitio de un dato
+ * Skeleton — hueco con barrido de luz que ocupa el sitio de un dato
  * que aún está cargando.
  *
  *   <nf-skeleton width="220px" height="30px" />

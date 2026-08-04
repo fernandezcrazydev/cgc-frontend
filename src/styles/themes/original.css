@@ -51,7 +51,7 @@
   --nf-border-strong: rgba(255, 255, 255, 0.16);
   --nf-border-accent: rgba(99, 102, 241, 0.4);
 
-  /* ---- Efectos: sombras difusas, cero glow neón ---- */
+  /* ---- Efectos: sombras más difusas y largas que las de la base ---- */
   --nf-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
   --nf-shadow-card: 0 12px 32px rgba(0, 0, 0, 0.45);
 
@@ -199,7 +199,7 @@
   background: rgba(255, 255, 255, 0.26);
 }
 
-/* ---- Range input: pulgar índigo redondo, sin glow ---- */
+/* ---- Range input: pulgar índigo ---- */
 :root[data-theme='original'] .nf-range::-webkit-slider-thumb {
   background: var(--nf-primary);
   border-color: var(--nf-void);
@@ -229,7 +229,7 @@
   color: var(--nf-text-dim);
 }
 
-/* Hover: elevación suave en vez de "hundirse en la sombra dura". */
+/* Hover: elevación algo mayor que la de la base, acorde con el cristal. */
 :root[data-theme='original'] .resume-hero:hover,
 :root[data-theme='original'] .champ:hover,
 :root[data-theme='original'] .group-card:hover,

@@ -1,7 +1,7 @@
 import { Component, EventEmitter, Input, Output, ViewEncapsulation } from '@angular/core';
 
 /**
- * NEXUS//FORGE Avatar Picker — a square preview that shows the current group
+ * Avatar Picker — a square preview that shows the current group
  * photo (or the gradient + initials fallback) with controls to upload a new
  * image or clear it. The chosen file is read as a base64 data URL and emitted
  * via `valueChange`; `null` is emitted when the photo is removed.

@@ -3576,7 +3576,7 @@
 }
 
 /* ---- Most-played champions ---- */
-/* leave room for the window's 6px hard shadow so it clears the next section */
+/* hueco para la sombra de la ventana, para que no invada la seccion siguiente */
 .pf-champ-window { display: block; margin-bottom: 26px; }
 .pf-champs { display: flex; flex-direction: column; }
 .pf-champ {
@@ -3775,11 +3775,10 @@
 }
 
 /* Un único botón que alterna: si ya puedo, quitarme; si no, apuntarme.
-   Es la acción principal de la vista, así que va con el `nfButton` secundario (borde
-   grueso cian + sombra dura): antes era una píldora fina y translúcida que se leía como
-   otra etiqueta más de la fila, al lado del contador. Del primitivo salen tamaño, hover,
-   pulsado, disabled y el aplanado por skin; aquí solo se recolorea a verde el estado
-   "ya estoy dentro", que no es una de sus variantes. */
+   Es la acción principal de la vista, así que va con el `nfButton` secundario: antes era
+   una píldora fina y translúcida que se leía como otra etiqueta más de la fila, al lado
+   del contador. Del primitivo salen tamaño, hover, pulsado y disabled; aquí solo se
+   recolorea a verde el estado "ya estoy dentro", que no es una de sus variantes. */
 .lb-slot__cta { flex: none; }
 .lb-slot__cta.is-in {
   border-color: var(--nf-success);

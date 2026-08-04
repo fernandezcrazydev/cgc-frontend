@@ -1,4 +1,4 @@
-/* NEXUS//FORGE design-system primitives (Angular standalone components). */
+/* Primitivas del design system (componentes standalone de Angular). */
 export * from './button/nf-button';
 export * from './window/nf-window';
 export * from './modal/nf-modal';

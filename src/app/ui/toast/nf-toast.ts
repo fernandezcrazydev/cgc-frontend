@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, ViewEncapsulation, inject } from '@
 import { ToastService, ToastVariant } from '../../core/toast';
 
 /**
- * NEXUS//FORGE toast host — pinta la pila de toasts activos en una esquina fija.
+ * toast host — pinta la pila de toasts activos en una esquina fija.
  * Basta un `<nf-toast-host />` cerca de la raíz de la app; los toasts se empujan
  * desde cualquier sitio con el {@link ToastService} inyectado.
  *

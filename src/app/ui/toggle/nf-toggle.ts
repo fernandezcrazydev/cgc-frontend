@@ -3,7 +3,7 @@ import { ChangeDetectionStrategy, Component, ViewEncapsulation, input, model } f
 export type NfToggleAccent = 'secondary' | 'primary';
 
 /**
- * NEXUS//FORGE Toggle — boxy 48×28 switch with a neon track when on.
+ * Toggle — interruptor de 48×28 cuyo raíl se tiñe del acento al activarse.
  *
  *   <nf-toggle [checked]="voice()" (checkedChange)="voice.set($event)"
  *     ariaLabel="Chat de voz" />

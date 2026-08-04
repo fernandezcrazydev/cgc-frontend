@@ -123,8 +123,8 @@ describe('notificationView · reporte de feedback (solo admins)', () => {
   });
 
   /**
-   * El copy va en frase normal: las mayúsculas del antetítulo son de la skin (`nf-caps`), no del
-   * texto (CLAUDE.md § UI kit). Si alguien vuelve a gritar aquí, este test se pone rojo.
+   * El copy va en frase normal (CLAUDE.md § UI kit): ningún componente pone mayúsculas por
+   * su cuenta. Si alguien vuelve a gritar aquí, este test se pone rojo.
    */
   it('escribe el antetítulo en frase normal, sin mayúsculas de decoración', () => {
     const title = notificationView(feedback({ feedbackId: 'f1', kind: 'BUG', title: 't' }), NOW).title;

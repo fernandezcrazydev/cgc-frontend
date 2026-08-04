@@ -2,8 +2,10 @@
 
 SPA Angular 22 (standalone + signals) para organizar partidas custom de LoL entre grupos.
 La aplicación se llama **Sale Custom** (nombre oficial: es el que va en el wordmark, el `<title>`
-y los títulos de ruta). UI en **español**. Design system propio "NEXUS//FORGE" (tokens `--nf-*`,
-componentes `nf-*`) — es el nombre del **sistema de diseño**, no el de la app; de ahí el prefijo `nf-`.
+y los títulos de ruta). UI en **español**. Design system propio: tokens `--nf-*` y componentes
+`nf-*`. El prefijo viene de "NEXUS//FORGE", como se llamó el sistema mientras el look era
+vaporwave; el nombre se retiró con la estética, pero el prefijo se conserva porque renombrarlo
+serían ~1.500 ediciones sin ningún beneficio. Léelo como "el prefijo de este proyecto".
 
 ## Comandos
 
@@ -234,28 +236,32 @@ Cuando se acuerde uno, documentarlo aquí y borrar la línea de pendientes.
   pasan un 10%. Usa `calc(var(--nf-vh) * 100)` / `var(--nf-vw)`, que ya compensan. Los `%` y los
   anchos `auto` no necesitan nada. Los breakpoints (todos ≤ 860px) quedan fuera de la zona
   escalada a propósito: las media queries miden el viewport sin escalar.
+- **Nombres de color, nunca**. Tokens, tipos y variantes se nombran por lo que *significan*
+  (`--nf-primary`, `--nf-danger`, `color="success"`), no por el color que salga hoy. La app
+  ya arrastró un juego de tokens llamado `--nf-pink`/`--nf-cyan` que acabó pintando azul.
+  Excepción única: los bandos de LoL (`'blue' | 'red'`, `.lm-side--*`, `.cp-team--*`), que
+  son dominio y no tema.
 - **Temas**: `core/theme` mantiene `<html data-theme>`; cada skin es un fichero en
-  `src/styles/themes/` que redefine tokens y aplana los efectos firma (`nexus` = default,
-  sin atributo). Skins actuales: `nexus`, `nocturne`, `original` (port del look legacy).
+  `src/styles/themes/` que redefine tokens. El tema por defecto (`nocturne`) vive en
+  `styles/tokens/` y **no lleva atributo**, así que `:root` a secas ya es el defecto.
+  Skins actuales: `nocturne` (default) y `original` (port del look legacy).
   El selector vive en **Ajustes**, no en la barra. Al añadir una skin: fichero en `themes/`,
   entrada en `THEMES`, import en `styles.scss` y el `if` del script inline de `index.html`.
-- **Copy en frase normal, siempre.** MAYÚSCULAS, el `// ` de los eyebrows y la puntita `►`
-  de los CTA son decoración de skin, no texto: van en CSS y cada tema decide. Nunca los
-  escribas literales en una plantilla ni en una constante de TS — atan el copy a Nexus.
-  - `nf-eyebrow` → marca de sección (`// TEXTO`). Modificadores `--asis` (contenido
-    interpolado) y `--lower` (minúsculas deliberadas).
-  - `nf-caps` → mayúsculas en etiquetas que no son botón.
-  - `nf-go` → la puntita `►` de un CTA. Si depende de una condición, `[class.nf-go]="…"`.
-  - `<button nfButton>` y `<nf-badge>` **ya** llevan las mayúsculas en `.nf-btn`/`.nf-badge`:
-    ahí el copy va en frase normal y no hace falta `nf-caps`.
-  Las tres utilidades viven en `tokens/base.css` y se apagan en `themes/original.css`.
-- Una skin es **solo CSS**, con una excepción declarada: `NfWindow` no renderiza la barra de
-  ventana retro (semáforo, título `.exe`) bajo `original`, porque eso es markup y texto de
-  30 vistas, no tokens. Lee el tema por `NF_THEME` (token declarado en `ui/`, cableado a
-  `ThemeService` en `app.config.ts`) para no romper la dirección de dependencias. Si otro
-  primitivo necesita lo mismo, usa ese token; no importes `core/` desde `ui/`.
-- Tipografía: Manrope para texto de lectura; Share Tech Mono solo como acento (labels, código,
-  números). Nada por debajo de ~11px.
+- **Una skin es solo CSS, sin excepciones.** Si para cambiar de tema hace falta tocar markup,
+  el que está mal es el markup. Hubo una excepción declarada —`NfWindow` consultaba el tema
+  por un token `NF_THEME` para decidir si pintaba una barra de ventana retro— y se resolvió
+  borrando la barra, no ampliando la excepción. `ui/` no importa de `core/`, y ahora tampoco
+  por interfaz.
+- **Copy en frase normal, siempre.** Ni MAYÚSCULAS ni glifos decorativos en las plantillas ni
+  en constantes de TS. Ningún componente transforma el texto que recibe: lo que escribes es
+  lo que se pinta. Ojo al distinguir copy de valores de dominio: los enums del backend
+  (`OWNER`, `CONFIRMED`), los códigos de región y las siglas (`KDA`, `MVP`, `CS`) van en
+  mayúsculas porque *son* así; si un enum se pinta en pantalla, pásalo por una función de
+  etiqueta (ver `groupRoleLabel()` en `core/groups/group-view.ts`).
+- Tipografía: la pila del sistema, sin webfonts. `.nf-mono` ya no cambia la familia; marca
+  cifras que deben alinearse (`tabular-nums`). **Nada por debajo de 11px** — no es una
+  recomendación: la app llegó a tener 91 declaraciones por debajo de ese suelo y era el
+  motivo principal de que costase leerla.
 - Feedback al usuario: `ToastService` (`core/toast.ts`) + `NfToastHost`.
 
 ## Testing

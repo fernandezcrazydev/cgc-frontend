@@ -1,4 +1,4 @@
-/* NEXUS//FORGE · Toast host (global, ViewEncapsulation.None)
+/* Toast host (global, ViewEncapsulation.None)
 
    Entrada y salida son TRANSICIONES, no keyframes: la entrada arranca desde
    `@starting-style` y la salida desde `.is-leaving`. Con dos animaciones sobre las
@@ -44,7 +44,7 @@
 }
 
 /* Capa 2 · entrada/salida + recorte durante el colapso.
-   El padding lateral deja sitio a la sombra dura y al glow para que no se recorten
+   El padding lateral deja sitio a la sombra para que no se recorte
    en reposo; el margen negativo lo devuelve al layout. En vertical el aire lo pone
    el margen del propio toast (ver .nf-toast), que además hace de separación. */
 .nf-toast-clip {

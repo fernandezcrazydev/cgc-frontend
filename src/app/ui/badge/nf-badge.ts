@@ -3,7 +3,7 @@ import { Component, Input, ViewEncapsulation } from '@angular/core';
 export type NfBadgeColor = 'success' | 'warning' | 'secondary' | 'primary' | 'danger' | 'tertiary';
 
 /**
- * NEXUS//FORGE Badge — small boxy status chip with a low-opacity tinted fill,
+ * Badge — chip de estado con relleno tenue del color del acento,
  * mono uppercase label and an optional status dot.
  *
  *   <nf-badge color="success" [dot]="true">EN CURSO</nf-badge>

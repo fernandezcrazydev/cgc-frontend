@@ -7,7 +7,7 @@ export interface NfSelectOption {
 }
 
 /**
- * NEXUS//FORGE Select — native select styled as a boxy inset control with a
+ * Select — el select nativo, presentado como control hundido con un
  * mono `▾` caret.
  *
  *   <nf-select [options]="['LAN','BR']" value="LAN" (valueChange)="region = $event" />
