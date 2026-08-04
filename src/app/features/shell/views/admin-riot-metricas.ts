@@ -265,8 +265,8 @@ const WINDOW_LABELS: Record<RiotMetricsWindow, string> = {
       }
       .rm-seg__btn:hover,
       .rm-seg__btn.is-active {
-        color: var(--nf-cyan);
-        border-color: var(--nf-cyan);
+        color: var(--nf-secondary);
+        border-color: var(--nf-secondary);
       }
       .rm-skeletons {
         display: flex;
@@ -292,7 +292,7 @@ const WINDOW_LABELS: Record<RiotMetricsWindow, string> = {
         color: var(--nf-text-dim);
       }
       .totals__val.is-bad {
-        color: var(--nf-red);
+        color: var(--nf-danger);
       }
       .rm-chart {
         display: block;
@@ -306,17 +306,17 @@ const WINDOW_LABELS: Record<RiotMetricsWindow, string> = {
         vector-effect: non-scaling-stroke;
       }
       .rm-chart__area {
-        fill: color-mix(in srgb, var(--nf-cyan) 16%, transparent);
+        fill: color-mix(in srgb, var(--nf-secondary) 16%, transparent);
       }
       .rm-chart__line {
         fill: none;
-        stroke: var(--nf-cyan);
+        stroke: var(--nf-secondary);
         stroke-width: 2;
         stroke-linejoin: round;
         vector-effect: non-scaling-stroke;
       }
       .rm-chart__line--bad {
-        stroke: var(--nf-red);
+        stroke: var(--nf-danger);
       }
       .rm-chart__axis {
         display: flex;
@@ -349,7 +349,7 @@ const WINDOW_LABELS: Record<RiotMetricsWindow, string> = {
         font-variant-numeric: tabular-nums;
       }
       .rm-row__bad {
-        color: var(--nf-red);
+        color: var(--nf-danger);
       }
       .rm-row__track {
         height: 5px;
@@ -359,7 +359,7 @@ const WINDOW_LABELS: Record<RiotMetricsWindow, string> = {
       }
       .rm-row__fill {
         height: 100%;
-        background: var(--nf-cyan);
+        background: var(--nf-secondary);
         border-radius: 999px;
       }
       .rm-hours {
@@ -379,11 +379,11 @@ const WINDOW_LABELS: Record<RiotMetricsWindow, string> = {
       }
       .rm-hours__fill {
         width: 100%;
-        background: var(--nf-purple);
+        background: var(--nf-tertiary);
         border-radius: 3px;
       }
       .rm-hours__bar.is-peak .rm-hours__fill {
-        background: var(--nf-pink);
+        background: var(--nf-primary);
       }
       .rm-hours__axis {
         display: flex;

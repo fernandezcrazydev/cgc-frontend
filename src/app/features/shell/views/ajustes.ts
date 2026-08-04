@@ -195,11 +195,11 @@ const SCOPE_LABELS: Record<string, string> = {
         border-color: var(--nf-border-strong);
       }
       .theme-opt.is-active {
-        border-color: var(--nf-pink);
-        background: color-mix(in srgb, var(--nf-pink) 12%, var(--nf-surface-2));
+        border-color: var(--nf-primary);
+        background: color-mix(in srgb, var(--nf-primary) 12%, var(--nf-surface-2));
       }
       .theme-opt:focus-visible {
-        outline: 2px solid var(--nf-cyan);
+        outline: 2px solid var(--nf-secondary);
         outline-offset: 2px;
       }
 

@@ -9,7 +9,7 @@
 .fb__eyebrow {
   font-size: 11px;
   letter-spacing: var(--ls-eyebrow);
-  color: var(--nf-cyan);
+  color: var(--nf-secondary);
 }
 
 /* ---- aviso: el formulario es solo visual (placeholder) ---- */
@@ -18,8 +18,8 @@
   gap: 10px;
   align-items: flex-start;
   padding: 11px 13px;
-  background: color-mix(in srgb, var(--nf-yellow) 12%, transparent);
-  border: var(--bw-hair) solid color-mix(in srgb, var(--nf-yellow) 45%, transparent);
+  background: color-mix(in srgb, var(--nf-warning) 12%, transparent);
+  border: var(--bw-hair) solid color-mix(in srgb, var(--nf-warning) 45%, transparent);
   border-radius: var(--nf-radius);
 }
 
@@ -27,7 +27,7 @@
   flex: none;
   font-size: 15px;
   line-height: 1.4;
-  color: var(--nf-yellow);
+  color: var(--nf-warning);
 }
 
 .fb__notice-text {
@@ -60,9 +60,9 @@
   transition: border-color 0.14s, background 0.14s;
 
   /* acento propio de cada tipo, encendido solo al seleccionar */
-  &[data-kind='bug'] { --fb-accent: var(--nf-red); }
-  &[data-kind='proposal'] { --fb-accent: var(--nf-cyan); }
-  &[data-kind='incident'] { --fb-accent: var(--nf-yellow); }
+  &[data-kind='bug'] { --fb-accent: var(--nf-danger); }
+  &[data-kind='proposal'] { --fb-accent: var(--nf-secondary); }
+  &[data-kind='incident'] { --fb-accent: var(--nf-warning); }
 
   &:hover { border-color: var(--nf-border-strong); }
 
@@ -125,7 +125,7 @@
   color: var(--nf-text-mid);
 }
 
-.fb__req { color: var(--nf-pink); }
+.fb__req { color: var(--nf-primary); }
 
 .fb__opt {
   letter-spacing: var(--ls-normal);
@@ -157,8 +157,8 @@
   &::placeholder { color: var(--nf-text-dim); }
 
   &:focus {
-    border-color: var(--nf-cyan);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--nf-cyan) 16%, transparent);
+    border-color: var(--nf-secondary);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--nf-secondary) 16%, transparent);
   }
 }
 
@@ -182,7 +182,7 @@
   color: var(--nf-text-dim);
 
   &:hover { color: var(--nf-text-mid); }
-  &:focus-visible { outline: 2px solid var(--nf-cyan); outline-offset: 2px; }
+  &:focus-visible { outline: 2px solid var(--nf-secondary); outline-offset: 2px; }
 }
 
 .fb__ctx-list {

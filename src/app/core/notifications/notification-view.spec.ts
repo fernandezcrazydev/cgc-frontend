@@ -58,7 +58,7 @@ describe('notificationView · vinculación con la app de escritorio', () => {
     );
     expect(view.title).toBe('CUENTA VINCULADA');
     expect(view.message).toBe('Vinculamos N1ghtfang#LAN desde la app de escritorio');
-    expect(view.accent).toBe('var(--nf-cyan)');
+    expect(view.accent).toBe('var(--nf-secondary)');
     expect(view.glyph).toBe('↔');
     expect(view.invite).toBeNull();
   });
@@ -70,7 +70,7 @@ describe('notificationView · vinculación con la app de escritorio', () => {
     );
     expect(view.title).toBe('CUENTA VERIFICADA');
     expect(view.message).toBe('Comprobamos con Riot que N1ghtfang#LAN es tuya');
-    expect(view.accent).toBe('var(--nf-green)');
+    expect(view.accent).toBe('var(--nf-success)');
     expect(view.glyph).toBe('✓');
     expect(view.invite).toBeNull();
   });
@@ -84,7 +84,7 @@ describe('notificationView · vinculación con la app de escritorio', () => {
     expect(view.message).toBe(
       'Alguien demostró ser el dueño de N1ghtfang#LAN y se ha desvinculado de tu perfil',
     );
-    expect(view.accent).toBe('var(--nf-red)');
+    expect(view.accent).toBe('var(--nf-danger)');
     expect(view.glyph).toBe('⊘');
     expect(view.invite).toBeNull();
   });
@@ -92,7 +92,7 @@ describe('notificationView · vinculación con la app de escritorio', () => {
   it('un tipo desconocido sigue cayendo en el genérico (no rompe con tipos nuevos del backend)', () => {
     const view = notificationView(invite({ type: 'RIOT_ACCOUNT_SOMETHING_FUTURE', data: {} }), NOW);
     expect(view.title).toBe('NOTIFICACIÓN');
-    expect(view.accent).toBe('var(--nf-yellow)');
+    expect(view.accent).toBe('var(--nf-warning)');
     expect(view.invite).toBeNull();
   });
 });
@@ -109,7 +109,7 @@ describe('notificationView · reporte de feedback (solo admins)', () => {
     );
     expect(view.title).toBe('Nuevo bug');
     expect(view.message).toBe('El draft se queda colgado');
-    expect(view.accent).toBe('var(--nf-purple)');
+    expect(view.accent).toBe('var(--nf-tertiary)');
     expect(view.glyph).toBe('⚑');
     expect(view.link).toEqual(['/app', 'admin', 'feedback', 'f1']);
     expect(view.invite).toBeNull();

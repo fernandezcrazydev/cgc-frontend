@@ -97,7 +97,7 @@ export function notificationView(n: NotificationResponse, now = Date.now()): Not
         message: invitedByName
           ? `${invitedByName} te invitó a unirte a ${groupName}`
           : `Te invitaron a unirte a ${groupName}`,
-        accent: 'var(--nf-pink)',
+        accent: 'var(--nf-primary)',
         glyph: '►',
         invite: {
           invitationId: n.data['invitationId'] ?? '',
@@ -113,7 +113,7 @@ export function notificationView(n: NotificationResponse, now = Date.now()): Not
         ...base,
         title: 'CUENTA VINCULADA',
         message: `Vinculamos ${riotId} desde la app de escritorio`,
-        accent: 'var(--nf-cyan)',
+        accent: 'var(--nf-secondary)',
         glyph: '↔',
         invite: null,
       };
@@ -124,7 +124,7 @@ export function notificationView(n: NotificationResponse, now = Date.now()): Not
         ...base,
         title: 'CUENTA VERIFICADA',
         message: `Comprobamos con Riot que ${riotId} es tuya`,
-        accent: 'var(--nf-green)',
+        accent: 'var(--nf-success)',
         glyph: '✓',
         invite: null,
       };
@@ -135,7 +135,7 @@ export function notificationView(n: NotificationResponse, now = Date.now()): Not
         ...base,
         title: 'CUENTA DESVINCULADA',
         message: `Alguien demostró ser el dueño de ${riotId} y se ha desvinculado de tu perfil`,
-        accent: 'var(--nf-red)',
+        accent: 'var(--nf-danger)',
         glyph: '⊘',
         invite: null,
       };
@@ -148,7 +148,7 @@ export function notificationView(n: NotificationResponse, now = Date.now()): Not
         ...base,
         title: FEEDBACK_EYEBROW[n.data['kind'] ?? ''] ?? 'Nuevo reporte',
         message: n.data['title'] ?? 'Alguien ha enviado un reporte',
-        accent: 'var(--nf-purple)',
+        accent: 'var(--nf-tertiary)',
         glyph: '⚑',
         invite: null,
         // Sin id no hay detalle al que ir: mejor una fila que informa y no navega que un
@@ -163,7 +163,7 @@ export function notificationView(n: NotificationResponse, now = Date.now()): Not
         ...base,
         title: 'PARTIDA CONVOCADA',
         message: `${who} ha convocado una partida en ${groupName}. Di a qué horas puedes`,
-        accent: 'var(--nf-cyan)',
+        accent: 'var(--nf-secondary)',
         glyph: '📣',
         invite: null,
         link: lobbyLink(n),
@@ -178,7 +178,7 @@ export function notificationView(n: NotificationResponse, now = Date.now()): Not
         message: startsAt
           ? `Ya hay hora: ${formatKickoff(startsAt)}`
           : 'La partida ya tiene hora',
-        accent: 'var(--nf-green)',
+        accent: 'var(--nf-success)',
         glyph: '✓',
         invite: null,
         link: lobbyLink(n),
@@ -194,7 +194,7 @@ export function notificationView(n: NotificationResponse, now = Date.now()): Not
         message: startsAt
           ? `Se ha caído alguien y entras tú: ${formatKickoff(startsAt)}`
           : 'Se ha caído alguien y entras tú',
-        accent: 'var(--nf-pink)',
+        accent: 'var(--nf-primary)',
         glyph: '▲',
         invite: null,
         link: lobbyLink(n),
@@ -206,7 +206,7 @@ export function notificationView(n: NotificationResponse, now = Date.now()): Not
         ...base,
         title: 'PARTIDA CANCELADA',
         message: `Se ha cancelado la partida de ${groupName}`,
-        accent: 'var(--nf-red)',
+        accent: 'var(--nf-danger)',
         glyph: '⊘',
         invite: null,
         // Sin enlace: la sala sigue existiendo pero no hay nada que hacer en ella.
@@ -218,7 +218,7 @@ export function notificationView(n: NotificationResponse, now = Date.now()): Not
         ...base,
         title: 'NOTIFICACIÓN',
         message: '',
-        accent: 'var(--nf-yellow)',
+        accent: 'var(--nf-warning)',
         glyph: '⊙',
         invite: null,
       };

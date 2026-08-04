@@ -19,13 +19,13 @@
   --nf-elevated: #3a3a3c;
 
   /* ---- Paleta: acento azul sistema; resto = colores sistema Apple ---- */
-  --nf-pink: #0a84ff; /* primary → azul sistema        */
-  --nf-pink-strong: #0060df; /* primary pressed          */
-  --nf-cyan: #64d2ff; /* secondary → azul claro         */
-  --nf-purple: #5e5ce6; /* índigo                        */
-  --nf-yellow: #ffd60a; /* amarillo sistema              */
-  --nf-green: #30d158; /* verde sistema                  */
-  --nf-red: #ff453a; /* rojo sistema                     */
+  --nf-primary: #0a84ff; /* primary → azul sistema        */
+  --nf-primary-strong: #0060df; /* primary pressed          */
+  --nf-secondary: #64d2ff; /* secondary → azul claro         */
+  --nf-tertiary: #5e5ce6; /* índigo                        */
+  --nf-warning: #ffd60a; /* amarillo sistema              */
+  --nf-success: #30d158; /* verde sistema                  */
+  --nf-danger: #ff453a; /* rojo sistema                     */
 
   --nf-team-blue: #0a84ff;
   --nf-team-red: #ff453a;
@@ -42,13 +42,12 @@
   /* ---- Líneas: hairlines neutros (sin tinte cian) ---- */
   --nf-border: rgba(255, 255, 255, 0.09);
   --nf-border-strong: rgba(255, 255, 255, 0.16);
-  --nf-border-pink: rgba(10, 132, 255, 0.35);
+  --nf-border-accent: rgba(10, 132, 255, 0.35);
 
   /* ---- Efectos: sombras suaves difuminadas, sin glow ---- */
-  --nf-shadow-cyan: 0 1px 2px rgba(0, 0, 0, 0.5);
-  --nf-shadow-pink: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --nf-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
   --nf-shadow-card: 0 1px 2px rgba(0, 0, 0, 0.5), 0 12px 40px rgba(0, 0, 0, 0.35);
-  --nf-glow-pink: 0 0 0 rgba(0, 0, 0, 0);
+  --nf-glow: 0 0 0 rgba(0, 0, 0, 0);
 
   /* ---- Tipografía: SF del sistema; se elimina el mono vaporwave ---- */
   --nf-font: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text',
@@ -136,13 +135,13 @@
 
 /* ---- Range input: pulgar azul sin glow neón ---- */
 :root[data-theme='nocturne'] .nf-range::-webkit-slider-thumb {
-  background: var(--nf-pink);
+  background: var(--nf-primary);
   border-color: var(--nf-surface);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
   border-radius: 50%;
 }
 :root[data-theme='nocturne'] .nf-range::-moz-range-thumb {
-  background: var(--nf-pink);
+  background: var(--nf-primary);
   border-color: var(--nf-surface);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
   border-radius: 50%;
@@ -239,7 +238,7 @@
   box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.18);
 }
 :root[data-theme='nocturne'] .shell__fab {
-  background: var(--nf-pink); /* remapeado a azul */
+  background: var(--nf-primary); /* remapeado a azul */
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5), 0 0 0 6px var(--nf-void);
 }
 :root[data-theme='nocturne'] .shell__bottomnav-item--center.is-active .shell__fab {

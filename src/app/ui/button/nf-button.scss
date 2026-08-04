@@ -29,34 +29,34 @@
 
 /* ---- primary · hot pink with breathing glow ---- */
 .nf-btn--primary {
-  background: var(--nf-pink);
+  background: var(--nf-primary);
   color: var(--nf-void);
-  border-color: var(--nf-pink);
-  box-shadow: var(--nf-shadow-cyan), var(--nf-glow-pink);
+  border-color: var(--nf-primary);
+  box-shadow: var(--nf-shadow), var(--nf-glow);
 }
 .nf-btn--primary:hover:not(:disabled) {
   transform: translate(-1px, -1px);
-  box-shadow: 5px 5px 0 var(--nf-cyan), 0 0 24px rgba(255, 95, 210, 0.7);
+  box-shadow: 5px 5px 0 var(--nf-secondary), 0 0 24px rgba(255, 95, 210, 0.7);
 }
 .nf-btn--primary:active:not(:disabled) {
   transform: translate(1px, 1px);
-  box-shadow: 2px 2px 0 var(--nf-cyan), var(--nf-glow-pink);
+  box-shadow: 2px 2px 0 var(--nf-secondary), var(--nf-glow);
 }
 
 /* ---- secondary · cyan outline ---- */
 .nf-btn--secondary {
   background: transparent;
-  color: var(--nf-cyan);
-  border-color: var(--nf-cyan);
-  box-shadow: var(--nf-shadow-cyan);
+  color: var(--nf-secondary);
+  border-color: var(--nf-secondary);
+  box-shadow: var(--nf-shadow);
 }
 .nf-btn--secondary:hover:not(:disabled) {
   transform: translate(-1px, -1px);
-  box-shadow: 5px 5px 0 var(--nf-cyan), 0 0 18px rgba(54, 224, 255, 0.45);
+  box-shadow: 5px 5px 0 var(--nf-secondary), 0 0 18px rgba(54, 224, 255, 0.45);
 }
 .nf-btn--secondary:active:not(:disabled) {
   transform: translate(1px, 1px);
-  box-shadow: 2px 2px 0 var(--nf-cyan);
+  box-shadow: 2px 2px 0 var(--nf-secondary);
 }
 
 /* ---- ghost · quiet, brightens on hover ---- */
@@ -66,15 +66,15 @@
   border-color: var(--nf-border);
 }
 .nf-btn--ghost:hover:not(:disabled) {
-  color: var(--nf-cyan);
+  color: var(--nf-secondary);
   border-color: var(--nf-border-strong);
 }
 
 /* ---- accent · sun yellow ---- */
 .nf-btn--accent {
-  background: var(--nf-yellow);
+  background: var(--nf-warning);
   color: var(--nf-void);
-  border-color: var(--nf-yellow);
+  border-color: var(--nf-warning);
   box-shadow: 4px 4px 0 rgba(255, 225, 77, 0.45);
 }
 .nf-btn--accent:hover:not(:disabled) {
@@ -84,9 +84,9 @@
 
 /* ---- danger · neon red ---- */
 .nf-btn--danger {
-  background: var(--nf-red);
+  background: var(--nf-danger);
   color: #fff;
-  border-color: var(--nf-red);
+  border-color: var(--nf-danger);
   box-shadow: 4px 4px 0 rgba(255, 95, 109, 0.4);
 }
 .nf-btn--danger:hover:not(:disabled) {

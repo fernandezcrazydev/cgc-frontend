@@ -74,11 +74,11 @@
   width: 42px;
   height: 42px;
   border-radius: 7px;
-  background: linear-gradient(135deg, #ff67d6, var(--nf-purple));
+  background: linear-gradient(135deg, #ff67d6, var(--nf-tertiary));
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 2px solid var(--nf-cyan);
+  border: 2px solid var(--nf-secondary);
   box-shadow: 0 0 14px rgba(255, 95, 210, 0.55);
   flex: none;
 }
@@ -105,7 +105,7 @@
 .login__eyebrow {
   font-size: 11px;
   letter-spacing: 3px;
-  color: var(--nf-cyan);
+  color: var(--nf-secondary);
   margin-bottom: 12px;
 }
 
@@ -178,10 +178,10 @@
 .login__error {
   margin: 0 0 16px;
   padding: 11px 14px;
-  border: 1px solid var(--nf-red, #ff3b59);
+  border: 1px solid var(--nf-danger, #ff3b59);
   border-radius: 4px;
   background: rgba(255, 59, 89, 0.1);
-  color: var(--nf-red, #ff6b82);
+  color: var(--nf-danger, #ff6b82);
   font-size: 11px;
   letter-spacing: 0.5px;
   line-height: 1.5;
@@ -203,11 +203,11 @@
   width: 60px;
   height: 60px;
   border-radius: 50%;
-  border: 2px solid var(--nf-green);
+  border: 2px solid var(--nf-success);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--nf-green);
+  color: var(--nf-success);
   font-size: 30px;
   box-shadow: 0 0 22px rgba(95, 255, 160, 0.4);
   margin-bottom: 22px;
@@ -231,8 +231,8 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--nf-green);
-  box-shadow: 0 0 8px var(--nf-green);
+  background: var(--nf-success);
+  box-shadow: 0 0 8px var(--nf-success);
   animation: nf-pulse 2s infinite;
 }
 

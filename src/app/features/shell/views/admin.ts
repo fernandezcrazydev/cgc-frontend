@@ -152,7 +152,7 @@ const ITEMS: AdminDirectoryItem[] = [
       }
       .ad-card__result {
         font-size: 12px;
-        color: var(--nf-cyan);
+        color: var(--nf-secondary);
       }
       .ad-card__cta {
         align-self: center;

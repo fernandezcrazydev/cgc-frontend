@@ -16,11 +16,11 @@
   align-items: center;
   gap: 12px;
   padding: 9px 13px;
-  background: linear-gradient(90deg, var(--nf-cyan), var(--nf-pink));
+  background: linear-gradient(90deg, var(--nf-secondary), var(--nf-primary));
   border-bottom: var(--bw-2) solid rgba(0, 0, 0, 0.25);
 }
 .nf-window--pink .nf-window__bar {
-  background: linear-gradient(90deg, var(--nf-pink), var(--nf-purple));
+  background: linear-gradient(90deg, var(--nf-primary), var(--nf-tertiary));
 }
 
 .nf-window__lights {

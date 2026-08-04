@@ -70,7 +70,7 @@ body {
   width: 18px;
   height: 18px;
   border-radius: 3px;
-  background: var(--nf-pink);
+  background: var(--nf-primary);
   border: 2px solid var(--nf-void);
   box-shadow: 0 0 10px rgba(255, 95, 210, 0.7);
 }
@@ -78,7 +78,7 @@ body {
   width: 18px;
   height: 18px;
   border-radius: 3px;
-  background: var(--nf-pink);
+  background: var(--nf-primary);
   border: 2px solid var(--nf-void);
   box-shadow: 0 0 10px rgba(255, 95, 210, 0.7);
 }

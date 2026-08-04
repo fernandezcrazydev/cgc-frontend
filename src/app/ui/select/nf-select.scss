@@ -27,7 +27,7 @@
 }
 .nf-select__field:focus {
   outline: none;
-  border-color: var(--nf-cyan);
+  border-color: var(--nf-secondary);
   box-shadow: 0 0 12px rgba(54, 224, 255, 0.35);
 }
 .nf-select__field option {
@@ -41,6 +41,6 @@
   top: 50%;
   transform: translateY(-50%);
   font-size: 12px;
-  color: var(--nf-cyan);
+  color: var(--nf-secondary);
   pointer-events: none;
 }

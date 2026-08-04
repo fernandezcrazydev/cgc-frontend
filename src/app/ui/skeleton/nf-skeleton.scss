@@ -17,7 +17,7 @@ nf-skeleton { display: block; }
   background: linear-gradient(
     90deg,
     transparent,
-    color-mix(in srgb, var(--nf-cyan) 16%, transparent),
+    color-mix(in srgb, var(--nf-secondary) 16%, transparent),
     transparent
   );
   animation: nf-skeleton-sweep 1.3s ease-in-out infinite;

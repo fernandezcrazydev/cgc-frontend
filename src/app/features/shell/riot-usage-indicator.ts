@@ -57,8 +57,8 @@ import { NfMeter, NfSkeleton } from '../../ui';
         transition: border-color 0.14s, background 0.14s;
       }
       .riot-usage:hover {
-        border-color: var(--nf-cyan);
-        background: color-mix(in srgb, var(--nf-cyan) 8%, transparent);
+        border-color: var(--nf-secondary);
+        background: color-mix(in srgb, var(--nf-secondary) 8%, transparent);
       }
       .riot-usage__down {
         font-size: 10.5px;

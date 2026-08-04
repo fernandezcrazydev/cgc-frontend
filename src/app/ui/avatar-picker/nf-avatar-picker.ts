@@ -60,8 +60,8 @@ export class NfAvatarPicker {
   /** Fallback initials shown when there is no photo. */
   @Input() initials = '';
   /** Gradient stops for the fallback preview. */
-  @Input() c1 = 'var(--nf-cyan)';
-  @Input() c2 = 'var(--nf-pink)';
+  @Input() c1 = 'var(--nf-secondary)';
+  @Input() c2 = 'var(--nf-primary)';
   /** Max accepted file size in megabytes. */
   @Input() maxSizeMb = 4;
 

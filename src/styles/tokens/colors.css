@@ -13,13 +13,13 @@
   --nf-elevated: #1f0c3d;      /* hover / gradient top      */
 
   /* ---- Neon brand palette ---- */
-  --nf-pink: #ff5fd2;          /* primary  · hot pink            */
-  --nf-pink-strong: #e0319f;   /* primary pressed / gradient end */
-  --nf-cyan: #36e0ff;          /* secondary · electric cyan      */
-  --nf-purple: #a96bff;        /* tertiary  · synth violet       */
-  --nf-yellow: #ffe14d;        /* accent    · sun yellow         */
-  --nf-green: #5fffa0;         /* success   · acid green         */
-  --nf-red: #ff5f6d;           /* danger    · neon red           */
+  --nf-primary: #ff5fd2;          /* primary  · hot pink            */
+  --nf-primary-strong: #e0319f;   /* primary pressed / gradient end */
+  --nf-secondary: #36e0ff;          /* secondary · electric cyan      */
+  --nf-tertiary: #a96bff;        /* tertiary  · synth violet       */
+  --nf-warning: #ffe14d;        /* accent    · sun yellow         */
+  --nf-success: #5fffa0;         /* success   · acid green         */
+  --nf-danger: #ff5f6d;           /* danger    · neon red           */
 
   /* ---- Team sides ---- */
   --nf-team-blue: #36e0ff;
@@ -33,18 +33,5 @@
   /* ---- Lines (cyan-tinted hairlines; pink for accents) ---- */
   --nf-border: rgba(54, 224, 255, 0.2);
   --nf-border-strong: rgba(54, 224, 255, 0.4);
-  --nf-border-pink: rgba(255, 95, 210, 0.35);
-
-  /* ---- Semantic aliases ---- */
-  --color-bg: var(--nf-void);
-  --color-surface: var(--nf-surface);
-  --color-surface-raised: var(--nf-surface-2);
-  --color-primary: var(--nf-pink);
-  --color-secondary: var(--nf-cyan);
-  --color-accent: var(--nf-yellow);
-  --color-danger: var(--nf-red);
-  --color-success: var(--nf-green);
-  --color-text: var(--nf-text);
-  --color-text-muted: var(--nf-text-dim);
-  --color-border: var(--nf-border);
+  --nf-border-accent: rgba(255, 95, 210, 0.35);
 }

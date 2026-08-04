@@ -5,16 +5,9 @@
    ============================================================ */
 
 :root {
-  --nf-shadow-cyan: 4px 4px 0 var(--nf-cyan);
-  --nf-shadow-pink: 4px 4px 0 var(--nf-pink);
+  --nf-shadow: 4px 4px 0 var(--nf-secondary);
   --nf-shadow-card: 6px 6px 0 rgba(169, 107, 255, 0.45);
-  --nf-glow-pink: 0 0 18px rgba(255, 95, 210, 0.45);
-
-  /* aliases */
-  --shadow-hard-cyan: var(--nf-shadow-cyan);
-  --shadow-hard-pink: var(--nf-shadow-pink);
-  --shadow-card: var(--nf-shadow-card);
-  --glow-pink: var(--nf-glow-pink);
+  --nf-glow: 0 0 18px rgba(255, 95, 210, 0.45);
 }
 
 /* ---- Keyframes (global; pseudo-states & animations can't be scoped) ---- */
@@ -24,8 +17,8 @@
 @keyframes nf-bar { 0% { transform: translateX(-120%); } 100% { transform: translateX(420%); } }
 @keyframes nf-toast { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 @keyframes nf-glow {
-  0%, 100% { box-shadow: var(--nf-shadow-cyan), 0 0 14px rgba(255, 95, 210, 0.4); }
-  50% { box-shadow: var(--nf-shadow-cyan), 0 0 26px rgba(255, 95, 210, 0.8); }
+  0%, 100% { box-shadow: var(--nf-shadow), 0 0 14px rgba(255, 95, 210, 0.4); }
+  50% { box-shadow: var(--nf-shadow), 0 0 26px rgba(255, 95, 210, 0.8); }
 }
 
 /* ---- Login / hero motion (from Login.dc.html) ---- */

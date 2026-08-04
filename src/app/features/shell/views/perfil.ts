@@ -667,7 +667,7 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
         color: var(--nf-text-mid);
       }
       .connect-get a {
-        color: var(--nf-cyan);
+        color: var(--nf-secondary);
       }
     `,
   ],

@@ -56,17 +56,17 @@
   transition: border-color 0.16s, box-shadow 0.16s, color 0.16s;
 }
 .nf-avatarpicker__btn:hover {
-  border-color: var(--nf-cyan);
-  color: var(--nf-cyan);
+  border-color: var(--nf-secondary);
+  color: var(--nf-secondary);
   box-shadow: 0 0 12px rgba(54, 224, 255, 0.3);
 }
 .nf-avatarpicker__btn--ghost {
   background: transparent;
 }
 .nf-avatarpicker__btn--ghost:hover {
-  border-color: var(--nf-pink);
-  color: var(--nf-pink);
-  box-shadow: 0 0 12px color-mix(in srgb, var(--nf-pink) 30%, transparent);
+  border-color: var(--nf-primary);
+  color: var(--nf-primary);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--nf-primary) 30%, transparent);
 }
 
 .nf-avatarpicker__input {
@@ -86,5 +86,5 @@
 .nf-avatarpicker__error {
   font-size: 10px;
   letter-spacing: 0.5px;
-  color: var(--nf-pink);
+  color: var(--nf-primary);
 }

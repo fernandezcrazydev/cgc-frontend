@@ -1,7 +1,7 @@
 /* NEXUS//FORGE · Toggle (global, ViewEncapsulation.None) */
 
 .nf-toggle {
-  --toggle-accent: var(--nf-cyan);
+  --toggle-accent: var(--nf-secondary);
   position: relative;
   width: 48px;
   height: 28px;
@@ -12,7 +12,7 @@
   cursor: pointer;
   transition: border-color 0.16s, background 0.16s, box-shadow 0.16s;
 }
-.nf-toggle--pink { --toggle-accent: var(--nf-pink); }
+.nf-toggle--pink { --toggle-accent: var(--nf-primary); }
 
 .nf-toggle:disabled {
   cursor: not-allowed;

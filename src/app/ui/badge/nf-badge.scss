@@ -1,7 +1,7 @@
 /* NEXUS//FORGE · Badge (global, ViewEncapsulation.None) */
 
 .nf-badge {
-  --badge-color: var(--nf-cyan);
+  --badge-color: var(--nf-secondary);
   display: inline-flex;
   align-items: center;
   gap: 7px;
@@ -12,12 +12,12 @@
   color: var(--badge-color);
 }
 
-.nf-badge--green { --badge-color: var(--nf-green); }
-.nf-badge--yellow { --badge-color: var(--nf-yellow); }
-.nf-badge--cyan { --badge-color: var(--nf-cyan); }
-.nf-badge--pink { --badge-color: var(--nf-pink); }
-.nf-badge--red { --badge-color: var(--nf-red); }
-.nf-badge--purple { --badge-color: var(--nf-purple); }
+.nf-badge--green { --badge-color: var(--nf-success); }
+.nf-badge--yellow { --badge-color: var(--nf-warning); }
+.nf-badge--cyan { --badge-color: var(--nf-secondary); }
+.nf-badge--pink { --badge-color: var(--nf-primary); }
+.nf-badge--red { --badge-color: var(--nf-danger); }
+.nf-badge--purple { --badge-color: var(--nf-tertiary); }
 
 .nf-badge__dot {
   width: 7px;

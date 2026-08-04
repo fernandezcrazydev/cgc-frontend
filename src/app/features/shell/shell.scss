@@ -32,11 +32,11 @@
   width: 36px;
   height: 36px;
   border-radius: 7px;
-  background: linear-gradient(135deg, #ff67d6, var(--nf-purple));
+  background: linear-gradient(135deg, #ff67d6, var(--nf-tertiary));
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 2px solid var(--nf-cyan);
+  border: 2px solid var(--nf-secondary);
   box-shadow: 0 0 12px rgba(255, 95, 210, 0.5);
   flex: none;
 }
@@ -75,10 +75,10 @@
 .shell__nav-glyph { font-size: 14px; width: 18px; text-align: center; color: inherit; }
 .shell__nav-item.is-active {
   background: linear-gradient(90deg, rgba(255, 95, 210, 0.16), rgba(255, 95, 210, 0));
-  border-left-color: var(--nf-pink);
+  border-left-color: var(--nf-primary);
   color: #fff;
 }
-.shell__nav-item.is-active .shell__nav-glyph { color: var(--nf-pink); }
+.shell__nav-item.is-active .shell__nav-glyph { color: var(--nf-primary); }
 
 /* ---- sidebar groups dropdown ---- */
 .shell__nav-group { display: flex; flex-direction: column; }
@@ -98,7 +98,7 @@
 }
 .shell__nav-item--toggle.is-open .shell__nav-caret { transform: rotate(180deg); }
 .shell__nav-item--toggle.is-open { color: #fff; }
-.shell__nav-item--toggle.is-open .shell__nav-glyph { color: var(--nf-pink); }
+.shell__nav-item--toggle.is-open .shell__nav-glyph { color: var(--nf-primary); }
 
 /* grid-rows 0fr↔1fr animates the height collapse in BOTH directions */
 .shell__groupwrap {
@@ -184,7 +184,7 @@
   padding: 9px 9px;
   font-size: 11px;
   letter-spacing: 1.5px;
-  color: var(--nf-cyan);
+  color: var(--nf-secondary);
   text-decoration: none;
   border-radius: 6px;
   transition: background 0.14s, color 0.14s;
@@ -221,7 +221,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--nf-cyan);
+  color: var(--nf-secondary);
 }
 .shell__download-trigger.is-open {
   color: #fff;
@@ -272,10 +272,10 @@
   color: #fff;
 }
 .shell__download-opt:hover .shell__download-logo {
-  color: var(--nf-cyan);
+  color: var(--nf-secondary);
 }
 .shell__download-opt:focus-visible {
-  outline: 2px solid var(--nf-cyan);
+  outline: 2px solid var(--nf-secondary);
   outline-offset: -2px;
 }
 .shell__download-logo {
@@ -325,10 +325,10 @@
   border-color: var(--nf-border);
 }
 .shell__profile:hover .shell__avatar {
-  border-color: var(--nf-cyan);
+  border-color: var(--nf-secondary);
   box-shadow: 3px 3px 0 rgba(169, 107, 255, 0.4);
 }
-.shell__profile:hover .shell__profile-cta { color: var(--nf-pink); }
+.shell__profile:hover .shell__profile-cta { color: var(--nf-primary); }
 .shell__avatar {
   width: 34px;
   height: 34px;
@@ -401,7 +401,7 @@
   cursor: pointer;
   transition: color 0.16s, border-color 0.16s;
 }
-.shell__logout:hover { color: var(--nf-cyan); border-color: var(--nf-border-strong); }
+.shell__logout:hover { color: var(--nf-secondary); border-color: var(--nf-border-strong); }
 
 /* ---- logout confirmation modal ---- */
 .shell__overlay {
@@ -473,7 +473,7 @@
   color: #fff;
   letter-spacing: -0.4px;
 }
-.shell__invite-count { font-size: 10px; letter-spacing: 1.5px; color: var(--nf-cyan); }
+.shell__invite-count { font-size: 10px; letter-spacing: 1.5px; color: var(--nf-secondary); }
 .shell__invite-facts {
   display: flex;
   gap: 12px;
@@ -625,17 +625,17 @@
   width: 100%;
   padding: 10px 18px;
   background:
-    linear-gradient(90deg, color-mix(in srgb, var(--nf-yellow) 18%, transparent), transparent 62%),
+    linear-gradient(90deg, color-mix(in srgb, var(--nf-warning) 18%, transparent), transparent 62%),
     rgba(12, 1, 24, 0.9);
   border: none;
-  border-bottom: 1px solid color-mix(in srgb, var(--nf-yellow) 35%, var(--nf-border));
+  border-bottom: 1px solid color-mix(in srgb, var(--nf-warning) 35%, var(--nf-border));
   cursor: pointer;
   text-align: left;
   transition: background 0.14s;
 }
 .shell__pending:hover {
   background:
-    linear-gradient(90deg, color-mix(in srgb, var(--nf-yellow) 28%, transparent), transparent 62%),
+    linear-gradient(90deg, color-mix(in srgb, var(--nf-warning) 28%, transparent), transparent 62%),
     rgba(12, 1, 24, 0.9);
 }
 .shell__pending-pulse {
@@ -643,12 +643,12 @@
   height: 10px;
   flex: none;
   border-radius: 50%;
-  background: var(--nf-yellow);
-  box-shadow: 0 0 10px var(--nf-yellow);
+  background: var(--nf-warning);
+  box-shadow: 0 0 10px var(--nf-warning);
   animation: nf-pulse 1.6s infinite;
 }
 .shell__pending-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.shell__pending-title { font-size: 11px; letter-spacing: 1.5px; font-weight: 700; color: var(--nf-yellow); }
+.shell__pending-title { font-size: 11px; letter-spacing: 1.5px; font-weight: 700; color: var(--nf-warning); }
 .shell__pending-sub {
   font-size: 10.5px;
   letter-spacing: 0.4px;
@@ -657,7 +657,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.shell__pending-cta { margin-left: auto; flex: none; font-size: 11px; letter-spacing: 1.5px; color: var(--nf-yellow); }
+.shell__pending-cta { margin-left: auto; flex: none; font-size: 11px; letter-spacing: 1.5px; color: var(--nf-warning); }
 
 /* sheet variant (top of the mobile group switcher) */
 .shell__sheet-pending {
@@ -667,8 +667,8 @@
   width: 100%;
   padding: 12px;
   margin-bottom: 12px;
-  background: color-mix(in srgb, var(--nf-yellow) 10%, var(--nf-surface-2));
-  border: 1.5px solid color-mix(in srgb, var(--nf-yellow) 45%, transparent);
+  background: color-mix(in srgb, var(--nf-warning) 10%, var(--nf-surface-2));
+  border: 1.5px solid color-mix(in srgb, var(--nf-warning) 45%, transparent);
   border-radius: 10px;
   cursor: pointer;
   text-align: left;
@@ -682,16 +682,16 @@
   justify-content: center;
   padding: 7px 9px;
   background: transparent;
-  border: 1.5px solid var(--nf-border-pink);
+  border: 1.5px solid var(--nf-border-accent);
   border-radius: 5px;
   color: var(--nf-text-dim);
   cursor: pointer;
   transition: color 0.14s, border-color 0.14s, background 0.14s, box-shadow 0.14s;
 }
-.shell__bell:hover { color: var(--nf-pink); border-color: var(--nf-pink); }
+.shell__bell:hover { color: var(--nf-primary); border-color: var(--nf-primary); }
 .shell__bell.is-active {
-  color: var(--nf-pink);
-  border-color: var(--nf-pink);
+  color: var(--nf-primary);
+  border-color: var(--nf-primary);
   box-shadow: 0 0 12px rgba(255, 95, 210, 0.25);
 }
 .shell__bell-badge {
@@ -702,7 +702,7 @@
   height: 17px;
   padding: 0 4px;
   border-radius: 9px;
-  background: var(--nf-pink);
+  background: var(--nf-primary);
   color: var(--nf-void);
   font-size: 10px;
   font-weight: 700;
@@ -726,9 +726,9 @@
   transition: color 0.14s, border-color 0.14s, background 0.14s;
 }
 .shell__feedback:hover {
-  color: var(--nf-cyan);
-  border-color: var(--nf-cyan);
-  background: color-mix(in srgb, var(--nf-cyan) 8%, transparent);
+  color: var(--nf-secondary);
+  border-color: var(--nf-secondary);
+  background: color-mix(in srgb, var(--nf-secondary) 8%, transparent);
 }
 
 /* ---- notification dropdown panel ---- */
@@ -760,7 +760,7 @@
   border: none;
   font-size: 10px;
   letter-spacing: 1px;
-  color: var(--nf-cyan);
+  color: var(--nf-secondary);
   cursor: pointer;
   padding: 0;
 }
@@ -904,7 +904,7 @@
   font: inherit;
   font-size: 11px;
   letter-spacing: 2px;
-  color: var(--nf-cyan);
+  color: var(--nf-secondary);
   background: transparent;
   border: none;
   cursor: pointer;
@@ -929,7 +929,7 @@
 .shell__notif-foot span {
   font-size: 11px;
   letter-spacing: 2px;
-  color: var(--nf-cyan);
+  color: var(--nf-secondary);
   cursor: pointer;
 }
 
@@ -970,7 +970,7 @@
 .shell__sheet-head {
   font-size: 11px;
   letter-spacing: 3px;
-  color: var(--nf-cyan);
+  color: var(--nf-secondary);
   margin: 0 4px 12px;
 }
 .shell__sheet-list {
@@ -989,7 +989,7 @@
   text-align: center;
   font-size: 11px;
   letter-spacing: 2px;
-  color: var(--nf-cyan);
+  color: var(--nf-secondary);
   text-decoration: none;
   border: 1.5px solid var(--nf-border);
   border-radius: 8px;
@@ -1058,7 +1058,7 @@
 .shell__bottomnav-item.is-active { color: #fff; }
 .shell__bottomnav-item.is-active .shell__bottomnav-glyph {
   background: rgba(255, 95, 210, 0.16);
-  color: var(--nf-pink);
+  color: var(--nf-primary);
 }
 
 /* ---- center CREAR (raised FAB) ---- */
@@ -1071,15 +1071,15 @@
   height: 58px;
   margin-top: -30px;
   border-radius: 18px;
-  background: linear-gradient(135deg, #ff67d6, var(--nf-pink-strong));
-  border: 2px solid var(--nf-cyan);
+  background: linear-gradient(135deg, #ff67d6, var(--nf-primary-strong));
+  border: 2px solid var(--nf-secondary);
   color: #fff;
   font-size: 24px;
   line-height: 1;
   box-shadow: 0 6px 18px rgba(255, 95, 210, 0.45), 0 0 0 6px rgba(12, 1, 24, 0.92);
   transition: transform 0.14s, box-shadow 0.14s;
 }
-.shell__bottomnav-item--center .shell__bottomnav-label { color: var(--nf-pink); font-weight: 800; }
+.shell__bottomnav-item--center .shell__bottomnav-label { color: var(--nf-primary); font-weight: 800; }
 .shell__bottomnav-item--center:active .shell__fab { transform: translateY(1px) scale(0.97); }
 .shell__bottomnav-item--center.is-active .shell__fab {
   box-shadow: 0 6px 22px rgba(255, 95, 210, 0.6), 0 0 0 6px rgba(12, 1, 24, 0.92), 0 0 18px rgba(54, 224, 255, 0.5);
