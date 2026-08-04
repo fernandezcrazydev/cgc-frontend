@@ -3842,24 +3842,23 @@
   color: var(--nf-text-dim);
 }
 
-/* Un único botón que alterna: si ya puedo, quitarme; si no, apuntarme. */
-.lb-slot__cta {
-  padding: 6px 14px;
-  border: 1px solid var(--nf-border);
-  border-radius: 999px;
-  background: transparent;
-  color: var(--nf-text);
-  font-size: 11px;
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, color 0.15s;
-}
-.lb-slot__cta:hover:not(:disabled) { border-color: var(--nf-cyan); color: var(--nf-cyan); }
+/* Un único botón que alterna: si ya puedo, quitarme; si no, apuntarme.
+   Es la acción principal de la vista, así que va con el `nfButton` secundario (borde
+   grueso cian + sombra dura): antes era una píldora fina y translúcida que se leía como
+   otra etiqueta más de la fila, al lado del contador. Del primitivo salen tamaño, hover,
+   pulsado, disabled y el aplanado por skin; aquí solo se recolorea a verde el estado
+   "ya estoy dentro", que no es una de sus variantes. */
+.lb-slot__cta { flex: none; }
 .lb-slot__cta.is-in {
   border-color: var(--nf-green);
-  background: color-mix(in srgb, var(--nf-green) 16%, transparent);
+  background: color-mix(in srgb, var(--nf-green) 14%, transparent);
   color: var(--nf-green);
+  box-shadow: 4px 4px 0 var(--nf-green);
 }
-.lb-slot__cta:disabled { opacity: 0.5; cursor: default; }
+.lb-slot__cta.is-in:hover:not(:disabled) {
+  box-shadow: 5px 5px 0 var(--nf-green), 0 0 18px color-mix(in srgb, var(--nf-green) 45%, transparent);
+}
+.lb-slot__cta.is-in:active:not(:disabled) { box-shadow: 2px 2px 0 var(--nf-green); }
 
 .lb-slot__bar {
   position: relative;
@@ -4101,4 +4100,7 @@
 @media (max-width: 560px) {
   .lb-slot__head { flex-wrap: wrap; }
   .lb-slot__when { flex-basis: 100%; }
+  /* La hora se lleva la primera fila entera, así que en la segunda el contador se queda
+     a la izquierda y el botón se va al borde derecho, igual que en escritorio. */
+  .lb-slot__cta { margin-left: auto; }
 }
