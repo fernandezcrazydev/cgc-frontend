@@ -18,7 +18,7 @@ import { MemberBadge, badgesFor } from '../../../core/group-badges';
           <span class="view-back__arrow" aria-hidden="true">←</span> {{ g.name }}
         </a>
         <div class="view__head">
-          <div class="view__eyebrow nf-mono nf-eyebrow">Ranking del grupo</div>
+          <div class="view__eyebrow nf-mono">Ranking del grupo</div>
           <p class="view__lead">Clasificación de los miembros del grupo ordenada por rating.</p>
         </div>
 
@@ -72,7 +72,7 @@ import { MemberBadge, badgesFor } from '../../../core/group-badges';
         </div>
       } @else {
         <div class="view__head">
-          <div class="view__eyebrow nf-mono nf-eyebrow">Error 404</div>
+          <div class="view__eyebrow nf-mono">Error 404</div>
           <h1 class="view__title">Grupo no encontrado</h1>
           <p class="view__lead">El grupo que buscas no existe o ya no perteneces a él.</p>
         </div>

@@ -13,7 +13,7 @@ import {
 } from '../../../core/groups';
 import { ToastService } from '../../../core/toast';
 import { errorMessage } from '../../../core/http';
-import { initialsOf } from '../../../core/groups';
+import { groupRoleLabel, initialsOf } from '../../../core/groups';
 
 @Component({
   selector: 'app-grupos',
@@ -23,7 +23,7 @@ import { initialsOf } from '../../../core/groups';
     <div class="view">
       <div class="view__head view__head--row">
         <div>
-          <div class="view__eyebrow nf-mono nf-eyebrow">Tus grupos</div>
+          <div class="view__eyebrow nf-mono">Tus grupos</div>
           <h1 class="view__title">Grupos</h1>
           <p class="view__lead">Equipos a los que perteneces o que gestionas. Selecciona uno para verlo.</p>
         </div>
@@ -47,7 +47,7 @@ import { initialsOf } from '../../../core/groups';
         @case ('error') {
           <div class="empty-state">
             <div class="empty-state__icon">⚠</div>
-            <div class="empty-state__text nf-mono nf-eyebrow">Error al cargar</div>
+            <div class="empty-state__text nf-mono">Error al cargar</div>
             <p class="empty-state__hint">No se pudieron cargar tus grupos.</p>
             <button nfButton variant="secondary" size="md" (click)="retry()">Reintentar</button>
           </div>
@@ -56,7 +56,7 @@ import { initialsOf } from '../../../core/groups';
           <div class="group-grid">
             <button type="button" class="group-card group-card--new" (click)="openCreate()">
               <span class="group-card__plus">＋</span>
-              <span class="group-card__newlabel nf-mono nf-caps">Crear grupo</span>
+              <span class="group-card__newlabel nf-mono">Crear grupo</span>
             </button>
 
             @for (g of groups.groups(); track g.id) {
@@ -80,7 +80,7 @@ import { initialsOf } from '../../../core/groups';
                 <div class="group-card__body">
                   <div class="group-card__top">
                     <span class="group-card__name">{{ g.name }}</span>
-                    <nf-badge [color]="g.role === 'OWNER' ? 'pink' : 'cyan'">{{ g.role }}</nf-badge>
+                    <nf-badge [color]="g.role === 'OWNER' ? 'pink' : 'cyan'">{{ roleLabel(g.role) }}</nf-badge>
                   </div>
                   <div class="group-card__tag nf-mono">{{ g.region ?? '—' }}</div>
                 </div>
@@ -94,11 +94,11 @@ import { initialsOf } from '../../../core/groups';
     @if (creating()) {
       <div class="modal-overlay" (click)="closeCreate()">
         <div class="modal" (click)="$event.stopPropagation()">
-          <nf-window title="nuevo_grupo.exe" accent="cyan" bodyPadding="22px 22px 28px">
-            <div class="settings-eyebrow nf-mono nf-eyebrow">Crear nuevo grupo</div>
+          <nf-window title="Nuevo grupo" bodyPadding="22px 22px 28px">
+            <div class="settings-eyebrow nf-mono">Crear nuevo grupo</div>
 
             <div class="field" style="margin-bottom: 18px">
-              <label class="field__label nf-mono">FOTO DEL GRUPO</label>
+              <label class="field__label nf-mono">Foto del grupo</label>
               <nf-avatar-picker
                 [value]="avatar()"
                 [initials]="previewInitials()"
@@ -108,7 +108,7 @@ import { initialsOf } from '../../../core/groups';
 
             <div class="form-grid">
               <div class="field">
-                <label class="field__label nf-mono" for="group-name">NOMBRE DEL GRUPO</label>
+                <label class="field__label nf-mono" for="group-name">Nombre del grupo</label>
                 <input
                   id="group-name"
                   class="field__input"
@@ -122,12 +122,12 @@ import { initialsOf } from '../../../core/groups';
               </div>
 
               <div class="field">
-                <label class="field__label nf-mono">REGIÓN</label>
+                <label class="field__label nf-mono">Región</label>
                 <nf-select [options]="regionOptions" [value]="region()" (valueChange)="setRegion($event)" />
               </div>
 
               <div class="field">
-                <label class="field__label nf-mono">ALGORITMO DE MATCHEO</label>
+                <label class="field__label nf-mono">Algoritmo de matcheo</label>
                 <nf-select [options]="presetOptions" [value]="preset()" (valueChange)="setPreset($event)" />
                 <p class="field__hint">{{ presetDescription() }}</p>
                 <p class="field__warning">
@@ -143,7 +143,6 @@ import { initialsOf } from '../../../core/groups';
                 variant="primary"
                 size="md"
                 [disabled]="!canCreate() || groups.pending()"
-                [class.nf-go]="!groups.pending()"
                 (click)="create()"
               >
                 {{ groups.pending() ? 'Creando…' : 'Crear grupo' }}
@@ -157,6 +156,8 @@ import { initialsOf } from '../../../core/groups';
   `,
 })
 export class Grupos {
+  /** Etiqueta en español del rol del backend (OWNER -> Capitán). */
+  protected readonly roleLabel = groupRoleLabel;
   readonly groups = inject(GroupsStore);
   private readonly router = inject(Router);
   private readonly toasts = inject(ToastService);

@@ -15,8 +15,6 @@ interface ResumeItem {
 
 /** Per-status presentation for the "Retomar" cards (badge + call to action). */
 const STATUS_META: Record<RoomStatus, { label: string; color: 'green' | 'yellow' | 'cyan'; cta: string }> = {
-  // Texto en frase normal: las MAYÚSCULAS las pone `.nf-badge`/`.nf-caps` y la
-  // puntita ► la pone `.nf-go`, para que cada skin decida (ver tokens/base.css).
   live: { label: 'En curso', color: 'green', cta: 'Volver a la sala' },
   waiting: { label: 'Esperando', color: 'yellow', cta: 'Entrar' },
   drafting: { label: 'En preparación', color: 'cyan', cta: 'Seguir en directo' },
@@ -46,13 +44,13 @@ const STATUS_ORDER: Record<RoomStatus, number> = { live: 0, waiting: 1, drafting
       </div>
 
       <div class="actions">
-        <button nfButton variant="primary" size="md" (click)="crearPartida()" class="nf-go">Crear partida</button>
+        <button nfButton variant="primary" size="md" (click)="crearPartida()">Crear partida</button>
       </div>
 
       <!-- ▸ RETOMAR — active rooms across all your groups (real match state) -->
       @if (resume(); as items) {
         @if (items.length) {
-          <div class="view__label nf-mono">▸ RETOMAR</div>
+          <div class="view__label nf-mono">▸ Retomar</div>
 
           <!-- the most relevant room (live > waiting > draft) gets the hero -->
           @if (items[0]; as top) {
@@ -68,15 +66,15 @@ const STATUS_ORDER: Record<RoomStatus, number> = { live: 0, waiting: 1, drafting
               <span class="resume-hero__body">
                 <span class="resume-hero__top">
                   <nf-badge [color]="meta(top).color" [dot]="true">{{ meta(top).label }}</nf-badge>
-                  <span class="resume-hero__seats nf-mono">{{ top.room.seats.length }}/{{ top.room.capacity }} JUGADORES</span>
+                  <span class="resume-hero__seats nf-mono">{{ top.room.seats.length }}/{{ top.room.capacity }} jugadores</span>
                   @if (top.room.status === 'drafting' && top.room.draft) {
-                    <span class="resume-hero__seats nf-mono">PASO {{ top.room.draft.step }}/5</span>
+                    <span class="resume-hero__seats nf-mono">Paso {{ top.room.draft.step }}/5</span>
                   }
                 </span>
-                <span class="resume-hero__name">{{ top.group.name }} <span class="resume-hero__code nf-mono">· SALA {{ top.room.code }}</span></span>
+                <span class="resume-hero__name">{{ top.group.name }} <span class="resume-hero__code nf-mono">· Sala {{ top.room.code }}</span></span>
                 <span class="resume-hero__sub nf-mono">Abierta por {{ top.room.openedBy }}</span>
               </span>
-              <span class="resume-hero__cta nf-mono nf-caps nf-go">{{ meta(top).cta }}</span>
+              <span class="resume-hero__cta nf-mono">{{ meta(top).cta }}</span>
             </button>
           }
 
@@ -109,7 +107,7 @@ const STATUS_ORDER: Record<RoomStatus, number> = { live: 0, waiting: 1, drafting
       @if (attention(); as items) {
         @if (items.length) {
           <div class="view__label-row attn-head">
-            <div class="view__label nf-mono">▸ REQUIERE TU ATENCIÓN</div>
+            <div class="view__label nf-mono">▸ Requiere tu atención</div>
             <span class="attn-count nf-mono">{{ items.length }}</span>
           </div>
 
@@ -134,7 +132,7 @@ const STATUS_ORDER: Record<RoomStatus, number> = { live: 0, waiting: 1, drafting
                     variant="primary"
                     size="sm"
                     [disabled]="responding(n)"
-                    (click)="respond(n, true)" class="nf-go">Unirme</button>
+                    (click)="respond(n, true)">Unirme</button>
                 </div>
               </div>
             }

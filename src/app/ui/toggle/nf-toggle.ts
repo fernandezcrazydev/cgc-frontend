@@ -5,7 +5,7 @@ export type NfToggleAccent = 'cyan' | 'pink';
 /**
  * NEXUS//FORGE Toggle — boxy 48×28 switch with a neon track when on.
  *
- *   <nf-toggle [checked]="voice()" accent="cyan" (checkedChange)="voice.set($event)"
+ *   <nf-toggle [checked]="voice()" (checkedChange)="voice.set($event)"
  *     ariaLabel="Chat de voz" />
  *
  * `ariaLabel` es obligatorio en la práctica: el switch no tiene texto propio, así

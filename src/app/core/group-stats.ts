@@ -16,9 +16,9 @@ import { hash, seeded } from './group-ranking';
 export type StatScope = 'noche' | 'temporada' | 'historico';
 
 export const SCOPE_OPTIONS: { id: StatScope; label: string }[] = [
-  { id: 'noche', label: 'NOCHE' },
-  { id: 'temporada', label: 'TEMPORADA' },
-  { id: 'historico', label: 'HISTÓRICO' },
+  { id: 'noche', label: 'Noche' },
+  { id: 'temporada', label: 'Temporada' },
+  { id: 'historico', label: 'Histórico' },
 ];
 
 /** Rough game-count band per scope, so totals feel right at each zoom level. */
@@ -257,7 +257,7 @@ interface Metric {
 const METRICS: Metric[] = [
   {
     id: 'winrate',
-    title: 'WIN RATE',
+    title: 'Win rate',
     glyph: '🏆',
     accent: 'pink',
     value: (s) => s.wr,
@@ -267,7 +267,7 @@ const METRICS: Metric[] = [
   },
   {
     id: 'kda',
-    title: 'KDA MEDIO',
+    title: 'KDA medio',
     glyph: '⚔️',
     accent: 'cyan',
     value: (s) => s.kda,
@@ -276,7 +276,7 @@ const METRICS: Metric[] = [
   },
   {
     id: 'main',
-    title: 'WIN RATE POR MAIN',
+    title: 'Win rate por main',
     glyph: '★',
     accent: 'yellow',
     value: (s) => s.mainChampWr,
@@ -288,7 +288,7 @@ const METRICS: Metric[] = [
   },
   {
     id: 'damage',
-    title: 'DAÑO A CAMPEONES',
+    title: 'Daño a campeones',
     glyph: '🔥',
     accent: 'pink',
     value: (s) => s.dmgK,
@@ -297,7 +297,7 @@ const METRICS: Metric[] = [
   },
   {
     id: 'cs',
-    title: 'CS POR MINUTO',
+    title: 'CS por minuto',
     glyph: '🌾',
     accent: 'cyan',
     value: (s) => s.csPerMin,
@@ -306,7 +306,7 @@ const METRICS: Metric[] = [
   },
   {
     id: 'vision',
-    title: 'PUNTUACIÓN DE VISIÓN',
+    title: 'Puntuación de visión',
     glyph: '👁',
     accent: 'yellow',
     value: (s) => s.visionScore,
@@ -373,7 +373,7 @@ export function awardsFor(stats: readonly MemberStats[]): StatAward[] {
     {
       id: 'farmer',
       glyph: '🌾',
-      title: 'EL GRANJERO',
+      title: 'El granjero',
       color: 'green',
       member: farmer.member,
       value: `${farmer.csPerMin} cs/min`,
@@ -382,7 +382,7 @@ export function awardsFor(stats: readonly MemberStats[]): StatAward[] {
     {
       id: 'silent-carry',
       glyph: '🥷',
-      title: 'CARRY SILENCIOSO',
+      title: 'Carry silencioso',
       color: 'pink',
       member: silentCarry.member,
       value: `${silentCarry.dmgK}k daño`,
@@ -391,7 +391,7 @@ export function awardsFor(stats: readonly MemberStats[]): StatAward[] {
     {
       id: 'ward-simp',
       glyph: '👁',
-      title: 'WARD SIMP',
+      title: 'Ward simp',
       color: 'cyan',
       member: wardSimp.member,
       value: `${wardSimp.wardsPlaced} wards`,
@@ -400,7 +400,7 @@ export function awardsFor(stats: readonly MemberStats[]): StatAward[] {
     {
       id: 'penta-hunter',
       glyph: '🎯',
-      title: 'PENTA HUNTER',
+      title: 'Penta hunter',
       color: 'yellow',
       member: pentaHunter.member,
       value: `${pentaHunter.pentas}P · ${pentaHunter.quadras}Q`,
@@ -409,7 +409,7 @@ export function awardsFor(stats: readonly MemberStats[]): StatAward[] {
     {
       id: 'cc-lord',
       glyph: '🧊',
-      title: 'SEÑOR DEL CC',
+      title: 'Señor del CC',
       color: 'purple',
       member: ccLord.member,
       value: `${ccLord.ccTime}s CC`,
@@ -418,7 +418,7 @@ export function awardsFor(stats: readonly MemberStats[]): StatAward[] {
     {
       id: 'feeder',
       glyph: '💀',
-      title: 'EL DONANTE',
+      title: 'El donante',
       color: 'red',
       member: feeder.member,
       value: `${feeder.deaths} muertes`,

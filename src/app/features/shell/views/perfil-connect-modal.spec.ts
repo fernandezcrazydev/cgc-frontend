@@ -5,7 +5,7 @@ import { wireConnectModalOnRiotEvent } from './perfil-connect-modal';
 
 /**
  * El pago real de toda la tarea de "refetch tras vincular desde la app de escritorio": con el
- * modal "conectar_app.exe" abierto y el usuario esperando con el código pegado en `cgc-scraper`,
+ * modal "Conectar la aplicación" abierto y el usuario esperando con el código pegado en `cgc-scraper`,
  * la confirmación del backend (`RIOT_ACCOUNT_PAIRED`/`VERIFIED`) tiene que cerrar el modal solo y
  * avisar con un toast — sin que el usuario recargue la página.
  *
@@ -17,7 +17,7 @@ import { wireConnectModalOnRiotEvent } from './perfil-connect-modal';
  * cuenta de Riot...), mucho más de lo que este test necesita proteger. Por eso se extrajo la
  * lógica a `perfil-connect-modal.ts`; ver ese fichero para el porqué completo.
  */
-describe('wireConnectModalOnRiotEvent (cableado del modal "conectar_app.exe" en perfil.ts)', () => {
+describe('wireConnectModalOnRiotEvent (cableado del modal "Conectar la aplicación" en perfil.ts)', () => {
   let lastArrived: WritableSignal<NotificationResponse | null>;
   let connecting: WritableSignal<boolean>;
   let confirmed: { riotId: string; type: string }[];

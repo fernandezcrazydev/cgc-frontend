@@ -46,9 +46,9 @@ export const PERK_COLOR: Record<PerkTone, NfBadgeColor> = {
 
 /** Spanish heading for each tone, used to group chips in the editor. */
 export const PERK_TONE_LABEL: Record<PerkTone, string> = {
-  good: 'POSITIVOS',
-  bad: 'NEGATIVOS',
-  neutral: 'NEUTROS',
+  good: 'Positivos',
+  bad: 'Negativos',
+  neutral: 'Neutros',
 };
 
 /** Render order of the tone sections. */

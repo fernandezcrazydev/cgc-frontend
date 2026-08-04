@@ -224,7 +224,7 @@ function seedSeat(name: string, i: number, owner = false): Member {
     name,
     tag: `${name}#EUW`,
     initials: name.slice(0, 2).toUpperCase(),
-    role: owner ? 'CAPITÁN · ABRIÓ LA SALA' : 'APUNTADO',
+    role: owner ? 'Capitán · abrió la sala' : 'Apuntado',
     owner,
     hue: (i * 47) % 360,
   };

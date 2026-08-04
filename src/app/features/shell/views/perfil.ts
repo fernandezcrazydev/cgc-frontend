@@ -83,7 +83,7 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
                    Los de rol / nº de grupos vivían del mock y se han quitado. -->
               @if (memberSince(); as since) {
                 <div class="pf-hero__meta nf-mono">
-                  <span class="pf-hero__chip">◷ DESDE {{ since }}</span>
+                  <span class="pf-hero__chip">◷ Desde {{ since }}</span>
                 </div>
               }
             }
@@ -92,7 +92,7 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
           <div class="pf-ring" [style.--wr]="p.wr" [class.pf-ring--lo]="p.wr < 50">
             <div class="pf-ring__inner">
               <div class="pf-ring__val nf-mono">{{ p.wr }}%</div>
-              <div class="pf-ring__lbl nf-mono">WIN RATE</div>
+              <div class="pf-ring__lbl nf-mono">Win rate</div>
             </div>
           </div>
         </section>
@@ -104,7 +104,7 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
         -->
         <div class="view__label-row">
           <div class="view__label-help">
-            <div class="view__label nf-mono">▸ ROLES PREFERIDOS</div>
+            <div class="view__label nf-mono">▸ Roles preferidos</div>
             <button
               type="button"
               class="view__help"
@@ -124,7 +124,7 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
                 Descartar
               </button>
               <button nfButton variant="primary" size="sm" [disabled]="!canSaveRoles()" (click)="saveRoles()">
-                {{ prefs.saving() ? 'GUARDANDO…' : 'GUARDAR CAMBIOS' }}
+                {{ prefs.saving() ? 'Guardando…' : 'Guardar cambios' }}
               </button>
             </div>
           }
@@ -210,7 +210,7 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
                 <div class="pf-roles__flex">
                   <nf-toggle
                     [checked]="isFlex()"
-                    accent="cyan"
+                   
                     ariaLabel="Soy FLEX: juego cualquier rol"
                     (checkedChange)="toggleFlex($event)"
                   />
@@ -222,7 +222,7 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
 
                 <!-- El "por qué" completo está en la nota de arriba; aquí solo lo accionable. -->
                 @if (!hasRoles()) {
-                  <p class="pf-roles__warn nf-mono">⚠ SELECCIONA AL MENOS UN ROL</p>
+                  <p class="pf-roles__warn nf-mono">⚠ Selecciona al menos un rol</p>
                 } @else if (!roleDraft().primary) {
                   <p class="pf-roles__hint">
                     Marca uno con la <strong>estrella</strong> si tienes rol principal. Es opcional: sin
@@ -235,7 +235,7 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
         }
 
         <!-- Cuenta de Riot vinculada -->
-        <div class="view__label nf-mono">▸ CUENTA DE RIOT</div>
+        <div class="view__label nf-mono">▸ Cuenta de Riot</div>
         @switch (riot.status()) {
           @case ('loading') {
             <!-- Mismo hueco que la tarjeta real: al llegar el dato no salta nada. -->
@@ -267,19 +267,19 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
                     <!-- El chip dice la verdad de cada peldaño: solo VERIFIED afirma titularidad. -->
                     @switch (account.strength) {
                       @case ('VERIFIED') {
-                        <span class="pf-riot__chip pf-riot__chip--ok">✓ VERIFICADA</span>
+                        <span class="pf-riot__chip pf-riot__chip--ok">✓ Verificada</span>
                       }
                       @case ('PAIRED') {
-                        <span class="pf-riot__chip">↔ VINCULADA DESDE EL CLIENTE</span>
+                        <span class="pf-riot__chip">↔ Vinculada desde el cliente</span>
                       }
                       @default {
-                        <span class="pf-riot__chip">SIN VERIFICAR</span>
+                        <span class="pf-riot__chip">Sin verificar</span>
                       }
                     }
                   </div>
                 </div>
                 <div class="pf-riot__actions">
-                  <a class="pf-hero__opgg nf-mono nf-caps nf-go" [href]="opgg(account.riotId)" target="_blank" rel="noopener">
+                  <a class="pf-hero__opgg nf-mono" [href]="opgg(account.riotId)" target="_blank" rel="noopener">
                     Ver en OP.GG
                   </a>
                   <button nfButton variant="ghost" size="sm" [disabled]="riot.saving()" (click)="askUnlink()">
@@ -298,7 +298,7 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
                       estadísticas cuentan como no verificadas.
                     </p>
                   </div>
-                  <button nfButton variant="accent" size="md" class="nf-go" (click)="openConnect()">
+                  <button nfButton variant="accent" size="md" (click)="openConnect()">
                     Conectar la app
                   </button>
                 </div>
@@ -319,7 +319,7 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
                 </div>
                 <div class="pf-riot__ctarow">
                   <!-- El camino fuerte primero: la app empareja y verifica. El manual, como rápido. -->
-                  <button nfButton variant="accent" size="md" class="nf-go" (click)="openConnect()">
+                  <button nfButton variant="accent" size="md" (click)="openConnect()">
                     Conectar la app
                   </button>
                   <button nfButton variant="ghost" size="md" [disabled]="riot.saving()" (click)="startLinking()">
@@ -335,27 +335,27 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
         <div class="totals pf-totals">
           <div class="totals__item">
             <div class="totals__val nf-mono">{{ p.games }}</div>
-            <div class="totals__lbl nf-mono">PARTIDAS</div>
+            <div class="totals__lbl nf-mono">Partidas</div>
           </div>
           <div class="totals__item">
             <div class="totals__val nf-mono pf-pos">{{ p.wins }}</div>
-            <div class="totals__lbl nf-mono">VICTORIAS</div>
+            <div class="totals__lbl nf-mono">Victorias</div>
           </div>
           <div class="totals__item">
             <div class="totals__val nf-mono pf-neg">{{ p.losses }}</div>
-            <div class="totals__lbl nf-mono">DERROTAS</div>
+            <div class="totals__lbl nf-mono">Derrotas</div>
           </div>
           <div class="totals__item">
             <div class="totals__val nf-mono">{{ p.kda }}</div>
-            <div class="totals__lbl nf-mono">KDA MEDIO</div>
+            <div class="totals__lbl nf-mono">KDA medio</div>
           </div>
           <div class="totals__item">
             <div class="totals__val nf-mono">{{ p.hoursPlayed }}h</div>
-            <div class="totals__lbl nf-mono">JUGADAS</div>
+            <div class="totals__lbl nf-mono">Jugadas</div>
           </div>
           <div class="totals__item">
             <div class="totals__val nf-mono">{{ p.pentas }}</div>
-            <div class="totals__lbl nf-mono">PENTAS</div>
+            <div class="totals__lbl nf-mono">Pentas</div>
           </div>
         </div>
 
@@ -363,11 +363,11 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
         <div class="pf-form">
           <div class="pf-form__streak" [class.pf-form__streak--lose]="p.streakType === 'L'">
             <div class="pf-form__big nf-mono">{{ p.currentStreak }}<span class="pf-form__unit">{{ p.streakType }}</span></div>
-            <div class="pf-form__cap nf-mono">{{ p.streakType === 'W' ? 'RACHA DE VICTORIAS' : 'RACHA DE DERROTAS' }}</div>
-            <div class="pf-form__sub nf-mono">MEJOR RACHA · {{ p.bestStreak }}W</div>
+            <div class="pf-form__cap nf-mono">{{ p.streakType === 'W' ? 'Racha de victorias' : 'Racha de derrotas' }}</div>
+            <div class="pf-form__sub nf-mono">Mejor racha · {{ p.bestStreak }}W</div>
           </div>
           <div class="pf-form__recent">
-            <div class="view__label nf-mono">▸ FORMA RECIENTE</div>
+            <div class="view__label nf-mono">▸ Forma reciente</div>
             <div class="pf-pills">
               @for (r of p.recentForm; track $index) {
                 <span class="pf-pill" [class.pf-pill--w]="r === 'W'" [class.pf-pill--l]="r === 'L'">{{ r }}</span>
@@ -377,11 +377,11 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
         </div>
 
         <!-- Head-to-head highlights -->
-        <div class="view__label nf-mono">▸ CARA A CARA · TODOS LOS GRUPOS</div>
+        <div class="view__label nf-mono">▸ Cara a cara · todos los grupos</div>
         <div class="hl-grid pf-h2h">
           @if (p.bestAlly; as a) {
             <div class="hl" data-accent="cyan">
-              <div class="hl__eyebrow nf-mono">🤝 MEJOR ALIADO</div>
+              <div class="hl__eyebrow nf-mono">🤝 Mejor aliado</div>
               <div class="hl__hero">
                 <span class="hl__avatar" [style.background]="grad(a.hue)">{{ a.initials }}</span>
                 <div class="hl__who">
@@ -389,12 +389,12 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
                   <div class="hl__blurb nf-mono">{{ a.wr }}% juntos · {{ a.wins }}V {{ a.losses }}D</div>
                 </div>
               </div>
-              <div class="hl__score nf-mono">CON QUIEN MÁS GANAS</div>
+              <div class="hl__score nf-mono">Con quien más ganas</div>
             </div>
           }
           @if (p.nemesis; as n) {
             <div class="hl" data-accent="pink">
-              <div class="hl__eyebrow nf-mono">💀 NÉMESIS</div>
+              <div class="hl__eyebrow nf-mono">💀 Némesis</div>
               <div class="hl__hero">
                 <span class="hl__avatar" [style.background]="grad(n.hue)">{{ n.initials }}</span>
                 <div class="hl__who">
@@ -402,12 +402,12 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
                   <div class="hl__blurb nf-mono">{{ n.wr }}% WR · {{ n.wins }}V {{ n.losses }}D</div>
                 </div>
               </div>
-              <div class="hl__score nf-mono">CONTRA QUIEN MÁS PIERDES</div>
+              <div class="hl__score nf-mono">Contra quien más pierdes</div>
             </div>
           }
           @if (p.favoriteVictim; as v) {
             <div class="hl" data-accent="yellow">
-              <div class="hl__eyebrow nf-mono">🎯 VÍCTIMA FAVORITA</div>
+              <div class="hl__eyebrow nf-mono">🎯 Víctima favorita</div>
               <div class="hl__hero">
                 <span class="hl__avatar" [style.background]="grad(v.hue)">{{ v.initials }}</span>
                 <div class="hl__who">
@@ -415,14 +415,14 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
                   <div class="hl__blurb nf-mono">{{ v.wr }}% WR · {{ v.wins }}V {{ v.losses }}D</div>
                 </div>
               </div>
-              <div class="hl__score nf-mono">A QUIEN MÁS GANAS</div>
+              <div class="hl__score nf-mono">A quien más ganas</div>
             </div>
           }
         </div>
 
         <!-- Most-played champions -->
-        <div class="view__label nf-mono">▸ CAMPEONES MÁS JUGADOS</div>
-        <nf-window class="pf-champ-window" title="campeones.exe" accent="cyan" bodyPadding="0">
+        <div class="view__label nf-mono">▸ Campeones más jugados</div>
+        <nf-window class="pf-champ-window" title="Campeones" bodyPadding="0">
           <div class="pf-champs" [attr.aria-busy]="champsLoading() ? 'true' : null">
             @for (c of p.topChampions; track c.championId) {
               <div class="pf-champ">
@@ -458,7 +458,7 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
         </nf-window>
 
         <!-- Per-group breakdown -->
-        <div class="view__label nf-mono">▸ DESGLOSE POR GRUPO</div>
+        <div class="view__label nf-mono">▸ Desglose por grupo</div>
         <div class="pf-groups">
           @for (g of p.groups; track g.id) {
             <div class="pf-group" [style.--grp-c1]="g.c1" [style.--grp-c2]="g.c2">
@@ -472,7 +472,7 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
           } @empty {
             <div class="empty-state">
               <div class="empty-state__icon">◎</div>
-              <div class="empty-state__text nf-mono nf-eyebrow">Sin grupos todavía</div>
+              <div class="empty-state__text nf-mono">Sin grupos todavía</div>
             </div>
           }
         </div>
@@ -480,8 +480,8 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
 
       <!-- Vincular cuenta de Riot: diálogo sobre fondo difuminado -->
       @if (linking()) {
-        <nf-modal title="vincular_riot.exe" accent="cyan" (closed)="cancelLinking()">
-          <div class="settings-eyebrow nf-mono nf-eyebrow">Vincular cuenta de Riot</div>
+        <nf-modal title="Vincular cuenta de Riot" (closed)="cancelLinking()">
+          <div class="settings-eyebrow nf-mono">Vincular cuenta de Riot</div>
 
           <div class="riot-link">
             <span class="pf-riot__logo nf-mono" aria-hidden="true">R</span>
@@ -493,7 +493,7 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
 
           <div class="form-grid">
             <div class="field">
-              <label class="field__label nf-mono" for="riot-id">RIOT ID</label>
+              <label class="field__label nf-mono" for="riot-id">Riot ID</label>
               <input
                 id="riot-id"
                 class="field__input"
@@ -507,7 +507,7 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
             </div>
 
             <div class="field">
-              <label class="field__label nf-mono">REGIÓN</label>
+              <label class="field__label nf-mono">Región</label>
               <nf-select
                 [options]="regions"
                 [value]="regionDraft()"
@@ -527,7 +527,7 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
           </div>
 
           <div class="form-foot">
-            <button nfButton variant="primary" size="md" [disabled]="!canLink()" (click)="confirmLink()" class="nf-go">
+            <button nfButton variant="primary" size="md" [disabled]="!canLink()" (click)="confirmLink()">
               {{ riot.saving() ? 'Vinculando…' : 'Vincular' }}</button>
             <button nfButton variant="ghost" size="md" [disabled]="riot.saving()" (click)="cancelLinking()">
               Cancelar
@@ -538,8 +538,8 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
 
       <!-- Desvincular: acción destructiva, siempre confirmada -->
       @if (unlinking(); as account) {
-        <nf-modal title="desvincular_riot.exe" accent="pink" width="440px" (closed)="cancelUnlink()">
-          <div class="settings-eyebrow nf-mono nf-eyebrow">Desvincular cuenta de Riot</div>
+        <nf-modal title="Desvincular cuenta de Riot" width="440px" (closed)="cancelUnlink()">
+          <div class="settings-eyebrow nf-mono">Desvincular cuenta de Riot</div>
 
           <!-- Lo que NO se pierde importa tanto como lo que sí: nada del histórico cuelga de la
                cuenta de Riot, así que conviene decirlo antes de que el usuario se lo pregunte. -->
@@ -566,8 +566,8 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
 
       <!-- Conectar la app de escritorio: el deep-link es la vía cómoda; el código, el plan B -->
       @if (connecting()) {
-        <nf-modal title="conectar_app.exe" accent="cyan" width="460px" (closed)="closeConnect()">
-          <div class="settings-eyebrow nf-mono nf-eyebrow">Conectar la app de escritorio</div>
+        <nf-modal title="Conectar la aplicación" width="460px" (closed)="closeConnect()">
+          <div class="settings-eyebrow nf-mono">Conectar la app de escritorio</div>
 
           <p class="riot-link__text">
             La app empareja tu cuenta y la verifica de verdad: te pedirá cambiar tu icono de invocador
@@ -582,7 +582,7 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
 
           <!-- Plan B: el código, para cuando el navegador no se abre. -->
           <div class="connect-fallback">
-            <div class="settings-eyebrow nf-mono nf-eyebrow nf-eyebrow--lower">¿No se abre el navegador?</div>
+            <div class="settings-eyebrow nf-mono">¿No se abre el navegador?</div>
             <p class="riot-link__text">Pega este código en la app:</p>
 
             @if (pairingCode(); as pc) {
@@ -732,7 +732,7 @@ export class Perfil {
     // El temporizador de la cuenta atrás no debe sobrevivir a la vista.
     this.destroyRef.onDestroy(() => this.stopTick());
 
-    // Si el usuario está esperando en "conectar_app.exe" con el código pegado en la app, la
+    // Si el usuario está esperando en el modal de conexión con el código pegado en la app, la
     // confirmación del backend (emparejamiento o verificación) cierra el modal sola y avisa
     // con un toast — es el pago real de todo el flujo: pegar el código y ver la web
     // reaccionar sin recargar. El refetch de la cuenta ya lo dispara el `effect` global de

@@ -31,7 +31,7 @@ import { NotificationsStore } from '../../../core/notifications';
             <h1 class="view__title">Partidas activas</h1>
           </div>
           <a class="view-back cp-back" [routerLink]="['/app', 'grupos', g.id]">
-            <span class="view-back__arrow">←</span> VOLVER AL GRUPO
+            <span class="view-back__arrow">←</span> Volver al grupo
           </a>
         </div>
 
@@ -40,13 +40,13 @@ import { NotificationsStore } from '../../../core/notifications';
         <!-- Convocatorias reales del backend. Van primero porque son las que esperan una acción. -->
         @if (lobbies.isLoading()) {
           <div class="cards" aria-busy="true">
-            <nf-window title="convocatorias.exe" accent="pink" bodyPadding="16px">
+            <nf-window title="Convocatorias" bodyPadding="16px">
               <nf-skeleton width="60%" height="16px" />
               <nf-skeleton width="40%" height="12px" />
             </nf-window>
           </div>
         } @else if (lobbies.status() === 'error') {
-          <nf-window title="convocatorias.exe" accent="pink" bodyPadding="16px">
+          <nf-window title="Convocatorias" bodyPadding="16px">
             <p class="empty-state__hint">No se pudieron cargar las convocatorias.</p>
             <button nfButton variant="secondary" size="sm" (click)="reloadLobbies()">Reintentar</button>
           </nf-window>
@@ -54,8 +54,7 @@ import { NotificationsStore } from '../../../core/notifications';
           <div class="cards">
             @for (lb of lobbies.open(); track lb.id) {
               <nf-window
-                [title]="'sala_' + lb.code + '.exe'"
-                [accent]="lb.status === 'CONFIRMED' ? 'cyan' : 'pink'"
+                [title]="'Sala ' + lb.code"
                 bodyPadding="16px"
               >
                 <div class="pm-head">
@@ -68,7 +67,7 @@ import { NotificationsStore } from '../../../core/notifications';
                       {{ lb.status === 'CONFIRMED' ? 'Partida confirmada' : 'Convocatoria abierta' }}
                     </div>
                     <div class="pm-players nf-mono">
-                      {{ lobbyWhen(lb) }} · CONVOCÓ {{ lb.openedBy.discordUsername ?? '—' }}
+                      {{ lobbyWhen(lb) }} · Convocó {{ lb.openedBy.discordUsername ?? '—' }}
                     </div>
                   </div>
                 </div>
@@ -80,7 +79,6 @@ import { NotificationsStore } from '../../../core/notifications';
                     nfButton
                     variant="ghost"
                     size="sm"
-                    class="nf-go"
                     [routerLink]="['/app', 'grupos', g.id, 'partidas', lb.id]"
                   >{{ lb.status === 'CONFIRMED' ? 'Ver partida' : 'Decir cuándo puedo' }}</button>
                 </div>
@@ -92,7 +90,7 @@ import { NotificationsStore } from '../../../core/notifications';
         @if (rooms().length) {
           <div class="cards">
             @for (r of rooms(); track r.id) {
-              <nf-window [title]="'sala_' + r.code + '.exe'" [accent]="r.status === 'live' ? 'cyan' : 'pink'" bodyPadding="16px">
+              <nf-window [title]="'Sala ' + r.code" bodyPadding="16px">
                 <div class="pm-head">
                   <div
                     class="pm-avatar"
@@ -100,7 +98,7 @@ import { NotificationsStore } from '../../../core/notifications';
                   ></div>
                   <div>
                     <div class="pm-mode">{{ modeLabel(r) }}</div>
-                    <div class="pm-players nf-mono">{{ r.seats.length }}/{{ r.capacity }} JUGADORES · ABRIÓ {{ r.openedBy }}</div>
+                    <div class="pm-players nf-mono">{{ r.seats.length }}/{{ r.capacity }} jugadores · abrió {{ r.openedBy }}</div>
                   </div>
                 </div>
                 <div class="pm-foot">
@@ -109,7 +107,6 @@ import { NotificationsStore } from '../../../core/notifications';
                     nfButton
                     variant="ghost"
                     size="sm"
-                    class="nf-go"
                     [routerLink]="['/app', 'grupos', g.id, 'partidas', r.id]"
                   >{{ ctaLabel(r) }}</button>
                 </div>
@@ -120,16 +117,16 @@ import { NotificationsStore } from '../../../core/notifications';
           <!-- Vacío solo cuando NO hay NADA: ni convocatorias ni salas del wizard. Mirar solo
                las salas del mock hacía que saliera "no hay partidas activas" justo debajo de
                una convocatoria que acababas de crear. -->
-          <nf-window title="partidas_activas.exe" accent="cyan" bodyPadding="0">
+          <nf-window title="Partidas activas" bodyPadding="0">
             <div class="cp-pad">
               <div class="empty-state">
                 <div class="empty-state__icon">◎</div>
-                <div class="empty-state__text">NO HAY PARTIDAS ACTIVAS</div>
+                <div class="empty-state__text">No hay partidas activas</div>
                 <p class="empty-state__hint">
                   No hay ninguna sala abierta ni partida en curso ahora mismo. Crea una partida
                   para empezar a jugar con tu grupo.
                 </p>
-                <button nfButton variant="primary" size="md" [routerLink]="['/app', 'grupos', g.id, 'crear-partida']" class="nf-go">
+                <button nfButton variant="primary" size="md" [routerLink]="['/app', 'grupos', g.id, 'crear-partida']">
                   Crear partida</button>
               </div>
             </div>
@@ -137,7 +134,7 @@ import { NotificationsStore } from '../../../core/notifications';
         }
       } @else {
         <div class="view__head">
-          <div class="view__eyebrow nf-mono nf-eyebrow">Error 404</div>
+          <div class="view__eyebrow nf-mono">Error 404</div>
           <h1 class="view__title">Grupo no encontrado</h1>
         </div>
         <button nfButton variant="secondary" size="md" [routerLink]="['/app', 'grupos']">← Volver a grupos</button>
@@ -166,19 +163,18 @@ export class GrupoPartidas {
   });
 
   modeLabel(r: MatchRoom): string {
-    if (r.status === 'drafting') return 'CONFIGURANDO · 5v5';
-    return r.mode === 'open' ? 'SALA ABIERTA · 5v5' : 'PARTIDA MANUAL · 5v5';
+    if (r.status === 'drafting') return 'Configurando · 5v5';
+    return r.mode === 'open' ? 'Sala abierta · 5v5' : 'Partida manual · 5v5';
   }
 
   statusLabel(r: MatchRoom): string {
-    return r.status === 'live' ? 'EN CURSO' : r.status === 'drafting' ? 'CONFIGURANDO' : 'PENDIENTE';
+    return r.status === 'live' ? 'En curso' : r.status === 'drafting' ? 'Configurando' : 'Pendiente';
   }
 
   statusColor(r: MatchRoom): NfBadgeColor {
     return r.status === 'live' ? 'green' : r.status === 'drafting' ? 'purple' : 'yellow';
   }
 
-  /** En frase normal: las mayúsculas las pone `.nf-btn` y el ► la clase `.nf-go`. */
   ctaLabel(r: MatchRoom): string {
     return r.status === 'live' ? 'Ver partida' : r.status === 'drafting' ? 'Ver en directo' : 'Ver sala';
   }

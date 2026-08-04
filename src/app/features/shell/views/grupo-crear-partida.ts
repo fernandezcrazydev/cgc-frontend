@@ -113,7 +113,7 @@ interface GeneratedTeams {
           <div class="cp-head">
             <div class="cp-head__titles"><nf-skeleton width="200px" height="30px" /></div>
           </div>
-          <nf-window title="crear_partida.exe" accent="cyan" bodyPadding="0">
+          <nf-window title="Crear partida" bodyPadding="0">
             <div class="cp-pad">
               <div class="cp-modes">
                 <nf-skeleton width="100%" height="180px" radius="14px" />
@@ -125,7 +125,7 @@ interface GeneratedTeams {
       } @else if (bridge.status() === 'error') {
         <div class="empty-state">
           <div class="empty-state__icon">⚠</div>
-          <div class="empty-state__text nf-mono nf-eyebrow">Error al cargar</div>
+          <div class="empty-state__text nf-mono">Error al cargar</div>
           <p class="empty-state__hint">No se pudieron cargar los miembros del grupo.</p>
           <button nfButton variant="secondary" size="md" (click)="retry()">Reintentar</button>
         </div>
@@ -137,23 +137,23 @@ interface GeneratedTeams {
             </div>
             <div class="cp-head__actions">
               @if (mode() === 'manual' && !reconfigureRoomId()) {
-                <button type="button" class="cp-discard nf-mono nf-caps" (click)="discarding.set(true)">
+                <button type="button" class="cp-discard nf-mono" (click)="discarding.set(true)">
                   ✕ Descartar
                 </button>
               }
               <a class="view-back cp-back" [routerLink]="['/app', 'grupos', g.id]">
-                <span class="view-back__arrow">←</span> VOLVER AL GRUPO
+                <span class="view-back__arrow">←</span> Volver al grupo
               </a>
             </div>
           </div>
 
           @if (roster().length < MAX) {
             <!-- shared block: a 5v5 needs 10 group members regardless of mode -->
-            <nf-window title="crear_partida.exe" accent="cyan" bodyPadding="0">
+            <nf-window title="Crear partida" bodyPadding="0">
               <div class="cp-pad">
                 <div class="empty-state">
                   <div class="empty-state__icon">⚠</div>
-                  <div class="empty-state__text">FALTAN JUGADORES</div>
+                  <div class="empty-state__text">Faltan jugadores</div>
                   <p class="empty-state__hint">
                     Necesitas al menos {{ MAX }} miembros en el grupo para crear una partida 5v5.
                     Ahora mismo sois {{ roster().length }}. Invita a más gente y vuelve.
@@ -170,20 +170,20 @@ interface GeneratedTeams {
             <div class="cp-modes">
               <button type="button" class="cp-mode" (click)="chooseMode('manual')">
                 <div class="cp-mode__glyph">✋</div>
-                <div class="cp-mode__title nf-mono">PARTIDA MANUAL</div>
+                <div class="cp-mode__title nf-mono">Partida manual</div>
                 <p class="cp-mode__desc">
                   Eliges tú a los 10 jugadores ahora y configuras las restricciones de una sentada.
                 </p>
-                <span class="cp-mode__cta nf-mono nf-caps nf-go">Elegir</span>
+                <span class="cp-mode__cta nf-mono">Elegir</span>
               </button>
               <button type="button" class="cp-mode cp-mode--pink" (click)="chooseMode('open')">
                 <div class="cp-mode__glyph">📣</div>
-                <div class="cp-mode__title nf-mono">SALA ABIERTA</div>
+                <div class="cp-mode__title nf-mono">Sala abierta</div>
                 <p class="cp-mode__desc">
                   Publicas una sala y los jugadores del grupo se apuntan desde sus cuentas.
                   Configuras las restricciones cuando se llena.
                 </p>
-                <span class="cp-mode__cta nf-mono nf-caps nf-go">Elegir</span>
+                <span class="cp-mode__cta nf-mono">Elegir</span>
               </button>
             </div>
           } @else if (showStepWizard()) {
@@ -207,7 +207,7 @@ interface GeneratedTeams {
               }
             </div>
 
-            <nf-window [title]="windowTitle()" accent="cyan" bodyPadding="0">
+            <nf-window [title]="windowTitle()" bodyPadding="0">
               @switch (step()) {
                 @case (1) {
                   <div class="cp-toolbar">
@@ -233,7 +233,7 @@ interface GeneratedTeams {
 
                   <div class="cp-tray">
                     <div class="cp-tray__head nf-mono">
-                      SELECCIONADOS · {{ count() }}/{{ MAX }}
+                      Seleccionados · {{ count() }}/{{ MAX }}
                       @if (count() > 0) {
                         <button type="button" class="cp-tray__clear" (click)="clearSelection()">limpiar</button>
                       }
@@ -274,11 +274,11 @@ interface GeneratedTeams {
                           <span class="cp-pick__roles nf-mono">{{ rolesLabel(m) }}</span>
                         </span>
                         @if (m.owner) {
-                          <nf-badge color="pink">OWNER</nf-badge>
+                          <nf-badge color="pink">Owner</nf-badge>
                         }
                       </button>
                     } @empty {
-                      <div class="cp-empty nf-mono nf-eyebrow nf-eyebrow--lower">Sin resultados para ese filtro</div>
+                      <div class="cp-empty nf-mono">Sin resultados para ese filtro</div>
                     }
                   </div>
 
@@ -291,7 +291,7 @@ interface GeneratedTeams {
 
                 @case (2) {
                   <div class="cp-cover">
-                    <div class="cp-cover__head nf-mono">COBERTURA · cada línea necesita 2 jugadores</div>
+                    <div class="cp-cover__head nf-mono">Cobertura · cada línea necesita 2 jugadores</div>
                     <div class="cp-cover__roles">
                       @for (r of lineRolesList; track r.key) {
                         <div
@@ -335,7 +335,7 @@ interface GeneratedTeams {
                         <div class="cp-line__meta">
                           <span class="cp-pick__name nf-mono">{{ m.name }}</span>
                           <span class="cp-line__state nf-mono" [class.is-custom]="isCustom(m.tag)">
-                            {{ isCustom(m.tag) ? '◆ PERSONALIZADO' : '○ PERFIL' }}
+                            {{ isCustom(m.tag) ? '◆ Personalizado' : '○ Perfil' }}
                           </span>
                         </div>
                         <div class="cp-line__roles">
@@ -380,9 +380,9 @@ interface GeneratedTeams {
 
                     @if (builderTwoSided()) {
                       <div class="cp-rb__sides nf-mono">
-                        <span class="cp-rb__side cp-rb__side--a">BANDO A · {{ builderA().length }}</span>
+                        <span class="cp-rb__side cp-rb__side--a">Bando A · {{ builderA().length }}</span>
                         <span class="cp-rb__vs">vs</span>
-                        <span class="cp-rb__side cp-rb__side--b">BANDO B · {{ builderB().length }}</span>
+                        <span class="cp-rb__side cp-rb__side--b">Bando B · {{ builderB().length }}</span>
                       </div>
                     }
 
@@ -427,7 +427,7 @@ interface GeneratedTeams {
                     </div>
                     <button
                       type="button"
-                      class="cp-rb__add nf-mono nf-caps"
+                      class="cp-rb__add nf-mono"
                       [disabled]="!builderValid()"
                       (click)="addRule()"
                     >＋ Añadir regla</button>
@@ -472,7 +472,7 @@ interface GeneratedTeams {
                 @case (4) {
                   <div class="cp-cover">
                     <div class="cp-cover__head nf-mono">
-                      CAMPEONES RESERVADOS · {{ reservedCount() }}/{{ MAX }}
+                      Campeones reservados · {{ reservedCount() }}/{{ MAX }}
                     </div>
                     <div class="cp-cover__legend nf-mono">
                       Reserva el campeón que jugará cada uno: queda <b>asegurado para ese jugador</b> y
@@ -543,7 +543,7 @@ interface GeneratedTeams {
                               (ngModelChange)="champSearch.set($event)"
                             />
                             @if (champSearch()) {
-                              <div class="cp-picker__label nf-mono">RESULTADOS</div>
+                              <div class="cp-picker__label nf-mono">Resultados</div>
                               <div class="cp-picker__grid">
                                 @for (c of champPool(); track c.id) {
                                   <button type="button" class="cp-champ-opt" (click)="reserveChamp(m.tag, c.id)">
@@ -554,12 +554,12 @@ interface GeneratedTeams {
                                     </span>
                                   </button>
                                 } @empty {
-                                  <div class="cp-empty nf-mono nf-eyebrow nf-eyebrow--lower">Sin campeones para esa búsqueda</div>
+                                  <div class="cp-empty nf-mono">Sin campeones para esa búsqueda</div>
                                 }
                               </div>
                             } @else {
                               @if (mainsOf(m.tag).length) {
-                                <div class="cp-picker__label nf-mono">SUS MAINS · RECOMENDADOS</div>
+                                <div class="cp-picker__label nf-mono">Sus mains · recomendados</div>
                                 <div class="cp-picker__grid">
                                   @for (c of mainsOf(m.tag); track c.id) {
                                     <button type="button" class="cp-champ-opt" (click)="reserveChamp(m.tag, c.id)">
@@ -588,7 +588,7 @@ interface GeneratedTeams {
                     <div class="cp-pad">
                       <div class="cp-loader">
                         <div class="cp-loader__spinner" aria-hidden="true"></div>
-                        <div class="cp-loader__title nf-mono">LANZANDO PARTIDA…</div>
+                        <div class="cp-loader__title nf-mono">Lanzando partida…</div>
                         <div class="cp-loader__log">
                           <div class="cp-loader__line nf-mono" style="--d:0s">› creando la sala</div>
                           <div class="cp-loader__line nf-mono" style="--d:.4s">› asignando equipos azul / rojo</div>
@@ -601,7 +601,7 @@ interface GeneratedTeams {
                     <div class="cp-pad">
                       <div class="cp-loader">
                         <div class="cp-loader__spinner" aria-hidden="true"></div>
-                        <div class="cp-loader__title nf-mono">EMPAREJANDO…</div>
+                        <div class="cp-loader__title nf-mono">Emparejando…</div>
                         <div class="cp-loader__log">
                           <div class="cp-loader__line nf-mono" style="--d:0s">› analizando líneas y roles</div>
                           <div class="cp-loader__line nf-mono" style="--d:.35s">› equilibrando el elo de los equipos</div>
@@ -622,17 +622,17 @@ interface GeneratedTeams {
                     <div class="cp-balance">
                       <div class="cp-balance__head nf-mono">
                         <span class="cp-balance__team cp-balance__team--blue">
-                          AZUL <b>{{ teamElo().blue }}</b>
+                          Azul <b>{{ teamElo().blue }}</b>
                         </span>
                         <span class="cp-balance__verdict" [attr.data-side]="balanceVerdict().side">
                           @if (balanceVerdict().side === 'even') {
                             ⚖ {{ balanceVerdict().text }}
                           } @else {
-                            {{ balanceVerdict().text }} {{ balanceVerdict().side === 'blue' ? 'AZUL ◀' : '▶ ROJO' }}
+                            {{ balanceVerdict().text }} {{ balanceVerdict().side === 'blue' ? 'Azul ◀' : '▶ Rojo' }}
                           }
                         </span>
                         <span class="cp-balance__team cp-balance__team--red">
-                          <b>{{ teamElo().red }}</b> ROJO
+                          <b>{{ teamElo().red }}</b> Rojo
                         </span>
                       </div>
                       <div class="cp-balance__bar">
@@ -643,7 +643,7 @@ interface GeneratedTeams {
 
                     <div class="cp-teams">
                       <div class="cp-team cp-team--blue">
-                        <div class="cp-team__head nf-mono"><span class="cp-team__dot"></span> EQUIPO AZUL</div>
+                        <div class="cp-team__head nf-mono"><span class="cp-team__dot"></span> Equipo azul</div>
                         @for (s of generated().blue; track s.member.tag) {
                           <div class="cp-slot">
                             <span class="cp-slot__role nf-mono">{{ s.roleLabel }}</span>
@@ -684,7 +684,7 @@ interface GeneratedTeams {
                       </div>
 
                       <div class="cp-team cp-team--red">
-                        <div class="cp-team__head nf-mono"><span class="cp-team__dot"></span> EQUIPO ROJO</div>
+                        <div class="cp-team__head nf-mono"><span class="cp-team__dot"></span> Equipo rojo</div>
                         @for (s of generated().red; track s.member.tag) {
                           <div class="cp-slot">
                             <span class="cp-slot__role nf-mono">{{ s.roleLabel }}</span>
@@ -726,7 +726,7 @@ interface GeneratedTeams {
                     </div>
 
                     <div class="cp-teams__foot">
-                      <button type="button" class="cp-reroll nf-mono nf-caps" (click)="reroll()">↻ Rebalancear</button>
+                      <button type="button" class="cp-reroll nf-mono" (click)="reroll()">↻ Rebalancear</button>
                       @if (generated().total) {
                         <span class="cp-teams__rules nf-mono">
                           reglas respetadas: {{ generated().satisfied }}/{{ generated().total }}
@@ -740,10 +740,10 @@ interface GeneratedTeams {
                   <div class="cp-pad">
                     <div class="cp-stub">
                       <div class="cp-stub__glyph">⚙</div>
-                      <div class="cp-stub__title nf-mono">PASO {{ step() }} · {{ currentStep().label }}</div>
+                      <div class="cp-stub__title nf-mono">Paso {{ step() }} · {{ currentStep().label }}</div>
                       <p class="cp-stub__hint">En construcción. Seguimos debatiendo este paso antes de montarlo.</p>
                       <div class="cp-stub__roster nf-mono">
-                        JUGADORES EN LA PARTIDA · {{ count() }}/{{ MAX }}
+                        Jugadores en la partida · {{ count() }}/{{ MAX }}
                       </div>
                       <div class="cp-tray__chips">
                         @for (m of selectedMembers(); track m.tag) {
@@ -762,24 +762,24 @@ interface GeneratedTeams {
             @if (!launching()) {
               <div class="cp-foot">
                 <button nfButton variant="ghost" size="md" (click)="back()">
-                  {{ step() === 1 ? '← MODO' : '← ATRÁS' }}
+                  {{ step() === 1 ? '← Modo' : '← Atrás' }}
                 </button>
                 <div class="cp-foot__status nf-mono">
                   <span class="cp-foot__status-text">
                     @if (step() === 1) {
-                      {{ count() }}/{{ MAX }} SELECCIONADOS
+                      {{ count() }}/{{ MAX }} seleccionados
                     } @else if (step() === 2) {
-                      {{ lineMatch().ok ? 'LÍNEAS OK ✓' : 'REVISA LAS LÍNEAS ✗' }}
+                      {{ lineMatch().ok ? 'Líneas OK ✓' : 'Revisa las líneas ✗' }}
                     } @else if (step() === 3) {
-                      {{ rules().length }} REGLA{{ rules().length === 1 ? '' : 'S' }}{{ ruleErrors().length ? ' · REVISA ✗' : '' }}
+                      {{ rules().length }} regla{{ rules().length === 1 ? '' : 's' }}{{ ruleErrors().length ? ' · revisa ✗' : '' }}
                     } @else if (step() === 4) {
-                      {{ reservedCount() }} RESERVADO{{ reservedCount() === 1 ? '' : 'S' }}{{ champErrors().length ? ' · REVISA ✗' : '' }}
+                      {{ reservedCount() }} reservado{{ reservedCount() === 1 ? '' : 's' }}{{ champErrors().length ? ' · revisa ✗' : '' }}
                     }
                   </span>
                   @if (step() < steps.length && canSkipToLaunch()) {
                     <button
                       type="button"
-                      class="cp-foot__skip nf-mono nf-caps"
+                      class="cp-foot__skip nf-mono"
                       title="Saltar las restricciones (son opcionales) e ir directo a lanzar"
                       (click)="skipToLaunch()"
                     >⏩ Saltar y lanzar</button>
@@ -791,17 +791,16 @@ interface GeneratedTeams {
                   size="md"
                   [disabled]="!canStepContinue()"
                   (click)="onPrimary()"
-                  class="nf-go"
                 >{{ step() === steps.length ? 'Lanzar partida' : 'Siguiente' }}</button>
               </div>
             }
           } @else {
             <!-- ===== MODO SALA ABIERTA · convocar proponiendo horas ===== -->
-            <nf-window title="convocar.exe" accent="pink" bodyPadding="0">
+            <nf-window title="Convocar" bodyPadding="0">
               <div class="cp-room__bar">
                 <div class="cp-room__barmeta">
                   <div class="cp-room__sub nf-mono">
-                    PROPÓN UNA O VARIAS HORAS · EL GRUPO DIRÁ A CUÁLES PUEDE
+                    Propón una o varias horas · el grupo dirá a cuáles puede
                   </div>
                 </div>
                 <nf-badge [color]="slotDrafts().length ? 'green' : 'yellow'">
@@ -877,7 +876,7 @@ interface GeneratedTeams {
                     />
                     <button
                       type="button"
-                      class="dp-custom__add nf-mono nf-caps"
+                      class="dp-custom__add nf-mono"
                       [disabled]="!canAddSlot()"
                       (click)="addSlot()"
                     >Añadir a {{ selectedDayLabel() }}</button>
@@ -928,13 +927,13 @@ interface GeneratedTeams {
             <div class="cp-foot">
               <button nfButton variant="ghost" size="md" (click)="resetMode()">← Modo</button>
               <div class="cp-foot__status nf-mono">
-                {{ slotDrafts().length }} HORA{{ slotDrafts().length === 1 ? '' : 'S' }} PROPUESTA{{ slotDrafts().length === 1 ? '' : 'S' }}
+                {{ slotDrafts().length }} hora{{ slotDrafts().length === 1 ? '' : 's' }} propuesta{{ slotDrafts().length === 1 ? '' : 's' }}
               </div>
               <button
                 nfButton
                 variant="primary"
                 size="md"
-                class="cp-cta nf-go"
+                class="cp-cta"
                 [class.cp-cta--ready]="slotDrafts().length > 0"
                 [disabled]="!slotDrafts().length || lobbies.creating()"
                 (click)="publishLobby()"
@@ -946,8 +945,8 @@ interface GeneratedTeams {
         @if (discarding()) {
           <div class="modal-overlay" (click)="discarding.set(false)">
             <div class="modal" (click)="$event.stopPropagation()">
-              <nf-window title="descartar_borrador.exe" accent="pink" bodyPadding="24px">
-                <div class="settings-eyebrow nf-mono nf-eyebrow">Descartar borrador</div>
+              <nf-window title="Descartar borrador" bodyPadding="24px">
+                <div class="settings-eyebrow nf-mono">Descartar borrador</div>
                 <p class="remove-msg">¿Seguro que quieres descartar esta partida a medias?</p>
                 <div class="remove-warn nf-mono">
                   ⚠ Se borrará la configuración y la sala dejará de aparecer en el grupo.
@@ -963,7 +962,7 @@ interface GeneratedTeams {
         }
       } @else {
         <div class="view__head">
-          <div class="view__eyebrow nf-mono nf-eyebrow">Error 404</div>
+          <div class="view__eyebrow nf-mono">Error 404</div>
           <h1 class="view__title">Grupo no encontrado</h1>
         </div>
         <p class="empty-state__hint">Este grupo no existe o ya no eres miembro.</p>
@@ -986,15 +985,15 @@ export class GrupoCrearPartida {
   readonly MAX = 10;
 
   readonly steps: WizardStep[] = [
-    { n: 1, label: 'PARTICIPANTES' },
-    { n: 2, label: 'LÍNEAS' },
-    { n: 3, label: 'DUOS / TRÍOS / VS' },
-    { n: 4, label: 'PERSONAJES' },
-    { n: 5, label: 'LANZAR' },
+    { n: 1, label: 'Participantes' },
+    { n: 2, label: 'Líneas' },
+    { n: 3, label: 'Duos / tríos / vs' },
+    { n: 4, label: 'Personajes' },
+    { n: 5, label: 'Lanzar' },
   ];
 
   readonly roleFilters: RoleFilter[] = [
-    { key: 'ALL', label: 'TODOS' },
+    { key: 'ALL', label: 'Todos' },
     { key: 'TOP', label: 'TOP' },
     { key: 'JUNGLA', label: 'JG' },
     { key: 'MID', label: 'MID' },
@@ -1238,7 +1237,7 @@ export class GrupoCrearPartida {
 
   readonly currentStep = computed(() => this.steps[this.step() - 1]);
   readonly windowTitle = computed(
-    () => `paso_${this.step()}_${this.currentStep().label.toLowerCase().replace(/[^a-z]+/g, '_')}.exe`,
+    () => `Paso ${this.step()} · ${this.currentStep().label}`,
   );
 
   goStep(n: number): void {
@@ -1564,19 +1563,19 @@ export class GrupoCrearPartida {
   readonly ruleKinds: { key: RuleKind; label: string; icon: string; hint: string }[] = [
     {
       key: 'together',
-      label: 'JUNTOS',
+      label: 'Juntos',
       icon: '🤝',
       hint: 'Toca 2 o 3 jugadores que irán en el MISMO equipo.',
     },
     {
       key: 'versus',
-      label: 'EN CONTRA',
+      label: 'En contra',
       icon: '⚔',
       hint: 'Forma dos bandos: toca un jugador para A, otra vez para B. Cada bando va a un equipo (1-3 por lado).',
     },
     {
       key: 'lane',
-      label: 'DUELO DE LÍNEA',
+      label: 'Duelo de línea',
       icon: '🎯',
       hint: 'Toca 1 jugador para A y 1 para B: se enfrentarán en la MISMA línea.',
     },
@@ -1924,7 +1923,7 @@ export class GrupoCrearPartida {
   /** Human verdict shown over the bar (balanced, or which side it favours). */
   readonly balanceVerdict = computed(() => {
     const d = this.teamElo().diff;
-    if (Math.abs(d) <= 15) return { text: 'EQUILIBRADO', side: 'even' as const };
+    if (Math.abs(d) <= 15) return { text: 'Equilibrado', side: 'even' as const };
     return { text: `+${Math.abs(d)}`, side: d > 0 ? ('blue' as const) : ('red' as const) };
   });
 

@@ -28,7 +28,7 @@ export type NfSegmentedVariant = 'pill' | 'tabs';
  *
  * Con `variant="tabs"` es el navegador de secciones de una ventana:
  *
- *   <nf-window title="miembros.exe" bodyPadding="0">
+ *   <nf-window title="Miembros" bodyPadding="0">
  *     <nf-segmented variant="tabs" [options]="tabs" [value]="tab()" … />
  *     …contenido de la sección…
  *   </nf-window>

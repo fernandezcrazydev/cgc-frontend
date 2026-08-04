@@ -21,7 +21,7 @@ import { ChangeDetectionStrategy, Component, ViewEncapsulation, computed, input 
     <div class="nf-meter" [class.nf-meter--compact]="compact()" [attr.data-level]="level()">
       @if (!compact()) {
         <div class="nf-meter__head">
-          <span class="nf-meter__label nf-mono nf-caps">{{ label() }}</span>
+          <span class="nf-meter__label nf-mono">{{ label() }}</span>
           <span class="nf-meter__value nf-mono">{{ valueText() }}</span>
         </div>
       }

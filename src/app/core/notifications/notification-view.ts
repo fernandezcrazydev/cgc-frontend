@@ -93,7 +93,7 @@ export function notificationView(n: NotificationResponse, now = Date.now()): Not
       const invitedByName = n.data['invitedByName'] ?? null;
       return {
         ...base,
-        title: 'INVITACIÓN A GRUPO',
+        title: 'Invitación a grupo',
         message: invitedByName
           ? `${invitedByName} te invitó a unirte a ${groupName}`
           : `Te invitaron a unirte a ${groupName}`,
@@ -111,7 +111,7 @@ export function notificationView(n: NotificationResponse, now = Date.now()): Not
       const riotId = n.data['riotId'] ?? 'tu cuenta de Riot';
       return {
         ...base,
-        title: 'CUENTA VINCULADA',
+        title: 'Cuenta vinculada',
         message: `Vinculamos ${riotId} desde la app de escritorio`,
         accent: 'var(--nf-secondary)',
         glyph: '↔',
@@ -122,7 +122,7 @@ export function notificationView(n: NotificationResponse, now = Date.now()): Not
       const riotId = n.data['riotId'] ?? 'tu cuenta de Riot';
       return {
         ...base,
-        title: 'CUENTA VERIFICADA',
+        title: 'Cuenta verificada',
         message: `Comprobamos con Riot que ${riotId} es tuya`,
         accent: 'var(--nf-success)',
         glyph: '✓',
@@ -133,7 +133,7 @@ export function notificationView(n: NotificationResponse, now = Date.now()): Not
       const riotId = n.data['riotId'] ?? 'tu cuenta de Riot';
       return {
         ...base,
-        title: 'CUENTA DESVINCULADA',
+        title: 'Cuenta desvinculada',
         message: `Alguien demostró ser el dueño de ${riotId} y se ha desvinculado de tu perfil`,
         accent: 'var(--nf-danger)',
         glyph: '⊘',
@@ -161,7 +161,7 @@ export function notificationView(n: NotificationResponse, now = Date.now()): Not
       const groupName = n.data['groupName'] ?? 'tu grupo';
       return {
         ...base,
-        title: 'PARTIDA CONVOCADA',
+        title: 'Partida convocada',
         message: `${who} ha convocado una partida en ${groupName}. Di a qué horas puedes`,
         accent: 'var(--nf-secondary)',
         glyph: '📣',
@@ -173,7 +173,7 @@ export function notificationView(n: NotificationResponse, now = Date.now()): Not
       const startsAt = n.data['startsAt'];
       return {
         ...base,
-        title: 'PARTIDA CONFIRMADA',
+        title: 'Partida confirmada',
         // La hora es EL dato de esta notificación, así que va en el texto y no solo en el detalle.
         message: startsAt
           ? `Ya hay hora: ${formatKickoff(startsAt)}`
@@ -188,7 +188,7 @@ export function notificationView(n: NotificationResponse, now = Date.now()): Not
       const startsAt = n.data['startsAt'];
       return {
         ...base,
-        title: 'ENTRAS A JUGAR',
+        title: 'Entras a jugar',
         // La única de la familia que es urgente de verdad: cambia lo que tienes que hacer esta
         // noche sin que tú hayas hecho nada.
         message: startsAt
@@ -204,7 +204,7 @@ export function notificationView(n: NotificationResponse, now = Date.now()): Not
       const groupName = n.data['groupName'] ?? 'tu grupo';
       return {
         ...base,
-        title: 'PARTIDA CANCELADA',
+        title: 'Partida cancelada',
         message: `Se ha cancelado la partida de ${groupName}`,
         accent: 'var(--nf-danger)',
         glyph: '⊘',
@@ -216,7 +216,7 @@ export function notificationView(n: NotificationResponse, now = Date.now()): Not
       // Un tipo que el backend añada y el front aún no conozca: se muestra, no se rompe.
       return {
         ...base,
-        title: 'NOTIFICACIÓN',
+        title: 'Notificación',
         message: '',
         accent: 'var(--nf-warning)',
         glyph: '⊙',
@@ -226,18 +226,18 @@ export function notificationView(n: NotificationResponse, now = Date.now()): Not
 }
 
 /**
- * Fecha ISO-8601 → antigüedad compacta en mono ("AHORA" / "5 MIN" / "3 H" / "2 D"), al
+ * Fecha ISO-8601 → antigüedad compacta ("Ahora" / "5 min" / "3 h" / "2 d"), al
  * estilo de la campana. Presentación pura; el backend manda siempre UTC ISO-8601.
  */
 export function timeAgo(iso: string, now = Date.now()): string {
   const then = Date.parse(iso);
   if (Number.isNaN(then)) return '';
   const seconds = Math.max(0, Math.floor((now - then) / 1000));
-  if (seconds < 60) return 'AHORA';
+  if (seconds < 60) return 'Ahora';
   const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes} MIN`;
+  if (minutes < 60) return `${minutes} min`;
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} H`;
+  if (hours < 24) return `${hours} h`;
   const days = Math.floor(hours / 24);
-  return `${days} D`;
+  return `${days} d`;
 }

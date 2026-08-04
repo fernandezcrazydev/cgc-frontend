@@ -9,7 +9,14 @@ export {
   GroupInvitationsStore,
   type GroupInvitationsStatus,
 } from './group-invitations-store';
-export { groupView, groupViewFrom, initialsOf, bannerColors, type GroupView } from './group-view';
+export {
+  groupView,
+  groupViewFrom,
+  groupRoleLabel,
+  initialsOf,
+  bannerColors,
+  type GroupView,
+} from './group-view';
 export {
   REGIONS,
   MATCHMAKING_PRESETS,

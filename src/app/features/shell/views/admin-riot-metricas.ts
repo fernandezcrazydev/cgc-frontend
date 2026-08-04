@@ -38,7 +38,7 @@ const WINDOW_LABELS: Record<RiotMetricsWindow, string> = {
   template: `
     <div class="view">
       <div class="view__head">
-        <div class="view__eyebrow nf-mono nf-eyebrow">Administración</div>
+        <div class="view__eyebrow nf-mono">Administración</div>
         <h1 class="view__title">Métricas API Riot</h1>
         <p class="view__lead">
           Qué le pedimos a la API de Riot y cuánto nos cuesta. Esto <strong>mide, no frena</strong>:
@@ -63,7 +63,7 @@ const WINDOW_LABELS: Record<RiotMetricsWindow, string> = {
         @for (w of windows; track w) {
           <button
             type="button"
-            class="rm-seg__btn nf-mono nf-caps"
+            class="rm-seg__btn nf-mono"
             [class.is-active]="store.window() === w"
             [attr.aria-pressed]="store.window() === w"
             (click)="selectWindow(w)"
@@ -84,7 +84,7 @@ const WINDOW_LABELS: Record<RiotMetricsWindow, string> = {
         @case ('error') {
           <div class="empty-state">
             <p>No se han podido cargar las métricas.</p>
-            <button type="button" class="rm-seg__btn nf-mono nf-caps" (click)="retry()">
+            <button type="button" class="rm-seg__btn nf-mono" (click)="retry()">
               Reintentar
             </button>
           </div>
@@ -95,29 +95,29 @@ const WINDOW_LABELS: Record<RiotMetricsWindow, string> = {
             <div class="totals">
               <div class="totals__item">
                 <div class="totals__val">{{ m.totals.calls }}</div>
-                <div class="totals__lbl nf-mono nf-caps">Llamadas</div>
+                <div class="totals__lbl nf-mono">Llamadas</div>
               </div>
               <div class="totals__item">
                 <div class="totals__val">{{ m.totals.interactive }}</div>
-                <div class="totals__lbl nf-mono nf-caps">Interactivas</div>
+                <div class="totals__lbl nf-mono">Interactivas</div>
               </div>
               <div class="totals__item">
                 <div class="totals__val">{{ m.totals.background }}</div>
-                <div class="totals__lbl nf-mono nf-caps">De fondo</div>
+                <div class="totals__lbl nf-mono">De fondo</div>
               </div>
               <div class="totals__item">
                 <div class="totals__val" [class.is-bad]="m.totals.rateLimited > 0">
                   {{ m.totals.rateLimited }}
                 </div>
-                <div class="totals__lbl nf-mono nf-caps">Rechazadas (429)</div>
+                <div class="totals__lbl nf-mono">Rechazadas (429)</div>
               </div>
               <div class="totals__item">
                 <div class="totals__val" [class.is-bad]="m.totals.failed > 0">{{ m.totals.failed }}</div>
-                <div class="totals__lbl nf-mono nf-caps">Fallidas</div>
+                <div class="totals__lbl nf-mono">Fallidas</div>
               </div>
               <div class="totals__item">
                 <div class="totals__val">{{ m.totals.avgDurationMs }} ms</div>
-                <div class="totals__lbl nf-mono nf-caps">Media (máx {{ m.totals.maxDurationMs }})</div>
+                <div class="totals__lbl nf-mono">Media (máx {{ m.totals.maxDurationMs }})</div>
               </div>
             </div>
 
@@ -128,7 +128,7 @@ const WINDOW_LABELS: Record<RiotMetricsWindow, string> = {
             } @else {
               <!-- Evolución por horas -->
               <section class="rm-panel">
-                <h2 class="rm-panel__title nf-mono nf-caps">Evolución</h2>
+                <h2 class="rm-panel__title nf-mono">Evolución</h2>
                 <svg
                   class="rm-chart"
                   [attr.viewBox]="'0 0 ' + chartW + ' ' + chartH"
@@ -153,7 +153,7 @@ const WINDOW_LABELS: Record<RiotMetricsWindow, string> = {
 
               <!-- Endpoints más consumidos -->
               <section class="rm-panel">
-                <h2 class="rm-panel__title nf-mono nf-caps">Endpoints más consumidos</h2>
+                <h2 class="rm-panel__title nf-mono">Endpoints más consumidos</h2>
                 @for (e of m.topEndpoints; track e.endpoint) {
                   <div class="rm-row">
                     <div class="rm-row__head">
@@ -174,7 +174,7 @@ const WINDOW_LABELS: Record<RiotMetricsWindow, string> = {
 
               <!-- Horas punta -->
               <section class="rm-panel">
-                <h2 class="rm-panel__title nf-mono nf-caps">Horas punta</h2>
+                <h2 class="rm-panel__title nf-mono">Horas punta</h2>
                 <p class="rm-panel__hint">
                   Hora local del grupo (Europe/Madrid), sumando todos los días del periodo.
                   @if (store.window() === 24) {
@@ -199,7 +199,7 @@ const WINDOW_LABELS: Record<RiotMetricsWindow, string> = {
 
               <!-- Usuarios con más peticiones -->
               <section class="rm-panel">
-                <h2 class="rm-panel__title nf-mono nf-caps">Quién gasta más cuota</h2>
+                <h2 class="rm-panel__title nf-mono">Quién gasta más cuota</h2>
                 @for (u of m.topUsers; track u.userId) {
                   <div class="rm-user">
                     <nf-avatar

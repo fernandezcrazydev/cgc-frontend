@@ -17,7 +17,7 @@ function invite(overrides: Partial<NotificationResponse> = {}): NotificationResp
 describe('notificationView', () => {
   it('mapea INVITED_TO_GROUP a título/mensaje en español con el payload de invitación', () => {
     const view = notificationView(invite(), NOW);
-    expect(view.title).toBe('INVITACIÓN A GRUPO');
+    expect(view.title).toBe('Invitación a grupo');
     expect(view.message).toBe('Te invitaron a unirte a Los Cracks');
     expect(view.invite).toEqual({
       invitationId: 'inv1',
@@ -39,7 +39,7 @@ describe('notificationView', () => {
 
   it('sobrevive a un tipo desconocido sin romperse (sin acciones de invitación)', () => {
     const view = notificationView(invite({ type: 'SOMETHING_NEW', data: {} }), NOW);
-    expect(view.title).toBe('NOTIFICACIÓN');
+    expect(view.title).toBe('Notificación');
     expect(view.invite).toBeNull();
   });
 
@@ -56,7 +56,7 @@ describe('notificationView · vinculación con la app de escritorio', () => {
       invite({ type: 'RIOT_ACCOUNT_PAIRED', data: { riotId: 'N1ghtfang#LAN', region: 'LAN' } }),
       NOW,
     );
-    expect(view.title).toBe('CUENTA VINCULADA');
+    expect(view.title).toBe('Cuenta vinculada');
     expect(view.message).toBe('Vinculamos N1ghtfang#LAN desde la app de escritorio');
     expect(view.accent).toBe('var(--nf-secondary)');
     expect(view.glyph).toBe('↔');
@@ -68,7 +68,7 @@ describe('notificationView · vinculación con la app de escritorio', () => {
       invite({ type: 'RIOT_ACCOUNT_VERIFIED', data: { riotId: 'N1ghtfang#LAN', region: 'LAN' } }),
       NOW,
     );
-    expect(view.title).toBe('CUENTA VERIFICADA');
+    expect(view.title).toBe('Cuenta verificada');
     expect(view.message).toBe('Comprobamos con Riot que N1ghtfang#LAN es tuya');
     expect(view.accent).toBe('var(--nf-success)');
     expect(view.glyph).toBe('✓');
@@ -80,7 +80,7 @@ describe('notificationView · vinculación con la app de escritorio', () => {
       invite({ type: 'RIOT_ACCOUNT_TAKEN_OVER', data: { riotId: 'N1ghtfang#LAN' } }),
       NOW,
     );
-    expect(view.title).toBe('CUENTA DESVINCULADA');
+    expect(view.title).toBe('Cuenta desvinculada');
     expect(view.message).toBe(
       'Alguien demostró ser el dueño de N1ghtfang#LAN y se ha desvinculado de tu perfil',
     );
@@ -91,7 +91,7 @@ describe('notificationView · vinculación con la app de escritorio', () => {
 
   it('un tipo desconocido sigue cayendo en el genérico (no rompe con tipos nuevos del backend)', () => {
     const view = notificationView(invite({ type: 'RIOT_ACCOUNT_SOMETHING_FUTURE', data: {} }), NOW);
-    expect(view.title).toBe('NOTIFICACIÓN');
+    expect(view.title).toBe('Notificación');
     expect(view.accent).toBe('var(--nf-warning)');
     expect(view.invite).toBeNull();
   });
@@ -168,10 +168,10 @@ describe('notificationView · enlace', () => {
 
 describe('timeAgo', () => {
   it('formatea la antigüedad de forma compacta', () => {
-    expect(timeAgo('2026-07-18T11:59:30Z', NOW)).toBe('AHORA');
-    expect(timeAgo('2026-07-18T11:55:00Z', NOW)).toBe('5 MIN');
-    expect(timeAgo('2026-07-18T09:00:00Z', NOW)).toBe('3 H');
-    expect(timeAgo('2026-07-16T12:00:00Z', NOW)).toBe('2 D');
+    expect(timeAgo('2026-07-18T11:59:30Z', NOW)).toBe('Ahora');
+    expect(timeAgo('2026-07-18T11:55:00Z', NOW)).toBe('5 min');
+    expect(timeAgo('2026-07-18T09:00:00Z', NOW)).toBe('3 h');
+    expect(timeAgo('2026-07-16T12:00:00Z', NOW)).toBe('2 d');
   });
 
   it('devuelve cadena vacía ante una fecha inválida', () => {

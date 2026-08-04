@@ -29,7 +29,7 @@ import { Component, EventEmitter, Input, Output, ViewEncapsulation } from '@angu
 
       <div class="nf-avatarpicker__controls">
         <label class="nf-avatarpicker__btn nf-mono">
-          {{ value ? 'CAMBIAR' : 'SUBIR FOTO' }}
+          {{ value ? 'Cambiar' : 'Subir foto' }}
           <input
             class="nf-avatarpicker__input"
             type="file"
@@ -39,7 +39,7 @@ import { Component, EventEmitter, Input, Output, ViewEncapsulation } from '@angu
         </label>
         @if (value) {
           <button type="button" class="nf-avatarpicker__btn nf-avatarpicker__btn--ghost nf-mono" (click)="clear()">
-            QUITAR
+            Quitar
           </button>
         }
         @if (error) {

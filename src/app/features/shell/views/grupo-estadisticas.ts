@@ -31,7 +31,7 @@ type StatTab = 'resumen' | 'jugadores' | 'premios';
           <span class="view-back__arrow" aria-hidden="true">←</span> {{ g.name }}
         </a>
         <div class="view__head">
-          <div class="view__eyebrow nf-mono nf-eyebrow">Estadísticas del grupo</div>
+          <div class="view__eyebrow nf-mono">Estadísticas del grupo</div>
           <p class="view__lead">Rendimiento y métricas del grupo a lo largo de vuestras customs.</p>
         </div>
 
@@ -80,12 +80,12 @@ type StatTab = 'resumen' | 'jugadores' | 'premios';
                       <div class="hl__blurb nf-mono">{{ sm.mvp.blurb }}</div>
                     </div>
                   </div>
-                  <div class="hl__score nf-mono">RATING {{ sm.mvp.stats.rating }}</div>
+                  <div class="hl__score nf-mono">Rating {{ sm.mvp.stats.rating }}</div>
                 </div>
 
                 <!-- Best combo -->
                 <div class="hl hl--combo" data-accent="cyan">
-                  <div class="hl__eyebrow nf-mono">🤝 MEJOR DÚO</div>
+                  <div class="hl__eyebrow nf-mono">🤝 Mejor dúo</div>
                   <div class="hl__duo">
                     <span class="hl__avatar hl__avatar--sm" [style.background]="grad(sm.bestCombo.a.hue)">{{ sm.bestCombo.a.initials }}</span>
                     <span class="hl__plus nf-mono">+</span>
@@ -97,7 +97,7 @@ type StatTab = 'resumen' | 'jugadores' | 'premios';
 
                 <!-- Hot streak -->
                 <div class="hl hl--streak" data-accent="yellow">
-                  <div class="hl__eyebrow nf-mono">🔥 RACHA CALIENTE</div>
+                  <div class="hl__eyebrow nf-mono">🔥 Racha caliente</div>
                   <div class="hl__big nf-mono">{{ sm.hotStreak.streak }}<span class="hl__big-unit">W</span></div>
                   <div class="hl__name hl__name--sm">{{ sm.hotStreak.member.name }}</div>
                   <div class="hl__blurb nf-mono">victorias seguidas sin perder</div>
@@ -108,23 +108,23 @@ type StatTab = 'resumen' | 'jugadores' | 'premios';
               <div class="totals">
                 <div class="totals__item">
                   <div class="totals__val nf-mono">{{ sm.totals.games }}</div>
-                  <div class="totals__lbl nf-mono">PARTIDAS</div>
+                  <div class="totals__lbl nf-mono">Partidas</div>
                 </div>
                 <div class="totals__item">
                   <div class="totals__val nf-mono">{{ sm.totals.hours }}h</div>
-                  <div class="totals__lbl nf-mono">JUGADAS</div>
+                  <div class="totals__lbl nf-mono">Jugadas</div>
                 </div>
                 <div class="totals__item">
                   <div class="totals__val nf-mono">{{ sm.totals.kills }}</div>
-                  <div class="totals__lbl nf-mono">KILLS</div>
+                  <div class="totals__lbl nf-mono">Kills</div>
                 </div>
                 <div class="totals__item">
                   <div class="totals__val nf-mono">{{ sm.totals.pentas }}</div>
-                  <div class="totals__lbl nf-mono">PENTAS</div>
+                  <div class="totals__lbl nf-mono">Pentas</div>
                 </div>
               </div>
 
-              <div class="view__label nf-mono">▸ CLASIFICACIONES</div>
+              <div class="view__label nf-mono">▸ Clasificaciones</div>
               <div class="sc-grid">
                 @for (lb of leaderboards(); track lb.id) {
                   <div class="sc" [attr.data-accent]="lb.accent">
@@ -185,7 +185,7 @@ type StatTab = 'resumen' | 'jugadores' | 'premios';
           }
 
           @case ('jugadores') {
-            <nf-window title="jugadores.exe" accent="cyan" bodyPadding="0">
+            <nf-window title="Jugadores" bodyPadding="0">
               <div class="members">
                 @for (p of players(); track p.member.tag) {
                   <div class="member-row" [class.member-row--open]="expandedTag() === p.member.tag">
@@ -245,7 +245,7 @@ type StatTab = 'resumen' | 'jugadores' | 'premios';
           }
 
           @case ('premios') {
-            <div class="view__label nf-mono">▸ MURO DE TROFEOS · {{ scopeLabel() }}</div>
+            <div class="view__label nf-mono">▸ Muro de trofeos · {{ scopeLabel() }}</div>
             <div class="trophy-grid">
               @for (a of awards(); track a.id) {
                 <div class="trophy" [attr.data-color]="a.color">
@@ -264,7 +264,7 @@ type StatTab = 'resumen' | 'jugadores' | 'premios';
         }
       } @else {
         <div class="view__head">
-          <div class="view__eyebrow nf-mono nf-eyebrow">Error 404</div>
+          <div class="view__eyebrow nf-mono">Error 404</div>
           <h1 class="view__title">Grupo no encontrado</h1>
           <p class="view__lead">El grupo que buscas no existe o ya no perteneces a él.</p>
         </div>
@@ -294,9 +294,9 @@ export class GrupoEstadisticas {
 
   readonly scopeOptions = SCOPE_OPTIONS;
   readonly tabs: { id: StatTab; label: string }[] = [
-    { id: 'resumen', label: 'RESUMEN' },
-    { id: 'jugadores', label: 'JUGADORES' },
-    { id: 'premios', label: 'PREMIOS' },
+    { id: 'resumen', label: 'Resumen' },
+    { id: 'jugadores', label: 'Jugadores' },
+    { id: 'premios', label: 'Premios' },
   ];
 
   readonly scope = signal<StatScope>('temporada');

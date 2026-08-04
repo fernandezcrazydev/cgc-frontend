@@ -1,4 +1,4 @@
-import { ApplicationConfig, inject, provideBrowserGlobalErrorListeners } from '@angular/core';
+import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/http';
 import {
@@ -11,8 +11,6 @@ import {
 
 import { routes } from './app.routes';
 import { sessionRecoveryInterceptor } from './core/http';
-import { ThemeService } from './core/theme';
-import { NF_THEME } from './ui';
 import { environment } from '../environments/environment';
 
 export const appConfig: ApplicationConfig = {
@@ -61,9 +59,5 @@ export const appConfig: ApplicationConfig = {
     // volver a la app obligaba a pulsar "entrar con Discord" otra vez. Con localStorage
     // la sesión sobrevive al cierre del navegador y se renueva sola con el refresh token.
     { provide: AbstractSecurityStorage, useClass: DefaultLocalStorageService },
-    // El UI kit no puede importar de core/ (regla de capas): declara qué necesita
-    // (NF_THEME) y aquí se cablea al servicio real. Lo usa NfWindow para no pintar
-    // cromo de ventana retro en el tema "original".
-    { provide: NF_THEME, useFactory: () => inject(ThemeService).theme },
   ],
 };

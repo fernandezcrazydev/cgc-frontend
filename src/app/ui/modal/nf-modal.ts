@@ -10,22 +10,22 @@ import {
   output,
 } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
-import { NfWindow, NfWindowAccent } from '../window/nf-window';
+import { NfWindow } from '../window/nf-window';
 
 /** Selector de los controles que pueden recibir foco dentro del diálogo. */
 const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 /**
- * NEXUS//FORGE Modal — diálogo centrado sobre un fondo difuminado, con una
- * `nf-window` como marco.
+ * Modal — diálogo centrado sobre un fondo difuminado, con una `nf-window` como
+ * marco.
  *
  * El consumidor controla la apertura con `@if`; el modal solo *pide* cerrarse
  * (backdrop, Escape) mediante `(closed)`, para que la vista pueda vetar el
  * cierre si hay una escritura en vuelo.
  *
  *   @if (abierto()) {
- *     <nf-modal title="vincular_riot.exe" (closed)="cerrar()">…</nf-modal>
+ *     <nf-modal title="Vincular cuenta de Riot" (closed)="cerrar()">…</nf-modal>
  *   }
  *
  * Mientras vive: bloquea el scroll de fondo, atrapa el foco y lo devuelve al
@@ -52,7 +52,7 @@ const FOCUSABLE =
         [style.max-width]="width()"
         (click)="$event.stopPropagation()"
       >
-        <nf-window [title]="title()" [accent]="accent()" [bodyPadding]="bodyPadding()">
+        <nf-window [title]="title()" [bodyPadding]="bodyPadding()">
           <ng-content />
         </nf-window>
       </div>
@@ -61,9 +61,8 @@ const FOCUSABLE =
   styleUrl: './nf-modal.scss',
 })
 export class NfModal {
-  /** Título de la barra de la ventana (convención `*.exe`). */
-  readonly title = input('ventana.exe');
-  readonly accent = input<NfWindowAccent>('cyan');
+  /** Encabezado del diálogo. */
+  readonly title = input('');
   readonly bodyPadding = input('22px 22px 26px');
   /** Ancho máximo del diálogo (cualquier medida CSS). */
   readonly width = input('460px');

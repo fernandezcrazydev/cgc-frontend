@@ -43,7 +43,7 @@ export interface MatchRecord {
   items: (string | null)[];
 }
 
-const groupName = (id: string) => GROUPS.find((g) => g.id === id)?.name ?? 'GRUPO';
+const groupName = (id: string) => GROUPS.find((g) => g.id === id)?.name ?? 'Grupo';
 
 interface Seed {
   id: string;

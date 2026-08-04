@@ -5,20 +5,20 @@ import { NfButton } from './nf-button';
 /**
  * `NfButton` pinta sus clases con un host binding `[class]`, que en Ivy convive
  * con las clases estáticas y con `[class.x]` del sitio de uso. Las vistas
- * dependen de esa convivencia para marcar CTAs con `.nf-go` (la puntita ► que
- * añade el CSS), así que aquí se blinda: si un día `[class]` pisara lo demás,
- * los botones perderían el marcador en silencio.
+ * dependen de esa convivencia para añadir sus propias clases de marcado al
+ * primitivo, así que aquí se blinda: si un día `[class]` pisara lo demás,
+ * los botones perderían esas clases en silencio.
  */
 @Component({
   standalone: true,
   imports: [NfButton],
   template: `
-    <button id="estatica" nfButton variant="primary" class="nf-go">Continuar</button>
-    <button id="dinamica" nfButton variant="ghost" size="sm" [class.nf-go]="go()">Enviar</button>
+    <button id="estatica" nfButton variant="primary" class="is-marked">Continuar</button>
+    <button id="dinamica" nfButton variant="ghost" size="sm" [class.is-marked]="marked()">Enviar</button>
   `,
 })
 class Host {
-  readonly go = signal(true);
+  readonly marked = signal(true);
 }
 
 describe('NfButton', () => {
@@ -37,16 +37,16 @@ describe('NfButton', () => {
     const c = classesOf('estatica');
     expect(c.contains('nf-btn')).toBe(true);
     expect(c.contains('nf-btn--primary')).toBe(true);
-    expect(c.contains('nf-go')).toBe(true);
+    expect(c.contains('is-marked')).toBe(true);
   });
 
-  it('respeta el binding [class.nf-go] y reacciona al cambio', () => {
-    expect(classesOf('dinamica').contains('nf-go')).toBe(true);
+  it('respeta el binding [class.is-marked] y reacciona al cambio', () => {
+    expect(classesOf('dinamica').contains('is-marked')).toBe(true);
     expect(classesOf('dinamica').contains('nf-btn--sm')).toBe(true);
 
-    fixture.componentInstance.go.set(false);
+    fixture.componentInstance.marked.set(false);
     fixture.detectChanges();
-    expect(classesOf('dinamica').contains('nf-go')).toBe(false);
+    expect(classesOf('dinamica').contains('is-marked')).toBe(false);
     // El primitivo conserva las suyas al apagarse la del uso.
     expect(classesOf('dinamica').contains('nf-btn--ghost')).toBe(true);
   });
