@@ -1,37 +1,43 @@
 /* ============================================================
-   NEXUS//FORGE · COLOR TOKENS
-   Vaporwave neon palette over a deep-violet "void".
-   Values are authoritative — taken verbatim from styles.scss.
+   COLOR TOKENS
+   Superficies neutras (negro OLED → grafito) con un único acento
+   azul. Nada de tinte de color en las superficies ni en las
+   líneas: el color se reserva para lo que significa algo
+   (acción primaria, estado, lado de equipo).
    ============================================================ */
 
 :root {
-  /* ---- Surfaces (dark → light) ---- */
-  --nf-void: #0c0118;          /* page base, darkest        */
-  --nf-inset: #10021f;         /* sunken: inputs, tracks    */
-  --nf-surface: #180a2c;       /* window body / panel       */
-  --nf-surface-2: #160a28;     /* raised card / panel       */
-  --nf-elevated: #1f0c3d;      /* hover / gradient top      */
+  /* ---- Superficies (de más oscura a más clara) ---- */
+  --nf-void: #000000;          /* base de página, la más oscura */
+  --nf-inset: #101012;         /* hundido: inputs, raíles       */
+  --nf-surface: #1c1c1e;       /* cuerpo de panel / ventana     */
+  --nf-surface-2: #2c2c2e;     /* tarjeta o panel elevado       */
+  --nf-elevated: #3a3a3c;      /* hover / techo de gradiente    */
 
-  /* ---- Neon brand palette ---- */
-  --nf-primary: #ff5fd2;          /* primary  · hot pink            */
-  --nf-primary-strong: #e0319f;   /* primary pressed / gradient end */
-  --nf-secondary: #36e0ff;          /* secondary · electric cyan      */
-  --nf-tertiary: #a96bff;        /* tertiary  · synth violet       */
-  --nf-warning: #ffe14d;        /* accent    · sun yellow         */
-  --nf-success: #5fffa0;         /* success   · acid green         */
-  --nf-danger: #ff5f6d;           /* danger    · neon red           */
+  /* ---- Paleta ---- */
+  --nf-primary: #0a84ff;        /* acción primaria            */
+  --nf-primary-strong: #0060df; /* primaria pulsada           */
+  --nf-secondary: #64d2ff;      /* secundaria · azul claro    */
+  --nf-tertiary: #5e5ce6;       /* terciaria · índigo         */
+  --nf-warning: #ffd60a;        /* aviso                      */
+  --nf-success: #30d158;        /* éxito                      */
+  --nf-danger: #ff453a;         /* peligro                    */
 
-  /* ---- Team sides ---- */
-  --nf-team-blue: #36e0ff;
-  --nf-team-red: #ff5f6d;
+  /* ---- Lados de equipo (semántico de dominio, no de tema) ---- */
+  --nf-team-blue: #0a84ff;
+  --nf-team-red: #ff453a;
 
-  /* ---- Text ---- */
-  --nf-text: #f3e9ff;          /* primary copy   */
-  --nf-text-mid: #b79fd6;      /* secondary copy */
-  --nf-text-dim: #7a5fa8;      /* muted / labels */
+  /* ---- Texto ----
+     Las opacidades están fijadas por contraste (auditoría WCAG 2 + APCA): las
+     tres capas pasan AA (>=4.5:1) sobre void/surface/surface-2, manteniendo la
+     jerarquía 0.55 / 0.72 / 1.0. text-dim a 0.34 fallaba AA (~2.8:1); de ahí el
+     0.55 (~5:1). No bajar de estos valores sin volver a auditar. */
+  --nf-text: #f5f5f7;          /* copy principal */
+  --nf-text-mid: rgba(235, 235, 245, 0.72);  /* copy secundario */
+  --nf-text-dim: rgba(235, 235, 245, 0.55);  /* apagado / labels */
 
-  /* ---- Lines (cyan-tinted hairlines; pink for accents) ---- */
-  --nf-border: rgba(54, 224, 255, 0.2);
-  --nf-border-strong: rgba(54, 224, 255, 0.4);
-  --nf-border-accent: rgba(255, 95, 210, 0.35);
+  /* ---- Líneas: hairlines neutros, sin tinte ---- */
+  --nf-border: rgba(255, 255, 255, 0.09);
+  --nf-border-strong: rgba(255, 255, 255, 0.16);
+  --nf-border-accent: rgba(10, 132, 255, 0.35);
 }

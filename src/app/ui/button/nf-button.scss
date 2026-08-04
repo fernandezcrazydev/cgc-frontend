@@ -32,7 +32,7 @@
   background: var(--nf-primary);
   color: var(--nf-void);
   border-color: var(--nf-primary);
-  box-shadow: var(--nf-shadow), var(--nf-glow);
+  box-shadow: var(--nf-shadow);
 }
 .nf-btn--primary:hover:not(:disabled) {
   transform: translate(-1px, -1px);
@@ -40,7 +40,7 @@
 }
 .nf-btn--primary:active:not(:disabled) {
   transform: translate(1px, 1px);
-  box-shadow: 2px 2px 0 var(--nf-secondary), var(--nf-glow);
+  box-shadow: 2px 2px 0 var(--nf-secondary);
 }
 
 /* ---- secondary · cyan outline ---- */

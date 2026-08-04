@@ -3375,7 +3375,7 @@
 }
 .role-tile--primary {
   border-color: var(--nf-primary);
-  box-shadow: var(--nf-glow);
+  box-shadow: 0 0 0 1px var(--nf-primary);
 }
 .role-tile__pick {
   display: flex;

@@ -1,27 +1,28 @@
 /* ============================================================
-   NEXUS//FORGE · TYPOGRAPHY TOKENS
-   Manrope (techy grotesk) for everything; Share Tech Mono for
-   labels, code-like .exe tags, numbers, eyebrows and carets.
+   TYPOGRAPHY TOKENS
+   Pila del sistema: cada plataforma pone su cara de texto de UI
+   (SF en Apple, Segoe UI en Windows). Sin webfonts, así que no
+   hay petición de red ni salto de tipografía al cargar.
    ============================================================ */
 
 :root {
-  --nf-font: 'Manrope', system-ui, sans-serif;
-  --nf-mono: 'Share Tech Mono', ui-monospace, monospace;
+  --nf-font: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text',
+    'Segoe UI', system-ui, sans-serif;
+  /* Sin fuente monoespaciada: `.nf-mono` ya no cambia la familia, solo alinea
+     cifras (ver tokens/base.css). El token se conserva porque hay reglas que lo
+     consumen y porque el día que vuelva a hacer falta un mono de verdad (código,
+     logs) este es su sitio. */
+  --nf-mono: var(--nf-font);
 
-  /* semantic aliases */
-  --font-display: var(--nf-font);
-  --font-body: var(--nf-font);
-  --font-mono: var(--nf-mono);
-
-  /* weights — display copy runs heavy (800), labels 700 */
+  /* pesos */
   --fw-regular: 400;
   --fw-medium: 600;
   --fw-bold: 700;
   --fw-black: 800;
 
-  /* type scale (px) */
-  --fs-eyebrow: 11px;   /* mono, letter-spacing 3px, uppercase */
-  --fs-label: 10px;     /* mono field labels, letter-spacing 2px */
+  /* escala de tamaños (px). 11px es el suelo: nada por debajo. */
+  --fs-eyebrow: 12px;   /* marca de sección   */
+  --fs-label: 11px;     /* labels de campo    */
   --fs-caption: 12px;
   --fs-body: 14px;
   --fs-body-lg: 15px;
@@ -30,13 +31,15 @@
   --fs-h1: 30px;
   --fs-display: 46px;   /* hero */
 
-  /* letter-spacing scale — vaporwave loves wide tracking on labels */
-  --ls-tight: -0.5px;
+  /* Tracking: apretado, no ancho. La escala "wide" se conserva a 0 para no
+     tener que perseguir sus usos; separar letras es lo que hacía ilegibles las
+     labels pequeñas. */
+  --ls-tight: -0.01em;
   --ls-normal: 0;
-  --ls-wide: 1px;
-  --ls-wider: 2px;
-  --ls-widest: 3px;
-  --ls-eyebrow: 4px;
+  --ls-wide: 0;
+  --ls-wider: 0;
+  --ls-widest: 0;
+  --ls-eyebrow: 0.02em;
 
   --lh-tight: 1.1;
   --lh-snug: 1.3;

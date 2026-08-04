@@ -53,7 +53,6 @@
   /* ---- Efectos: sombras difusas, cero glow neón ---- */
   --nf-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
   --nf-shadow-card: 0 12px 32px rgba(0, 0, 0, 0.45);
-  --nf-glow: 0 0 0 rgba(0, 0, 0, 0);
 
   /* ---- Tipografía: la pila del sistema del legacy, sin mono ---- */
   --nf-font: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,

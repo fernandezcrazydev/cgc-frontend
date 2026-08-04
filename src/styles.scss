@@ -1,7 +1,7 @@
 /* ============================================================
-   CGC FRONTEND — global entry point.
-   NEXUS//FORGE design-system tokens + base styles.
-   Webfonts (Manrope + Share Tech Mono) are linked in index.html.
+   CGC FRONTEND — punto de entrada global.
+   Tokens del design system + estilos base. La tipografía es la
+   del sistema: no hay webfonts que cargar.
    ============================================================ */
 
 @import './styles/tokens/colors.css';
@@ -10,6 +10,5 @@
 @import './styles/tokens/effects.css';
 @import './styles/tokens/base.css';
 
-/* ---- Temas alternativos (skins). El default (nexus) vive en tokens/ arriba. ---- */
-@import './styles/themes/nocturne.css';
+/* ---- Skins alternativas. El tema por defecto vive en tokens/ arriba. ---- */
 @import './styles/themes/original.css';
