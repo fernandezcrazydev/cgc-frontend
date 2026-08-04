@@ -65,11 +65,14 @@ const MESSAGES_BY_CODE: Record<string, string> = {
   CHAMPION_NOT_FOUND: 'No se ha encontrado ese campeón.',
   DEVICE_NOT_FOUND: 'Ese dispositivo ya no estaba vinculado.',
   DUPLICATE_PENDING_INVITATION: 'Este usuario ya tiene una invitación pendiente.',
+  EMPTY_AUDIT_WINDOW: 'Ese periodo está al revés: la fecha de fin debe ser posterior a la de inicio.',
   FEEDBACK_QUOTA_EXCEEDED:
     'Has enviado demasiados reportes en las últimas 24 horas. Prueba de nuevo más tarde.',
   GAME_DATA_UNAVAILABLE: 'El catálogo de datos del juego no está disponible ahora mismo. Inténtalo más tarde.',
   GROUP_QUOTA_EXCEEDED: 'Has alcanzado el número máximo de grupos que puedes tener.',
   IMAGE_TOO_LARGE: 'La imagen es demasiado grande. Usa uno más ligero.',
+  INVALID_CLIENT_IP_FILTER:
+    'Eso no es una dirección IP. Escribe una dirección (88.98.97.149) o un rango (88.98.97.0/24).',
   INVALID_METRICS_WINDOW:
     'Ese periodo no es válido. Solo guardamos las llamadas a Riot de los últimos 7 días.',
   INVALID_RIOT_ID: 'Ese Riot ID no es válido. Debe ser «Nombre#TAG», tal y como aparece en el cliente.',
@@ -86,7 +89,10 @@ const MESSAGES_BY_CODE: Record<string, string> = {
   RIOT_ACCOUNT_NOT_LINKED: 'No tienes ninguna cuenta de Riot vinculada.',
   RIOT_RELINK_ON_COOLDOWN:
     'Has desvinculado tu cuenta hace poco. Puedes volver a poner la misma, pero para vincular otra distinta tendrás que esperar.',
+  SECURITY_AUDIT_EVENT_NOT_FOUND:
+    'Ese evento ya no está en el registro. Puede que se haya borrado por antigüedad: solo se guardan 90 días.',
   SLOT_IN_THE_PAST: 'Esa hora ya ha pasado. Elige una futura.',
+  UNSORTABLE_AUDIT_FIELD: 'El registro de seguridad solo se puede ordenar por fecha.',
   UNSUPPORTED_IMAGE: 'Ese formato de imagen no es válido. Usa JPEG o PNG.',
 };
 

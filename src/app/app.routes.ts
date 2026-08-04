@@ -118,6 +118,13 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/shell/views/admin-riot-metricas').then((m) => m.AdminRiotMetricas),
       },
+      {
+        path: 'admin/seguridad',
+        title: 'Registro de seguridad · Admin',
+        canActivate: [adminGuard],
+        loadComponent: () =>
+          import('./features/shell/views/admin-seguridad').then((m) => m.AdminSeguridad),
+      },
     ],
   },
   { path: '**', redirectTo: '' },

@@ -30,6 +30,13 @@ const ITEMS: AdminDirectoryItem[] = [
     glyph: '📊',
   },
   {
+    id: 'security-audit',
+    label: 'Registro de seguridad',
+    description:
+      'Quién intenta entrar, desde qué dirección y con qué cliente. Sirve para detectar a quien machaca el login y sacar los datos que hacen falta para bloquearlo.',
+    glyph: '🔐',
+  },
+  {
     id: 'riot-profile-icons-sync',
     label: 'Sincronizar iconos de perfil de Riot',
     description:
@@ -71,6 +78,16 @@ const ITEMS: AdminDirectoryItem[] = [
             }
             @case ('riot-metrics') {
               <a class="ad-card" [routerLink]="['/app', 'admin', 'riot-metricas']">
+                <span class="ad-card__glyph">{{ item.glyph }}</span>
+                <span class="ad-card__body">
+                  <span class="ad-card__label">{{ item.label }}</span>
+                  <span class="ad-card__desc">{{ item.description }}</span>
+                </span>
+                <span class="ad-card__cta nf-mono">Abrir</span>
+              </a>
+            }
+            @case ('security-audit') {
+              <a class="ad-card" [routerLink]="['/app', 'admin', 'seguridad']">
                 <span class="ad-card__glyph">{{ item.glyph }}</span>
                 <span class="ad-card__body">
                   <span class="ad-card__label">{{ item.label }}</span>
