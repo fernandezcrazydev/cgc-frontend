@@ -425,21 +425,3 @@
   background-clip: text;
   color: transparent;
 }
-
-/* ============================================================
-   Legibilidad: mismo suelo de 11px que Nocturne. La app tiene
-   mucha label a 9–10px, por debajo del mínimo de la guía, y sin
-   el mono vaporwave se leen peor todavía.
-   ============================================================ */
-
-:root[data-theme='original'] [class*='eyebrow'],
-:root[data-theme='original'] [class*='__role'],
-:root[data-theme='original'] [class*='__sub'],
-:root[data-theme='original'] [class*='__meta'],
-:root[data-theme='original'] [class*='__time'],
-:root[data-theme='original'] [class*='__seats'],
-:root[data-theme='original'] [class*='__count'],
-:root[data-theme='original'] [class*='__mode'],
-:root[data-theme='original'] [class*='__cap'] {
-  font-size: 11px;
-}

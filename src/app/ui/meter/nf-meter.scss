@@ -19,7 +19,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 9.5px;
+  font-size: 11px;
   color: var(--nf-text-dim);
 }
 
@@ -72,7 +72,7 @@
 }
 
 .nf-meter--compact .nf-meter__value {
-  font-size: 10.5px;
+  font-size: 11px;
 }
 
 /* Quien prefiera no ver movimiento no lo ve; el ancho sigue siendo correcto. */

@@ -61,7 +61,7 @@ import { NfMeter, NfSkeleton } from '../../ui';
         background: color-mix(in srgb, var(--nf-secondary) 8%, transparent);
       }
       .riot-usage__down {
-        font-size: 10.5px;
+        font-size: 11px;
         color: var(--nf-text-dim);
       }
     `,

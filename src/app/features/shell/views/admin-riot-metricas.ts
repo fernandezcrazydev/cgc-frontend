@@ -254,7 +254,7 @@ const WINDOW_LABELS: Record<RiotMetricsWindow, string> = {
       }
       .rm-seg__btn {
         padding: 6px 12px;
-        font-size: 10px;
+        font-size: 11px;
         color: var(--nf-text-dim);
         background: transparent;
         border: 1.5px solid var(--nf-border);
@@ -281,7 +281,7 @@ const WINDOW_LABELS: Record<RiotMetricsWindow, string> = {
       }
       .rm-panel__title {
         margin: 0 0 4px;
-        font-size: 10px;
+        font-size: 11px;
         color: var(--nf-text-mid);
       }
       .rm-panel__hint {
@@ -319,7 +319,7 @@ const WINDOW_LABELS: Record<RiotMetricsWindow, string> = {
       .rm-chart__axis {
         display: flex;
         justify-content: space-between;
-        font-size: 10px;
+        font-size: 11px;
         color: var(--nf-text-dim);
       }
       .rm-row {
@@ -387,7 +387,7 @@ const WINDOW_LABELS: Record<RiotMetricsWindow, string> = {
         display: flex;
         justify-content: space-between;
         margin-top: 5px;
-        font-size: 10px;
+        font-size: 11px;
         color: var(--nf-text-dim);
       }
       .rm-user {
