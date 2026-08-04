@@ -38,7 +38,7 @@ const WINDOW_LABELS: Record<RiotMetricsWindow, string> = {
   template: `
     <div class="view">
       <div class="view__head">
-        <div class="view__eyebrow nf-mono nf-eyebrow">Administración</div>
+        <div class="view__eyebrow nf-mono">Administración</div>
         <h1 class="view__title">Métricas API Riot</h1>
         <p class="view__lead">
           Qué le pedimos a la API de Riot y cuánto nos cuesta. Esto <strong>mide, no frena</strong>:
@@ -63,7 +63,7 @@ const WINDOW_LABELS: Record<RiotMetricsWindow, string> = {
         @for (w of windows; track w) {
           <button
             type="button"
-            class="rm-seg__btn nf-mono nf-caps"
+            class="rm-seg__btn nf-mono"
             [class.is-active]="store.window() === w"
             [attr.aria-pressed]="store.window() === w"
             (click)="selectWindow(w)"
@@ -84,7 +84,7 @@ const WINDOW_LABELS: Record<RiotMetricsWindow, string> = {
         @case ('error') {
           <div class="empty-state">
             <p>No se han podido cargar las métricas.</p>
-            <button type="button" class="rm-seg__btn nf-mono nf-caps" (click)="retry()">
+            <button type="button" class="rm-seg__btn nf-mono" (click)="retry()">
               Reintentar
             </button>
           </div>
@@ -95,29 +95,29 @@ const WINDOW_LABELS: Record<RiotMetricsWindow, string> = {
             <div class="totals">
               <div class="totals__item">
                 <div class="totals__val">{{ m.totals.calls }}</div>
-                <div class="totals__lbl nf-mono nf-caps">Llamadas</div>
+                <div class="totals__lbl nf-mono">Llamadas</div>
               </div>
               <div class="totals__item">
                 <div class="totals__val">{{ m.totals.interactive }}</div>
-                <div class="totals__lbl nf-mono nf-caps">Interactivas</div>
+                <div class="totals__lbl nf-mono">Interactivas</div>
               </div>
               <div class="totals__item">
                 <div class="totals__val">{{ m.totals.background }}</div>
-                <div class="totals__lbl nf-mono nf-caps">De fondo</div>
+                <div class="totals__lbl nf-mono">De fondo</div>
               </div>
               <div class="totals__item">
                 <div class="totals__val" [class.is-bad]="m.totals.rateLimited > 0">
                   {{ m.totals.rateLimited }}
                 </div>
-                <div class="totals__lbl nf-mono nf-caps">Rechazadas (429)</div>
+                <div class="totals__lbl nf-mono">Rechazadas (429)</div>
               </div>
               <div class="totals__item">
                 <div class="totals__val" [class.is-bad]="m.totals.failed > 0">{{ m.totals.failed }}</div>
-                <div class="totals__lbl nf-mono nf-caps">Fallidas</div>
+                <div class="totals__lbl nf-mono">Fallidas</div>
               </div>
               <div class="totals__item">
                 <div class="totals__val">{{ m.totals.avgDurationMs }} ms</div>
-                <div class="totals__lbl nf-mono nf-caps">Media (máx {{ m.totals.maxDurationMs }})</div>
+                <div class="totals__lbl nf-mono">Media (máx {{ m.totals.maxDurationMs }})</div>
               </div>
             </div>
 
@@ -128,7 +128,7 @@ const WINDOW_LABELS: Record<RiotMetricsWindow, string> = {
             } @else {
               <!-- Evolución por horas -->
               <section class="rm-panel">
-                <h2 class="rm-panel__title nf-mono nf-caps">Evolución</h2>
+                <h2 class="rm-panel__title nf-mono">Evolución</h2>
                 <svg
                   class="rm-chart"
                   [attr.viewBox]="'0 0 ' + chartW + ' ' + chartH"
@@ -153,7 +153,7 @@ const WINDOW_LABELS: Record<RiotMetricsWindow, string> = {
 
               <!-- Endpoints más consumidos -->
               <section class="rm-panel">
-                <h2 class="rm-panel__title nf-mono nf-caps">Endpoints más consumidos</h2>
+                <h2 class="rm-panel__title nf-mono">Endpoints más consumidos</h2>
                 @for (e of m.topEndpoints; track e.endpoint) {
                   <div class="rm-row">
                     <div class="rm-row__head">
@@ -174,7 +174,7 @@ const WINDOW_LABELS: Record<RiotMetricsWindow, string> = {
 
               <!-- Horas punta -->
               <section class="rm-panel">
-                <h2 class="rm-panel__title nf-mono nf-caps">Horas punta</h2>
+                <h2 class="rm-panel__title nf-mono">Horas punta</h2>
                 <p class="rm-panel__hint">
                   Hora local del grupo (Europe/Madrid), sumando todos los días del periodo.
                   @if (store.window() === 24) {
@@ -199,7 +199,7 @@ const WINDOW_LABELS: Record<RiotMetricsWindow, string> = {
 
               <!-- Usuarios con más peticiones -->
               <section class="rm-panel">
-                <h2 class="rm-panel__title nf-mono nf-caps">Quién gasta más cuota</h2>
+                <h2 class="rm-panel__title nf-mono">Quién gasta más cuota</h2>
                 @for (u of m.topUsers; track u.userId) {
                   <div class="rm-user">
                     <nf-avatar
@@ -254,8 +254,7 @@ const WINDOW_LABELS: Record<RiotMetricsWindow, string> = {
       }
       .rm-seg__btn {
         padding: 6px 12px;
-        font-size: 10px;
-        letter-spacing: 1.5px;
+        font-size: 11px;
         color: var(--nf-text-dim);
         background: transparent;
         border: 1.5px solid var(--nf-border);
@@ -265,8 +264,8 @@ const WINDOW_LABELS: Record<RiotMetricsWindow, string> = {
       }
       .rm-seg__btn:hover,
       .rm-seg__btn.is-active {
-        color: var(--nf-cyan);
-        border-color: var(--nf-cyan);
+        color: var(--nf-secondary);
+        border-color: var(--nf-secondary);
       }
       .rm-skeletons {
         display: flex;
@@ -282,8 +281,7 @@ const WINDOW_LABELS: Record<RiotMetricsWindow, string> = {
       }
       .rm-panel__title {
         margin: 0 0 4px;
-        font-size: 10px;
-        letter-spacing: 2px;
+        font-size: 11px;
         color: var(--nf-text-mid);
       }
       .rm-panel__hint {
@@ -292,7 +290,7 @@ const WINDOW_LABELS: Record<RiotMetricsWindow, string> = {
         color: var(--nf-text-dim);
       }
       .totals__val.is-bad {
-        color: var(--nf-red);
+        color: var(--nf-danger);
       }
       .rm-chart {
         display: block;
@@ -306,22 +304,22 @@ const WINDOW_LABELS: Record<RiotMetricsWindow, string> = {
         vector-effect: non-scaling-stroke;
       }
       .rm-chart__area {
-        fill: color-mix(in srgb, var(--nf-cyan) 16%, transparent);
+        fill: color-mix(in srgb, var(--nf-secondary) 16%, transparent);
       }
       .rm-chart__line {
         fill: none;
-        stroke: var(--nf-cyan);
+        stroke: var(--nf-secondary);
         stroke-width: 2;
         stroke-linejoin: round;
         vector-effect: non-scaling-stroke;
       }
       .rm-chart__line--bad {
-        stroke: var(--nf-red);
+        stroke: var(--nf-danger);
       }
       .rm-chart__axis {
         display: flex;
         justify-content: space-between;
-        font-size: 10px;
+        font-size: 11px;
         color: var(--nf-text-dim);
       }
       .rm-row {
@@ -349,7 +347,7 @@ const WINDOW_LABELS: Record<RiotMetricsWindow, string> = {
         font-variant-numeric: tabular-nums;
       }
       .rm-row__bad {
-        color: var(--nf-red);
+        color: var(--nf-danger);
       }
       .rm-row__track {
         height: 5px;
@@ -359,7 +357,7 @@ const WINDOW_LABELS: Record<RiotMetricsWindow, string> = {
       }
       .rm-row__fill {
         height: 100%;
-        background: var(--nf-cyan);
+        background: var(--nf-secondary);
         border-radius: 999px;
       }
       .rm-hours {
@@ -379,17 +377,17 @@ const WINDOW_LABELS: Record<RiotMetricsWindow, string> = {
       }
       .rm-hours__fill {
         width: 100%;
-        background: var(--nf-purple);
+        background: var(--nf-tertiary);
         border-radius: 3px;
       }
       .rm-hours__bar.is-peak .rm-hours__fill {
-        background: var(--nf-pink);
+        background: var(--nf-primary);
       }
       .rm-hours__axis {
         display: flex;
         justify-content: space-between;
         margin-top: 5px;
-        font-size: 10px;
+        font-size: 11px;
         color: var(--nf-text-dim);
       }
       .rm-user {

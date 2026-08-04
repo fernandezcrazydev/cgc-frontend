@@ -1,4 +1,4 @@
-/* NEXUS//FORGE · Segmented control (global, ViewEncapsulation.None) */
+/* Segmented control (global, ViewEncapsulation.None) */
 
 .nf-seg {
   display: inline-flex;
@@ -34,7 +34,7 @@
 }
 
 .nf-seg__btn:focus-visible {
-  outline: 2px solid var(--nf-cyan);
+  outline: 2px solid var(--nf-secondary);
   outline-offset: 1px;
 }
 

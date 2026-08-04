@@ -2,7 +2,7 @@ import { Signal, effect } from '@angular/core';
 import { NotificationsStore } from '../../../core/notifications';
 
 /**
- * Cablea el cierre de "conectar_app.exe" cuando, mientras el usuario lo tiene abierto esperando
+ * Cablea el cierre del modal de conexión cuando, mientras el usuario lo tiene abierto esperando
  * con el código pegado en la app de escritorio, llega por SSE la confirmación del backend
  * (`RIOT_ACCOUNT_PAIRED` al emparejar, `RIOT_ACCOUNT_VERIFIED` al verificar). Es el pago real de
  * todo el flujo de vinculación: el usuario no tiene que recargar para verlo.

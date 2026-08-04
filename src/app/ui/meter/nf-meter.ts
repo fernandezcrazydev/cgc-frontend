@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, ViewEncapsulation, computed, input } from '@angular/core';
 
 /**
- * NEXUS//FORGE Meter — barra de uso sobre un total conocido, que cambia de color al acercarse
+ * Meter — barra de uso sobre un total conocido, que cambia de color al acercarse
  * al límite.
  *
  *   <nf-meter [value]="63" [max]="100" label="RIOT API" />
@@ -21,7 +21,7 @@ import { ChangeDetectionStrategy, Component, ViewEncapsulation, computed, input 
     <div class="nf-meter" [class.nf-meter--compact]="compact()" [attr.data-level]="level()">
       @if (!compact()) {
         <div class="nf-meter__head">
-          <span class="nf-meter__label nf-mono nf-caps">{{ label() }}</span>
+          <span class="nf-meter__label nf-mono">{{ label() }}</span>
           <span class="nf-meter__value nf-mono">{{ valueText() }}</span>
         </div>
       }

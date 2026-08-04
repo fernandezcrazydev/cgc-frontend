@@ -65,3 +65,18 @@ function hashHue(seed: string): number {
   }
   return hash % 360;
 }
+
+/**
+ * Etiqueta en español de un rol de grupo. El DTO trae el enum del backend
+ * (`OWNER`/`ADMIN`/`MEMBER`) y hasta ahora las vistas lo pintaban tal cual, que
+ * es como acababa un `OWNER` en mayúsculas dentro de un badge.
+ */
+const ROLE_LABEL: Record<GroupRole, string> = {
+  OWNER: 'Capitán',
+  ADMIN: 'Administrador',
+  MEMBER: 'Miembro',
+};
+
+export function groupRoleLabel(role: GroupRole): string {
+  return ROLE_LABEL[role];
+}

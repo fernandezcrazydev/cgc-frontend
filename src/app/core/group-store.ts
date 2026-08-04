@@ -8,7 +8,7 @@ const MEMBER_POOL = [
   'Zer0Cool', 'ByteSiren',
 ];
 
-const ROSTER_ROLES = ['CAPITÁN', 'TOP', 'JUNGLA', 'MID', 'ADC', 'SUPPORT', 'SUPLENTE'];
+const ROSTER_ROLES = ['Capitán', 'TOP', 'JUNGLA', 'MID', 'ADC', 'SUPPORT', 'Suplente'];
 
 /** "EUW · COMPETITIVO" → "EUW". Falls back to LAN when the tag has no region. */
 function regionFromTag(tag: string): string {
@@ -24,7 +24,7 @@ function seedRoster(group: Group): Member[] {
       name,
       tag: `${name}#${region}`,
       initials: name.slice(0, 2).toUpperCase(),
-      role: i === 0 ? 'CAPITÁN · ' + group.role : ROSTER_ROLES[i % ROSTER_ROLES.length],
+      role: i === 0 ? 'Capitán' : ROSTER_ROLES[i % ROSTER_ROLES.length],
       owner: i === 0,
       hue: (i * 47) % 360,
     };
@@ -37,7 +37,7 @@ function ownerMember(): Member {
     name: CURRENT_USER.name,
     tag: CURRENT_USER.tag,
     initials: CURRENT_USER.initials,
-    role: 'CAPITÁN · OWNER',
+    role: 'Capitán',
     owner: true,
     hue: 320,
   };
@@ -229,7 +229,7 @@ export class GroupStore {
       tag: region,
       initials: this.initialsOf(name),
       // The creator is always the owner of the group they create.
-      role: 'OWNER',
+      role: 'Capitán',
       members: 1,
       ...this.banner(),
       avatar: input.avatar ?? undefined,

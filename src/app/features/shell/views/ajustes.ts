@@ -27,8 +27,8 @@ const SCOPE_LABELS: Record<string, string> = {
       </div>
 
       <div class="settings-stack">
-        <nf-window title="tema.exe" accent="cyan" bodyPadding="22px">
-          <div class="settings-eyebrow nf-mono nf-eyebrow">Apariencia</div>
+        <nf-window title="Tema" bodyPadding="22px">
+          <div class="settings-eyebrow nf-mono">Apariencia</div>
 
           <div class="theme-grid" role="radiogroup" aria-label="Tema visual">
             @for (t of themes; track t.id) {
@@ -50,8 +50,8 @@ const SCOPE_LABELS: Record<string, string> = {
           </div>
         </nf-window>
 
-        <nf-window title="privacidad.exe" accent="cyan" bodyPadding="22px">
-          <div class="settings-eyebrow nf-mono nf-eyebrow">Invitaciones</div>
+        <nf-window title="Privacidad" bodyPadding="22px">
+          <div class="settings-eyebrow nf-mono">Invitaciones</div>
 
           <div class="setting-row setting-row--last" [attr.aria-busy]="settings.isLoading() || null">
             <div>
@@ -71,7 +71,7 @@ const SCOPE_LABELS: Record<string, string> = {
                 } @else {
                   <nf-toggle
                     [checked]="!!allowInvites()"
-                    accent="cyan"
+                   
                     ariaLabel="Aceptar invitaciones a grupos"
                     [disabled]="settings.saving()"
                     (checkedChange)="setAllowInvites($event)"
@@ -82,8 +82,8 @@ const SCOPE_LABELS: Record<string, string> = {
           </div>
         </nf-window>
 
-        <nf-window title="dispositivos.exe" accent="pink" bodyPadding="22px">
-          <div class="settings-eyebrow nf-mono nf-eyebrow">Dispositivos vinculados</div>
+        <nf-window title="Dispositivos" bodyPadding="22px">
+          <div class="settings-eyebrow nf-mono">Dispositivos vinculados</div>
           <div class="setting-sub setting-sub--help device-intro">
             Sesiones de la app de escritorio con acceso a tu cuenta. Revoca la de una máquina que ya
             no uses o que no reconozcas.
@@ -112,7 +112,7 @@ const SCOPE_LABELS: Record<string, string> = {
                       <div class="setting-row" [class.setting-row--last]="last">
                         <div>
                           <div class="setting-title">Vinculado el {{ formatDeviceDate(device.linkedAt) }}</div>
-                          <div class="setting-sub nf-mono nf-caps">{{ scopeLabels(device.scopes) }}</div>
+                          <div class="setting-sub nf-mono">{{ scopeLabels(device.scopes) }}</div>
                         </div>
                         <button
                           nfButton
@@ -132,31 +132,31 @@ const SCOPE_LABELS: Record<string, string> = {
           </div>
         </nf-window>
 
-        <nf-window title="config.exe" accent="pink" bodyPadding="22px">
-          <div class="settings-eyebrow nf-mono nf-eyebrow">Preferencias del lobby</div>
+        <nf-window title="Ajustes" bodyPadding="22px">
+          <div class="settings-eyebrow nf-mono">Preferencias del lobby</div>
 
           <div class="setting-row">
             <div>
               <div class="setting-title">Voz activada</div>
-              <div class="setting-sub nf-mono nf-caps">Chat de voz en el lobby</div>
+              <div class="setting-sub nf-mono">Chat de voz en el lobby</div>
             </div>
-            <nf-toggle [checked]="voice()" accent="cyan" (checkedChange)="voice.set($event)" />
+            <nf-toggle [checked]="voice()" (checkedChange)="voice.set($event)" />
           </div>
 
           <div class="setting-row">
             <div>
               <div class="setting-title">Partida clasificatoria</div>
-              <div class="setting-sub nf-mono nf-caps">Cuenta para el ranking</div>
+              <div class="setting-sub nf-mono">Cuenta para el ranking</div>
             </div>
-            <nf-toggle [checked]="ranked()" accent="pink" (checkedChange)="ranked.set($event)" />
+            <nf-toggle [checked]="ranked()" (checkedChange)="ranked.set($event)" />
           </div>
 
           <div class="setting-row">
             <div>
               <div class="setting-title">Permitir espectadores</div>
-              <div class="setting-sub nf-mono nf-caps">Hasta 5 observadores</div>
+              <div class="setting-sub nf-mono">Hasta 5 observadores</div>
             </div>
-            <nf-toggle [checked]="spectators()" accent="cyan" (checkedChange)="spectators.set($event)" />
+            <nf-toggle [checked]="spectators()" (checkedChange)="spectators.set($event)" />
           </div>
 
           <div class="setting-row setting-row--last">
@@ -195,11 +195,11 @@ const SCOPE_LABELS: Record<string, string> = {
         border-color: var(--nf-border-strong);
       }
       .theme-opt.is-active {
-        border-color: var(--nf-pink);
-        background: color-mix(in srgb, var(--nf-pink) 12%, var(--nf-surface-2));
+        border-color: var(--nf-primary);
+        background: color-mix(in srgb, var(--nf-primary) 12%, var(--nf-surface-2));
       }
       .theme-opt:focus-visible {
-        outline: 2px solid var(--nf-cyan);
+        outline: 2px solid var(--nf-secondary);
         outline-offset: 2px;
       }
 
@@ -212,9 +212,6 @@ const SCOPE_LABELS: Record<string, string> = {
         height: 42px;
         border-radius: var(--nf-radius-sm);
         border: 1px solid rgba(255, 255, 255, 0.14);
-      }
-      .theme-opt__swatch[data-preview='nexus'] {
-        background: linear-gradient(135deg, #36e0ff, #ff5fd2 60%, #180a2c);
       }
       .theme-opt__swatch[data-preview='nocturne'] {
         background: linear-gradient(135deg, #3a3a3c, #0a84ff 65%, #000);

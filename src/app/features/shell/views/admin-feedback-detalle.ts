@@ -23,10 +23,10 @@ const STATUS_LABEL: Record<FeedbackStatusTag, string> = {
   REJECTED: 'Rechazado',
 };
 const STATUS_COLOR: Record<FeedbackStatusTag, NfBadgeColor> = {
-  NEW: 'yellow',
-  IN_REVIEW: 'cyan',
-  RESOLVED: 'green',
-  REJECTED: 'red',
+  NEW: 'warning',
+  IN_REVIEW: 'secondary',
+  RESOLVED: 'success',
+  REJECTED: 'danger',
 };
 const FREQUENCY_LABEL: Record<string, string> = {
   ALWAYS: 'Siempre',
@@ -46,13 +46,13 @@ const FREQUENCY_LABEL: Record<string, string> = {
   imports: [RouterLink, DatePipe, FormsModule, NfBadge, NfButton, NfSelect],
   template: `
     <div class="view">
-      <a class="afd-back nf-mono" [routerLink]="['/app', 'admin', 'feedback']">◄ VOLVER A LA LISTA</a>
+      <a class="afd-back nf-mono" [routerLink]="['/app', 'admin', 'feedback']">Volver a la lista</a>
 
       @if (store.detailLoading()) {
-        <div class="afd-empty nf-mono nf-eyebrow">Cargando…</div>
+        <div class="afd-empty nf-mono">Cargando…</div>
       } @else if (store.detail(); as f) {
         <div class="view__head">
-          <div class="view__eyebrow nf-mono nf-eyebrow nf-eyebrow--asis">{{ kindLabel(f.kind) }} · {{ f.area }}</div>
+          <div class="view__eyebrow nf-mono">{{ kindLabel(f.kind) }} · {{ f.area }}</div>
           <h1 class="view__title">{{ f.title }}</h1>
           <div class="afd-meta nf-mono">
             <nf-badge [color]="statusColor(f.status)">{{ statusLabel(f.status) }}</nf-badge>
@@ -65,35 +65,35 @@ const FREQUENCY_LABEL: Record<string, string> = {
         @if (f.bug; as b) {
           <div class="afd-block">
             <div class="afd-field">
-              <span class="afd-field__k nf-mono">QUÉ PASÓ</span>
+              <span class="afd-field__k nf-mono">Qué pasó</span>
               <p class="afd-field__v">{{ b.whatHappened }}</p>
             </div>
             <div class="afd-field">
-              <span class="afd-field__k nf-mono">PASOS</span>
+              <span class="afd-field__k nf-mono">Pasos</span>
               <p class="afd-field__v">{{ b.steps }}</p>
             </div>
             <div class="afd-field">
-              <span class="afd-field__k nf-mono">ESPERADO</span>
+              <span class="afd-field__k nf-mono">Esperado</span>
               <p class="afd-field__v">{{ b.expected }}</p>
             </div>
             <div class="afd-field">
-              <span class="afd-field__k nf-mono">FRECUENCIA</span>
+              <span class="afd-field__k nf-mono">Frecuencia</span>
               <p class="afd-field__v">{{ frequencyLabel(b.frequency) }}</p>
             </div>
           </div>
         } @else if (f.proposal; as p) {
           <div class="afd-block">
             <div class="afd-field">
-              <span class="afd-field__k nf-mono">PROBLEMA</span>
+              <span class="afd-field__k nf-mono">Problema</span>
               <p class="afd-field__v">{{ p.problem }}</p>
             </div>
             <div class="afd-field">
-              <span class="afd-field__k nf-mono">SOLUCIÓN PROPUESTA</span>
+              <span class="afd-field__k nf-mono">Solución propuesta</span>
               <p class="afd-field__v">{{ p.solution }}</p>
             </div>
             @if (p.alternatives) {
               <div class="afd-field">
-                <span class="afd-field__k nf-mono">ALTERNATIVAS</span>
+                <span class="afd-field__k nf-mono">Alternativas</span>
                 <p class="afd-field__v">{{ p.alternatives }}</p>
               </div>
             }
@@ -101,18 +101,18 @@ const FREQUENCY_LABEL: Record<string, string> = {
         } @else if (f.incident; as i) {
           <div class="afd-block">
             <div class="afd-field">
-              <span class="afd-field__k nf-mono">OBSERVADO</span>
+              <span class="afd-field__k nf-mono">Observado</span>
               <p class="afd-field__v">{{ i.observed }}</p>
             </div>
             @if (i.expected) {
               <div class="afd-field">
-                <span class="afd-field__k nf-mono">ESPERADO</span>
+                <span class="afd-field__k nf-mono">Esperado</span>
                 <p class="afd-field__v">{{ i.expected }}</p>
               </div>
             }
             @if (i.whenHappened) {
               <div class="afd-field">
-                <span class="afd-field__k nf-mono">CUÁNDO</span>
+                <span class="afd-field__k nf-mono">Cuándo</span>
                 <p class="afd-field__v">{{ i.whenHappened }}</p>
               </div>
             }
@@ -122,21 +122,21 @@ const FREQUENCY_LABEL: Record<string, string> = {
         <!-- contexto técnico -->
         <div class="afd-block afd-block--ctx">
           <div class="afd-ctx nf-mono">
-            <span>◆ RUTA · {{ f.context.route }}</span>
-            <span>◆ VIEWPORT · {{ f.context.viewport }}</span>
+            <span>◆ Ruta · {{ f.context.route }}</span>
+            <span>◆ Viewport · {{ f.context.viewport }}</span>
             <span>◆ UA · {{ f.context.userAgent }}</span>
           </div>
         </div>
 
         <!-- triaje -->
         <div class="afd-block afd-triage">
-          <h2 class="afd-triage__title nf-mono nf-eyebrow">Triaje</h2>
+          <h2 class="afd-triage__title nf-mono">Triaje</h2>
           <label class="afd-field">
-            <span class="afd-field__k nf-mono">ESTADO</span>
+            <span class="afd-field__k nf-mono">Estado</span>
             <nf-select [options]="statusLabels()" [value]="statusLabel(status())" (valueChange)="onStatus($event)" />
           </label>
           <label class="afd-field">
-            <span class="afd-field__k nf-mono">NOTA INTERNA (solo admins)</span>
+            <span class="afd-field__k nf-mono">Nota interna (solo admins)</span>
             <textarea
               class="afd-note"
               rows="3"
@@ -153,13 +153,13 @@ const FREQUENCY_LABEL: Record<string, string> = {
               [disabled]="store.saving() || !dirty()"
               (click)="save(f.id)"
             >
-              {{ store.saving() ? 'GUARDANDO…' : 'GUARDAR CAMBIOS' }}
+              {{ store.saving() ? 'Guardando…' : 'Guardar cambios' }}
             </button>
           </div>
           <p class="afd-updated nf-mono">Última actualización: {{ f.updatedAt | date: 'dd/MM/yyyy HH:mm' }}</p>
         </div>
       } @else {
-        <div class="afd-empty nf-mono nf-eyebrow">Reporte no encontrado</div>
+        <div class="afd-empty nf-mono">Reporte no encontrado</div>
       }
     </div>
   `,
@@ -202,7 +202,6 @@ const FREQUENCY_LABEL: Record<string, string> = {
       .afd-field__k {
         font-size: 11px;
         opacity: 0.6;
-        letter-spacing: 0.08em;
       }
       .afd-field__v {
         margin: 0;

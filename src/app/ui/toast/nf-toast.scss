@@ -1,4 +1,4 @@
-/* NEXUS//FORGE · Toast host (global, ViewEncapsulation.None)
+/* Toast host (global, ViewEncapsulation.None)
 
    Entrada y salida son TRANSICIONES, no keyframes: la entrada arranca desde
    `@starting-style` y la salida desde `.is-leaving`. Con dos animaciones sobre las
@@ -18,7 +18,7 @@
   --nf-toast-exit: 240ms; /* == EXIT_MS en core/toast.ts */
   --nf-toast-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --nf-toast-ease-in: cubic-bezier(0.5, 0, 0.75, 0);
-  --nf-toast-accent: var(--nf-cyan); /* lo pisa cada variante */
+  --nf-toast-accent: var(--nf-secondary); /* lo pisa cada variante */
 
   position: fixed;
   right: clamp(14px, 4vw, 26px);
@@ -44,7 +44,7 @@
 }
 
 /* Capa 2 · entrada/salida + recorte durante el colapso.
-   El padding lateral deja sitio a la sombra dura y al glow para que no se recorten
+   El padding lateral deja sitio a la sombra para que no se recorte
    en reposo; el margen negativo lo devuelve al layout. En vertical el aire lo pone
    el margen del propio toast (ver .nf-toast), que además hace de separación. */
 .nf-toast-clip {
@@ -95,10 +95,10 @@
   border-left: 4px solid var(--nf-toast-accent);
   background: var(--nf-surface-2);
   color: var(--nf-text);
-  /* Sombra dura (la firma de Nexus) + aro interior del acento. El glow exterior de
-     antes no cabe aquí: el clip lo cortaría en seco por arriba y por abajo. */
+  /* Sombra corta a propósito: el clip del host recorta en vertical a la altura de
+     --nf-toast-gap, así que aquí no cabe la capa larga de --nf-shadow-card. */
   box-shadow:
-    4px 4px 0 rgba(0, 0, 0, 0.35),
+    0 4px 10px -3px rgba(0, 0, 0, 0.55),
     inset 0 0 0 1px color-mix(in srgb, var(--nf-toast-accent) 14%, transparent);
   transition:
     transform 180ms var(--nf-toast-ease-out),
@@ -120,9 +120,8 @@
 }
 
 .nf-toast:hover {
-  transform: translate(-2px, -2px);
   box-shadow:
-    6px 6px 0 rgba(0, 0, 0, 0.4),
+    0 6px 14px -3px rgba(0, 0, 0, 0.6),
     inset 0 0 0 1px color-mix(in srgb, var(--nf-toast-accent) 32%, transparent);
 }
 
@@ -218,13 +217,13 @@
 
 /* ---- variantes: solo cambian el acento ---- */
 .nf-toast--success {
-  --nf-toast-accent: var(--nf-green);
+  --nf-toast-accent: var(--nf-success);
 }
 .nf-toast--error {
-  --nf-toast-accent: var(--nf-red);
+  --nf-toast-accent: var(--nf-danger);
 }
 .nf-toast--info {
-  --nf-toast-accent: var(--nf-cyan);
+  --nf-toast-accent: var(--nf-secondary);
 }
 
 .nf-toast--error .nf-toast__glyph {

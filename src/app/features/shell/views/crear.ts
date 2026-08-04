@@ -12,28 +12,28 @@ import { REGION_OPTIONS } from '../../../core/lobby';
     <div class="view max-520">
       <p class="view__intro">Configura el lobby, define las reglas y lanza la partida personalizada.</p>
 
-      <nf-window title="nueva_partida.exe" accent="cyan" bodyPadding="22px">
-        <div class="settings-eyebrow nf-mono nf-eyebrow">Nueva partida personalizada</div>
+      <nf-window title="Nueva partida" bodyPadding="22px">
+        <div class="settings-eyebrow nf-mono">Nueva partida personalizada</div>
 
         <div class="form-grid">
           <div class="field">
-            <label class="field__label nf-mono" for="match-name">NOMBRE DEL LOBBY</label>
+            <label class="field__label nf-mono" for="match-name">Nombre del lobby</label>
             <input
               id="match-name"
               class="field__input"
               type="text"
-              placeholder="match_lobby.exe"
+              placeholder="Sala de partida"
               [(ngModel)]="name"
             />
           </div>
 
           <div class="field">
-            <label class="field__label nf-mono">MODO DE JUEGO</label>
+            <label class="field__label nf-mono">Modo de juego</label>
             <nf-select [options]="modeOptions" [value]="mode()" (valueChange)="mode.set($event)" />
           </div>
 
           <div class="field">
-            <label class="field__label nf-mono">REGIÓN</label>
+            <label class="field__label nf-mono">Región</label>
             <nf-select [options]="regionOptions" [value]="region()" (valueChange)="region.set($event)" />
           </div>
         </div>
@@ -41,26 +41,26 @@ import { REGION_OPTIONS } from '../../../core/lobby';
         <div class="setting-row" style="margin-top:6px;">
           <div>
             <div class="setting-title">Partida clasificatoria</div>
-            <div class="setting-sub nf-mono">CUENTA PARA EL RANKING</div>
+            <div class="setting-sub nf-mono">Cuenta para el ranking</div>
           </div>
-          <nf-toggle [checked]="ranked()" accent="pink" (checkedChange)="ranked.set($event)" />
+          <nf-toggle [checked]="ranked()" (checkedChange)="ranked.set($event)" />
         </div>
 
         <div class="setting-row setting-row--last">
           <div>
             <div class="setting-title">Permitir espectadores</div>
-            <div class="setting-sub nf-mono">HASTA 5 OBSERVADORES</div>
+            <div class="setting-sub nf-mono">Hasta 5 observadores</div>
           </div>
-          <nf-toggle [checked]="spectators()" accent="cyan" (checkedChange)="spectators.set($event)" />
+          <nf-toggle [checked]="spectators()" (checkedChange)="spectators.set($event)" />
         </div>
 
         <div class="form-foot">
-          <button nfButton variant="primary" size="md" (click)="launch()" class="nf-go">Lanzar partida</button>
+          <button nfButton variant="primary" size="md" (click)="launch()">Lanzar partida</button>
           <button nfButton variant="ghost" size="md" (click)="reset()">Limpiar</button>
         </div>
 
         <p class="form-note nf-mono">
-          EL DRAFT BLUE VS RED Y LA ASIGNACIÓN DE CAMPEONES LLEGAN EN LA SIGUIENTE ENTREGA.
+          El draft blue vs red y la asignación de campeones llegan en la siguiente entrega.
         </p>
       </nf-window>
     </div>

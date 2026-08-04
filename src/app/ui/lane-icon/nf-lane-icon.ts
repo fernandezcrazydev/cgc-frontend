@@ -24,7 +24,7 @@ const FILE_BY_LANE: Record<NfLane, string> = {
 };
 
 /**
- * NEXUS//FORGE Lane Icon — el SVG de una línea, teñido con el color de texto
+ * Lane Icon — el SVG de una línea, teñido con el color de texto
  * heredado (`currentColor`) para que cada tema lo pinte solo.
  *
  * Los ficheros son monocromos con un color fijo en origen, así que NO se

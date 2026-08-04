@@ -7,7 +7,7 @@
         <div class="shell__logo"><span class="shell__diamond"></span></div>
         <div>
           <div class="shell__wordmark">Sale Custom</div>
-          <div class="shell__tag nf-mono">CUSTOM MATCH BUILDER</div>
+          <div class="shell__tag nf-mono">Custom match builder</div>
         </div>
       </div>
 
@@ -52,14 +52,14 @@
                       </span>
                     </button>
                   } @empty {
-                    <div class="shell__grouplist-empty nf-mono nf-eyebrow">Sin grupos</div>
+                    <div class="shell__grouplist-empty nf-mono">Sin grupos</div>
                   }
                   <a
                     class="shell__grouplist-all nf-mono"
                     [routerLink]="['/app', 'grupos']"
                     [attr.tabindex]="groupsExpanded() ? null : -1"
                   >
-                    ＋ GESTIONAR GRUPOS
+                    ＋ Gestionar grupos
                   </a>
                 </div>
               </div>
@@ -117,7 +117,7 @@
         @if (showDownload()) {
           <div class="shell__download-backdrop" (click)="showDownload.set(false)"></div>
           <div class="shell__download-menu" role="menu" aria-label="Descargar la app de escritorio">
-            <div class="shell__download-head nf-mono nf-eyebrow">App de escritorio</div>
+            <div class="shell__download-head nf-mono">App de escritorio</div>
 
             <!-- <a download> y no un botón: son ficheros estáticos servidos por el mismo
                  dominio, sin sesión, y así funcionan "Guardar como…" y abrir en pestaña. -->
@@ -138,7 +138,7 @@
               </span>
               <span class="shell__download-opt-text">
                 <span class="shell__download-opt-name">Windows</span>
-                <span class="shell__download-opt-sub nf-mono">INSTALADOR .EXE</span>
+                <span class="shell__download-opt-sub nf-mono">Instalador para Windows</span>
               </span>
             </a>
 
@@ -157,7 +157,7 @@
               </span>
               <span class="shell__download-opt-text">
                 <span class="shell__download-opt-name">macOS</span>
-                <span class="shell__download-opt-sub nf-mono">IMAGEN .DMG</span>
+                <span class="shell__download-opt-sub nf-mono">Imagen para macOS</span>
               </span>
             </a>
           </div>
@@ -182,7 +182,7 @@
             </div>
             <div class="shell__user-meta">
               <div class="shell__user-name">{{ me.discordUsername }}</div>
-              <div class="shell__profile-cta nf-mono nf-caps nf-go">Ver perfil</div>
+              <div class="shell__profile-cta nf-mono">Ver perfil</div>
             </div>
           </a>
         } @else {
@@ -195,7 +195,7 @@
             </div>
           </div>
         }
-        <button type="button" class="shell__logout nf-caps" (click)="confirmLogout.set(true)">Cerrar sesión</button>
+        <button type="button" class="shell__logout" (click)="confirmLogout.set(true)">Cerrar sesión</button>
       </div>
     </aside>
   }
@@ -223,7 +223,7 @@
           </span>
           <span class="shell__groupbar-meta">
             <span class="shell__groupbar-name">{{ g.name }}</span>
-            <span class="shell__groupbar-section nf-mono nf-eyebrow nf-eyebrow--asis">{{ pageTitle() }}</span>
+            <span class="shell__groupbar-section nf-mono">{{ pageTitle() }}</span>
           </span>
           @if (isMobile()) {
             <span class="shell__groupbar-caret">▾</span>
@@ -281,10 +281,10 @@
       <button type="button" class="shell__pending" (click)="openPendingRoom(r)">
         <span class="shell__pending-pulse" aria-hidden="true"></span>
         <span class="shell__pending-text">
-          <span class="shell__pending-title nf-mono">PARTIDA ABIERTA · {{ pendingSignedUp(r) }}/{{ r.capacity }} APUNTADOS</span>
+          <span class="shell__pending-title nf-mono">Partida abierta · {{ pendingSignedUp(r) }}/{{ r.capacity }} apuntados</span>
           <span class="shell__pending-sub nf-mono">Sala {{ r.code }} — di a qué horas puedes</span>
         </span>
-        <span class="shell__pending-cta nf-mono nf-caps nf-go">Entrar</span>
+        <span class="shell__pending-cta nf-mono">Entrar</span>
       </button>
     }
 
@@ -328,13 +328,13 @@
           <button type="button" class="shell__sheet-pending" (click)="openPendingRoom(r)">
             <span class="shell__pending-pulse" aria-hidden="true"></span>
             <span class="shell__pending-text">
-              <span class="shell__pending-title nf-mono">PARTIDA ABIERTA · {{ pendingSignedUp(r) }}/{{ r.capacity }}</span>
+              <span class="shell__pending-title nf-mono">Partida abierta · {{ pendingSignedUp(r) }}/{{ r.capacity }}</span>
               <span class="shell__pending-sub nf-mono">Sala {{ r.code }} — di a qué horas puedes</span>
             </span>
-            <span class="shell__pending-cta nf-mono nf-caps nf-go">Entrar</span>
+            <span class="shell__pending-cta nf-mono">Entrar</span>
           </button>
         }
-        <div class="shell__sheet-head nf-mono nf-eyebrow">Tus grupos</div>
+        <div class="shell__sheet-head nf-mono">Tus grupos</div>
         <div class="shell__sheet-list">
           @for (g of groups.groups(); track g.id) {
             <button
@@ -361,11 +361,11 @@
               }
             </button>
           } @empty {
-            <div class="shell__grouplist-empty nf-mono nf-eyebrow">Sin grupos</div>
+            <div class="shell__grouplist-empty nf-mono">Sin grupos</div>
           }
         </div>
         <a class="shell__sheet-all nf-mono" [routerLink]="['/app', 'grupos']" (click)="closeGroupSheet()">
-          ＋ GESTIONAR GRUPOS
+          ＋ Gestionar grupos
         </a>
       </div>
     </div>
@@ -375,11 +375,11 @@
   @if (showNotifications()) {
     <div class="shell__notif-overlay" (click)="closeNotifications()">
       <div class="shell__notif" (click)="$event.stopPropagation()">
-        <nf-window title="notifications.exe" accent="pink" bodyPadding="0">
+        <nf-window title="Notificaciones" bodyPadding="0">
           <div class="shell__notif-sub">
-            <span class="shell__notif-eyebrow nf-mono nf-eyebrow">Actividad reciente</span>
+            <span class="shell__notif-eyebrow nf-mono">Actividad reciente</span>
             @if (notifs.hasUnread()) {
-              <button type="button" class="shell__notif-clear nf-mono nf-caps" (click)="markAllRead($event)">
+              <button type="button" class="shell__notif-clear nf-mono" (click)="markAllRead($event)">
                 Marcar leídas ✓
               </button>
             }
@@ -411,9 +411,7 @@
                 >×</button>
                 <div class="shell__notif-icon">{{ n.glyph }}</div>
                 <div class="shell__notif-text">
-                  <!-- nf-caps: las mayúsculas del antetítulo las pone la skin, no el copy. Los
-                       títulos que aún llegan gritados en el literal no cambian con esto. -->
-                  <div class="shell__notif-title nf-mono nf-caps">{{ n.title }}</div>
+                  <div class="shell__notif-title nf-mono">{{ n.title }}</div>
                   <div class="shell__notif-msg nf-mono">{{ n.message }}</div>
                   <div class="shell__notif-time nf-mono">{{ n.time }}</div>
                   @if (n.invite; as inv) {
@@ -431,10 +429,10 @@
                           variant="primary"
                           size="sm"
                           [disabled]="invitations.isResponding(inv.invitationId)"
-                          (click)="respondInvite(n, true)" class="nf-go">Unirme</button>
+                          (click)="respondInvite(n, true)">Unirme</button>
                       </div>
                     } @else {
-                      <div class="shell__notif-resolved nf-mono nf-eyebrow">Invitación gestionada</div>
+                      <div class="shell__notif-resolved nf-mono">Invitación gestionada</div>
                     }
                   }
                 </div>
@@ -456,15 +454,15 @@
               } @else if (notifs.status() === 'error') {
                 <div class="shell__notif-empty">
                   <div class="shell__notif-empty-glyph">⚠</div>
-                  <div class="shell__notif-empty-label nf-mono nf-eyebrow">No se pudo cargar</div>
-                  <button type="button" class="shell__notif-clear nf-mono nf-caps" (click)="reloadNotifs($event)">
+                  <div class="shell__notif-empty-label nf-mono">No se pudo cargar</div>
+                  <button type="button" class="shell__notif-clear nf-mono" (click)="reloadNotifs($event)">
                     Reintentar
                   </button>
                 </div>
               } @else {
                 <div class="shell__notif-empty">
                   <div class="shell__notif-empty-glyph">◎</div>
-                  <div class="shell__notif-empty-label nf-mono nf-eyebrow">Bandeja vacía</div>
+                  <div class="shell__notif-empty-label nf-mono">Bandeja vacía</div>
                 </div>
               }
             }
@@ -477,7 +475,7 @@
                 class="shell__notif-more nf-mono"
                 [disabled]="notifs.loadingMore()"
                 (click)="loadMoreNotifs()"
-              >{{ notifs.loadingMore() ? 'CARGANDO…' : 'VER MÁS ▾' }}</button>
+              >{{ notifs.loadingMore() ? 'Cargando…' : 'Ver más ▾' }}</button>
             </div>
           }
         </nf-window>
@@ -497,7 +495,7 @@
   @if (confirmLogout()) {
     <div class="shell__overlay" (click)="confirmLogout.set(false)">
       <div class="shell__dialog" (click)="$event.stopPropagation()">
-        <nf-window title="cerrar_sesion.exe" accent="pink" bodyPadding="24px">
+        <nf-window title="Cerrar sesión" bodyPadding="24px">
           <p class="shell__dialog-msg">
             ¿Seguro que quieres <strong>cerrar sesión</strong>? Tendrás que volver a iniciar sesión para acceder.
           </p>

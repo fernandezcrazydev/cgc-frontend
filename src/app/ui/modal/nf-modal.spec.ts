@@ -8,7 +8,7 @@ import { NfModal } from './nf-modal';
   imports: [NfModal],
   template: `
     @if (open()) {
-      <nf-modal title="prueba.exe" (closed)="onClosed()">
+      <nf-modal title="Prueba" (closed)="onClosed()">
         <button id="uno">uno</button>
         <button id="dos">dos</button>
       </nf-modal>

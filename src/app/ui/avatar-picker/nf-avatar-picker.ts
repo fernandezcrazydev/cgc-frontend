@@ -1,7 +1,7 @@
 import { Component, EventEmitter, Input, Output, ViewEncapsulation } from '@angular/core';
 
 /**
- * NEXUS//FORGE Avatar Picker — a square preview that shows the current group
+ * Avatar Picker — a square preview that shows the current group
  * photo (or the gradient + initials fallback) with controls to upload a new
  * image or clear it. The chosen file is read as a base64 data URL and emitted
  * via `valueChange`; `null` is emitted when the photo is removed.
@@ -29,7 +29,7 @@ import { Component, EventEmitter, Input, Output, ViewEncapsulation } from '@angu
 
       <div class="nf-avatarpicker__controls">
         <label class="nf-avatarpicker__btn nf-mono">
-          {{ value ? 'CAMBIAR' : 'SUBIR FOTO' }}
+          {{ value ? 'Cambiar' : 'Subir foto' }}
           <input
             class="nf-avatarpicker__input"
             type="file"
@@ -39,7 +39,7 @@ import { Component, EventEmitter, Input, Output, ViewEncapsulation } from '@angu
         </label>
         @if (value) {
           <button type="button" class="nf-avatarpicker__btn nf-avatarpicker__btn--ghost nf-mono" (click)="clear()">
-            QUITAR
+            Quitar
           </button>
         }
         @if (error) {
@@ -60,8 +60,8 @@ export class NfAvatarPicker {
   /** Fallback initials shown when there is no photo. */
   @Input() initials = '';
   /** Gradient stops for the fallback preview. */
-  @Input() c1 = 'var(--nf-cyan)';
-  @Input() c2 = 'var(--nf-pink)';
+  @Input() c1 = 'var(--nf-secondary)';
+  @Input() c2 = 'var(--nf-primary)';
   /** Max accepted file size in megabytes. */
   @Input() maxSizeMb = 4;
 

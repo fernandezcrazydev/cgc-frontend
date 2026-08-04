@@ -4,13 +4,12 @@ export type NfButtonVariant = 'primary' | 'secondary' | 'ghost' | 'accent' | 'da
 export type NfButtonSize = 'sm' | 'md' | 'lg';
 
 /**
- * NEXUS//FORGE Button.
+ * Button.
  * Attribute-selector component so it stays a real <button>:
- *   <button nfButton variant="primary" size="md">CREAR ►</button>
+ *   <button nfButton variant="primary" size="md">Crear</button>
  *
- * 5 variants (primary · secondary · ghost · accent · danger), 3 sizes (sm/md/lg).
- * Signature look: thick 2px border + hard offset shadow; on hover the offset
- * grows and the button lifts 1px.
+ * 5 variantes (primary · secondary · ghost · accent · danger), 3 tamaños (sm/md/lg).
+ * El copy va en frase normal: el botón no transforma el texto.
  */
 @Component({
   selector: 'button[nfButton]',

@@ -1,7 +1,7 @@
 /* ============================================================
-   NEXUS//FORGE · BASE / GLOBAL STYLES
-   Page background, resets, selection, scrollbars, shared range
-   input, and the .nf-mono utility. Mirrors the app's styles.scss.
+   BASE / GLOBAL STYLES
+   Fondo de página, resets, selección, scrollbars, el range
+   compartido y la utilidad .nf-mono.
    ============================================================ */
 
 * { box-sizing: border-box; }
@@ -38,21 +38,19 @@ html, body { margin: 0; padding: 0; }
 }
 
 body {
-  background:
-    radial-gradient(900px 480px at 85% -8%, rgba(255, 95, 210, 0.12), transparent 60%),
-    var(--nf-void);
+  background: var(--nf-void);
   color: var(--nf-text);
   font-family: var(--nf-font);
   -webkit-font-smoothing: antialiased;
   min-height: calc(var(--nf-vh) * 100);
 }
 
-::selection { background: rgba(255, 95, 210, 0.35); color: #fff; }
+::selection { background: rgba(10, 132, 255, 0.35); color: #fff; }
 
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track { background: var(--nf-void); }
-::-webkit-scrollbar-thumb { background: #2a1547; border: 2px solid var(--nf-void); border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: #3d2065; }
+::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.18); border: 2px solid var(--nf-void); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.28); }
 
 /* ---- Shared range input (pseudo-elements can't be scoped per-component) ---- */
 .nf-range {
@@ -69,49 +67,33 @@ body {
   appearance: none;
   width: 18px;
   height: 18px;
-  border-radius: 3px;
-  background: var(--nf-pink);
-  border: 2px solid var(--nf-void);
-  box-shadow: 0 0 10px rgba(255, 95, 210, 0.7);
+  border-radius: 50%;
+  background: var(--nf-primary);
+  border: 2px solid var(--nf-surface);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
 }
 .nf-range::-moz-range-thumb {
   width: 18px;
   height: 18px;
-  border-radius: 3px;
-  background: var(--nf-pink);
-  border: 2px solid var(--nf-void);
-  box-shadow: 0 0 10px rgba(255, 95, 210, 0.7);
+  border-radius: 50%;
+  background: var(--nf-primary);
+  border: 2px solid var(--nf-surface);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
 }
 
-/* ---- Utility ---- */
-.nf-mono { font-family: var(--nf-mono); }
+/* ---- Utilidad de cifras ----
+   Nació poniendo la fuente monoespaciada de la skin retro. Ya no hay mono, pero
+   la clase se conserva —y con ella sus ~500 usos— porque marca exactamente lo
+   que interesa alinear: contadores, marcadores, tiempos y porcentajes. Ahora lo
+   que hace es lo único que ahí aportaba el mono de verdad: que las cifras midan
+   todas lo mismo, para que un número no baile al actualizarse. */
+.nf-mono {
+  font-family: var(--nf-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
 
-/* ---- Eyebrow ----
-   Marca de sección / línea de estado. El "// " y las MAYÚSCULAS son decoración
-   de la skin vaporwave, no copy: el texto se escribe en frase normal ("Tus
-   grupos") y el CSS lo viste según el tema. Así una skin que no sea de
-   escritorio retro (ver themes/original.css) lo muestra tal cual, sin que haya
-   que reescribir 50 plantillas.
-
-   Modificadores para conservar el render exacto de Nexus donde el texto no iba
-   en mayúsculas:
-     --asis  → contenido interpolado ({{ … }}), se deja como venga
-     --lower → minúsculas deliberadas (mensajes tipo consola)
-   Se acompaña siempre de .nf-mono, que es quien pone la fuente. */
-.nf-eyebrow { text-transform: uppercase; }
-/* nbsp, no espacio normal: en `content` un espacio final puede colapsar según
-   el white-space heredado, y el marcador quedaría pegado al texto. */
-.nf-eyebrow::before { content: '//\00a0'; }
-.nf-eyebrow--asis { text-transform: none; }
-.nf-eyebrow--lower { text-transform: lowercase; }
-
-/* ---- Caps ----
-   Mismo criterio que .nf-eyebrow, para etiquetas que NO son botones `nfButton`
-   (esos ya tienen las mayúsculas en .nf-btn y cada skin las apaga ahí). */
-.nf-caps { text-transform: uppercase; }
-
-/* ---- Marcador "avanzar" ----
-   La puntita ► de los CTA es decoración de la skin retro, no copy. En .nf-btn
-   no lleva espacio porque el propio botón ya separa con `gap`. */
-.nf-go::after { content: '\00a0►'; }
-.nf-btn.nf-go::after { content: '►'; }
+/* Aquí vivían .nf-eyebrow (el "// " y las MAYÚSCULAS de las marcas de sección),
+   .nf-caps y .nf-go (la puntita ► de los CTA). Eran decoración de la skin retro
+   y se han eliminado junto con sus ~165 usos: el copy ya estaba escrito en frase
+   normal en las plantillas, así que basta con no vestirlo. */

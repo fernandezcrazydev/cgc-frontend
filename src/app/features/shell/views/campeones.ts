@@ -31,7 +31,7 @@ import { championTagLabel } from '../../../shared/champion-tags';
           @case ('error') {
             <div class="empty-state">
               <div class="empty-state__icon">⚠</div>
-              <div class="empty-state__text nf-mono nf-eyebrow">No hemos podido cargar el catálogo de campeones</div>
+              <div class="empty-state__text nf-mono">No hemos podido cargar el catálogo de campeones</div>
             </div>
           }
           @default {
@@ -46,7 +46,7 @@ import { championTagLabel } from '../../../shared/champion-tags';
             } @empty {
               <div class="empty-state">
                 <div class="empty-state__icon">◎</div>
-                <div class="empty-state__text nf-mono nf-eyebrow">Catálogo vacío todavía</div>
+                <div class="empty-state__text nf-mono">Catálogo vacío todavía</div>
               </div>
             }
           }

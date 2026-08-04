@@ -1,4 +1,4 @@
-/* NEXUS//FORGE · Button (global, ViewEncapsulation.None) */
+/* Button (global, ViewEncapsulation.None) */
 
 .nf-btn {
   display: inline-flex;
@@ -6,90 +6,65 @@
   justify-content: center;
   gap: 8px;
   font-family: var(--nf-font);
-  font-weight: var(--fw-black);
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
+  font-weight: var(--fw-bold);
   border-radius: var(--nf-radius);
   border: var(--bw-2) solid transparent;
   cursor: pointer;
   white-space: nowrap;
-  transition: transform 0.14s, box-shadow 0.14s, color 0.16s, border-color 0.16s, background 0.16s;
+  transition: filter 0.14s, color 0.16s, border-color 0.16s, background 0.16s;
 }
 
 .nf-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-  transform: none !important;
 }
 
-/* ---- sizes ---- */
-.nf-btn--sm { padding: 7px 14px; font-size: 11px; }
-.nf-btn--md { padding: 11px 20px; font-size: 12.5px; }
+/* El feedback de pulsación va por brillo, no por desplazamiento: mover el botón
+   bajo el cursor obliga a reencontrarlo, y en táctil ni siquiera se ve porque lo
+   tapa el dedo. */
+.nf-btn:hover:not(:disabled) { filter: brightness(1.08); }
+.nf-btn:active:not(:disabled) { filter: brightness(0.94); }
+
+/* ---- tamaños ---- */
+.nf-btn--sm { padding: 7px 14px; font-size: 12px; }
+.nf-btn--md { padding: 11px 20px; font-size: 13px; }
 .nf-btn--lg { padding: 15px 26px; font-size: 14px; }
 
-/* ---- primary · hot pink with breathing glow ---- */
+/* ---- primary ---- */
 .nf-btn--primary {
-  background: var(--nf-pink);
-  color: var(--nf-void);
-  border-color: var(--nf-pink);
-  box-shadow: var(--nf-shadow-cyan), var(--nf-glow-pink);
-}
-.nf-btn--primary:hover:not(:disabled) {
-  transform: translate(-1px, -1px);
-  box-shadow: 5px 5px 0 var(--nf-cyan), 0 0 24px rgba(255, 95, 210, 0.7);
-}
-.nf-btn--primary:active:not(:disabled) {
-  transform: translate(1px, 1px);
-  box-shadow: 2px 2px 0 var(--nf-cyan), var(--nf-glow-pink);
+  background: var(--nf-primary);
+  color: #fff;
+  border-color: var(--nf-primary);
 }
 
-/* ---- secondary · cyan outline ---- */
+/* ---- secondary · contorno ---- */
 .nf-btn--secondary {
   background: transparent;
-  color: var(--nf-cyan);
-  border-color: var(--nf-cyan);
-  box-shadow: var(--nf-shadow-cyan);
-}
-.nf-btn--secondary:hover:not(:disabled) {
-  transform: translate(-1px, -1px);
-  box-shadow: 5px 5px 0 var(--nf-cyan), 0 0 18px rgba(54, 224, 255, 0.45);
-}
-.nf-btn--secondary:active:not(:disabled) {
-  transform: translate(1px, 1px);
-  box-shadow: 2px 2px 0 var(--nf-cyan);
+  color: var(--nf-primary);
+  border-color: var(--nf-primary);
 }
 
-/* ---- ghost · quiet, brightens on hover ---- */
+/* ---- ghost · discreto, se ilumina al pasar ---- */
 .nf-btn--ghost {
   background: transparent;
   color: var(--nf-text-mid);
   border-color: var(--nf-border);
 }
 .nf-btn--ghost:hover:not(:disabled) {
-  color: var(--nf-cyan);
+  color: var(--nf-text);
   border-color: var(--nf-border-strong);
 }
 
-/* ---- accent · sun yellow ---- */
+/* ---- accent ---- */
 .nf-btn--accent {
-  background: var(--nf-yellow);
-  color: var(--nf-void);
-  border-color: var(--nf-yellow);
-  box-shadow: 4px 4px 0 rgba(255, 225, 77, 0.45);
-}
-.nf-btn--accent:hover:not(:disabled) {
-  transform: translate(-1px, -1px);
-  box-shadow: 5px 5px 0 rgba(255, 225, 77, 0.55);
+  background: var(--nf-warning);
+  color: #000;
+  border-color: var(--nf-warning);
 }
 
-/* ---- danger · neon red ---- */
+/* ---- danger ---- */
 .nf-btn--danger {
-  background: var(--nf-red);
+  background: var(--nf-danger);
   color: #fff;
-  border-color: var(--nf-red);
-  box-shadow: 4px 4px 0 rgba(255, 95, 109, 0.4);
-}
-.nf-btn--danger:hover:not(:disabled) {
-  transform: translate(-1px, -1px);
-  box-shadow: 5px 5px 0 rgba(255, 95, 109, 0.5);
+  border-color: var(--nf-danger);
 }

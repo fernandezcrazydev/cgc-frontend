@@ -78,7 +78,7 @@ export class GroupBridge {
           name: view.name,
           tag: view.region ?? 'LAN',
           initials: view.initials,
-          role: view.role === 'OWNER' ? 'OWNER' : 'MIEMBRO',
+          role: view.role === 'OWNER' ? 'Capitán' : 'Miembro',
           members: members.length,
           c1: view.c1,
           c2: view.c2,
@@ -120,9 +120,9 @@ export class GroupBridge {
 
 /** Etiqueta que pinta el mock en la ficha del miembro. */
 const ROLE_LABEL: Record<GroupMemberResponse['role'], string> = {
-  OWNER: 'CAPITÁN · OWNER',
-  ADMIN: 'ADMIN',
-  MEMBER: 'MIEMBRO',
+  OWNER: 'Capitán',
+  ADMIN: 'Administrador',
+  MEMBER: 'Miembro',
 };
 
 /**

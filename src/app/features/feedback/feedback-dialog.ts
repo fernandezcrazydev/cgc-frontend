@@ -37,9 +37,9 @@ const KIND_NOUN: Record<FeedbackKind, string> = {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [NfModal, NfButton, NfSelect, NfSegmented],
   template: `
-    <nf-modal title="reportar.exe" accent="cyan" width="580px" (closed)="requestClose()">
+    <nf-modal title="Enviar comentarios" width="580px" (closed)="requestClose()">
       <div class="fb">
-        <div class="fb__eyebrow nf-mono nf-eyebrow">¿Qué nos cuentas?</div>
+        <div class="fb__eyebrow nf-mono">¿Qué nos cuentas?</div>
 
         <div class="fb__kinds" role="radiogroup" aria-label="Tipo de reporte">
           @for (k of kinds; track k.value) {
@@ -62,7 +62,7 @@ const KIND_NOUN: Record<FeedbackKind, string> = {
         <div class="fb__row">
           <div class="fb__field">
             <label class="fb__label nf-mono" for="fb-title">
-              TÍTULO <span class="fb__req">*</span>
+              Título <span class="fb__req">*</span>
               <span class="fb__count">{{ title().length }}/80</span>
             </label>
             <input
@@ -77,7 +77,7 @@ const KIND_NOUN: Record<FeedbackKind, string> = {
           </div>
 
           <div class="fb__field fb__field--area">
-            <label class="fb__label nf-mono" for="fb-area">ZONA AFECTADA</label>
+            <label class="fb__label nf-mono" for="fb-area">Zona afectada</label>
             <nf-select
               [options]="areaLabels"
               [value]="areaLabel()"
@@ -89,7 +89,7 @@ const KIND_NOUN: Record<FeedbackKind, string> = {
         @switch (kind()) {
           @case ('bug') {
             <div class="fb__field">
-              <label class="fb__label nf-mono" for="fb-what">¿QUÉ HA PASADO? <span class="fb__req">*</span></label>
+              <label class="fb__label nf-mono" for="fb-what">¿Qué ha pasado? <span class="fb__req">*</span></label>
               <textarea
                 id="fb-what"
                 class="fb__textarea"
@@ -102,7 +102,7 @@ const KIND_NOUN: Record<FeedbackKind, string> = {
             </div>
 
             <div class="fb__field">
-              <label class="fb__label nf-mono" for="fb-steps">¿CÓMO SE REPRODUCE? <span class="fb__req">*</span></label>
+              <label class="fb__label nf-mono" for="fb-steps">¿Cómo se reproduce? <span class="fb__req">*</span></label>
               <textarea
                 id="fb-steps"
                 class="fb__textarea"
@@ -115,7 +115,7 @@ const KIND_NOUN: Record<FeedbackKind, string> = {
             </div>
 
             <div class="fb__field">
-              <label class="fb__label nf-mono" for="fb-expected">¿CÓMO DEBERÍA COMPORTARSE? <span class="fb__req">*</span></label>
+              <label class="fb__label nf-mono" for="fb-expected">¿Cómo debería comportarse? <span class="fb__req">*</span></label>
               <textarea
                 id="fb-expected"
                 class="fb__textarea"
@@ -128,7 +128,7 @@ const KIND_NOUN: Record<FeedbackKind, string> = {
             </div>
 
             <div class="fb__field fb__field--inline">
-              <label class="fb__label nf-mono">¿CON QUÉ FRECUENCIA?</label>
+              <label class="fb__label nf-mono">¿Con qué frecuencia?</label>
               <nf-segmented
                 [options]="frequencies"
                 [value]="frequency()"
@@ -140,7 +140,7 @@ const KIND_NOUN: Record<FeedbackKind, string> = {
 
           @case ('proposal') {
             <div class="fb__field">
-              <label class="fb__label nf-mono" for="fb-problem">¿QUÉ PROBLEMA TIENES HOY? <span class="fb__req">*</span></label>
+              <label class="fb__label nf-mono" for="fb-problem">¿Qué problema tienes hoy? <span class="fb__req">*</span></label>
               <textarea
                 id="fb-problem"
                 class="fb__textarea"
@@ -153,7 +153,7 @@ const KIND_NOUN: Record<FeedbackKind, string> = {
             </div>
 
             <div class="fb__field">
-              <label class="fb__label nf-mono" for="fb-solution">¿QUÉ SOLUCIÓN PROPONES? <span class="fb__req">*</span></label>
+              <label class="fb__label nf-mono" for="fb-solution">¿Qué solución propones? <span class="fb__req">*</span></label>
               <textarea
                 id="fb-solution"
                 class="fb__textarea"
@@ -167,7 +167,7 @@ const KIND_NOUN: Record<FeedbackKind, string> = {
 
             <div class="fb__field">
               <label class="fb__label nf-mono" for="fb-alt">
-                ¿HAS PENSADO ALTERNATIVAS? <span class="fb__opt">(opcional)</span>
+                ¿Has pensado alternativas? <span class="fb__opt">(opcional)</span>
               </label>
               <textarea
                 id="fb-alt"
@@ -183,7 +183,7 @@ const KIND_NOUN: Record<FeedbackKind, string> = {
 
           @default {
             <div class="fb__field">
-              <label class="fb__label nf-mono" for="fb-observed">¿QUÉ HAS VISTO? <span class="fb__req">*</span></label>
+              <label class="fb__label nf-mono" for="fb-observed">¿Qué has visto? <span class="fb__req">*</span></label>
               <textarea
                 id="fb-observed"
                 class="fb__textarea"
@@ -197,7 +197,7 @@ const KIND_NOUN: Record<FeedbackKind, string> = {
 
             <div class="fb__field">
               <label class="fb__label nf-mono" for="fb-inc-expected">
-                ¿QUÉ ESPERABAS VER? <span class="fb__opt">(opcional)</span>
+                ¿Qué esperabas ver? <span class="fb__opt">(opcional)</span>
               </label>
               <textarea
                 id="fb-inc-expected"
@@ -212,7 +212,7 @@ const KIND_NOUN: Record<FeedbackKind, string> = {
 
             <div class="fb__field">
               <label class="fb__label nf-mono" for="fb-when">
-                ¿CUÁNDO O DÓNDE TE PASÓ? <span class="fb__opt">(opcional)</span>
+                ¿Cuándo o dónde te pasó? <span class="fb__opt">(opcional)</span>
               </label>
               <textarea
                 id="fb-when"
@@ -228,7 +228,7 @@ const KIND_NOUN: Record<FeedbackKind, string> = {
         }
 
         <details class="fb__ctx">
-          <summary class="fb__ctx-sum nf-mono">SE ENVIARÁ TAMBIÉN</summary>
+          <summary class="fb__ctx-sum nf-mono">Se enviará también</summary>
           <ul class="fb__ctx-list nf-mono">
             <li>Ruta: <span>{{ route }}</span></li>
             <li>Pantalla: <span>{{ viewport }}</span></li>
@@ -246,7 +246,6 @@ const KIND_NOUN: Record<FeedbackKind, string> = {
             variant="primary"
             size="md"
             [disabled]="!canSubmit() || store.submitting()"
-            [class.nf-go]="!store.submitting()"
             (click)="submit()"
           >
             {{ store.submitting() ? 'Enviando…' : 'Enviar' }}

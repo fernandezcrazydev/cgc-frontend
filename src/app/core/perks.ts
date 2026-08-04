@@ -37,18 +37,18 @@ export const PERK_CATALOG: Perk[] = [
   { id: 'late-game',      label: 'Fuerte en late',              glyph: '🌙', tone: 'neutral' },
 ];
 
-/** Tone → nf-badge colour, so positives read green and ragers read red. */
+/** Tono → color de nf-badge: los positivos se leen en verde y los ragers en rojo. */
 export const PERK_COLOR: Record<PerkTone, NfBadgeColor> = {
-  good: 'green',
-  bad: 'red',
-  neutral: 'yellow',
+  good: 'success',
+  bad: 'danger',
+  neutral: 'warning',
 };
 
 /** Spanish heading for each tone, used to group chips in the editor. */
 export const PERK_TONE_LABEL: Record<PerkTone, string> = {
-  good: 'POSITIVOS',
-  bad: 'NEGATIVOS',
-  neutral: 'NEUTROS',
+  good: 'Positivos',
+  bad: 'Negativos',
+  neutral: 'Neutros',
 };
 
 /** Render order of the tone sections. */

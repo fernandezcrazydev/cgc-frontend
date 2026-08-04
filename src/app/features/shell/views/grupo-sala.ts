@@ -56,7 +56,7 @@ import { ChampionSummary, GameDataStore } from '../../../core/game-data';
           <div class="cp-head">
             <div class="cp-head__titles"><nf-skeleton width="180px" height="30px" /></div>
           </div>
-          <nf-window title="sala.exe" accent="pink" bodyPadding="0">
+          <nf-window title="Sala" bodyPadding="0">
             <div class="cp-pad">
               <nf-skeleton width="100%" height="72px" radius="12px" />
               <nf-skeleton width="100%" height="72px" radius="12px" />
@@ -66,7 +66,7 @@ import { ChampionSummary, GameDataStore } from '../../../core/game-data';
       } @else if (lobbies.status() === 'error') {
         <div class="empty-state">
           <div class="empty-state__icon">⚠</div>
-          <div class="empty-state__text nf-mono nf-eyebrow">Error al cargar</div>
+          <div class="empty-state__text nf-mono">Error al cargar</div>
           <p class="empty-state__hint">No se pudo cargar la partida.</p>
           <button nfButton variant="secondary" size="md" (click)="retryLobby()">Reintentar</button>
         </div>
@@ -77,19 +77,19 @@ import { ChampionSummary, GameDataStore } from '../../../core/game-data';
               <h1 class="view__title">Sala {{ lb.code }}</h1>
             </div>
             <a class="view-back cp-back" [routerLink]="['/app', 'grupos', lb.groupId, 'partidas']">
-              <span class="view-back__arrow">←</span> PARTIDAS ACTIVAS
+              <span class="view-back__arrow">←</span> Partidas activas
             </a>
           </div>
 
-          <nf-window [title]="lb.status === 'CONFIRMED' ? 'partida.exe' : 'convocatoria.exe'"
-                     [accent]="lb.status === 'CONFIRMED' ? 'cyan' : 'pink'" bodyPadding="0">
+          <nf-window [title]="lb.status === 'CONFIRMED' ? 'Partida' : 'Convocatoria'"
+                     bodyPadding="0">
             <div class="cp-room__bar">
               <div class="cp-room__barmeta">
                 <div class="cp-room__sub nf-mono">
                   @switch (lb.status) {
-                    @case ('POLLING') { ¿A QUÉ HORAS PUEDES? · TOCA LAS QUE TE VENGAN BIEN }
-                    @case ('CONFIRMED') { PARTIDA CONFIRMADA · {{ formatKickoff(confirmedStartsAt()) }} }
-                    @case ('CANCELLED') { ESTA PARTIDA SE CANCELÓ }
+                    @case ('POLLING') { ¿A qué horas puedes? · toca las que te vengan bien }
+                    @case ('CONFIRMED') { Partida confirmada · {{ formatKickoff(confirmedStartsAt()) }} }
+                    @case ('CANCELLED') { Esta partida se canceló }
                     @default { {{ lb.status }} }
                   }
                 </div>
@@ -97,8 +97,8 @@ import { ChampionSummary, GameDataStore } from '../../../core/game-data';
                   <div class="cp-room__note">{{ lb.note }}</div>
                 }
               </div>
-              <nf-badge [color]="lb.status === 'CONFIRMED' ? 'green' : lb.status === 'CANCELLED' ? 'red' : 'yellow'">
-                {{ lb.status === 'CANCELLED' ? 'CANCELADA' : lb.status === 'CONFIRMED' ? 'CONFIRMADA' : 'ABIERTA' }}
+              <nf-badge [color]="lb.status === 'CONFIRMED' ? 'success' : lb.status === 'CANCELLED' ? 'danger' : 'warning'">
+                {{ lb.status === 'CANCELLED' ? 'Cancelada' : lb.status === 'CONFIRMED' ? 'Confirmada' : 'Abierta' }}
               </nf-badge>
             </div>
 
@@ -115,7 +115,6 @@ import { ChampionSummary, GameDataStore } from '../../../core/game-data';
                         size="sm"
                         class="lb-slot__cta"
                         [class.is-in]="amIn(slot)"
-                        [class.nf-go]="!amIn(slot) && !detail.isActing(slot.id)"
                         [disabled]="detail.isActing(slot.id)"
                         [attr.aria-label]="slotCtaLabel(slot)"
                         [title]="slotCtaLabel(slot)"
@@ -132,7 +131,7 @@ import { ChampionSummary, GameDataStore } from '../../../core/game-data';
 
                   @if (slot.starters.length) {
                     <div class="lb-slot__label nf-mono">
-                      {{ lb.status === 'CONFIRMED' ? 'JUEGAN' : 'APUNTADOS' }}
+                      {{ lb.status === 'CONFIRMED' ? 'Juegan' : 'Apuntados' }}
                     </div>
                     <div class="lb-people">
                       @for (p of slot.starters; track p.userId) {
@@ -145,7 +144,7 @@ import { ChampionSummary, GameDataStore } from '../../../core/game-data';
                   }
 
                   @if (slot.bench.length) {
-                    <div class="lb-slot__label nf-mono">SUPLENTES · POR ORDEN DE LLEGADA</div>
+                    <div class="lb-slot__label nf-mono">Suplentes · por orden de llegada</div>
                     <div class="lb-people lb-people--bench">
                       @for (p of slot.bench; track p.userId; let i = $index) {
                         <span class="lb-person" [class.is-me]="isMe(p.userId)">
@@ -168,7 +167,7 @@ import { ChampionSummary, GameDataStore } from '../../../core/game-data';
           <div class="cp-foot">
             <a class="view-back" [routerLink]="['/app', 'grupos', lb.groupId, 'partidas']">← Partidas</a>
             <div class="cp-foot__status nf-mono">
-              CONVOCÓ {{ lb.openedBy.discordUsername ?? '—' }}
+              Convocó {{ lb.openedBy.discordUsername ?? '—' }}
             </div>
             @if (lb.status !== 'CANCELLED') {
               <button
@@ -185,8 +184,8 @@ import { ChampionSummary, GameDataStore } from '../../../core/game-data';
         @if (confirmCancel()) {
           <div class="modal-overlay" (click)="confirmCancel.set(false)">
             <div class="modal" (click)="$event.stopPropagation()">
-              <nf-window title="cancelar_partida.exe" accent="pink" bodyPadding="24px">
-                <div class="settings-eyebrow nf-mono nf-eyebrow">Cancelar partida</div>
+              <nf-window title="Cancelar partida" bodyPadding="24px">
+                <div class="settings-eyebrow nf-mono">Cancelar partida</div>
                 <p class="remove-msg">¿Seguro que quieres cancelar esta partida?</p>
                 <div class="remove-warn nf-mono">
                   ⚠ Se avisará a todos los que se habían apuntado. Esto no se puede deshacer.
@@ -208,28 +207,28 @@ import { ChampionSummary, GameDataStore } from '../../../core/game-data';
               <h1 class="view__title">Sala {{ r.code }}</h1>
             </div>
             <a class="view-back cp-back" [routerLink]="['/app', 'grupos', g.id, 'partidas']">
-              <span class="view-back__arrow">←</span> PARTIDAS ACTIVAS
+              <span class="view-back__arrow">←</span> Partidas activas
             </a>
           </div>
 
           @if (r.status === 'drafting') {
             <!-- live follower view: non-admins watch the admin configure the match -->
-            <nf-window [title]="'sala_' + r.code + '.exe'" accent="pink" bodyPadding="0">
+            <nf-window [title]="'Sala ' + r.code" bodyPadding="0">
               <div class="cp-room__bar">
                 <div class="cp-room__barmeta">
-                  <div class="cp-room__sub nf-mono">CONFIGURANDO · {{ r.openedBy }} ESTÁ MONTANDO LA PARTIDA</div>
+                  <div class="cp-room__sub nf-mono">Configurando · {{ r.openedBy }} está montando la partida</div>
                 </div>
-                <nf-badge color="yellow" [dot]="true">PASO {{ r.draft?.step ?? 1 }}/5</nf-badge>
+                <nf-badge color="warning" [dot]="true">Paso {{ r.draft?.step ?? 1 }}/5</nf-badge>
               </div>
 
               @if (r.draft; as d) {
                 <div class="spec">
                   <div class="spec__live nf-mono">
-                    <span class="spec__live-dot"></span> EN DIRECTO · {{ stepName(d.step) }}
+                    <span class="spec__live-dot"></span> En directo · {{ stepName(d.step) }}
                   </div>
 
                   <div class="spec__sec">
-                    <div class="spec__label nf-mono">PARTICIPANTES · {{ d.participants.length }}/{{ r.capacity }}</div>
+                    <div class="spec__label nf-mono">Participantes · {{ d.participants.length }}/{{ r.capacity }}</div>
                     @if (d.participants.length) {
                       <div class="spec__players">
                         @for (m of d.participants; track m.tag) {
@@ -245,7 +244,7 @@ import { ChampionSummary, GameDataStore } from '../../../core/game-data';
                   </div>
 
                   <div class="spec__sec">
-                    <div class="spec__label nf-mono">LÍNEAS</div>
+                    <div class="spec__label nf-mono">Líneas</div>
                     @if (d.lines.length) {
                       @for (l of d.lines; track l.tag) {
                         <div class="spec__row">
@@ -260,7 +259,7 @@ import { ChampionSummary, GameDataStore } from '../../../core/game-data';
                   </div>
 
                   <div class="spec__sec">
-                    <div class="spec__label nf-mono">REGLAS</div>
+                    <div class="spec__label nf-mono">Reglas</div>
                     @if (d.rules.length) {
                       @for (rule of d.rules; track $index) {
                         <div class="spec__rule nf-mono">{{ ruleText(rule) }}</div>
@@ -271,7 +270,7 @@ import { ChampionSummary, GameDataStore } from '../../../core/game-data';
                   </div>
 
                   <div class="spec__sec">
-                    <div class="spec__label nf-mono">CAMPEONES RESERVADOS</div>
+                    <div class="spec__label nf-mono">Campeones reservados</div>
                     @if (d.reserved.length) {
                       @for (rv of d.reserved; track rv.tag) {
                         <div class="spec__row" [attr.aria-busy]="champsLoading() ? 'true' : null">
@@ -304,16 +303,16 @@ import { ChampionSummary, GameDataStore } from '../../../core/game-data';
               </button>
             </div>
           } @else {
-          <nf-window [title]="'sala_' + r.code + '.exe'" [accent]="r.status === 'live' ? 'cyan' : 'pink'" bodyPadding="0">
+          <nf-window [title]="'Sala ' + r.code" bodyPadding="0">
             <div class="cp-room__bar">
               <div class="cp-room__barmeta">
                 <div class="cp-room__sub nf-mono">
                   {{ r.status === 'live'
-                    ? 'PARTIDA EN CURSO · ' + (r.mode === 'open' ? 'SALA ABIERTA' : 'MANUAL')
-                    : 'CUALQUIER MIEMBRO DEL GRUPO PUEDE APUNTARSE' }}
+                    ? 'Partida en curso · ' + (r.mode === 'open' ? 'Sala abierta' : 'Manual')
+                    : 'Cualquier miembro del grupo puede apuntarse' }}
                 </div>
               </div>
-              <nf-badge [color]="r.status === 'live' ? 'green' : full() ? 'green' : 'yellow'" [dot]="true">
+              <nf-badge [color]="r.status === 'live' ? 'success' : full() ? 'success' : 'warning'" [dot]="true">
                 {{ r.seats.length }}/{{ r.capacity }}
               </nf-badge>
             </div>
@@ -322,15 +321,15 @@ import { ChampionSummary, GameDataStore } from '../../../core/game-data';
               <!-- DEFINED MATCH: the frozen Blue-vs-Red lineup, laid out by lane -->
               <div class="lm-balance">
                 <div class="lm-balance__head nf-mono">
-                  <span class="lm-balance__team lm-balance__team--blue">AZUL <b>{{ teamElo(t).blue }}</b></span>
+                  <span class="lm-balance__team lm-balance__team--blue">Azul <b>{{ teamElo(t).blue }}</b></span>
                   <span class="lm-balance__verdict" [attr.data-side]="verdict(t).side">
                     @if (verdict(t).side === 'even') {
                       ⚖ {{ verdict(t).text }}
                     } @else {
-                      {{ verdict(t).text }} {{ verdict(t).side === 'blue' ? 'AZUL ◀' : '▶ ROJO' }}
+                      {{ verdict(t).text }} {{ verdict(t).side === 'blue' ? 'Azul ◀' : '▶ Rojo' }}
                     }
                   </span>
-                  <span class="lm-balance__team lm-balance__team--red"><b>{{ teamElo(t).red }}</b> ROJO</span>
+                  <span class="lm-balance__team lm-balance__team--red"><b>{{ teamElo(t).red }}</b> Rojo</span>
                 </div>
                 <div class="lm-balance__bar">
                   <div class="lm-balance__fill" [style.width.%]="teamElo(t).blueShare * 100"></div>
@@ -427,7 +426,7 @@ import { ChampionSummary, GameDataStore } from '../../../core/game-data';
                 @if (swapping()) {
                   <!-- Vía 3: swap players in/out, then re-pair the teams -->
                   <div class="res">
-                    <div class="conf__head nf-mono">🔀 CAMBIAR JUGADORES · {{ swapRoster().length }}/10</div>
+                    <div class="conf__head nf-mono">🔀 Cambiar jugadores · {{ swapRoster().length }}/10</div>
                     <p class="conf__intro">
                       Saca a quien se va y mete a otros del grupo. Al confirmar, los equipos se reemparejan solos.
                     </p>
@@ -440,7 +439,7 @@ import { ChampionSummary, GameDataStore } from '../../../core/game-data';
                         </button>
                       }
                     </div>
-                    <div class="res__next-label nf-mono">DISPONIBLES DEL GRUPO</div>
+                    <div class="res__next-label nf-mono">Disponibles del grupo</div>
                     <div class="swap__row">
                       @for (m of availableSwap(); track m.tag) {
                         <button type="button" class="cp-pchip" [disabled]="swapRoster().length >= 10" (click)="addSwap(m)">
@@ -455,7 +454,7 @@ import { ChampionSummary, GameDataStore } from '../../../core/game-data';
                       <button type="button" class="res__cancel nf-mono" (click)="swapping.set(false)">cancelar</button>
                       <button
                         type="button"
-                        class="res__win res__win--blue nf-mono nf-go nf-caps"
+                        class="res__win res__win--blue nf-mono"
                         [disabled]="swapRoster().length !== 10"
                         (click)="confirmSwap(r)"
                       >Reemparejar y jugar</button>
@@ -465,14 +464,14 @@ import { ChampionSummary, GameDataStore } from '../../../core/game-data';
                   <div class="res">
                     <div class="res__decided" [attr.data-side]="res.winner">
                       @if (res.winner === 'cancelled') {
-                        <span>✕ PARTIDA CANCELADA · SIN RESULTADO</span>
+                        <span>✕ Partida cancelada · sin resultado</span>
                       } @else {
-                        <span>✓ GANÓ EQUIPO {{ res.winner === 'blue' ? 'AZUL' : 'ROJO' }} · {{ res.source === 'import' ? 'IMPORTADA' : 'MANUAL' }}</span>
+                        <span>✓ Ganó equipo {{ res.winner === 'blue' ? 'Azul' : 'Rojo' }} · {{ res.source === 'import' ? 'Importada' : 'Manual' }}</span>
                       }
                       <button type="button" class="res__undo" (click)="undoResult(r)">corregir</button>
                     </div>
 
-                    <div class="res__next-label nf-mono">¿SEGUIMOS JUGANDO?</div>
+                    <div class="res__next-label nf-mono">¿Seguimos jugando?</div>
                     <div class="res__paths">
                       <button type="button" class="res__path" (click)="rematchSame(r)">
                         <span class="res__path-ico">🔁</span>
@@ -491,13 +490,13 @@ import { ChampionSummary, GameDataStore } from '../../../core/game-data';
                         <span class="res__path-txt"><b>Cambiar jugadores</b><small>entran/salen del grupo</small></span>
                       </button>
                     </div>
-                    <button type="button" class="res__close nf-mono nf-caps" (click)="confirmClose.set(true)">⏹ Cerrar la sala</button>
+                    <button type="button" class="res__close nf-mono" (click)="confirmClose.set(true)">⏹ Cerrar la sala</button>
                   </div>
                 }
               } @else if (resolvingImport()) {
                 <!-- import data didn't match the lineup: resolve every conflict to apply -->
                 <div class="res">
-                  <div class="conf__head nf-mono">⚠ {{ importConflicts().length }} CONFLICTO(S) EN LA IMPORTACIÓN</div>
+                  <div class="conf__head nf-mono">⚠ {{ importConflicts().length }} conflicto(s) en la importación</div>
                   <p class="conf__intro">
                     La partida subida no cuadra con la sala. Resuelve cada conflicto para poder aplicar
                     el resultado. Una vez en el historial <b>no se podrá modificar, solo eliminar</b>.
@@ -536,7 +535,7 @@ import { ChampionSummary, GameDataStore } from '../../../core/game-data';
                     <button type="button" class="res__cancel nf-mono" (click)="discardImport()">descartar import</button>
                     <button
                       type="button"
-                      class="res__win res__win--blue nf-mono nf-go nf-caps"
+                      class="res__win res__win--blue nf-mono"
                       [disabled]="!allResolved()"
                       (click)="applyImport(r)"
                     >Resolver y aplicar</button>
@@ -548,7 +547,7 @@ import { ChampionSummary, GameDataStore } from '../../../core/game-data';
                     <span class="res__import-spin" aria-hidden="true"><span class="cp-spinner"></span></span>
                     <div class="res__import-txt">
                       <div class="res__import-title nf-mono">
-                        ESPERANDO DATOS DE LA PARTIDA<span class="cp-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+                        Esperando datos de la partida<span class="cp-dots" aria-hidden="true"><i></i><i></i><i></i></span>
                       </div>
                       <div class="res__import-sub nf-mono">
                         cualquier jugador puede subirla desde la app de escritorio; el ganador se rellena solo
@@ -561,9 +560,9 @@ import { ChampionSummary, GameDataStore } from '../../../core/game-data';
                   </div>
                   <div class="res__or nf-mono">— o decide el resultado a mano (solo admin) —</div>
                   <div class="res__buttons">
-                    <button type="button" class="res__win res__win--blue nf-mono nf-caps" (click)="askWin('blue')">🏆 Ganó azul</button>
-                    <button type="button" class="res__win res__win--red nf-mono nf-caps" (click)="askWin('red')">🏆 Ganó rojo</button>
-                    <button type="button" class="res__cancel nf-mono nf-caps" (click)="cancelMatch(r)">✕ Cancelar</button>
+                    <button type="button" class="res__win res__win--blue nf-mono" (click)="askWin('blue')">🏆 Ganó azul</button>
+                    <button type="button" class="res__win res__win--red nf-mono" (click)="askWin('red')">🏆 Ganó rojo</button>
+                    <button type="button" class="res__cancel nf-mono" (click)="cancelMatch(r)">✕ Cancelar</button>
                   </div>
                 </div>
               }
@@ -575,7 +574,7 @@ import { ChampionSummary, GameDataStore } from '../../../core/game-data';
                       <span class="cp-seat__avatar" [style.background]="avatarBg(m.hue)">{{ m.initials }}</span>
                       <span class="cp-seat__meta">
                         <span class="cp-seat__name nf-mono">{{ m.name }}</span>
-                        <span class="cp-seat__role nf-mono">{{ m.owner ? 'CAPITÁN · ABRIÓ LA SALA' : 'APUNTADO' }}</span>
+                        <span class="cp-seat__role nf-mono">{{ m.owner ? 'Capitán · abrió la sala' : 'Apuntado' }}</span>
                         @if (badgesOf(m.name); as bs) {
                           @if (bs.length) {
                             <div class="mbadges mbadges--tight">
@@ -599,9 +598,9 @@ import { ChampionSummary, GameDataStore } from '../../../core/game-data';
                     <div class="cp-seat cp-seat--open">
                       <span class="cp-seat__slot" aria-hidden="true"><span class="cp-spinner"></span></span>
                       <span class="cp-seat__meta">
-                        <span class="cp-seat__name nf-mono">ASIENTO ABIERTO</span>
+                        <span class="cp-seat__name nf-mono">Asiento abierto</span>
                         <span class="cp-seat__role nf-mono">
-                          ESPERANDO JUGADOR<span class="cp-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+                          Esperando jugador<span class="cp-dots" aria-hidden="true"><i></i><i></i><i></i></span>
                         </span>
                       </span>
                     </div>
@@ -615,19 +614,19 @@ import { ChampionSummary, GameDataStore } from '../../../core/game-data';
                 @if (r.status === 'live') {
                   <div class="cp-room__ready nf-mono">
                     <span class="cp-room__ready-glyph">▶</span>
-                    PARTIDA EN CURSO · 10/10 JUGADORES
+                    Partida en curso · 10/10 jugadores
                   </div>
                 } @else if (!full()) {
                   <button type="button" class="cp-sim nf-mono" [disabled]="!pool().length" (click)="simulateJoin()">
                     ▶ simular que alguien se apunta ({{ pool().length }} disponibles)
                   </button>
                   <p class="form-note nf-mono" style="margin:0">
-                    MAQUETA · EN REAL, LOS MIEMBROS RECIBIRÍAN UNA NOTIFICACIÓN Y SE APUNTARÍAN DESDE SU CUENTA.
+                    Maqueta · en real, los miembros recibirían una notificación y se apuntarían desde su cuenta.
                   </p>
                 } @else {
                   <div class="cp-room__ready nf-mono">
                     <span class="cp-room__ready-glyph">✓</span>
-                    SALA COMPLETA · LISTA PARA CONFIGURAR Y LANZAR
+                    Sala completa · lista para configurar y lanzar
                   </div>
                 }
               </div>
@@ -644,9 +643,9 @@ import { ChampionSummary, GameDataStore } from '../../../core/game-data';
             @if (res.winner !== 'cancelled') {
               <div class="vic" [attr.data-side]="res.winner">
                 <div class="vic__inner">
-                  <div class="vic__eyebrow nf-mono nf-eyebrow">Partida finalizada</div>
-                  <div class="vic__title nf-mono">VICTORIA</div>
-                  <div class="vic__team nf-mono">EQUIPO {{ res.winner === 'blue' ? 'AZUL' : 'ROJO' }}</div>
+                  <div class="vic__eyebrow nf-mono">Partida finalizada</div>
+                  <div class="vic__title nf-mono">Victoria</div>
+                  <div class="vic__team nf-mono">Equipo {{ res.winner === 'blue' ? 'Azul' : 'Rojo' }}</div>
                   <div class="vic__winners">
                     @for (w of winners(r); track w.member.tag) {
                       <div class="vic__winner">
@@ -665,7 +664,7 @@ import { ChampionSummary, GameDataStore } from '../../../core/game-data';
                       </div>
                     }
                   </div>
-                  <button nfButton variant="primary" size="md" (click)="celebrating.set(false)" class="nf-go">Continuar</button>
+                  <button nfButton variant="primary" size="md" (click)="celebrating.set(false)">Continuar</button>
                 </div>
               </div>
             }
@@ -675,7 +674,7 @@ import { ChampionSummary, GameDataStore } from '../../../core/game-data';
             <div class="modal-overlay">
               <div class="cp-loader">
                 <div class="cp-loader__spinner" aria-hidden="true"></div>
-                <div class="cp-loader__title nf-mono">REBALANCEANDO…</div>
+                <div class="cp-loader__title nf-mono">Rebalanceando…</div>
                 <div class="cp-loader__log">
                   <div class="cp-loader__line nf-mono" style="--d:0s">› recalculando posiciones</div>
                   <div class="cp-loader__line nf-mono" style="--d:.35s">› equilibrando los equipos</div>
@@ -689,8 +688,8 @@ import { ChampionSummary, GameDataStore } from '../../../core/game-data';
             @if (!rebalancing()) {
               <div class="modal-overlay">
                 <div class="modal modal--wide" (click)="$event.stopPropagation()">
-                  <nf-window title="preview_partida.exe" accent="cyan" bodyPadding="24px">
-                    <div class="settings-eyebrow nf-mono nf-eyebrow">Revisa el reparto antes de lanzar</div>
+                  <nf-window title="Vista previa de la partida" bodyPadding="24px">
+                    <div class="settings-eyebrow nf-mono">Revisa el reparto antes de lanzar</div>
                     <p class="remove-msg">
                       Así quedan los equipos. Si no te convence, vuelve a rebalancear; cuando estés
                       conforme, lánzala.
@@ -698,15 +697,15 @@ import { ChampionSummary, GameDataStore } from '../../../core/game-data';
 
                     <div class="cp-balance">
                       <div class="cp-balance__head nf-mono">
-                        <span class="cp-balance__team cp-balance__team--blue">AZUL <b>{{ teamElo(pt).blue }}</b></span>
+                        <span class="cp-balance__team cp-balance__team--blue">Azul <b>{{ teamElo(pt).blue }}</b></span>
                         <span class="cp-balance__verdict" [attr.data-side]="verdict(pt).side">
                           @if (verdict(pt).side === 'even') {
                             ⚖ {{ verdict(pt).text }}
                           } @else {
-                            {{ verdict(pt).text }} {{ verdict(pt).side === 'blue' ? 'AZUL ◀' : '▶ ROJO' }}
+                            {{ verdict(pt).text }} {{ verdict(pt).side === 'blue' ? 'Azul ◀' : '▶ Rojo' }}
                           }
                         </span>
-                        <span class="cp-balance__team cp-balance__team--red"><b>{{ teamElo(pt).red }}</b> ROJO</span>
+                        <span class="cp-balance__team cp-balance__team--red"><b>{{ teamElo(pt).red }}</b> Rojo</span>
                       </div>
                       <div class="cp-balance__bar">
                         <div class="cp-balance__fill" [style.width.%]="teamElo(pt).blueShare * 100"></div>
@@ -716,7 +715,7 @@ import { ChampionSummary, GameDataStore } from '../../../core/game-data';
 
                     <div class="cp-teams">
                       <div class="cp-team cp-team--blue">
-                        <div class="cp-team__head nf-mono"><span class="cp-team__dot"></span> EQUIPO AZUL</div>
+                        <div class="cp-team__head nf-mono"><span class="cp-team__dot"></span> Equipo azul</div>
                         @for (s of pt.blue; track s.member.tag) {
                           <div class="cp-slot">
                             <span class="cp-slot__role nf-mono">{{ s.roleLabel }}</span>
@@ -759,7 +758,7 @@ import { ChampionSummary, GameDataStore } from '../../../core/game-data';
                       </div>
 
                       <div class="cp-team cp-team--red">
-                        <div class="cp-team__head nf-mono"><span class="cp-team__dot"></span> EQUIPO ROJO</div>
+                        <div class="cp-team__head nf-mono"><span class="cp-team__dot"></span> Equipo rojo</div>
                         @for (s of pt.red; track s.member.tag) {
                           <div class="cp-slot">
                             <span class="cp-slot__role nf-mono">{{ s.roleLabel }}</span>
@@ -803,12 +802,12 @@ import { ChampionSummary, GameDataStore } from '../../../core/game-data';
                     </div>
 
                     <div class="cp-teams__foot">
-                      <button type="button" class="cp-reroll nf-mono nf-caps" (click)="rebalancePreview()">↻ Rebalancear</button>
+                      <button type="button" class="cp-reroll nf-mono" (click)="rebalancePreview()">↻ Rebalancear</button>
                     </div>
 
                     <div class="form-foot">
                       <button nfButton variant="ghost" size="md" (click)="cancelPreview()">Cancelar</button>
-                      <button nfButton variant="primary" size="md" (click)="confirmPreview()" class="nf-go">Lanzar partida</button>
+                      <button nfButton variant="primary" size="md" (click)="confirmPreview()">Lanzar partida</button>
                     </div>
                   </nf-window>
                 </div>
@@ -819,17 +818,17 @@ import { ChampionSummary, GameDataStore } from '../../../core/game-data';
           @if (confirmWin(); as side) {
             <div class="modal-overlay" (click)="confirmWin.set(null)">
               <div class="modal" (click)="$event.stopPropagation()">
-                <nf-window [title]="'confirmar_resultado.exe'" [accent]="side === 'blue' ? 'cyan' : 'pink'" bodyPadding="24px">
-                  <div class="settings-eyebrow nf-mono nf-eyebrow">Confirmar resultado</div>
+                <nf-window [title]="'Confirmar resultado'" bodyPadding="24px">
+                  <div class="settings-eyebrow nf-mono">Confirmar resultado</div>
                   <p class="remove-msg">
-                    ¿Seguro que marcas <strong>EQUIPO {{ side === 'blue' ? 'AZUL' : 'ROJO' }}</strong> como ganador?
+                    ¿Seguro que marcas <strong>equipo {{ side === 'blue' ? 'azul' : 'rojo' }}</strong> como ganador?
                   </p>
                   <div class="remove-warn nf-mono">
                     ⚠ Disparará el cálculo de MMR y guardará la partida. Si te equivocas, podrás corregirlo después.
                   </div>
                   <div class="form-foot">
                     <button nfButton variant="ghost" size="md" (click)="confirmWin.set(null)">Cancelar</button>
-                    <button nfButton variant="primary" size="md" (click)="confirmWinNow(r)" class="nf-go">Confirmar</button>
+                    <button nfButton variant="primary" size="md" (click)="confirmWinNow(r)">Confirmar</button>
                   </div>
                 </nf-window>
               </div>
@@ -839,17 +838,17 @@ import { ChampionSummary, GameDataStore } from '../../../core/game-data';
           @if (confirmClose()) {
             <div class="modal-overlay" (click)="confirmClose.set(false)">
               <div class="modal" (click)="$event.stopPropagation()">
-                <nf-window [title]="'cerrar_sala.exe'" accent="pink" bodyPadding="24px">
-                  <div class="settings-eyebrow nf-mono nf-eyebrow">Cerrar la sala</div>
+                <nf-window [title]="'Cerrar sala'" bodyPadding="24px">
+                  <div class="settings-eyebrow nf-mono">Cerrar la sala</div>
                   <p class="remove-msg">
-                    ¿Seguro que quieres <strong>CERRAR LA SALA</strong>? Se terminará la sesión.
+                    ¿Seguro que quieres <strong>cerrar la sala</strong>? Se terminará la sesión.
                   </p>
                   <div class="remove-warn nf-mono">
                     ⚠ La sala se eliminará para todos los jugadores. Esta acción no se puede deshacer.
                   </div>
                   <div class="form-foot">
                     <button nfButton variant="ghost" size="md" (click)="confirmClose.set(false)">Cancelar</button>
-                    <button nfButton variant="danger" size="md" (click)="closeRoom(r)" class="nf-go">Cerrar sala</button>
+                    <button nfButton variant="danger" size="md" (click)="closeRoom(r)">Cerrar sala</button>
                   </div>
                 </nf-window>
               </div>
@@ -858,7 +857,7 @@ import { ChampionSummary, GameDataStore } from '../../../core/game-data';
           }
         } @else {
           <div class="view__head">
-            <div class="view__eyebrow nf-mono nf-eyebrow">Error 404</div>
+            <div class="view__eyebrow nf-mono">Error 404</div>
             <h1 class="view__title">Sala no encontrada</h1>
             <p class="view__lead">Esta sala ya no existe: se canceló o la partida terminó.</p>
           </div>
@@ -868,7 +867,7 @@ import { ChampionSummary, GameDataStore } from '../../../core/game-data';
         }
       } @else {
         <div class="view__head">
-          <div class="view__eyebrow nf-mono nf-eyebrow">Error 404</div>
+          <div class="view__eyebrow nf-mono">Error 404</div>
           <h1 class="view__title">Grupo no encontrado</h1>
         </div>
         <button nfButton variant="secondary" size="md" [routerLink]="['/app', 'grupos']">← Volver a grupos</button>
@@ -1082,7 +1081,7 @@ export class GrupoSala {
   verdict(t: RoomTeams): { text: string; side: 'even' | 'blue' | 'red' } {
     const e = this.teamElo(t);
     const d = e.blue - e.red;
-    if (Math.abs(d) <= 15) return { text: 'EQUILIBRADO', side: 'even' };
+    if (Math.abs(d) <= 15) return { text: 'Equilibrado', side: 'even' };
     return { text: `+${Math.abs(d)}`, side: d > 0 ? 'blue' : 'red' };
   }
 
@@ -1418,8 +1417,8 @@ export class GrupoSala {
   /** Label of the wizard step the admin is on (for the follower view). */
   stepName(step: number): string {
     return (
-      ['PARTICIPANTES', 'LÍNEAS', 'DUOS / TRÍOS / VS', 'PERSONAJES', 'LANZAR'][step - 1] ??
-      'CONFIGURANDO'
+      ['Participantes', 'Líneas', 'Duos / tríos / vs', 'Personajes', 'Lanzar'][step - 1] ??
+      'Configurando'
     );
   }
 

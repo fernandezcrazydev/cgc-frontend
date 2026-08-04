@@ -26,11 +26,11 @@ import { GameDataStore } from '../../../core/game-data';
           />
           <div class="md-hero__meta">
             <div class="md-hero__top nf-mono">
-              <span class="md-hero__result">{{ m.win ? 'VICTORIA' : 'DERROTA' }}</span>
+              <span class="md-hero__result">{{ m.win ? 'Victoria' : 'Derrota' }}</span>
               <span class="md-hero__dot">·</span>
               <span>{{ m.mode }}</span>
               <span class="md-hero__dot">·</span>
-              <span>{{ m.durationMin }} MIN</span>
+              <span>{{ m.durationMin }} min</span>
             </div>
             @if (champsLoading()) {
               <nf-skeleton width="220px" height="clamp(22px, 5vw, 30px)" />
@@ -39,7 +39,7 @@ import { GameDataStore } from '../../../core/game-data';
             }
             <div class="md-hero__sub nf-mono">◆ {{ m.groupName }} ▪ {{ m.date }}</div>
           </div>
-          <nf-badge [color]="m.win ? 'green' : 'pink'" [dot]="true">{{ m.win ? 'WIN' : 'LOSS' }}</nf-badge>
+          <nf-badge [color]="m.win ? 'success' : 'primary'" [dot]="true">{{ m.win ? 'Win' : 'Loss' }}</nf-badge>
         </div>
 
         <div class="md-grid">
@@ -49,16 +49,16 @@ import { GameDataStore } from '../../../core/game-data';
           </div>
           <div class="md-stat">
             <div class="md-stat__val">{{ m.cs }}</div>
-            <div class="md-stat__lbl nf-mono">MINIONS · {{ csPerMin() }}/MIN</div>
+            <div class="md-stat__lbl nf-mono">Minions · {{ csPerMin() }}/min</div>
           </div>
           <div class="md-stat">
             <div class="md-stat__val">{{ goldFull() }}</div>
-            <div class="md-stat__lbl nf-mono">ORO TOTAL</div>
+            <div class="md-stat__lbl nf-mono">Oro total</div>
           </div>
         </div>
 
-        <div class="view__label nf-mono">▸ OBJETOS</div>
-        <nf-window title="build.exe" accent="cyan" bodyPadding="18px">
+        <div class="view__label nf-mono">▸ Objetos</div>
+        <nf-window title="Build" bodyPadding="18px">
           <div class="md-items">
             @for (it of m.items; track $index) {
               @if (it) {
@@ -69,7 +69,7 @@ import { GameDataStore } from '../../../core/game-data';
               } @else {
                 <div class="md-itemslot md-itemslot--empty">
                   <span class="md-itemslot__icon--empty"></span>
-                  <span class="md-itemslot__name nf-mono">VACÍO</span>
+                  <span class="md-itemslot__name nf-mono">Vacío</span>
                 </div>
               }
             }
@@ -81,7 +81,7 @@ import { GameDataStore } from '../../../core/game-data';
         </div>
       } @else {
         <div class="view__head">
-          <div class="view__eyebrow nf-mono nf-eyebrow">Error 404</div>
+          <div class="view__eyebrow nf-mono">Error 404</div>
           <h1 class="view__title">Partida no encontrada</h1>
           <p class="view__lead">Esta partida no existe o ya no está en tu historial.</p>
         </div>

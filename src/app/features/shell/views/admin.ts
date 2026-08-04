@@ -51,7 +51,7 @@ const ITEMS: AdminDirectoryItem[] = [
   template: `
     <div class="view">
       <div class="view__head">
-        <div class="view__eyebrow nf-mono nf-eyebrow">Administración</div>
+        <div class="view__eyebrow nf-mono">Administración</div>
         <h1 class="view__title">Admin</h1>
         <p class="view__lead">Acciones de administración: triaje de reportes y operaciones puntuales sobre datos del servidor.</p>
       </div>
@@ -66,7 +66,7 @@ const ITEMS: AdminDirectoryItem[] = [
                   <span class="ad-card__label">{{ item.label }}</span>
                   <span class="ad-card__desc">{{ item.description }}</span>
                 </span>
-                <span class="ad-card__cta nf-mono nf-caps nf-go">Abrir</span>
+                <span class="ad-card__cta nf-mono">Abrir</span>
               </a>
             }
             @case ('riot-metrics') {
@@ -76,7 +76,7 @@ const ITEMS: AdminDirectoryItem[] = [
                   <span class="ad-card__label">{{ item.label }}</span>
                   <span class="ad-card__desc">{{ item.description }}</span>
                 </span>
-                <span class="ad-card__cta nf-mono nf-caps nf-go">Abrir</span>
+                <span class="ad-card__cta nf-mono">Abrir</span>
               </a>
             }
             @case ('riot-profile-icons-sync') {
@@ -152,7 +152,7 @@ const ITEMS: AdminDirectoryItem[] = [
       }
       .ad-card__result {
         font-size: 12px;
-        color: var(--nf-cyan);
+        color: var(--nf-secondary);
       }
       .ad-card__cta {
         align-self: center;

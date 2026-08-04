@@ -6,19 +6,18 @@
   <base href="/">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" type="image/x-icon" href="favicon.ico">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <!-- Iconos reales de LoL (campeones, hechizos, objetos): backend cachea el catálogo, el
        navegador pide las imágenes directas a Data Dragon. -->
   <link rel="preconnect" href="https://ddragon.leagueoflegends.com">
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <!-- Sin webfonts a propósito: la tipografía es la del sistema (ver tokens/typography.css).
+       Se ahorra la petición a Google Fonts y el salto de tipografía al cargar. -->
   <!-- Aplica el tema guardado antes del primer paint para evitar el flash de skin. -->
   <script>
     (function () {
       try {
         var t = localStorage.getItem('cgc-theme');
-        // 'nexus' es el default y no lleva atributo (:root a secas ya es nexus).
-        if (t === 'nocturne' || t === 'original') {
+        // 'nocturne' es el default y no lleva atributo (:root a secas ya es nocturne).
+        if (t === 'original') {
           document.documentElement.setAttribute('data-theme', t);
         }
       } catch (e) {}

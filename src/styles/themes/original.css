@@ -7,12 +7,13 @@
    de las clases Tailwind que usaba LobbyView.
 
    Es una SKIN: redefine tokens --nf-* bajo
-   :root[data-theme="original"] y aplana los efectos "firma"
-   que los componentes hardcodean fuera de token.
+   :root[data-theme="original"]. Solo CSS, sin excepciones.
 
-   ÚNICA excepción no-CSS: `NfWindow` no renderiza la barra de
-   ventana retro bajo este tema (el semáforo es markup, no un
-   token) y pinta `.nf-window__heading` en su lugar.
+   El grueso de lo que este fichero hacía antes era neutralizar
+   los efectos de la base (sombras duras, resplandores,
+   mayúsculas, tracking ancho). Eso ya no existe en la base, así
+   que aquí solo queda lo propio del look legacy: cristal,
+   resplandores de fondo y su paleta índigo/fucsia.
    ============================================================ */
 
 :root[data-theme='original'] {
@@ -28,13 +29,13 @@
   --nf-elevated: #20243c;
 
   /* ---- Paleta: índigo primario, fucsia secundario ---- */
-  --nf-pink: #6366f1; /* primary   → indigo-500          */
-  --nf-pink-strong: #4f46e5; /* pressed   → indigo-600   */
-  --nf-cyan: #e879f9; /* secondary → fuchsia-400         */
-  --nf-purple: #a78bfa; /* violet-400                     */
-  --nf-yellow: #fbbf24; /* amber-400                      */
-  --nf-green: #34d399; /* emerald-400                     */
-  --nf-red: #fb7185; /* rose-400                          */
+  --nf-primary: #6366f1; /* primary   → indigo-500          */
+  --nf-primary-strong: #4f46e5; /* pressed   → indigo-600   */
+  --nf-secondary: #e879f9; /* secondary → fuchsia-400         */
+  --nf-tertiary: #a78bfa; /* violet-400                     */
+  --nf-warning: #fbbf24; /* amber-400                      */
+  --nf-success: #34d399; /* emerald-400                     */
+  --nf-danger: #fb7185; /* rose-400                          */
 
   --nf-team-blue: #60a5fa; /* blue-400  */
   --nf-team-red: #fb7185; /* rose-400   */
@@ -48,13 +49,11 @@
   /* ---- Líneas: hairlines blancos (white/10, white/15) ---- */
   --nf-border: rgba(255, 255, 255, 0.1);
   --nf-border-strong: rgba(255, 255, 255, 0.16);
-  --nf-border-pink: rgba(99, 102, 241, 0.4);
+  --nf-border-accent: rgba(99, 102, 241, 0.4);
 
-  /* ---- Efectos: sombras difusas, cero glow neón ---- */
-  --nf-shadow-cyan: 0 8px 24px rgba(0, 0, 0, 0.4);
-  --nf-shadow-pink: 0 8px 24px rgba(0, 0, 0, 0.4);
+  /* ---- Efectos: sombras más difusas y largas que las de la base ---- */
+  --nf-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
   --nf-shadow-card: 0 12px 32px rgba(0, 0, 0, 0.45);
-  --nf-glow-pink: 0 0 0 rgba(0, 0, 0, 0);
 
   /* ---- Tipografía: la pila del sistema del legacy, sin mono ---- */
   --nf-font: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
@@ -147,33 +146,11 @@
 }
 
 /* ============================================================
-   Aplanado de efectos "firma" del UI kit
+   Cristal en las superficies del UI kit
    (selectores globales, ViewEncapsulation.None).
    ============================================================ */
 
-/* ---- Botones: pill suave, sin mayúsculas, sin sombra dura ---- */
-:root[data-theme='original'] .nf-btn {
-  text-transform: none;
-  letter-spacing: 0;
-  font-weight: 600;
-  border-radius: var(--nf-radius);
-  box-shadow: none !important;
-}
-:root[data-theme='original'] .nf-btn:hover:not(:disabled) {
-  transform: none;
-  filter: brightness(1.1);
-}
-:root[data-theme='original'] .nf-btn:active:not(:disabled) {
-  transform: scale(0.97);
-  filter: brightness(0.95);
-}
-:root[data-theme='original'] .nf-btn--danger {
-  color: #fff;
-}
-
-/* ---- Ventana → tarjeta de cristal ----
-   La barra ya no se renderiza (lo decide NfWindow); aquí se le da al contenedor
-   el aspecto `.glass` del legacy. */
+/* ---- Ventana → tarjeta de cristal (el `.glass` del legacy) ---- */
 :root[data-theme='original'] .nf-window {
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -185,7 +162,7 @@
   background: transparent;
 }
 
-/* ---- Toasts: cristal con sombra difusa, sin sombra dura ni glow ---- */
+/* ---- Toasts: cristal, con más blur que el de la base ---- */
 :root[data-theme='original'] .nf-toast {
   background: rgba(23, 26, 46, 0.92);
   backdrop-filter: blur(12px);
@@ -222,15 +199,15 @@
   background: rgba(255, 255, 255, 0.26);
 }
 
-/* ---- Range input: pulgar índigo redondo, sin glow ---- */
+/* ---- Range input: pulgar índigo ---- */
 :root[data-theme='original'] .nf-range::-webkit-slider-thumb {
-  background: var(--nf-pink);
+  background: var(--nf-primary);
   border-color: var(--nf-void);
   border-radius: 50%;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
 }
 :root[data-theme='original'] .nf-range::-moz-range-thumb {
-  background: var(--nf-pink);
+  background: var(--nf-primary);
   border-color: var(--nf-void);
   border-radius: 50%;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
@@ -239,32 +216,6 @@
 /* ============================================================
    Overrides de vistas (views.scss)
    ============================================================ */
-
-/* Tracking: el legacy nunca separaba letras. Mismo truco que Nocturne: el
-   combinador [class] (0,2,0) gana a los `.foo { letter-spacing: 3px }` (0,1,0)
-   sin !important. */
-:root[data-theme='original'] [class] {
-  letter-spacing: normal;
-}
-
-/* Eyebrows: sin el marcador "// " y sin mayúsculas. El texto ya está escrito en
-   frase normal en las plantillas (ver .nf-eyebrow en tokens/base.css), así que
-   aquí basta con no vestirlo. Cubre también --asis y --lower: (0,2,0) gana. */
-:root[data-theme='original'] .nf-eyebrow {
-  text-transform: none;
-}
-:root[data-theme='original'] .nf-eyebrow::before {
-  content: none;
-}
-
-/* Etiquetas en mayúsculas fuera de botón, y la puntita ► de los CTA: ambas son
-   decoración retro. El copy ya está en frase normal en las plantillas. */
-:root[data-theme='original'] .nf-caps {
-  text-transform: none;
-}
-:root[data-theme='original'] .nf-go::after {
-  content: none;
-}
 
 /* Otras mayúsculas puestas por CSS. */
 :root[data-theme='original'] .member-detail__label,
@@ -278,7 +229,7 @@
   color: var(--nf-text-dim);
 }
 
-/* Hover: elevación suave en vez de "hundirse en la sombra dura". */
+/* Hover: elevación algo mayor que la de la base, acorde con el cristal. */
 :root[data-theme='original'] .resume-hero:hover,
 :root[data-theme='original'] .champ:hover,
 :root[data-theme='original'] .group-card:hover,
@@ -289,21 +240,6 @@
 :root[data-theme='original'] .cp-mode:hover {
   transform: translateY(-2px);
   box-shadow: var(--nf-shadow-card);
-}
-
-/* Glows neón fuera. */
-:root[data-theme='original'] .hl__big {
-  filter: none;
-}
-:root[data-theme='original'] .resume-hero__avatar,
-:root[data-theme='original'] .group-hero__avatar {
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
-}
-:root[data-theme='original'] .field__input:focus {
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.35);
-}
-:root[data-theme='original'] .seg__btn.is-active {
-  background: rgba(255, 255, 255, 0.1);
 }
 
 /* Texto sobre relleno índigo: blanco (antes era oscuro sobre neón). */
@@ -344,7 +280,7 @@
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
 }
 :root[data-theme='original'] .shell__fab {
-  background: var(--nf-pink);
+  background: var(--nf-primary);
   box-shadow: 0 8px 22px rgba(99, 102, 241, 0.4), 0 0 0 6px var(--nf-void);
 }
 :root[data-theme='original'] .shell__bottomnav-item--center.is-active .shell__fab {
@@ -365,17 +301,6 @@
 }
 :root[data-theme='original'] .shell__profile:hover .shell__avatar {
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
-}
-
-/* Glows del logo / campana / notificaciones fuera. */
-:root[data-theme='original'] .shell__logo,
-:root[data-theme='original'] .shell__bell.is-active,
-:root[data-theme='original'] .shell__notif {
-  filter: none;
-}
-:root[data-theme='original'] .shell__bell.is-active,
-:root[data-theme='original'] .shell__bell-badge {
-  box-shadow: none;
 }
 
 /* Paneles flotantes: cristal, no violeta. */
@@ -403,45 +328,11 @@
   background: rgba(7, 9, 18, 0.72);
 }
 
-/* ============================================================
-   Login: fuera el sol neón y la rejilla en perspectiva. Es la
-   pieza más vaporwave de la app y no pinta nada en Original;
-   en su lugar se dejan ver los resplandores del body.
-   ============================================================ */
+/* ---- Login: el wordmark con el degradado del legacy ---- */
 
-:root[data-theme='original'] .login {
-  background: transparent;
-}
-:root[data-theme='original'] .login__sun,
-:root[data-theme='original'] .login__grid {
-  display: none;
-}
-/* La puntita del CTA de Discord ya vive en su propio span: aquí basta ocultarla
-   (es el equivalente a .nf-go para un glifo que ya estaba separado del copy). */
-:root[data-theme='original'] .login__discord-arrow {
-  display: none;
-}
 :root[data-theme='original'] .login__wordmark {
   background: linear-gradient(110deg, #818cf8, #e879f9 60%, #f0abfc);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-}
-
-/* ============================================================
-   Legibilidad: mismo suelo de 11px que Nocturne. La app tiene
-   mucha label a 9–10px, por debajo del mínimo de la guía, y sin
-   el mono vaporwave se leen peor todavía.
-   ============================================================ */
-
-:root[data-theme='original'] [class*='eyebrow'],
-:root[data-theme='original'] [class*='__role'],
-:root[data-theme='original'] [class*='__sub'],
-:root[data-theme='original'] [class*='__meta'],
-:root[data-theme='original'] [class*='__time'],
-:root[data-theme='original'] [class*='__seats'],
-:root[data-theme='original'] [class*='__count'],
-:root[data-theme='original'] [class*='__mode'],
-:root[data-theme='original'] [class*='__cap'] {
-  font-size: 11px;
 }

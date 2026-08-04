@@ -19,7 +19,7 @@ import { GameDataStore } from '../../../core/game-data';
           <span class="view-back__arrow" aria-hidden="true">←</span> {{ g.name }}
         </a>
         <div class="view__head">
-          <div class="view__eyebrow nf-mono nf-eyebrow">Historial del grupo</div>
+          <div class="view__eyebrow nf-mono">Historial del grupo</div>
           <h1 class="view__title">{{ g.name }}</h1>
           <p class="view__lead">Partidas disputadas en este grupo. Pulsa una para ver el detalle completo.</p>
         </div>
@@ -34,9 +34,9 @@ import { GameDataStore } from '../../../core/game-data';
                 [routerLink]="['/app', 'historial', m.id]"
               >
                 <div class="mh-result">
-                  <span class="mh-result__label nf-mono">{{ m.win ? 'VICTORIA' : 'DERROTA' }}</span>
+                  <span class="mh-result__label nf-mono">{{ m.win ? 'Victoria' : 'Derrota' }}</span>
                   <span class="mh-result__mode nf-mono">{{ m.mode }}</span>
-                  <span class="mh-result__time nf-mono">{{ m.durationMin }} MIN</span>
+                  <span class="mh-result__time nf-mono">{{ m.durationMin }} min</span>
                 </div>
 
                 <div class="mh-champ" [attr.aria-busy]="champsLoading() ? 'true' : null">
@@ -70,7 +70,7 @@ import { GameDataStore } from '../../../core/game-data';
 
                 <div class="mh-stats">
                   <span class="mh-stat nf-mono"><span class="mh-stat__ico">◉</span>{{ m.cs }} CS</span>
-                  <span class="mh-stat nf-mono"><span class="mh-stat__ico mh-stat__ico--gold">⬣</span>{{ gold(m.gold) }} ORO</span>
+                  <span class="mh-stat nf-mono"><span class="mh-stat__ico mh-stat__ico--gold">⬣</span>{{ gold(m.gold) }} oro</span>
                 </div>
 
                 <div class="mh-items">
@@ -85,7 +85,7 @@ import { GameDataStore } from '../../../core/game-data';
 
                 <div class="mh-when">
                   <span class="mh-when__date nf-mono">{{ m.date }}</span>
-                  <span class="mh-when__cta nf-mono nf-caps nf-go">Detalle</span>
+                  <span class="mh-when__cta nf-mono">Detalle</span>
                 </div>
               </a>
             }
@@ -93,13 +93,13 @@ import { GameDataStore } from '../../../core/game-data';
         } @else {
           <div class="empty-state">
             <span class="empty-state__icon">🎮</span>
-            <p class="empty-state__text nf-mono nf-eyebrow">Sin partidas todavía</p>
+            <p class="empty-state__text nf-mono">Sin partidas todavía</p>
             <p class="empty-state__hint">Este grupo aún no ha disputado ninguna partida.</p>
           </div>
         }
       } @else {
         <div class="view__head">
-          <div class="view__eyebrow nf-mono nf-eyebrow">Error 404</div>
+          <div class="view__eyebrow nf-mono">Error 404</div>
           <h1 class="view__title">Grupo no encontrado</h1>
           <p class="view__lead">El grupo que buscas no existe o ya no perteneces a él.</p>
         </div>

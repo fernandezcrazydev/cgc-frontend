@@ -12,7 +12,7 @@ import { NfAvatar, NfPagination, NfSkeleton } from '../../../ui';
   template: `
     <div class="view">
       <div class="view__head">
-        <div class="view__eyebrow nf-mono nf-eyebrow">Registro de partidas</div>
+        <div class="view__eyebrow nf-mono">Registro de partidas</div>
         <h1 class="view__title">Historial</h1>
         <p class="view__lead">Tus últimas partidas disputadas. Pulsa una para ver el detalle completo.</p>
       </div>
@@ -34,9 +34,9 @@ import { NfAvatar, NfPagination, NfSkeleton } from '../../../ui';
             [routerLink]="['/app', 'historial', m.id]"
           >
             <div class="mh-result">
-              <span class="mh-result__label nf-mono">{{ m.win ? 'VICTORIA' : 'DERROTA' }}</span>
+              <span class="mh-result__label nf-mono">{{ m.win ? 'Victoria' : 'Derrota' }}</span>
               <span class="mh-result__mode nf-mono">{{ m.mode }}</span>
-              <span class="mh-result__time nf-mono">{{ m.durationMin }} MIN</span>
+              <span class="mh-result__time nf-mono">{{ m.durationMin }} min</span>
             </div>
 
             <div class="mh-champ" [attr.aria-busy]="champsLoading() ? 'true' : null">
@@ -70,7 +70,7 @@ import { NfAvatar, NfPagination, NfSkeleton } from '../../../ui';
 
             <div class="mh-stats">
               <span class="mh-stat nf-mono"><span class="mh-stat__ico">◉</span>{{ m.cs }} CS</span>
-              <span class="mh-stat nf-mono"><span class="mh-stat__ico mh-stat__ico--gold">⬣</span>{{ gold(m.gold) }} ORO</span>
+              <span class="mh-stat nf-mono"><span class="mh-stat__ico mh-stat__ico--gold">⬣</span>{{ gold(m.gold) }} oro</span>
             </div>
 
             <div class="mh-items">
@@ -89,7 +89,7 @@ import { NfAvatar, NfPagination, NfSkeleton } from '../../../ui';
 
             <div class="mh-when">
               <span class="mh-when__date nf-mono">{{ m.date }}</span>
-              <span class="mh-when__cta nf-mono nf-caps nf-go">Detalle</span>
+              <span class="mh-when__cta nf-mono">Detalle</span>
             </div>
           </a>
         }

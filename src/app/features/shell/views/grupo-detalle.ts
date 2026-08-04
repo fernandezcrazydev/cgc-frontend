@@ -23,6 +23,7 @@ import {
   InvitationsStore,
   bannerColors,
   initialsOf,
+  groupRoleLabel,
 } from '../../../core/groups';
 import { UserSearchResult, UsersApi } from '../../../core/users';
 import { ToastService } from '../../../core/toast';
@@ -54,7 +55,7 @@ import { errorMessage } from '../../../core/http';
               <nf-skeleton width="160px" height="14px" />
             </div>
           </div>
-          <nf-window title="miembros.exe" accent="cyan" bodyPadding="0">
+          <nf-window title="Miembros" bodyPadding="0">
             <div class="gd-members">
               @for (s of [0, 1, 2, 3]; track s) {
                 <div class="gd-member">
@@ -73,7 +74,7 @@ import { errorMessage } from '../../../core/http';
         <div class="view">
           <div class="empty-state">
             <div class="empty-state__icon">⚠</div>
-            <div class="empty-state__text nf-mono nf-eyebrow">Error al cargar</div>
+            <div class="empty-state__text nf-mono">Error al cargar</div>
             <p class="empty-state__hint">No se pudo cargar el grupo.</p>
             <button nfButton variant="secondary" size="md" (click)="reload()">Reintentar</button>
           </div>
@@ -83,7 +84,7 @@ import { errorMessage } from '../../../core/http';
         <div class="view">
           <div class="empty-state">
             <div class="empty-state__icon">🔍</div>
-            <div class="empty-state__text nf-mono nf-eyebrow">Grupo no encontrado</div>
+            <div class="empty-state__text nf-mono">Grupo no encontrado</div>
             <p class="empty-state__hint">Este grupo no existe o ya no eres miembro.</p>
             <button nfButton variant="ghost" size="md" [routerLink]="['/app', 'grupos']">← Todos los grupos</button>
           </div>
@@ -104,14 +105,14 @@ import { errorMessage } from '../../../core/http';
                 <div class="group-hero__tag nf-mono">{{ g.region ?? '—' }}</div>
                 <h1 class="group-hero__name">{{ g.name }}</h1>
                 <div class="group-hero__badges">
-                  <nf-badge [color]="g.role === 'OWNER' ? 'pink' : 'cyan'">{{ g.role }}</nf-badge>
-                  <span class="group-hero__count nf-mono">◉ {{ store.memberCount() }} MIEMBROS</span>
+                  <nf-badge [color]="g.role === 'OWNER' ? 'primary' : 'secondary'">{{ roleLabel(g.role) }}</nf-badge>
+                  <span class="group-hero__count nf-mono">◉ {{ store.memberCount() }} miembros</span>
                 </div>
               </div>
             </div>
 
             <div class="actions">
-              <button nfButton variant="primary" size="md" [routerLink]="['/app', 'grupos', g.id, 'crear-partida']" class="nf-go">Crear partida</button>
+              <button nfButton variant="primary" size="md" [routerLink]="['/app', 'grupos', g.id, 'crear-partida']">Crear partida</button>
               @if (store.canManage()) {
                 <button nfButton variant="secondary" size="md" (click)="openInvite()">✉ Invitar</button>
               }
@@ -132,8 +133,7 @@ import { errorMessage } from '../../../core/http';
                  flotaba fuera y el título de la ventana repetía el mismo estado: dos indicadores
                  sueltos de lo mismo. -->
             <nf-window
-              [title]="showingInvites() ? 'invitados.exe' : 'miembros.exe'"
-              [accent]="showingInvites() ? 'pink' : 'cyan'"
+              [title]="showingInvites() ? 'Invitados' : 'Miembros'"
               bodyPadding="0"
             >
               @if (store.canManage()) {
@@ -172,7 +172,7 @@ import { errorMessage } from '../../../core/http';
                         </span>
                         <div class="gd-member__meta">
                           <div class="gd-member__name nf-mono">
-                            {{ m.discordUsername }}@if (isMe(m)) {<span class="gd-member__you nf-mono"> · TÚ</span>}
+                            {{ m.discordUsername }}@if (isMe(m)) {<span class="gd-member__you nf-mono"> · Tú</span>}
                           </div>
                           <div class="gd-member__role nf-mono">{{ m.role }}</div>
                           <div class="gd-member__riot nf-mono" [title]="riotLabel(m)">
@@ -185,9 +185,9 @@ import { errorMessage } from '../../../core/http';
                           </div>
                         </div>
                         @if (m.role === 'OWNER') {
-                          <nf-badge color="pink">OWNER</nf-badge>
+                          <nf-badge color="primary">Owner</nf-badge>
                         } @else if (m.role === 'ADMIN') {
-                          <nf-badge color="cyan">ADMIN</nf-badge>
+                          <nf-badge color="secondary">Admin</nf-badge>
                         }
                         <div class="gd-member__actions">
                           @if (canPromote(m)) {
@@ -235,7 +235,7 @@ import { errorMessage } from '../../../core/http';
                   }
                   @case ('error') {
                     <div class="gd-invites-empty">
-                      <div class="gd-invites-empty__text nf-mono nf-eyebrow">Error al cargar invitaciones</div>
+                      <div class="gd-invites-empty__text nf-mono">Error al cargar invitaciones</div>
                       <button nfButton variant="secondary" size="sm" (click)="reloadInvites()">Reintentar</button>
                     </div>
                   }
@@ -253,7 +253,7 @@ import { errorMessage } from '../../../core/http';
                             </span>
                             <div class="gd-member__meta">
                               <div class="gd-member__name nf-mono">{{ inv.discordUsername ?? '—' }}</div>
-                              <div class="gd-member__role nf-mono">INVITACIÓN PENDIENTE</div>
+                              <div class="gd-member__role nf-mono">Invitación pendiente</div>
                             </div>
                             <div class="gd-member__actions">
                               <button
@@ -269,7 +269,7 @@ import { errorMessage } from '../../../core/http';
                       </div>
                     } @else {
                       <div class="gd-invites-empty">
-                        <div class="gd-invites-empty__text nf-mono nf-eyebrow">Sin invitaciones pendientes</div>
+                        <div class="gd-invites-empty__text nf-mono">Sin invitaciones pendientes</div>
                         <button nfButton variant="secondary" size="sm" (click)="openInvite()">✉ Invitar a alguien</button>
                       </div>
                     }
@@ -286,7 +286,7 @@ import { errorMessage } from '../../../core/http';
     @if (confirmDelete()) {
       <div class="modal-overlay" (click)="confirmDelete.set(false)">
         <div class="modal" (click)="$event.stopPropagation()">
-          <nf-window title="borrar_grupo.exe" accent="pink" bodyPadding="24px">
+          <nf-window title="Borrar grupo" bodyPadding="24px">
             <p class="gd-confirm">¿Seguro que quieres <strong>borrar</strong> este grupo? Esta acción no se puede deshacer.</p>
             <div class="form-foot">
               <button nfButton variant="ghost" size="md" [disabled]="store.busy()" (click)="confirmDelete.set(false)">Cancelar</button>
@@ -299,7 +299,7 @@ import { errorMessage } from '../../../core/http';
     @if (confirmLeave()) {
       <div class="modal-overlay" (click)="confirmLeave.set(false)">
         <div class="modal" (click)="$event.stopPropagation()">
-          <nf-window title="salir_grupo.exe" accent="pink" bodyPadding="24px">
+          <nf-window title="Salir del grupo" bodyPadding="24px">
             <p class="gd-confirm">¿Seguro que quieres <strong>salir</strong> de este grupo?</p>
             <div class="form-foot">
               <button nfButton variant="ghost" size="md" [disabled]="store.busy()" (click)="confirmLeave.set(false)">Cancelar</button>
@@ -312,7 +312,7 @@ import { errorMessage } from '../../../core/http';
     @if (kick(); as m) {
       <div class="modal-overlay" (click)="kick.set(null)">
         <div class="modal" (click)="$event.stopPropagation()">
-          <nf-window title="expulsar.exe" accent="pink" bodyPadding="24px">
+          <nf-window title="Expulsar" bodyPadding="24px">
             <p class="gd-confirm">¿Expulsar a <strong>{{ m.discordUsername }}</strong> del grupo?</p>
             <div class="form-foot">
               <button nfButton variant="ghost" size="md" [disabled]="store.isActing(m.userId)" (click)="kick.set(null)">Cancelar</button>
@@ -325,10 +325,10 @@ import { errorMessage } from '../../../core/http';
     @if (transferTo(); as m) {
       <div class="modal-overlay" (click)="transferTo.set(null)">
         <div class="modal" (click)="$event.stopPropagation()">
-          <nf-window title="transferir.exe" accent="pink" bodyPadding="24px">
+          <nf-window title="Transferir propiedad" bodyPadding="24px">
             <p class="gd-confirm">
               ¿Transferir la <strong>propiedad</strong> a <strong>{{ m.discordUsername }}</strong>?
-              Pasarás a ser ADMIN.
+              Pasarás a ser admin.
             </p>
             <div class="form-foot">
               <button nfButton variant="ghost" size="md" [disabled]="store.isActing(m.userId)" (click)="transferTo.set(null)">Cancelar</button>
@@ -341,7 +341,7 @@ import { errorMessage } from '../../../core/http';
 
     <!-- invitar: mismo buscador que antes, ahora en un modal disparado desde la fila de acciones -->
     @if (showInvite()) {
-      <nf-modal title="invitar.exe" accent="pink" width="480px" (closed)="closeInvite()">
+      <nf-modal title="Invitar" width="480px" (closed)="closeInvite()">
         <div class="gd-invite">
           <input
             class="field__input"
@@ -352,11 +352,11 @@ import { errorMessage } from '../../../core/http';
             (ngModelChange)="onQuery($event)"
           />
           @if (searching()) {
-            <div class="gd-invite__hint nf-mono nf-eyebrow">Buscando…</div>
+            <div class="gd-invite__hint nf-mono">Buscando…</div>
           } @else if (query().trim().length >= 2 && !candidates().length) {
-            <div class="gd-invite__hint nf-mono nf-eyebrow">Sin resultados</div>
+            <div class="gd-invite__hint nf-mono">Sin resultados</div>
           } @else if (query().trim().length < 2) {
-            <div class="gd-invite__hint nf-mono nf-eyebrow">Escribe al menos 2 caracteres</div>
+            <div class="gd-invite__hint nf-mono">Escribe al menos 2 caracteres</div>
           }
           @for (u of candidates(); track u.userId) {
             <div class="gd-invite__row">
@@ -378,7 +378,6 @@ import { errorMessage } from '../../../core/http';
                 variant="primary"
                 size="sm"
                 [disabled]="invitations.inviting() || isInvited(u.userId) || !u.acceptsGroupInvites"
-                [class.nf-go]="!isInvited(u.userId) && u.acceptsGroupInvites"
                 (click)="invite(u)"
               >{{ isInvited(u.userId) ? 'Invitado ✓' : 'Invitar' }}</button>
             </div>
@@ -389,6 +388,8 @@ import { errorMessage } from '../../../core/http';
   `,
 })
 export class GrupoDetalle {
+  /** Etiqueta en español del rol del backend (OWNER -> Capitán). */
+  protected readonly roleLabel = groupRoleLabel;
   readonly store = inject(GroupDetailStore);
   readonly invitations = inject(InvitationsStore);
   readonly groupInvitations = inject(GroupInvitationsStore);
@@ -436,8 +437,8 @@ export class GrupoDetalle {
     const invites = this.groupInvitations.invitations().length;
     return [
       // El contador es el total del grupo, no el de la página visible.
-      { value: 'members', label: `MIEMBROS · ${this.store.memberCount()}` },
-      { value: 'invites', label: invites ? `INVITADOS · ${invites}` : 'INVITADOS' },
+      { value: 'members', label: `Miembros · ${this.store.memberCount()}` },
+      { value: 'invites', label: invites ? `Invitados · ${invites}` : 'Invitados' },
     ];
   });
 

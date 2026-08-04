@@ -2,26 +2,22 @@ import { Injectable, effect, signal } from '@angular/core';
 
 /**
  * Temas visuales disponibles. Son SKINS puras: solo cambian valores de tokens
- * `--nf-*` y aplanan efectos "firma" vía `:root[data-theme="…"]`. No tocan
- * markup, componentes ni lógica de dominio.
+ * `--nf-*` bajo `:root[data-theme="…"]`. No tocan markup, componentes ni
+ * lógica de dominio, y no hay excepciones a esa regla.
  *
- *  - `nexus`    → NEXUS//FORGE, el look por defecto (vaporwave neón).
- *  - `nocturne` → Apple-dark minimalista.
- *  - `original` → el look de la app legacy (glass índigo/fucsia sobre azul noche).
- *
- * `original` es la única skin que además apaga el cromo de ventana retro: ver
- * `NfWindow`, que no renderiza barra/semáforo bajo este tema. Es la excepción
- * consciente a "las skins son solo CSS" — el semáforo es markup, no un token.
+ *  - `nocturne` → el look por defecto: oscuro minimalista, tipografía del
+ *                 sistema. Vive en `styles/tokens/`, sin atributo `data-theme`.
+ *  - `original` → el look de la app legacy (cristal índigo/fucsia sobre azul
+ *                 noche), en `styles/themes/original.css`.
  */
-export type ThemeId = 'nexus' | 'nocturne' | 'original';
+export type ThemeId = 'nocturne' | 'original';
 
 export const THEMES: readonly { id: ThemeId; label: string; description: string }[] = [
-  { id: 'nexus', label: 'Nexus', description: 'Vaporwave neón sobre violeta. El look de casa.' },
   { id: 'nocturne', label: 'Nocturne', description: 'Oscuro minimalista, tipografía del sistema.' },
   { id: 'original', label: 'Original', description: 'El estilo de la primera versión: cristal índigo y fucsia.' },
 ];
 
-const DEFAULT_THEME: ThemeId = 'nexus';
+const DEFAULT_THEME: ThemeId = 'nocturne';
 const STORAGE_KEY = 'cgc-theme';
 
 function isTheme(v: unknown): v is ThemeId {
@@ -55,7 +51,7 @@ export class ThemeService {
 
   constructor() {
     // Refleja el tema al DOM y lo persiste. El tema por defecto no lleva
-    // atributo (así `:root` a secas = nexus y el CSS base no necesita duplicarse).
+    // atributo (así `:root` a secas ya es nocturne y el CSS base no se duplica).
     effect(() => {
       const t = this._theme();
       const root = document.documentElement;

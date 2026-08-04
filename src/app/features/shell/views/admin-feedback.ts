@@ -24,10 +24,10 @@ const STATUS_LABEL: Record<FeedbackStatusTag, string> = {
   REJECTED: 'Rechazado',
 };
 const STATUS_COLOR: Record<FeedbackStatusTag, NfBadgeColor> = {
-  NEW: 'yellow',
-  IN_REVIEW: 'cyan',
-  RESOLVED: 'green',
-  REJECTED: 'red',
+  NEW: 'warning',
+  IN_REVIEW: 'secondary',
+  RESOLVED: 'success',
+  REJECTED: 'danger',
 };
 
 /** Opción de un filtro: `tag` undefined = "no filtrar por este campo". */
@@ -62,7 +62,7 @@ const KIND_FILTERS: FilterOption<FeedbackKindTag>[] = [
   template: `
     <div class="view">
       <div class="view__head">
-        <div class="view__eyebrow nf-mono nf-eyebrow">Administración · reportes</div>
+        <div class="view__eyebrow nf-mono">Administración · reportes</div>
         <h1 class="view__title">Feedback</h1>
         <p class="view__lead">
           Reportes que envían los usuarios (bugs, propuestas e incidencias). Fíltralos y ábrelos para
@@ -72,7 +72,7 @@ const KIND_FILTERS: FilterOption<FeedbackKindTag>[] = [
 
       <div class="af-filters">
         <label class="af-filter">
-          <span class="af-filter__label nf-mono">ESTADO</span>
+          <span class="af-filter__label nf-mono">Estado</span>
           <nf-select
             [options]="statusLabels"
             [value]="statusLabel()"
@@ -80,16 +80,16 @@ const KIND_FILTERS: FilterOption<FeedbackKindTag>[] = [
           />
         </label>
         <label class="af-filter">
-          <span class="af-filter__label nf-mono">TIPO</span>
+          <span class="af-filter__label nf-mono">Tipo</span>
           <nf-select [options]="kindLabels" [value]="kindLabel()" (valueChange)="onKind($event)" />
         </label>
       </div>
 
       @if (store.loading() && !store.page()) {
-        <div class="af-empty nf-mono nf-eyebrow">Cargando…</div>
+        <div class="af-empty nf-mono">Cargando…</div>
       } @else if (store.page(); as pg) {
         @if (pg.content.length === 0) {
-          <div class="af-empty nf-mono nf-eyebrow">Sin reportes con estos filtros</div>
+          <div class="af-empty nf-mono">Sin reportes con estos filtros</div>
         } @else {
           <div class="af-list">
             @for (r of pg.content; track r.id) {
@@ -103,7 +103,7 @@ const KIND_FILTERS: FilterOption<FeedbackKindTag>[] = [
                 </div>
                 <span class="af-row__when nf-mono">{{ r.createdAt | date: 'dd/MM/yy HH:mm' }}</span>
                 <nf-badge [color]="statusColor(r.status)">{{ statusLabel2(r.status) }}</nf-badge>
-                <span class="af-row__cta nf-mono nf-caps nf-go">Detalle</span>
+                <span class="af-row__cta nf-mono">Detalle</span>
               </a>
             }
           </div>
@@ -134,7 +134,6 @@ const KIND_FILTERS: FilterOption<FeedbackKindTag>[] = [
       .af-filter__label {
         font-size: 11px;
         opacity: 0.7;
-        letter-spacing: 0.08em;
       }
       .af-list {
         display: flex;

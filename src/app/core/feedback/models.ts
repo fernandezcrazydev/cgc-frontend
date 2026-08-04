@@ -82,9 +82,9 @@ export type FeedbackReport = BugReport | ProposalReport | IncidentReport;
 
 /** Catálogo del selector de tipo. El `value` es lo que viaja al backend. */
 export const FEEDBACK_KINDS = [
-  { value: 'bug', glyph: '🐛', label: 'BUG', hint: 'Algo está roto' },
-  { value: 'proposal', glyph: '💡', label: 'PROPUESTA', hint: 'Una idea o mejora' },
-  { value: 'incident', glyph: '❓', label: 'INCIDENCIA', hint: 'Algo raro, no sé si es un bug' },
+  { value: 'bug', glyph: '🐛', label: 'Bug', hint: 'Algo está roto' },
+  { value: 'proposal', glyph: '💡', label: 'Propuesta', hint: 'Una idea o mejora' },
+  { value: 'incident', glyph: '❓', label: 'Incidencia', hint: 'Algo raro, no sé si es un bug' },
 ] as const satisfies readonly { value: FeedbackKind; glyph: string; label: string; hint: string }[];
 
 /** Catálogo de zonas. El orden es el del desplegable. */
@@ -101,7 +101,7 @@ export const FEEDBACK_AREAS = [
 
 /** Catálogo de frecuencias (solo para bugs). */
 export const BUG_FREQUENCIES = [
-  { value: 'always', label: 'SIEMPRE' },
-  { value: 'sometimes', label: 'A VECES' },
-  { value: 'once', label: 'UNA VEZ' },
+  { value: 'always', label: 'Siempre' },
+  { value: 'sometimes', label: 'A veces' },
+  { value: 'once', label: 'Una vez' },
 ] as const satisfies readonly { value: BugFrequency; label: string }[];
