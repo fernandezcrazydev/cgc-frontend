@@ -14,7 +14,6 @@
   font-family: var(--nf-font);
   font-weight: var(--fw-bold);
   font-size: 13px;
-  letter-spacing: 1px;
   color: var(--nf-text);
   background: var(--nf-inset);
   border: var(--bw-2) solid var(--nf-border);
@@ -28,7 +27,6 @@
 .nf-select__field:focus {
   outline: none;
   border-color: var(--nf-secondary);
-  box-shadow: 0 0 12px rgba(54, 224, 255, 0.35);
 }
 .nf-select__field option {
   background: var(--nf-surface);

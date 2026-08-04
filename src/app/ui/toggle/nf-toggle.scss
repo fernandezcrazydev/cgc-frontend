@@ -22,7 +22,6 @@
 .nf-toggle--on {
   border-color: var(--toggle-accent);
   background: color-mix(in srgb, var(--toggle-accent) 18%, var(--nf-inset));
-  box-shadow: 0 0 12px color-mix(in srgb, var(--toggle-accent) 50%, transparent);
 }
 
 .nf-toggle__knob {
@@ -39,5 +38,4 @@
 .nf-toggle--on .nf-toggle__knob {
   left: 23px;
   background: var(--toggle-accent);
-  box-shadow: 0 0 10px var(--toggle-accent);
 }

@@ -255,7 +255,6 @@ const WINDOW_LABELS: Record<RiotMetricsWindow, string> = {
       .rm-seg__btn {
         padding: 6px 12px;
         font-size: 10px;
-        letter-spacing: 1.5px;
         color: var(--nf-text-dim);
         background: transparent;
         border: 1.5px solid var(--nf-border);
@@ -283,7 +282,6 @@ const WINDOW_LABELS: Record<RiotMetricsWindow, string> = {
       .rm-panel__title {
         margin: 0 0 4px;
         font-size: 10px;
-        letter-spacing: 2px;
         color: var(--nf-text-mid);
       }
       .rm-panel__hint {

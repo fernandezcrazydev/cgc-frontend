@@ -95,10 +95,10 @@
   border-left: 4px solid var(--nf-toast-accent);
   background: var(--nf-surface-2);
   color: var(--nf-text);
-  /* Sombra dura (la firma de Nexus) + aro interior del acento. El glow exterior de
-     antes no cabe aquí: el clip lo cortaría en seco por arriba y por abajo. */
+  /* Sombra corta a propósito: el clip del host recorta en vertical a la altura de
+     --nf-toast-gap, así que aquí no cabe la capa larga de --nf-shadow-card. */
   box-shadow:
-    4px 4px 0 rgba(0, 0, 0, 0.35),
+    0 4px 10px -3px rgba(0, 0, 0, 0.55),
     inset 0 0 0 1px color-mix(in srgb, var(--nf-toast-accent) 14%, transparent);
   transition:
     transform 180ms var(--nf-toast-ease-out),
@@ -120,9 +120,8 @@
 }
 
 .nf-toast:hover {
-  transform: translate(-2px, -2px);
   box-shadow:
-    6px 6px 0 rgba(0, 0, 0, 0.4),
+    0 6px 14px -3px rgba(0, 0, 0, 0.6),
     inset 0 0 0 1px color-mix(in srgb, var(--nf-toast-accent) 32%, transparent);
 }
 

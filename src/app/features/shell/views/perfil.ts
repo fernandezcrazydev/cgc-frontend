@@ -654,7 +654,6 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
       .connect-code__value {
         font-size: 22px;
         font-weight: var(--fw-bold);
-        letter-spacing: 3px;
       }
       .connect-code__hint {
         font-size: 12px;

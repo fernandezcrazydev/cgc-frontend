@@ -3,9 +3,7 @@
 .shell {
   display: flex;
   min-height: calc(var(--nf-vh) * 100);
-  background:
-    radial-gradient(120% 60% at 100% 0%, rgba(54, 224, 255, 0.07), transparent 50%),
-    var(--nf-void);
+  background: var(--nf-void);
 }
 
 /* ---- sidebar ---- */
@@ -17,7 +15,7 @@
   height: calc(var(--nf-vh) * 100);
   display: flex;
   flex-direction: column;
-  background: rgba(24, 10, 44, 0.5);
+  background: rgba(20, 20, 22, 0.72);
   border-right: 1px solid var(--nf-border);
   backdrop-filter: blur(8px);
 }
@@ -32,18 +30,17 @@
   width: 36px;
   height: 36px;
   border-radius: 7px;
-  background: linear-gradient(135deg, #ff67d6, var(--nf-tertiary));
+  background: linear-gradient(160deg, var(--nf-tertiary), var(--nf-primary));
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 2px solid var(--nf-secondary);
-  box-shadow: 0 0 12px rgba(255, 95, 210, 0.5);
+  border: none;
   flex: none;
 }
 .shell__logo--sm { width: 32px; height: 32px; box-shadow: none; }
 .shell__diamond { width: 8px; height: 8px; background: var(--nf-void); transform: rotate(45deg); }
-.shell__wordmark { font-weight: 800; letter-spacing: 0.5px; font-size: 14px; color: #fff; line-height: 1; }
-.shell__tag { font-size: 8.5px; letter-spacing: 1.5px; color: var(--nf-text-dim); margin-top: 4px; }
+.shell__wordmark { font-weight: 800; font-size: 14px; color: #fff; line-height: 1; }
+.shell__tag { font-size: 8.5px; color: var(--nf-text-dim); margin-top: 4px; }
 
 .shell__nav {
   display: flex;
@@ -65,7 +62,6 @@
   font-family: var(--nf-font);
   font-weight: 700;
   font-size: 12.5px;
-  letter-spacing: 1px;
   cursor: pointer;
   text-align: left;
   text-decoration: none;
@@ -74,7 +70,7 @@
 .shell__nav-item:hover { color: #fff; }
 .shell__nav-glyph { font-size: 14px; width: 18px; text-align: center; color: inherit; }
 .shell__nav-item.is-active {
-  background: linear-gradient(90deg, rgba(255, 95, 210, 0.16), rgba(255, 95, 210, 0));
+  background: color-mix(in srgb, var(--nf-primary) 14%, transparent);
   border-left-color: var(--nf-primary);
   color: #fff;
 }
@@ -87,7 +83,6 @@
   font: inherit;
   font-weight: 700;
   font-size: 12.5px;
-  letter-spacing: 1px;
   color: var(--nf-text-dim);
 }
 .shell__nav-caret {
@@ -136,7 +131,7 @@
   text-align: left;
   transition: background 0.14s, border-color 0.14s;
 }
-.shell__groupitem:hover { background: rgba(255, 95, 210, 0.06); }
+.shell__groupitem:hover { background: rgba(255, 255, 255, 0.05); }
 .shell__groupitem.is-active {
   background: color-mix(in srgb, var(--grp-c1) 12%, transparent);
   border-color: color-mix(in srgb, var(--grp-c1) 45%, transparent);
@@ -172,7 +167,6 @@
   display: block;
   margin-top: 3px;
   font-size: 10.5px;
-  letter-spacing: 0.6px;
   color: var(--nf-text-mid);
 }
 .shell__groupitem.is-active .shell__groupitem-name { color: #fff; }
@@ -183,17 +177,15 @@
   margin-top: 4px;
   padding: 9px 9px;
   font-size: 11px;
-  letter-spacing: 1.5px;
   color: var(--nf-secondary);
   text-decoration: none;
   border-radius: 6px;
   transition: background 0.14s, color 0.14s;
 }
-.shell__grouplist-all:hover { background: rgba(54, 224, 255, 0.08); color: #fff; }
+.shell__grouplist-all:hover { background: rgba(255, 255, 255, 0.05); color: #fff; }
 .shell__grouplist-empty {
   padding: 10px 9px;
   font-size: 10px;
-  letter-spacing: 2px;
   color: var(--nf-text-dim);
 }
 
@@ -246,7 +238,7 @@
   right: 10px;
   padding: 6px;
   border-radius: 8px;
-  background: var(--nf-surface-2, rgba(24, 10, 44, 0.98));
+  background: var(--nf-surface-2, rgba(28, 28, 30, 0.98));
   border: 1px solid var(--nf-border-strong);
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(10px);
@@ -254,7 +246,6 @@
 .shell__download-head {
   padding: 6px 8px 8px;
   font-size: 8.5px;
-  letter-spacing: 1.5px;
   color: var(--nf-text-dim);
 }
 .shell__download-opt {
@@ -268,7 +259,7 @@
   transition: background 0.14s, color 0.14s;
 }
 .shell__download-opt:hover {
-  background: rgba(255, 95, 210, 0.12);
+  background: rgba(255, 255, 255, 0.06);
   color: #fff;
 }
 .shell__download-opt:hover .shell__download-logo {
@@ -298,7 +289,6 @@
 }
 .shell__download-opt-sub {
   font-size: 8.5px;
-  letter-spacing: 1.2px;
   color: var(--nf-text-dim);
   margin-top: 3px;
 }
@@ -321,19 +311,19 @@
   transition: background 0.16s, border-color 0.16s;
 }
 .shell__profile:hover {
-  background: rgba(255, 95, 210, 0.07);
+  background: rgba(255, 255, 255, 0.05);
   border-color: var(--nf-border);
 }
 .shell__profile:hover .shell__avatar {
   border-color: var(--nf-secondary);
-  box-shadow: 3px 3px 0 rgba(169, 107, 255, 0.4);
+  box-shadow: var(--nf-shadow-card);
 }
 .shell__profile:hover .shell__profile-cta { color: var(--nf-primary); }
 .shell__avatar {
   width: 34px;
   height: 34px;
   border-radius: 6px;
-  background: radial-gradient(circle at 32% 26%, #36e0ff, #1d4a8a);
+  background: linear-gradient(160deg, var(--nf-tertiary), var(--nf-primary));
   border: 2px solid var(--nf-border);
   display: flex;
   align-items: center;
@@ -381,7 +371,6 @@
 }
 .shell__profile-cta {
   font-size: 10.5px;
-  letter-spacing: 1px;
   color: var(--nf-text-mid);
   margin-top: 4px;
   transition: color 0.16s;
@@ -397,7 +386,6 @@
   font-family: var(--nf-font);
   font-weight: 700;
   font-size: 11px;
-  letter-spacing: 1.5px;
   cursor: pointer;
   transition: color 0.16s, border-color 0.16s;
 }
@@ -457,7 +445,6 @@
   border-radius: 12px;
   background: linear-gradient(135deg, var(--grp-c1), var(--grp-c2));
   border: 2px solid color-mix(in srgb, var(--grp-c1) 60%, #fff);
-  box-shadow: 0 0 18px color-mix(in srgb, var(--grp-c1) 45%, transparent);
   font-family: var(--nf-mono);
   font-weight: 700;
   font-size: 20px;
@@ -465,7 +452,7 @@
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
 }
 .shell__invite-headmeta { min-width: 0; }
-.shell__invite-tag { font-size: 10px; letter-spacing: 2px; color: var(--nf-text-dim); }
+.shell__invite-tag { font-size: 10px; color: var(--nf-text-dim); }
 .shell__invite-name {
   margin: 5px 0 7px;
   font-weight: 800;
@@ -473,7 +460,7 @@
   color: #fff;
   letter-spacing: -0.4px;
 }
-.shell__invite-count { font-size: 10px; letter-spacing: 1.5px; color: var(--nf-secondary); }
+.shell__invite-count { font-size: 10px; color: var(--nf-secondary); }
 .shell__invite-facts {
   display: flex;
   gap: 12px;
@@ -486,12 +473,11 @@
   flex-direction: column;
   gap: 6px;
 }
-.shell__invite-fact-label { font-size: 9px; letter-spacing: 2px; color: var(--nf-text-dim); }
+.shell__invite-fact-label { font-size: 9px; color: var(--nf-text-dim); }
 .shell__invite-fact-value { font-size: 13px; color: var(--nf-text); }
 .shell__invite-rosterhead {
   padding: 14px 20px 8px;
   font-size: 9.5px;
-  letter-spacing: 2px;
   color: var(--nf-text-dim);
 }
 .shell__invite-roster {
@@ -523,7 +509,7 @@
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 .shell__invite-member-name { flex: 1; min-width: 0; font-size: 12.5px; color: var(--nf-text); }
-.shell__invite-member-role { font-size: 9px; letter-spacing: 1.5px; color: var(--nf-text-dim); }
+.shell__invite-member-role { font-size: 9px; color: var(--nf-text-dim); }
 .shell__invite-actions {
   display: flex;
   gap: 10px;
@@ -542,7 +528,7 @@
   align-items: center;
   gap: 14px;
   padding: 13px clamp(16px, 4vw, 30px);
-  background: rgba(12, 1, 24, 0.82);
+  background: rgba(10, 10, 11, 0.82);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--nf-border);
 }
@@ -558,7 +544,7 @@
 .shell__header--group {
   background:
     linear-gradient(90deg, color-mix(in srgb, var(--grp-c1) 22%, transparent), transparent 55%),
-    rgba(12, 1, 24, 0.82);
+    rgba(10, 10, 11, 0.82);
   border-bottom-color: color-mix(in srgb, var(--grp-c1) 35%, var(--nf-border));
 }
 .shell__groupbar {
@@ -588,7 +574,6 @@
   border-radius: 9px;
   background: linear-gradient(135deg, var(--grp-c1), var(--grp-c2));
   border: 1.5px solid color-mix(in srgb, var(--grp-c1) 60%, #fff 0%);
-  box-shadow: 0 0 14px color-mix(in srgb, var(--grp-c1) 45%, transparent);
   overflow: hidden;
   font-family: var(--nf-mono);
   font-weight: 700;
@@ -611,7 +596,6 @@
   display: block;
   margin-top: 1px;
   font-size: 9.5px;
-  letter-spacing: 2px;
   color: var(--nf-text-dim);
 }
 .shell__groupbar-caret { flex: none; font-size: 11px; color: var(--nf-text-dim); }
@@ -626,7 +610,7 @@
   padding: 10px 18px;
   background:
     linear-gradient(90deg, color-mix(in srgb, var(--nf-warning) 18%, transparent), transparent 62%),
-    rgba(12, 1, 24, 0.9);
+    rgba(10, 10, 11, 0.9);
   border: none;
   border-bottom: 1px solid color-mix(in srgb, var(--nf-warning) 35%, var(--nf-border));
   cursor: pointer;
@@ -636,7 +620,7 @@
 .shell__pending:hover {
   background:
     linear-gradient(90deg, color-mix(in srgb, var(--nf-warning) 28%, transparent), transparent 62%),
-    rgba(12, 1, 24, 0.9);
+    rgba(10, 10, 11, 0.9);
 }
 .shell__pending-pulse {
   width: 10px;
@@ -644,20 +628,18 @@
   flex: none;
   border-radius: 50%;
   background: var(--nf-warning);
-  box-shadow: 0 0 10px var(--nf-warning);
   animation: nf-pulse 1.6s infinite;
 }
 .shell__pending-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.shell__pending-title { font-size: 11px; letter-spacing: 1.5px; font-weight: 700; color: var(--nf-warning); }
+.shell__pending-title { font-size: 11px; font-weight: 700; color: var(--nf-warning); }
 .shell__pending-sub {
   font-size: 10.5px;
-  letter-spacing: 0.4px;
   color: var(--nf-text-dim);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.shell__pending-cta { margin-left: auto; flex: none; font-size: 11px; letter-spacing: 1.5px; color: var(--nf-warning); }
+.shell__pending-cta { margin-left: auto; flex: none; font-size: 11px; color: var(--nf-warning); }
 
 /* sheet variant (top of the mobile group switcher) */
 .shell__sheet-pending {
@@ -692,7 +674,6 @@
 .shell__bell.is-active {
   color: var(--nf-primary);
   border-color: var(--nf-primary);
-  box-shadow: 0 0 12px rgba(255, 95, 210, 0.25);
 }
 .shell__bell-badge {
   position: absolute;
@@ -708,7 +689,6 @@
   font-weight: 700;
   line-height: 17px;
   text-align: center;
-  box-shadow: 0 0 8px rgba(255, 95, 210, 0.8);
   pointer-events: none;
 }
 
@@ -744,7 +724,6 @@
   width: 340px;
   max-width: calc(var(--nf-vw) * 100 - 24px);
   animation: nf-pop 0.18s ease both;
-  filter: drop-shadow(0 0 30px rgba(255, 95, 210, 0.12));
 }
 
 .shell__notif-sub {
@@ -754,12 +733,11 @@
   padding: 10px 16px;
   border-bottom: 1px solid var(--nf-border);
 }
-.shell__notif-eyebrow { font-size: 10px; letter-spacing: 2px; color: var(--nf-text-dim); }
+.shell__notif-eyebrow { font-size: 10px; color: var(--nf-text-dim); }
 .shell__notif-clear {
   background: transparent;
   border: none;
   font-size: 10px;
-  letter-spacing: 1px;
   color: var(--nf-secondary);
   cursor: pointer;
   padding: 0;
@@ -780,17 +758,16 @@
   gap: 12px;
   padding: 13px 16px;
   border: none;
-  border-bottom: 1px solid rgba(54, 224, 255, 0.07);
+  border-bottom: 1px solid var(--nf-border);
   background: transparent;
   cursor: default;
   transition: background 0.14s;
 }
 .shell__notif-item.is-clickable { cursor: pointer; }
-.shell__notif-item.is-clickable:hover { background: rgba(255, 95, 210, 0.06); }
+.shell__notif-item.is-clickable:hover { background: rgba(255, 255, 255, 0.05); }
 .shell__notif-cta {
   margin-top: 6px;
   font-size: 10px;
-  letter-spacing: 1.5px;
   color: var(--notif-accent);
 }
 .shell__notif-actions {
@@ -805,7 +782,6 @@
 .shell__notif-resolved {
   margin-top: 8px;
   font-size: 10px;
-  letter-spacing: 1.5px;
   color: var(--nf-text-dim);
   opacity: 0.7;
 }
@@ -829,14 +805,12 @@
 .shell__notif-text { min-width: 0; flex: 1; }
 .shell__notif-title {
   font-size: 11px;
-  letter-spacing: 2px;
   color: var(--nf-text-mid);
 }
 .shell__notif-item.is-unread .shell__notif-title { color: var(--notif-accent); }
 .shell__notif-msg {
   margin-top: 3px;
   font-size: 12px;
-  letter-spacing: 0.5px;
   color: var(--nf-text-dim);
   white-space: nowrap;
   overflow: hidden;
@@ -845,7 +819,6 @@
 .shell__notif-time {
   margin-top: 5px;
   font-size: 11px;
-  letter-spacing: 1px;
   color: var(--nf-text-dim);
   opacity: 0.7;
 }
@@ -856,7 +829,6 @@
   margin-top: 6px;
   border-radius: 50%;
   background: var(--notif-accent);
-  box-shadow: 0 0 6px var(--notif-accent);
 }
 .shell__notif-item { position: relative; }
 // Capa pulsable que cubre la fila entera de una notificación que lleva a algún sitio. Es un
@@ -903,7 +875,6 @@
 .shell__notif-more {
   font: inherit;
   font-size: 11px;
-  letter-spacing: 2px;
   color: var(--nf-secondary);
   background: transparent;
   border: none;
@@ -918,8 +889,8 @@
   padding: 36px 16px;
   text-align: center;
 }
-.shell__notif-empty-glyph { font-size: 22px; color: #3a2060; margin-bottom: 12px; }
-.shell__notif-empty-label { font-size: 11px; letter-spacing: 3px; color: var(--nf-text-dim); }
+.shell__notif-empty-glyph { font-size: 22px; color: var(--nf-text-dim); margin-bottom: 12px; }
+.shell__notif-empty-label { font-size: 11px; color: var(--nf-text-dim); }
 
 .shell__notif-foot {
   padding: 12px 16px;
@@ -928,7 +899,6 @@
 }
 .shell__notif-foot span {
   font-size: 11px;
-  letter-spacing: 2px;
   color: var(--nf-secondary);
   cursor: pointer;
 }
@@ -969,7 +939,6 @@
 }
 .shell__sheet-head {
   font-size: 11px;
-  letter-spacing: 3px;
   color: var(--nf-secondary);
   margin: 0 4px 12px;
 }
@@ -988,13 +957,12 @@
   padding: 13px;
   text-align: center;
   font-size: 11px;
-  letter-spacing: 2px;
   color: var(--nf-secondary);
   text-decoration: none;
   border: 1.5px solid var(--nf-border);
   border-radius: 8px;
 }
-.shell__sheet-all:active { background: rgba(54, 224, 255, 0.08); }
+.shell__sheet-all:active { background: rgba(255, 255, 255, 0.05); }
 
 .shell__content {
   flex: 1;
@@ -1015,7 +983,7 @@
   align-items: flex-end;
   overflow: visible; /* lets the center FAB poke above the bar */
   padding: 8px 6px max(10px, env(safe-area-inset-bottom));
-  background: rgba(12, 1, 24, 0.92);
+  background: rgba(10, 10, 11, 0.92);
   backdrop-filter: blur(12px);
   border-top: 1px solid var(--nf-border-strong);
 }
@@ -1051,13 +1019,12 @@
 .shell__bottomnav-label {
   font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.2px;
   white-space: nowrap;
 }
 
 .shell__bottomnav-item.is-active { color: #fff; }
 .shell__bottomnav-item.is-active .shell__bottomnav-glyph {
-  background: rgba(255, 95, 210, 0.16);
+  background: color-mix(in srgb, var(--nf-primary) 16%, transparent);
   color: var(--nf-primary);
 }
 
@@ -1071,17 +1038,19 @@
   height: 58px;
   margin-top: -30px;
   border-radius: 18px;
-  background: linear-gradient(135deg, #ff67d6, var(--nf-primary-strong));
-  border: 2px solid var(--nf-secondary);
+  background: var(--nf-primary);
+  border: none;
   color: #fff;
   font-size: 24px;
   line-height: 1;
-  box-shadow: 0 6px 18px rgba(255, 95, 210, 0.45), 0 0 0 6px rgba(12, 1, 24, 0.92);
+  /* El aro del color del fondo recorta el FAB contra la barra: es lo que hace
+     que se lea como un botón flotante y no como parte de la propia barra. */
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5), 0 0 0 6px var(--nf-void);
   transition: transform 0.14s, box-shadow 0.14s;
 }
 .shell__bottomnav-item--center .shell__bottomnav-label { color: var(--nf-primary); font-weight: 800; }
 .shell__bottomnav-item--center:active .shell__fab { transform: translateY(1px) scale(0.97); }
 .shell__bottomnav-item--center.is-active .shell__fab {
-  box-shadow: 0 6px 22px rgba(255, 95, 210, 0.6), 0 0 0 6px rgba(12, 1, 24, 0.92), 0 0 18px rgba(54, 224, 255, 0.5);
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--nf-primary) 45%, transparent), 0 0 0 6px var(--nf-void);
 }
 .shell__bottomnav-item--center.is-active .shell__bottomnav-label { color: #fff; }

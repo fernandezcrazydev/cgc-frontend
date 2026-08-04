@@ -24,14 +24,13 @@
   height: 7px;
   border-radius: 50%;
   background: var(--badge-color);
-  box-shadow: 0 0 8px var(--badge-color);
   flex: none;
 }
+/* El parpadeo se queda: marca "esto está pasando ahora" (sala en vivo), que es
+   información, no decoración. */
 .nf-badge__dot--blink { animation: nf-blink 1.4s infinite; }
 
 .nf-badge__label {
   font-size: 10px;
-  letter-spacing: 1px;
-  text-transform: uppercase;
   line-height: 1;
 }

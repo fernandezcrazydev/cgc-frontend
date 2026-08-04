@@ -134,7 +134,6 @@ const KIND_FILTERS: FilterOption<FeedbackKindTag>[] = [
       .af-filter__label {
         font-size: 11px;
         opacity: 0.7;
-        letter-spacing: 0.08em;
       }
       .af-list {
         display: flex;

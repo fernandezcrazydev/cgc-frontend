@@ -202,7 +202,6 @@ const FREQUENCY_LABEL: Record<string, string> = {
       .afd-field__k {
         font-size: 11px;
         opacity: 0.6;
-        letter-spacing: 0.08em;
       }
       .afd-field__v {
         margin: 0;
