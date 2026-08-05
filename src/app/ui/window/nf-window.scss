@@ -1,24 +1,38 @@
 /* Window (global, ViewEncapsulation.None) */
 
+/* El panel era el patrón genérico de tarjeta: borde + sombra + relleno
+   plano. Ahora la elevación la comunican tres cosas a la vez, que es como
+   se lee una superficie real:
+     - un degradado vertical mínimo (el canto de arriba recibe más luz),
+     - una línea interior clara en el borde superior (refracción del canto),
+     - la sombra tintada de la escala.
+   El borde exterior se mantiene porque a este contraste sigue haciendo
+   falta para separar panel de fondo, pero ya no carga él solo el trabajo. */
 .nf-window {
   display: flex;
   flex-direction: column;
-  background: var(--nf-surface);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--nf-surface) 88%, #fff) 0%,
+      var(--nf-surface) 42%
+    );
   border: var(--bw-2) solid var(--nf-border);
   border-radius: var(--nf-radius-lg);
-  box-shadow: var(--nf-shadow-card);
+  box-shadow: var(--nf-edge-light), var(--nf-shadow-card);
   overflow: hidden;
 }
 
 .nf-window__body {
-  background: var(--nf-surface);
+  background: transparent;
 }
 
 .nf-window__heading {
   margin: 0;
   padding: 16px 20px 0;
   font-size: var(--fs-h3);
-  font-weight: var(--fw-bold);
+  /* 700 en un h3 de 18px pesa más que la jerarquía que hay debajo. */
+  font-weight: var(--fw-semibold);
   letter-spacing: var(--ls-tight);
   color: var(--nf-text);
 }

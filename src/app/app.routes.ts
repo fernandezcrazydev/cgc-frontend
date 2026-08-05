@@ -125,7 +125,17 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/shell/views/admin-seguridad').then((m) => m.AdminSeguridad),
       },
+      // 404 dentro del shell: una ruta desconocida bajo /app se queda en la
+      // aplicación (con navegación y salida) en vez de rebotar al login.
+      {
+        path: '**',
+        title: 'Página no encontrada · Sale Custom',
+        loadComponent: () =>
+          import('./features/shell/views/no-encontrado').then((m) => m.NoEncontrado),
+      },
     ],
   },
+  // Comodín de nivel raíz: solo alcanza a quien no tiene sesión, y para ese
+  // el login sí es el destino correcto.
   { path: '**', redirectTo: '' },
 ];

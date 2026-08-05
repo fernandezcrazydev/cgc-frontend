@@ -1,5 +1,10 @@
 <div class="shell">
 
+  <!-- Primer tabulable del documento. Sin él, alcanzar el contenido con teclado
+       obliga a recorrer la navegación lateral entera en cada cambio de ruta.
+       Solo se ve cuando recibe el foco (ver .nf-skip en tokens/base.css). -->
+  <a class="nf-skip" href="#contenido">Saltar al contenido</a>
+
   <!-- desktop sidebar -->
   @if (!isMobile()) {
     <aside class="shell__sidebar">
@@ -7,7 +12,7 @@
         <div class="shell__logo"><span class="shell__diamond"></span></div>
         <div>
           <div class="shell__wordmark">Sale Custom</div>
-          <div class="shell__tag nf-mono">Custom match builder</div>
+          <div class="shell__tag">Organiza tus customs de LoL</div>
         </div>
       </div>
 
@@ -288,7 +293,15 @@
       </button>
     }
 
-    <main class="shell__content" [class.shell__content--mobile]="isMobile()">
+    <!-- `tabindex="-1"` para que el salto de ancla mueva de verdad el foco aquí:
+         sin él el navegador desplaza la vista pero deja el foco en el enlace, y
+         el siguiente tabulador vuelve a la navegación. -->
+    <main
+      id="contenido"
+      tabindex="-1"
+      class="shell__content"
+      [class.shell__content--mobile]="isMobile()"
+    >
       <router-outlet />
     </main>
   </div>

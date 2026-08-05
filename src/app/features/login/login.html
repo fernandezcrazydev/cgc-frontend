@@ -10,27 +10,32 @@
           </div>
           <div>
             <div class="login__wordmark">Sale Custom</div>
-            <div class="login__tag nf-mono">Custom match builder</div>
+            <!-- `nf-mono` alinea cifras (ver tokens/base.css); en texto sin
+                 números no aporta nada, así que aquí sobraba. -->
+            <div class="login__tag">Organiza tus customs de LoL</div>
           </div>
         </div>
 
-        <div class="login__eyebrow nf-mono">Acceso al sistema</div>
+        <div class="login__eyebrow">Acceso</div>
 
         @if (isChecking()) {
           <!-- verificando sesión existente -->
           <div class="login__checking">
             <span class="login__spinner"></span>
-            <span class="nf-mono">Comprobando sesión…</span>
+            <span>Comprobando sesión…</span>
           </div>
         }
 
         @if (isSuccess()) {
           <!-- success -->
           <div class="login__success">
-            <div class="login__check">✓</div>
+            <div class="login__check" aria-hidden="true">✓</div>
             <h1 class="login__title">Sesión iniciada</h1>
-            <p class="login__lead">Iniciando sesión con Discord...</p>
-            <div class="login__status nf-mono">
+            <!-- Decía "Iniciando sesión con Discord...", justo debajo de un
+                 titular que anuncia que ya está iniciada. Lo que falta en ese
+                 momento es la redirección, que es lo que ahora cuenta. -->
+            <p class="login__lead">Te llevamos a tus grupos.</p>
+            <div class="login__status">
               <span class="login__status-dot"></span>
               Conectado@if (userName()) { · {{ userName() }} }
             </div>
@@ -45,8 +50,8 @@
           </p>
 
           @if (isError()) {
-            <div class="login__error nf-mono" role="alert">
-              No se pudo verificar la sesión. Inténtalo de nuevo.
+            <div class="login__error" role="alert">
+              No pudimos verificar tu sesión. Inténtalo de nuevo.
             </div>
           }
 
@@ -71,9 +76,13 @@
         }
 
         <div class="login__footer">
-          <p class="login__terms nf-mono">
+          <!-- Los términos y la privacidad se citan pero todavía no existen como
+               páginas. Se dejan sin enlazar a propósito: un enlace a '#' o a una
+               ruta inexistente (que aquí cae en el comodín y devuelve al login)
+               es peor que texto plano. Enlazar cuando existan. -->
+          <p class="login__terms">
             Al continuar aceptas los términos de servicio y la política de privacidad.
-            No afiliado oficialmente con Discord.
+            Sale Custom no está afiliado a Discord ni a Riot Games.
           </p>
         </div>
 
