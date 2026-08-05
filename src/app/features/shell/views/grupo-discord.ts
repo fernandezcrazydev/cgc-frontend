@@ -1,27 +1,39 @@
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal, untracked } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
-import { NfButton, NfSkeleton, NfWindow } from '../../../ui';
+import { NfButton, NfSelect, NfSkeleton, NfWindow } from '../../../ui';
 import { GroupStore } from '../../../core/group-store';
 import { DiscordStore } from '../../../core/discord';
 import { ToastService } from '../../../core/toast';
-import { errorMessage } from '../../../core/http/api-error';
+import { errorMessage, messageForCode } from '../../../core/http/api-error';
 
-/** Un snowflake de Discord: 17 a 20 dígitos. Solo para avisar antes de gastar una petición. */
-const SNOWFLAKE = /^\d{17,20}$/;
+/** Los tres pasos del asistente. El 3 es el estado final, no un paso que haya que dar. */
+type Step = 1 | 2 | 3;
+
+const STEP_LABELS: readonly string[] = ['Servidor', 'Canal', 'Listo'];
 
 /**
- * Conectar un grupo con un canal de Discord.
+ * Conectar un grupo con un canal de Discord, guiado.
  *
- * Está en tres pasos numerados a propósito: es una configuración que se hace una vez, con dudas,
- * y copiando ids desde un menú contextual que hay que activar antes. Un formulario de dos campos
- * sin contexto dejaría a la gente pegando cualquier cosa.
+ * Un asistente y no un formulario porque el trabajo de verdad pasa FUERA de esta pantalla: hay que
+ * meter un bot en un servidor de Discord y elegir dónde escribe. Lo que hacía antes era pedir dos
+ * snowflakes de 18 cifras copiados de un menú contextual que primero había que activar; ahí no hay
+ * nada que validar a ojo, y un id correcto del canal equivocado se acepta igual de bien.
+ *
+ * Ahora cada paso deja el siguiente hecho: Discord pregunta en qué servidor va el bot (y solo enseña
+ * aquellos donde quien mira manda), y con el servidor ya sabido el canal es un desplegable. El
+ * último paso lo cierra el propio bot publicando el mensaje de bienvenida — que es a la vez la
+ * confirmación, la prueba de que puede escribir ahí, y cómo se entera el resto del servidor.
+ *
+ * El paso NO es estado de UI: sale de lo que hay guardado en el servidor. Por eso un F5 a mitad, o
+ * volver de Discord, o que lo retome otro admin, caen todos donde tocaba y no en la casilla de
+ * salida. Lo único local es `forcedStep`, para "cambiar de canal" sin desconectar nada.
  */
 @Component({
   selector: 'app-grupo-discord',
   standalone: true,
-  imports: [RouterLink, NfButton, NfWindow, NfSkeleton],
+  imports: [RouterLink, NfButton, NfWindow, NfSkeleton, NfSelect],
   template: `
     <div class="view max-520">
       @if (group(); as g) {
@@ -36,6 +48,24 @@ const SNOWFLAKE = /^\d{17,20}$/;
           </p>
         </div>
 
+        <!-- Los tres pasos siempre a la vista: cuántos quedan es lo primero que se pregunta
+             cualquiera antes de empezar algo que le va a sacar de la aplicación. -->
+        <ol class="dc-steps" [attr.aria-label]="'Paso ' + step() + ' de 3'">
+          @for (label of stepLabels; track label; let i = $index) {
+            <li
+              class="dc-step"
+              [class.dc-step--done]="step() > i + 1"
+              [class.dc-step--now]="step() === i + 1"
+              [attr.aria-current]="step() === i + 1 ? 'step' : null"
+            >
+              <span class="dc-step__dot nf-mono" aria-hidden="true">
+                {{ step() > i + 1 ? '✓' : i + 1 }}
+              </span>
+              <span class="dc-step__label">{{ label }}</span>
+            </li>
+          }
+        </ol>
+
         @if (botInfo(); as info) {
           @if (!info.enabled) {
             <nf-window title="Integración desactivada" bodyPadding="22px">
@@ -47,131 +77,205 @@ const SNOWFLAKE = /^\d{17,20}$/;
           }
         }
 
-        <nf-window title="1 · Invita al bot a tu servidor" bodyPadding="22px">
-          <p class="field__hint dc-block">
-            El bot tiene que estar dentro del servidor para poder escribir en él. Solo pide permiso
-            para ver el canal, escribir y crear eventos.
-          </p>
-          @if (botInfo(); as info) {
-            <button
-              nfButton
-              variant="primary"
-              size="sm"
-              [disabled]="!info.enabled"
-              (click)="invite(info.botInviteUrl)"
-            >
-              Invitar al bot
-            </button>
-          } @else {
-            <nf-skeleton width="140px" height="32px" />
+        <!-- Lo que trae la vuelta de Discord cuando algo no salió. Va aquí arriba y no en un toast:
+             el toast se va solo y esto es exactamente lo que hay que leer para saber qué hacer. -->
+        @if (returnError(); as message) {
+          <p class="dc-error dc-error--banner" role="alert">{{ message }}</p>
+        }
+
+        @switch (discord.status()) {
+          @case ('loading') {
+            <nf-window title="Cargando" bodyPadding="22px">
+              <div aria-busy="true">
+                <nf-skeleton width="70%" height="15px" aria-hidden="true" />
+                <div class="dc-gap"></div>
+                <nf-skeleton width="90%" height="15px" aria-hidden="true" />
+                <div class="dc-gap"></div>
+                <nf-skeleton width="150px" height="32px" aria-hidden="true" />
+              </div>
+            </nf-window>
           }
-        </nf-window>
-
-        <nf-window title="2 · Pega los IDs" bodyPadding="22px">
-          <details class="dc-help">
-            <summary class="dc-help__summary">¿De dónde saco los IDs?</summary>
-            <p class="field__hint dc-help__body">
-              En Discord: Ajustes de usuario → Avanzado → activa <b>Modo desarrollador</b>. Luego
-              clic derecho en el servidor → Copiar ID del servidor, y clic derecho en el canal →
-              Copiar ID del canal.
-            </p>
-          </details>
-
-          <div class="form-grid">
-            <div class="field">
-              <label class="field__label nf-mono" for="discord-guild">ID del servidor</label>
-              <input
-                id="discord-guild"
-                class="field__input"
-                type="text"
-                inputmode="numeric"
-                autocomplete="off"
-                placeholder="111222333444555666"
-                [value]="guildId()"
-                (input)="guildId.set($any($event.target).value.trim())"
-              />
-            </div>
-
-            <div class="field">
-              <label class="field__label nf-mono" for="discord-channel">ID del canal</label>
-              <input
-                id="discord-channel"
-                class="field__input"
-                type="text"
-                inputmode="numeric"
-                autocomplete="off"
-                placeholder="987654321098765432"
-                [value]="channelId()"
-                (input)="channelId.set($any($event.target).value.trim())"
-              />
-            </div>
-          </div>
-
-          @if (formError(); as message) {
-            <p class="dc-error" role="alert">{{ message }}</p>
-          }
-
-          <div class="form-foot">
-            <button
-              nfButton
-              variant="primary"
-              size="sm"
-              [disabled]="discord.saving() || !isValid()"
-              (click)="save(g.id)"
-            >
-              {{ discord.saving() ? 'Comprobando…' : 'Conectar' }}
-            </button>
-          </div>
-        </nf-window>
-
-        <nf-window title="3 · Estado" bodyPadding="22px">
-          @switch (discord.status()) {
-            @case ('loading') {
-              <nf-skeleton width="100%" height="72px" />
-            }
-            @case ('error') {
-              <p class="field__hint dc-block">No hemos podido leer la conexión.</p>
+          @case ('error') {
+            <nf-window title="No hemos podido leer la conexión" bodyPadding="22px">
+              <p class="field__hint dc-block">
+                No hemos podido saber si este grupo ya está conectado a Discord.
+              </p>
               <button nfButton variant="ghost" size="sm" (click)="retry(g.id)">Reintentar</button>
-            }
-            @default {
-              @if (discord.link(); as link) {
-                @if (link.linked) {
-                  <div class="setting-row setting-row--last">
-                    <div>
-                      <div class="setting-title">Canal conectado</div>
-                      <div class="field__hint">
-                        Canal <code class="dc-id">{{ link.channelId }}</code> del servidor
-                        <code class="dc-id">{{ link.guildId }}</code>
-                        @if (link.linkedByName) {
-                          · lo conectó {{ link.linkedByName }}
-                        }
-                      </div>
-                      @if (!link.linkHealthy) {
-                        <p class="field__warning dc-block" role="alert">
-                          Los últimos avisos no han llegado. Comprueba que el bot sigue en el
-                          servidor y que el canal existe.
-                        </p>
-                      }
-                    </div>
-                    <button
-                      nfButton
-                      variant="danger"
-                      size="sm"
-                      [disabled]="discord.saving()"
-                      (click)="unlink(g.id)"
-                    >
-                      Desconectar
-                    </button>
-                  </div>
-                } @else {
+            </nf-window>
+          }
+          @default {
+            @switch (step()) {
+              @case (1) {
+                <nf-window title="1 · Elige tu servidor de Discord" bodyPadding="22px">
                   <p class="field__hint dc-block">
-                    Este grupo todavía no avisa por Discord. Rellena los dos IDs de arriba.
+                    Te llevamos a Discord para que digas en qué servidor entra el bot. Discord solo te
+                    enseñará los servidores que administras, y el bot pide únicamente permiso para ver
+                    el canal, escribir en él y crear eventos.
                   </p>
+                  <button
+                    nfButton
+                    variant="primary"
+                    size="sm"
+                    [disabled]="!integrationLive() || discord.authorizing()"
+                    (click)="authorize(g.id)"
+                  >
+                    {{ discord.authorizing() ? 'Abriendo Discord…' : 'Conectar con Discord' }}
+                  </button>
+                  <p class="field__hint dc-foot">
+                    Volverás aquí solo, y seguimos por el canal.
+                  </p>
+                </nf-window>
+              }
+
+              @case (2) {
+                <nf-window title="2 · Elige el canal de los avisos" bodyPadding="22px">
+                  <p class="field__hint dc-block">
+                    El bot ya está dentro de
+                    <b>{{ discord.link()?.guildName || 'tu servidor' }}</b
+                    >. Dinos en qué canal quieres que avise de las customs.
+                  </p>
+
+                  @switch (discord.channelsStatus()) {
+                    @case ('error') {
+                      <p class="field__hint dc-block">
+                        No hemos podido leer los canales del servidor. Comprueba que el bot sigue
+                        dentro.
+                      </p>
+                      <button nfButton variant="ghost" size="sm" (click)="reloadChannels(g.id)">
+                        Reintentar
+                      </button>
+                    }
+                    @case ('ready') {
+                      @if (channelOptions().length) {
+                        <div class="form-grid">
+                          <div class="field">
+                            <label class="field__label nf-mono" for="discord-channel">Canal</label>
+                            <nf-select
+                              [options]="channelOptions()"
+                              [value]="channelId()"
+                              (valueChange)="channelId.set($event)"
+                            />
+                          </div>
+                        </div>
+
+                        @if (formError(); as message) {
+                          <p class="dc-error" role="alert">{{ message }}</p>
+                        }
+
+                        <div class="form-foot">
+                          <button
+                            nfButton
+                            variant="primary"
+                            size="sm"
+                            [disabled]="discord.saving() || !channelId()"
+                            (click)="save(g.id)"
+                          >
+                            {{ discord.saving() ? 'Conectando…' : 'Conectar este canal' }}
+                          </button>
+                          <button
+                            nfButton
+                            variant="ghost"
+                            size="sm"
+                            [disabled]="discord.saving() || discord.authorizing()"
+                            (click)="authorize(g.id)"
+                          >
+                            Elegir otro servidor
+                          </button>
+                        </div>
+                        <p class="field__hint dc-foot">
+                          Al conectar, el bot publicará un mensaje ahí para que se vea que funciona.
+                        </p>
+                      } @else {
+                        <p class="field__hint dc-block">
+                          El bot no ve ningún canal de texto en este servidor. Crea uno en Discord (o
+                          dale permiso para verlo) y vuelve a cargar la lista.
+                        </p>
+                        <div class="form-foot">
+                          <button nfButton variant="secondary" size="sm" (click)="reloadChannels(g.id)">
+                            Volver a cargar
+                          </button>
+                          <button
+                            nfButton
+                            variant="ghost"
+                            size="sm"
+                            [disabled]="discord.authorizing()"
+                            (click)="authorize(g.id)"
+                          >
+                            Elegir otro servidor
+                          </button>
+                        </div>
+                      }
+                    }
+                    @default {
+                      <div class="form-grid" aria-busy="true">
+                        <div class="field">
+                          <label class="field__label nf-mono">Canal</label>
+                          <nf-skeleton width="100%" height="38px" aria-hidden="true" />
+                        </div>
+                      </div>
+                      <div class="form-foot">
+                        <nf-skeleton width="170px" height="32px" aria-hidden="true" />
+                      </div>
+                    }
+                  }
+                </nf-window>
+              }
+
+              @case (3) {
+                @if (discord.link(); as link) {
+                  <nf-window title="3 · Conectado" bodyPadding="22px">
+                    <div class="dc-done">
+                      <span class="dc-done__mark nf-mono" aria-hidden="true">✓</span>
+                      <div>
+                        <div class="setting-title">
+                          Los avisos van a
+                          <span class="dc-channel">#{{ link.channelName || 'el canal elegido' }}</span>
+                          @if (link.guildName) {
+                            <span class="field__hint">, en {{ link.guildName }}</span>
+                          }
+                        </div>
+                        <p class="field__hint dc-foot">
+                          El bot ya ha saludado ahí.
+                          @if (link.linkedByName) {
+                            Lo conectó {{ link.linkedByName }}.
+                          }
+                        </p>
+                      </div>
+                    </div>
+
+                    @if (!link.linkHealthy) {
+                      <p class="field__warning dc-block" role="alert">
+                        Los últimos avisos no han llegado. Comprueba que el bot sigue en el servidor y
+                        que el canal existe.
+                      </p>
+                    }
+
+                    <div class="form-foot">
+                      <button
+                        nfButton
+                        variant="secondary"
+                        size="sm"
+                        [disabled]="discord.saving()"
+                        (click)="changeChannel(g.id)"
+                      >
+                        Cambiar de canal
+                      </button>
+                      <button
+                        nfButton
+                        variant="danger"
+                        size="sm"
+                        [disabled]="discord.saving()"
+                        (click)="unlink(g.id)"
+                      >
+                        Desconectar
+                      </button>
+                    </div>
+                  </nf-window>
                 }
               }
             }
           }
-        </nf-window>
+        }
       }
     </div>
   `,
@@ -183,30 +287,90 @@ const SNOWFLAKE = /^\d{17,20}$/;
       .dc-block {
         margin: 0 0 14px;
       }
-
-      .dc-help {
-        margin-bottom: 18px;
+      .dc-foot {
+        margin: 10px 0 0;
       }
-      .dc-help__summary {
+      .dc-gap {
+        height: 12px;
+      }
+
+      /* El indicador de pasos. Una lista y no tres divs: es una secuencia numerada, y así un
+         lector de pantalla anuncia "1 de 3" sin que haya que decírselo. */
+      .dc-steps {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 0 0 20px;
+        padding: 0;
+        list-style: none;
+      }
+      .dc-step {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex: 1;
+        min-width: 0;
         font-size: 12px;
         color: var(--nf-text-dim);
-        cursor: pointer;
       }
-      .dc-help__summary:hover {
-        color: var(--nf-text-mid);
+      .dc-step + .dc-step::before {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: var(--nf-border);
       }
-      .dc-help__body {
-        margin: 8px 0 0;
+      .dc-step__dot {
+        display: grid;
+        place-items: center;
+        flex: none;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        border: 1px solid var(--nf-border);
+        font-size: 11px;
+        line-height: 1;
+      }
+      .dc-step__label {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      /* El paso actual en color de marca y el ya dado en el de éxito: de un vistazo, dónde estoy
+         y qué queda. Los pasados no se apagan del todo — siguen siendo información. */
+      .dc-step--now {
+        color: var(--nf-text);
+      }
+      .dc-step--now .dc-step__dot {
+        border-color: var(--nf-primary);
+        color: var(--nf-primary);
+      }
+      .dc-step--done .dc-step__dot {
+        border-color: var(--nf-success);
+        color: var(--nf-success);
       }
 
-      /* Los ids son cifras largas que se comparan a ojo con las de Discord, así que van en
-         tabular y con algo de fondo para que se distingan del texto que los rodea. */
-      .dc-id {
+      .dc-done {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+      }
+      .dc-done__mark {
+        display: grid;
+        place-items: center;
+        flex: none;
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        border: 1px solid var(--nf-success);
+        color: var(--nf-success);
+        font-size: 13px;
+        line-height: 1;
+      }
+      /* El nombre del canal con su almohadilla, como se escribe en Discord: es lo que la persona
+         va a buscar con la vista para comprobar que es el suyo. */
+      .dc-channel {
         font-variant-numeric: tabular-nums;
-        padding: 1px 5px;
-        border-radius: 3px;
-        background: var(--nf-inset);
-        color: var(--nf-text-mid);
+        color: var(--nf-primary);
       }
 
       /* En rojo y no en el ámbar de field__warning: aquí sí es un error, algo que acaba de
@@ -217,68 +381,158 @@ const SNOWFLAKE = /^\d{17,20}$/;
         line-height: 1.5;
         color: var(--nf-danger);
       }
+      .dc-error--banner {
+        margin: 0 0 18px;
+      }
     `,
   ],
 })
 export class GrupoDiscord {
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly toasts = inject(ToastService);
   protected readonly groups = inject(GroupStore);
   protected readonly discord = inject(DiscordStore);
 
-  protected readonly guildId = signal('');
+  protected readonly stepLabels = STEP_LABELS;
   protected readonly channelId = signal('');
   protected readonly formError = signal<string | null>(null);
+  protected readonly returnError = signal<string | null>(null);
   protected readonly botInfo = this.discord.botInfo;
 
-  private readonly id = toSignal(
-    this.route.paramMap.pipe(map((p) => p.get('id'))),
-    { initialValue: this.route.snapshot.paramMap.get('id') },
-  );
+  /**
+   * Volver atrás a mano desde "conectado", para cambiar de canal sin desconectar el grupo. Es lo
+   * único de esta pantalla que sí es estado de UI: todo lo demás sale de lo guardado en servidor.
+   */
+  private readonly forcedStep = signal<Step | null>(null);
+
+  private readonly id = toSignal(this.route.paramMap.pipe(map((p) => p.get('id'))), {
+    initialValue: this.route.snapshot.paramMap.get('id'),
+  });
 
   protected readonly group = computed(() => {
     const id = this.id();
-    return id ? this.groups.byId(id) ?? null : null;
+    return id ? (this.groups.byId(id) ?? null) : null;
   });
 
-  protected readonly isValid = computed(
-    () => SNOWFLAKE.test(this.guildId()) && SNOWFLAKE.test(this.channelId()),
+  /** Sin bot configurado no hay nada que conectar; mientras no se sabe, se deja probar. */
+  protected readonly integrationLive = computed(() => this.botInfo()?.enabled !== false);
+
+  /**
+   * En qué paso está el grupo, según lo que hay guardado. Sin canal pero con servidor es el estado
+   * intermedio real: el bot ya está dentro y volver a mandar a nadie a Discord sería repetir trabajo
+   * hecho.
+   */
+  private readonly derivedStep = computed<Step>(() => {
+    const link = this.discord.link();
+    if (!link || !link.guildId) return 1;
+    return link.linked ? 3 : 2;
+  });
+
+  protected readonly step = computed<Step>(() => this.forcedStep() ?? this.derivedStep());
+
+  /** `#canal · Categoría`, en el orden en que Discord los enseña en la barra lateral. */
+  protected readonly channelOptions = computed(() =>
+    (this.discord.channels()?.channels ?? []).map((c) => ({
+      value: c.id,
+      label: c.categoryName ? `#${c.name} · ${c.categoryName}` : `#${c.name}`,
+    })),
   );
 
   constructor() {
     // Se recarga al cambiar de :id sin desmontar el componente, que es lo que pasa navegando
-    // entre grupos por el sidebar.
+    // entre grupos por el sidebar. Lo local se olvida: pertenecía al grupo anterior.
     effect(() => {
       const id = this.id();
-      if (id) void this.discord.ensureLoaded(id);
+      if (!id) return;
+      this.forcedStep.set(null);
+      this.channelId.set('');
+      this.formError.set(null);
+      void this.discord.ensureLoaded(id);
     });
+
+    // Los canales solo se piden cuando hacen falta. Pedirlos al entrar gastaría una llamada a
+    // Discord en cada visita a una pantalla que casi siempre solo se viene a mirar.
+    effect(() => {
+      const id = this.id();
+      if (id && this.step() === 2) void this.discord.ensureChannels(id);
+    });
+
+    // Preselecciona el primero para que el botón nunca esté deshabilitado sin explicación: un
+    // desplegable nativo ya enseña su primera opción, así que dejar el valor vacío mentiría.
+    // La lectura de `channelId` va en `untracked` para que este efecto dependa SOLO de la lista:
+    // rastreándola, escribir aquí lo volvería a disparar para no hacer nada.
+    effect(() => {
+      const options = this.channelOptions();
+      const chosen = untracked(this.channelId);
+      if (options.length && !options.some((o) => o.value === chosen)) {
+        this.channelId.set(options[0].value);
+      }
+    });
+
+    this.readReturnError();
     void this.discord.ensureBotInfo();
+  }
+
+  /**
+   * El `?error=` con el que vuelve el backend cuando la ida a Discord no salió. Se lee una vez y se
+   * borra de la URL: si se quedase, un F5 volvería a enseñar un error de hace diez minutos como si
+   * acabara de pasar.
+   */
+  private readReturnError(): void {
+    const code = this.route.snapshot.queryParamMap.get('error');
+    if (!code) return;
+    this.returnError.set(messageForCode(code));
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: {},
+      replaceUrl: true,
+    });
   }
 
   protected retry(groupId: string): void {
     void this.discord.reload(groupId);
   }
 
-  /**
-   * Abre el portal de Discord en otra pestaña. Un `<button>` y no un `<a nfButton>` porque el
-   * selector de la primitiva es `button[nfButton]`: en un enlace no aplica nada y sale un enlace
-   * pelado. Sale de un clic directo, así que ningún bloqueador de ventanas lo para.
-   */
-  protected invite(url: string): void {
-    window.open(url, '_blank', 'noopener');
+  protected reloadChannels(groupId: string): void {
+    void this.discord.reloadChannels(groupId);
+  }
+
+  /** Vuelve al paso 2 sin tocar nada: el servidor ya está autorizado, solo cambia el destino. */
+  protected changeChannel(groupId: string): void {
+    this.formError.set(null);
+    this.forcedStep.set(2);
+    void this.discord.ensureChannels(groupId);
   }
 
   /**
-   * Conecta el grupo. Pesimista: el estado solo cambia cuando el servidor confirma, porque la
-   * comprobación contra Discord es justamente lo que puede decir que no.
+   * Paso 1. Pide la URL y navega la pestaña entera: Discord devuelve el navegador a nuestro backend
+   * y este a esta misma ruta, así que abrirlo en otra pestaña dejaría la original con la pantalla
+   * vieja y el resultado en la de al lado.
+   */
+  protected async authorize(groupId: string): Promise<void> {
+    if (this.discord.authorizing()) return;
+    this.returnError.set(null);
+    try {
+      const url = await this.discord.beginAuthorization(groupId);
+      window.location.assign(url);
+    } catch (e) {
+      this.toasts.error(errorMessage(e));
+    }
+  }
+
+  /**
+   * Paso 2. Pesimista: el backend publica el mensaje de bienvenida antes de guardar nada, así que
+   * el estado solo cambia cuando ha llegado de verdad a Discord.
    */
   protected async save(groupId: string): Promise<void> {
-    if (this.discord.saving() || !this.isValid()) return;
+    if (this.discord.saving() || !this.channelId()) return;
     this.formError.set(null);
     try {
-      await this.discord.link_(groupId, { guildId: this.guildId(), channelId: this.channelId() });
-      this.guildId.set('');
-      this.channelId.set('');
+      await this.discord.linkChannel(groupId, { channelId: this.channelId() });
+      // Se suelta el paso forzado para que mande otra vez lo guardado, que ahora dice "conectado".
+      this.forcedStep.set(null);
+      this.returnError.set(null);
       this.toasts.success('Grupo conectado con Discord');
     } catch (e) {
       // También en línea, no solo en un toast: el error explica qué arreglar y el toast se va.
@@ -291,6 +545,8 @@ export class GrupoDiscord {
     if (this.discord.saving()) return;
     try {
       await this.discord.unlink(groupId);
+      this.forcedStep.set(null);
+      this.channelId.set('');
       this.toasts.success('Este grupo ya no avisa por Discord');
     } catch (e) {
       this.toasts.error(errorMessage(e));

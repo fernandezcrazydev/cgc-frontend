@@ -1,7 +1,12 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { DiscordApi } from './discord-api';
-import { DiscordBotInfo, GroupDiscordLink, LinkDiscordRequest } from './models';
+import {
+  DiscordBotInfo,
+  DiscordGuildChannels,
+  GroupDiscordLink,
+  LinkDiscordChannelRequest,
+} from './models';
 
 export type DiscordLinkStatus = 'idle' | 'loading' | 'ready' | 'error';
 
@@ -12,6 +17,11 @@ export type DiscordLinkStatus = 'idle' | 'loading' | 'ready' | 'error';
  * Guarda de qué grupo son los datos que tiene. Se navega entre grupos por el sidebar, así que
  * una respuesta lenta del grupo anterior puede llegar después de haber cambiado de pantalla: sin
  * comprobar el id, pintaría el canal de otro grupo como si fuera el de este.
+ *
+ * La lista de canales lleva su propio `status` y no el del vínculo. Son dos peticiones con dos
+ * ciclos de vida: el vínculo se lee al entrar, y los canales solo cuando el asistente llega al
+ * paso 2 —y se pueden recargar solos si el bot acaba de entrar a un canal nuevo—. Compartir un
+ * `status` obligaría a poner toda la pantalla en `loading` para refrescar un desplegable.
  */
 @Injectable({ providedIn: 'root' })
 export class DiscordStore {
@@ -21,17 +31,25 @@ export class DiscordStore {
   private readonly _status = signal<DiscordLinkStatus>('idle');
   private readonly _botInfo = signal<DiscordBotInfo | null>(null);
   private readonly _saving = signal(false);
+  private readonly _authorizing = signal(false);
+
+  private readonly _channels = signal<DiscordGuildChannels | null>(null);
+  private readonly _channelsStatus = signal<DiscordLinkStatus>('idle');
 
   /** De qué grupo son los datos actuales. */
   private loadedGroupId: string | null = null;
   /** Qué grupo se está mirando AHORA. Una carga que termine para otro no debe escribir nada. */
   private requestedGroupId: string | null = null;
   private inFlight: Promise<GroupDiscordLink | null> | null = null;
+  private channelsGroupId: string | null = null;
 
   readonly link = this._link.asReadonly();
   readonly status = this._status.asReadonly();
   readonly botInfo = this._botInfo.asReadonly();
   readonly saving = this._saving.asReadonly();
+  readonly authorizing = this._authorizing.asReadonly();
+  readonly channels = this._channels.asReadonly();
+  readonly channelsStatus = this._channelsStatus.asReadonly();
   readonly isLoading = computed(() => this._status() === 'loading');
 
   ensureLoaded(groupId: string): Promise<GroupDiscordLink | null> {
@@ -44,6 +62,7 @@ export class DiscordStore {
       this.inFlight = null;
       this._link.set(null);
       this._status.set('idle');
+      this.forgetChannels();
     }
     return (this.inFlight ??= this.load(groupId));
   }
@@ -68,8 +87,54 @@ export class DiscordStore {
     }
   }
 
-  /** Conecta el grupo. Lanza si falla, para que la vista traduzca el error con `errorMessage()`. */
-  async link_(groupId: string, request: LinkDiscordRequest): Promise<GroupDiscordLink> {
+  /**
+   * Paso 1: pide la URL de autorización. Devuelve la URL en vez de navegar porque quien navega es
+   * la vista, y tiene que hacerlo en el mismo tick del clic o el bloqueador de ventanas lo para.
+   *
+   * Lanza si falla, para que la vista traduzca el error con `errorMessage()`.
+   */
+  async beginAuthorization(groupId: string): Promise<string> {
+    if (this._authorizing()) throw new Error('Ya hay una autorización en curso');
+    this._authorizing.set(true);
+    try {
+      const start = await firstValueFrom(this.api.beginAuthorization(groupId));
+      return start.authorizationUrl;
+    } finally {
+      this._authorizing.set(false);
+    }
+  }
+
+  /** Paso 2: los canales del servidor autorizado. Idempotente por grupo. */
+  ensureChannels(groupId: string): Promise<void> {
+    if (this.channelsGroupId === groupId && this._channelsStatus() === 'ready') {
+      return Promise.resolve();
+    }
+    return this.reloadChannels(groupId);
+  }
+
+  async reloadChannels(groupId: string): Promise<void> {
+    this.channelsGroupId = groupId;
+    this._channelsStatus.set('loading');
+    try {
+      const channels = await firstValueFrom(this.api.channels(groupId));
+      // Igual que el vínculo: una respuesta lenta puede llegar cuando ya se mira otro grupo, y
+      // ofrecer los canales del servidor de otra gente sería difícil de detectar mirando.
+      if (this.channelsGroupId !== groupId) return;
+      this._channels.set(channels);
+      this._channelsStatus.set('ready');
+    } catch {
+      if (this.channelsGroupId !== groupId) return;
+      this._channels.set(null);
+      this._channelsStatus.set('error');
+    }
+  }
+
+  /**
+   * Conecta el grupo al canal. Pesimista y no reentrante: el backend publica el mensaje de
+   * bienvenida antes de guardar, así que esto tarda lo que tarde Discord y un doble clic mandaría
+   * dos mensajes. Lanza si falla, para que la vista traduzca el error con `errorMessage()`.
+   */
+  async linkChannel(groupId: string, request: LinkDiscordChannelRequest): Promise<GroupDiscordLink> {
     if (this._saving()) throw new Error('Ya hay un guardado en curso');
     this._saving.set(true);
     try {
@@ -93,12 +158,17 @@ export class DiscordStore {
         this._link.set({
           linked: false,
           guildId: null,
+          guildName: null,
           channelId: null,
+          channelName: null,
           linkedAt: null,
           linkedByName: null,
           linkHealthy: true,
         });
       }
+      // El servidor ya no es el de este grupo: dejar la lista cargada haría que volver al paso 2
+      // enseñase los canales del servidor que se acaba de desconectar.
+      this.forgetChannels();
     } finally {
       this._saving.set(false);
     }
@@ -112,6 +182,14 @@ export class DiscordStore {
     this._status.set('idle');
     this._botInfo.set(null);
     this._saving.set(false);
+    this._authorizing.set(false);
+    this.forgetChannels();
+  }
+
+  private forgetChannels(): void {
+    this.channelsGroupId = null;
+    this._channels.set(null);
+    this._channelsStatus.set('idle');
   }
 
   private async load(groupId: string): Promise<GroupDiscordLink | null> {

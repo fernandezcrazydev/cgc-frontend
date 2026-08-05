@@ -2,16 +2,40 @@ import { TestBed } from '@angular/core/testing';
 import { Observable, of, throwError } from 'rxjs';
 import { DiscordApi } from './discord-api';
 import { DiscordStore } from './discord-store';
-import { DiscordBotInfo, GroupDiscordLink, LinkDiscordRequest } from './models';
+import {
+  DiscordAuthorizationStart,
+  DiscordBotInfo,
+  DiscordGuildChannels,
+  GroupDiscordLink,
+  LinkDiscordChannelRequest,
+} from './models';
 
 const GROUP_A = 'aaaaaaaa-1111-2222-3333-444444444444';
 const GROUP_B = 'bbbbbbbb-1111-2222-3333-444444444444';
+const GUILD_A = '111222333444555666';
+const GUILD_B = '999888777666555444';
 
-function linked(channelId: string): GroupDiscordLink {
+function linked(channelId: string, guildId = GUILD_A): GroupDiscordLink {
   return {
     linked: true,
-    guildId: '111222333444555666',
+    guildId,
+    guildName: 'Los Randoms',
     channelId,
+    channelName: 'customs',
+    linkedAt: '2026-08-01T10:00:00Z',
+    linkedByName: 'fulano',
+    linkHealthy: true,
+  };
+}
+
+/** El estado intermedio del asistente: bot dentro, canal sin elegir. */
+function guildOnly(guildId = GUILD_A): GroupDiscordLink {
+  return {
+    linked: false,
+    guildId,
+    guildName: 'Los Randoms',
+    channelId: null,
+    channelName: null,
     linkedAt: '2026-08-01T10:00:00Z',
     linkedByName: 'fulano',
     linkHealthy: true,
@@ -21,11 +45,21 @@ function linked(channelId: string): GroupDiscordLink {
 const NOT_LINKED: GroupDiscordLink = {
   linked: false,
   guildId: null,
+  guildName: null,
   channelId: null,
+  channelName: null,
   linkedAt: null,
   linkedByName: null,
   linkHealthy: true,
 };
+
+function channelsOf(guildId: string): DiscordGuildChannels {
+  return {
+    guildId,
+    guildName: 'Los Randoms',
+    channels: [{ id: 'canal-' + guildId, name: 'customs', categoryName: 'LoL' }],
+  };
+}
 
 /**
  * Doble del API con emisiones resueltas a mano, para poder observar el estado del store mientras
@@ -34,11 +68,14 @@ const NOT_LINKED: GroupDiscordLink = {
 class ApiStub {
   linkCalls: string[] = [];
   unlinkCalls: string[] = [];
-  lastLink: LinkDiscordRequest | null = null;
+  channelCalls: string[] = [];
+  lastLink: LinkDiscordChannelRequest | null = null;
   failLinkOf = false;
   failLink = false;
+  failChannels = false;
 
   private pending = new Map<string, (link: GroupDiscordLink) => void>();
+  private pendingChannels = new Map<string, (channels: DiscordGuildChannels) => void>();
 
   linkOf(groupId: string): Observable<GroupDiscordLink> {
     this.linkCalls.push(groupId);
@@ -51,7 +88,22 @@ class ApiStub {
     });
   }
 
-  link(groupId: string, request: LinkDiscordRequest): Observable<GroupDiscordLink> {
+  beginAuthorization(groupId: string): Observable<DiscordAuthorizationStart> {
+    return of({ authorizationUrl: 'https://discord.com/oauth2/authorize?state=' + groupId });
+  }
+
+  channels(groupId: string): Observable<DiscordGuildChannels> {
+    this.channelCalls.push(groupId);
+    if (this.failChannels) return throwError(() => new Error('boom'));
+    return new Observable((sub) => {
+      this.pendingChannels.set(groupId, (channels) => {
+        sub.next(channels);
+        sub.complete();
+      });
+    });
+  }
+
+  link(groupId: string, request: LinkDiscordChannelRequest): Observable<GroupDiscordLink> {
     this.lastLink = request;
     if (this.failLink) return throwError(() => new Error('boom'));
     return of(linked(request.channelId));
@@ -63,12 +115,17 @@ class ApiStub {
   }
 
   botInfo(): Observable<DiscordBotInfo> {
-    return of({ enabled: true, botInviteUrl: 'https://discord.com/oauth2/authorize?x' });
+    return of({ enabled: true });
   }
 
   /** Resuelve la carga en vuelo de un grupo concreto. */
   async settle(groupId: string, link: GroupDiscordLink): Promise<void> {
     this.pending.get(groupId)!(link);
+    await Promise.resolve();
+  }
+
+  async settleChannels(groupId: string, channels: DiscordGuildChannels): Promise<void> {
+    this.pendingChannels.get(groupId)!(channels);
     await Promise.resolve();
   }
 }
@@ -131,6 +188,20 @@ describe('DiscordStore', () => {
     expect(store.link()?.linked).toBe(false);
   });
 
+  /**
+   * El asistente a medias tiene que sobrevivir a la recarga: el bot ya está en el servidor y eso
+   * no se deshace desde aquí. Si el store no distinguiera este estado del "sin conectar", la
+   * pantalla mandaría a la gente a Discord otra vez a hacer lo que ya está hecho.
+   */
+  it('distingue "servidor autorizado sin canal" de "sin conectar"', async () => {
+    const loading = store.ensureLoaded(GROUP_A);
+    await api.settle(GROUP_A, guildOnly());
+    await loading;
+
+    expect(store.link()?.linked).toBe(false);
+    expect(store.link()?.guildId).toBe(GUILD_A);
+  });
+
   it('un fallo de carga deja status en error y permite reintentar', async () => {
     api.failLinkOf = true;
 
@@ -147,14 +218,73 @@ describe('DiscordStore', () => {
     expect(store.status()).toBe('ready');
   });
 
-  it('conectar publica lo que confirma el servidor', async () => {
-    const loading = store.ensureLoaded(GROUP_A);
-    await api.settle(GROUP_A, NOT_LINKED);
+  // ---------------------------------------------------------------- los canales
+
+  it('carga los canales del servidor autorizado con su propio status', async () => {
+    const loading = store.ensureChannels(GROUP_A);
+    expect(store.channelsStatus()).toBe('loading');
+
+    await api.settleChannels(GROUP_A, channelsOf(GUILD_A));
     await loading;
 
-    await store.link_(GROUP_A, { guildId: '111222333444555666', channelId: 'canal-nuevo' });
+    expect(store.channelsStatus()).toBe('ready');
+    expect(store.channels()?.channels).toHaveLength(1);
+  });
+
+  it('un fallo al leer los canales no tumba el resto de la pantalla', async () => {
+    const loading = store.ensureLoaded(GROUP_A);
+    await api.settle(GROUP_A, guildOnly());
+    await loading;
+    api.failChannels = true;
+
+    await store.ensureChannels(GROUP_A);
+
+    expect(store.channelsStatus()).toBe('error');
+    // El vínculo sigue leído: son dos peticiones con dos ciclos de vida.
+    expect(store.status()).toBe('ready');
+  });
+
+  /**
+   * Mismo peligro que con el vínculo, y peor de detectar: una lista de canales de otro servidor
+   * son nombres plausibles, y elegir uno conectaría el grupo a un sitio que nadie ha autorizado.
+   */
+  it('descarta la lista de canales del grupo que ya no se está mirando', async () => {
+    const stale = store.ensureChannels(GROUP_A);
+    const fresh = store.ensureChannels(GROUP_B);
+
+    await api.settleChannels(GROUP_B, channelsOf(GUILD_B));
+    await fresh;
+    await api.settleChannels(GROUP_A, channelsOf(GUILD_A));
+    await stale;
+
+    expect(store.channels()?.guildId).toBe(GUILD_B);
+  });
+
+  it('cambiar de grupo olvida los canales del anterior', async () => {
+    const loading = store.ensureLoaded(GROUP_A);
+    await api.settle(GROUP_A, guildOnly());
+    await loading;
+    const channels = store.ensureChannels(GROUP_A);
+    await api.settleChannels(GROUP_A, channelsOf(GUILD_A));
+    await channels;
+
+    store.ensureLoaded(GROUP_B);
+
+    expect(store.channels()).toBeNull();
+    expect(store.channelsStatus()).toBe('idle');
+  });
+
+  // ---------------------------------------------------------------- escrituras
+
+  it('conectar publica lo que confirma el servidor', async () => {
+    const loading = store.ensureLoaded(GROUP_A);
+    await api.settle(GROUP_A, guildOnly());
+    await loading;
+
+    await store.linkChannel(GROUP_A, { channelId: 'canal-nuevo' });
 
     expect(store.link()?.channelId).toBe('canal-nuevo');
+    expect(store.link()?.linked).toBe(true);
     expect(store.saving()).toBe(false);
   });
 
@@ -164,23 +294,47 @@ describe('DiscordStore', () => {
     await loading;
     api.failLink = true;
 
-    await expect(
-      store.link_(GROUP_A, { guildId: '111222333444555666', channelId: 'canal-malo' }),
-    ).rejects.toThrow();
+    await expect(store.linkChannel(GROUP_A, { channelId: 'canal-malo' })).rejects.toThrow();
 
     expect(store.link()?.channelId).toBe('canal-a');
     expect(store.saving()).toBe(false);
   });
 
-  it('desconectar deja el grupo en "sin conectar"', async () => {
+  /**
+   * El backend publica el mensaje de bienvenida antes de guardar, así que conectar tarda lo que
+   * tarde Discord. Un doble clic mandaría dos mensajes al canal de otra gente.
+   */
+  it('no deja lanzar dos conexiones a la vez', async () => {
+    const loading = store.ensureLoaded(GROUP_A);
+    await api.settle(GROUP_A, guildOnly());
+    await loading;
+
+    const first = store.linkChannel(GROUP_A, { channelId: 'canal-nuevo' });
+    await expect(store.linkChannel(GROUP_A, { channelId: 'canal-nuevo' })).rejects.toThrow();
+    await first;
+  });
+
+  it('desconectar deja el grupo en "sin conectar" y olvida los canales', async () => {
     const loading = store.ensureLoaded(GROUP_A);
     await api.settle(GROUP_A, linked('canal-a'));
     await loading;
+    const channels = store.ensureChannels(GROUP_A);
+    await api.settleChannels(GROUP_A, channelsOf(GUILD_A));
+    await channels;
 
     await store.unlink(GROUP_A);
 
     expect(store.link()?.linked).toBe(false);
+    expect(store.link()?.guildId).toBeNull();
+    expect(store.channels()).toBeNull();
     expect(api.unlinkCalls).toEqual([GROUP_A]);
+  });
+
+  it('pedir la autorización devuelve la URL sin navegar', async () => {
+    const url = await store.beginAuthorization(GROUP_A);
+
+    expect(url).toContain('discord.com/oauth2/authorize');
+    expect(store.authorizing()).toBe(false);
   });
 
   it('al cerrar sesión no queda rastro del grupo anterior', async () => {
@@ -192,5 +346,6 @@ describe('DiscordStore', () => {
 
     expect(store.link()).toBeNull();
     expect(store.status()).toBe('idle');
+    expect(store.channels()).toBeNull();
   });
 });

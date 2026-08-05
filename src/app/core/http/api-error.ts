@@ -65,9 +65,18 @@ const MESSAGES_BY_CODE: Record<string, string> = {
   CHAMPION_NOT_FOUND: 'No se ha encontrado ese campeón.',
   DEVICE_NOT_FOUND: 'Ese dispositivo ya no estaba vinculado.',
   DISCORD_API_UNAVAILABLE: 'No hemos podido hablar con Discord ahora mismo. Prueba en un minuto.',
+  DISCORD_AUTH_CANCELLED: 'Has cancelado en Discord, así que no se ha conectado nada.',
+  DISCORD_AUTH_FAILED: 'Discord no ha confirmado la autorización. Vuelve a intentarlo.',
+  DISCORD_AUTH_FORBIDDEN: 'Ya no administras este grupo, así que no puedes cambiar su Discord.',
+  DISCORD_AUTH_STATE_INVALID:
+    'Ese enlace de vuelta ya no vale: se usa una sola vez y caduca a los diez minutos. Empieza otra vez.',
   DISCORD_CHANNEL_UNREACHABLE:
-    'El bot no ve ese canal. Comprueba que lo has invitado al servidor, que el canal es de texto y que tiene permiso para escribir ahí.',
-  DISCORD_GUILD_MISMATCH: 'Ese canal no pertenece al servidor que has indicado.',
+    'El bot ya no ve ese canal. Puede que lo hayan borrado o que le hayan quitado el permiso para verlo.',
+  DISCORD_CHANNEL_WRITE_FAILED:
+    'El bot ve el canal pero no puede escribir en él. Dale permiso para enviar mensajes ahí, o elige otro canal.',
+  DISCORD_GUILD_MISMATCH: 'Ese canal no pertenece al servidor que has conectado.',
+  DISCORD_GUILD_NOT_SELECTED:
+    'Este grupo ya no tiene ningún servidor de Discord conectado. Empieza otra vez por el primer paso.',
   DUPLICATE_PENDING_INVITATION: 'Este usuario ya tiene una invitación pendiente.',
   EMPTY_AUDIT_WINDOW: 'Ese periodo está al revés: la fecha de fin debe ser posterior a la de inicio.',
   FEEDBACK_QUOTA_EXCEEDED:
@@ -134,4 +143,19 @@ export function messageForError(error: ApiError): string {
 /** Atajo para el caso común: de un fallo de `HttpClient` directo al mensaje en español. */
 export function errorMessage(error: unknown): string {
   return messageForError(parseApiError(error));
+}
+
+/**
+ * El mensaje de un `code` suelto, sin respuesta HTTP alrededor.
+ *
+ * Existe por los errores que no llegan por `HttpClient` sino por la URL: el backend redirige al
+ * navegador con `?error=CODE` cuando la ida y vuelta a Discord no sale, y ahí no hay ni `status`
+ * ni cuerpo que parsear. Mismo catálogo y mismo aviso por consola para lo que no esté traducido:
+ * un `code` no puede querer decir una cosa por HTTP y otra por la barra de direcciones.
+ */
+export function messageForCode(code: string): string {
+  const known = MESSAGES_BY_CODE[code];
+  if (known) return known;
+  console.warn(`[api-error] código sin traducir: ${code} (sin status)`);
+  return FALLBACK;
 }
