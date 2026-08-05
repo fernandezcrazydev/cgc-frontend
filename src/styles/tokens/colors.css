@@ -1,29 +1,46 @@
 /* ============================================================
    COLOR TOKENS
-   Superficies neutras (negro OLED → grafito) con un único acento
+   Superficies neutras (casi negro → grafito) con un único acento
    azul. Nada de tinte de color en las superficies ni en las
    líneas: el color se reserva para lo que significa algo
    (acción primaria, estado, lado de equipo).
    ============================================================ */
 
 :root {
-  /* ---- Superficies (de más oscura a más clara) ---- */
-  --nf-void: #000000;          /* base de página, la más oscura */
-  --nf-inset: #101012;         /* hundido: inputs, raíles       */
-  --nf-surface: #1c1c1e;       /* cuerpo de panel / ventana     */
-  --nf-surface-2: #2c2c2e;     /* tarjeta o panel elevado       */
-  --nf-elevated: #3a3a3c;      /* hover / techo de gradiente    */
+  /* ---- Superficies (de más oscura a más clara) ----
+     Toda la rampa comparte el mismo matiz frío (~250°, saturación baja
+     y constante). Antes cada peldaño iba por su cuenta —unos neutros
+     puros, otros con +2 de azul— y mezclar grises cálidos y fríos es
+     justo lo que hace que un tema oscuro parezca sucio.
 
-  /* ---- Paleta ---- */
-  --nf-primary: #0a84ff;        /* acción primaria            */
-  --nf-primary-strong: #0060df; /* primaria pulsada           */
-  --nf-secondary: #64d2ff;      /* secundaria · azul claro    */
-  --nf-tertiary: #5e5ce6;       /* terciaria · índigo         */
-  --nf-warning: #ffd60a;        /* aviso                      */
-  --nf-success: #30d158;        /* éxito                      */
-  --nf-danger: #ff453a;         /* peligro                    */
+     `void` ya no es #000 puro: el negro absoluto contra texto claro da
+     un borde duro (halation) que cansa, y deja las sombras invisibles,
+     porque no hay nada más oscuro adonde caer. Un casi-negro conserva
+     el ahorro OLED y devuelve el rango para poder elevar. Las capas de
+     texto siguen pasando AA: al ser rgba compuesto sobre el fondo, el
+     texto sube lo mismo que sube el fondo (auditado: text-dim queda en
+     5.4:1 sobre void, igual que con #000). */
+  --nf-void: #08080b;          /* base de página, la más oscura */
+  --nf-inset: #101015;         /* hundido: inputs, raíles       */
+  --nf-surface: #1b1b21;       /* cuerpo de panel / ventana     */
+  --nf-surface-2: #26262e;     /* tarjeta o panel elevado       */
+  --nf-elevated: #33333d;      /* hover / techo de gradiente    */
 
-  /* ---- Lados de equipo (semántico de dominio, no de tema) ---- */
+  /* ---- Paleta ----
+     Un solo acento. `primary` bajó de saturación (era #0a84ff, S=100%):
+     a saturación máxima sobre fondo oscuro el azul vibra y se come la
+     jerarquía de todo lo que tiene al lado. */
+  --nf-primary: #2d82e8;        /* acción primaria            */
+  --nf-primary-strong: #1a63bd; /* primaria pulsada           */
+  --nf-secondary: #6cc6ef;      /* secundaria · azul claro    */
+  --nf-tertiary: #5f6bd8;       /* terciaria · índigo         */
+  --nf-warning: #f0c419;        /* aviso                      */
+  --nf-success: #35c759;        /* éxito                      */
+  --nf-danger: #f04438;         /* peligro                    */
+
+  /* ---- Lados de equipo (semántico de dominio, no de tema) ----
+     Literales a propósito: son los azul/rojo de LoL, no el acento de la
+     app. Si mañana `primary` cambia de tono, estos NO deben seguirlo. */
   --nf-team-blue: #0a84ff;
   --nf-team-red: #ff453a;
 
@@ -39,5 +56,14 @@
   /* ---- Líneas: hairlines neutros, sin tinte ---- */
   --nf-border: rgba(255, 255, 255, 0.09);
   --nf-border-strong: rgba(255, 255, 255, 0.16);
-  --nf-border-accent: rgba(10, 132, 255, 0.35);
+  --nf-border-accent: rgba(45, 130, 232, 0.35);
+
+  /* ---- Foco ----
+     Un solo token para el anillo de foco de toda la app: el color del
+     acento con suficiente contraste sobre cualquier superficie de la
+     rampa. Se pinta con `outline` (no con box-shadow) para que siga
+     siendo visible en modo de alto contraste forzado. */
+  --nf-focus: #6aa9f0;
+  --nf-focus-ring: 2px;
+  --nf-focus-offset: 2px;
 }

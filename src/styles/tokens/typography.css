@@ -14,9 +14,14 @@
      logs) este es su sitio. */
   --nf-mono: var(--nf-font);
 
-  /* pesos */
+  /* ---- Pesos ----
+     `--fw-medium` valía 600, que es semibold: no había forma de pedir un
+     escalón intermedio entre 400 y 700, así que toda jerarquía suave se
+     resolvía saltando a negrita. Ahora la escala es la real y hay dos
+     peldaños nuevos donde antes había un vacío. */
   --fw-regular: 400;
-  --fw-medium: 600;
+  --fw-medium: 500;
+  --fw-semibold: 600;
   --fw-bold: 700;
   --fw-black: 800;
 
@@ -33,8 +38,15 @@
 
   /* Tracking: apretado, no ancho. La escala "wide" se conserva a 0 para no
      tener que perseguir sus usos; separar letras es lo que hacía ilegibles las
-     labels pequeñas. */
-  --ls-tight: -0.01em;
+     labels pequeñas.
+
+     El tracking es óptico, no fijo: a 46px el mismo -0.01em que corrige un
+     h3 no se nota, porque el hueco entre letras crece con el cuerpo. De ahí
+     tres escalones en vez de uno — cuanto más grande el texto, más hay que
+     cerrarlo para que el titular lea como un bloque y no como letras sueltas. */
+  --ls-tight: -0.01em;      /* h3 / h2  */
+  --ls-tighter: -0.02em;    /* h1       */
+  --ls-display: -0.032em;   /* display  */
   --ls-normal: 0;
   --ls-wide: 0;
   --ls-wider: 0;
@@ -42,6 +54,11 @@
   --ls-eyebrow: 0.02em;
 
   --lh-tight: 1.1;
+  --lh-display: 1.02;  /* el display necesita menos aire que un h1 */
   --lh-snug: 1.3;
   --lh-body: 1.6;
+
+  /* Ancho de medida: ~65 caracteres es donde el ojo encuentra el salto de
+     línea sin perderse. Se aplica a prosa, nunca a tablas ni a UI densa. */
+  --measure: 65ch;
 }

@@ -2,9 +2,27 @@
 <html lang="es">
 <head>
   <meta charset="utf-8">
-  <title>Sale custom — Custom Match Builder</title>
+  <!-- El nombre oficial lleva mayúscula en las dos palabras: "Sale Custom". -->
+  <title>Sale Custom — organiza tus partidas custom de LoL</title>
   <base href="/">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- Metadatos sociales: sin esto, cualquier enlace pegado en Discord —que es
+       justo por donde se comparte esta app— sale como una tarjeta vacía con la
+       URL cruda. -->
+  <meta name="description" content="Monta partidas personalizadas de League of Legends con tu grupo: equipos equilibrados, draft, resultados e historial.">
+  <meta name="theme-color" content="#08080b">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Sale Custom">
+  <meta property="og:title" content="Sale Custom — organiza tus partidas custom de LoL">
+  <meta property="og:description" content="Monta partidas personalizadas de League of Legends con tu grupo: equipos equilibrados, draft, resultados e historial.">
+  <meta property="og:locale" content="es_ES">
+  <!-- TODO(diseño): falta `og:image` (1200x630 en public/). Se deja sin poner
+       en vez de apuntar a un fichero inexistente: una og:image rota da peor
+       tarjeta que no declarar ninguna. Al añadirla, cambiar también
+       twitter:card a "summary_large_image". -->
+  <meta name="twitter:card" content="summary">
+
   <link rel="icon" type="image/x-icon" href="favicon.ico">
   <!-- Iconos reales de LoL (campeones, hechizos, objetos): backend cachea el catálogo, el
        navegador pide las imágenes directas a Data Dragon. -->

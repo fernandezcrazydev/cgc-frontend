@@ -6,41 +6,68 @@
   justify-content: center;
   gap: 8px;
   font-family: var(--nf-font);
-  font-weight: var(--fw-bold);
+  /* Era `bold` (700). En un botón pequeño 700 emborrona la contraforma de
+     las letras y grita más que la propia acción; 600 mantiene el peso sin
+     ensuciar. */
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--ls-tight);
   border-radius: var(--nf-radius);
   border: var(--bw-2) solid transparent;
   cursor: pointer;
   white-space: nowrap;
-  transition: filter 0.14s, color 0.16s, border-color 0.16s, background 0.16s;
+  transition: filter 0.16s ease, color 0.16s ease, border-color 0.16s ease,
+    background 0.16s ease, box-shadow 0.16s ease;
 }
 
 .nf-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  box-shadow: none;
 }
 
 /* El feedback de pulsación va por brillo, no por desplazamiento: mover el botón
    bajo el cursor obliga a reencontrarlo, y en táctil ni siquiera se ve porque lo
-   tapa el dedo. */
+   tapa el dedo.
+
+   Lo que sí cambia al pulsar es la sombra: al soltarla el botón parece caer
+   contra la superficie. Es la misma lectura física que da el `translateY`,
+   pero sin mover el blanco del cursor. */
 .nf-btn:hover:not(:disabled) { filter: brightness(1.08); }
-.nf-btn:active:not(:disabled) { filter: brightness(0.94); }
+.nf-btn:active:not(:disabled) {
+  filter: brightness(0.94);
+  box-shadow: none;
+}
 
 /* ---- tamaños ---- */
 .nf-btn--sm { padding: 7px 14px; font-size: 12px; }
 .nf-btn--md { padding: 11px 20px; font-size: 13px; }
 .nf-btn--lg { padding: 15px 26px; font-size: 14px; }
 
-/* ---- primary ---- */
+/* ---- primary ----
+   Los rellenos sólidos llevan sombra tintada del propio acento (no negra):
+   una sombra azulada bajo un botón azul lee como luz rebotada, mientras que
+   la negra lo recorta del fondo como una pegatina. Y el realce de canto
+   arriba lo separa del degradado plano. */
 .nf-btn--primary {
   background: var(--nf-primary);
   color: #fff;
   border-color: var(--nf-primary);
+  box-shadow:
+    var(--nf-edge-light),
+    0 1px 2px hsl(var(--nf-shadow-color) / 0.4),
+    0 4px 14px color-mix(in srgb, var(--nf-primary) 28%, transparent);
 }
 
-/* ---- secondary · contorno ---- */
+/* ---- secondary · contorno ----
+   El contorno a pelo desaparecía sobre paneles claros de la rampa; un
+   relleno del acento al 10% lo asienta sin convertirlo en un primary. */
 .nf-btn--secondary {
-  background: transparent;
+  background: color-mix(in srgb, var(--nf-primary) 10%, transparent);
   color: var(--nf-primary);
+  border-color: color-mix(in srgb, var(--nf-primary) 55%, transparent);
+}
+.nf-btn--secondary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--nf-primary) 18%, transparent);
   border-color: var(--nf-primary);
 }
 
@@ -51,6 +78,7 @@
   border-color: var(--nf-border);
 }
 .nf-btn--ghost:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.04);
   color: var(--nf-text);
   border-color: var(--nf-border-strong);
 }
@@ -58,8 +86,12 @@
 /* ---- accent ---- */
 .nf-btn--accent {
   background: var(--nf-warning);
-  color: #000;
+  color: #1a1400;
   border-color: var(--nf-warning);
+  box-shadow:
+    var(--nf-edge-light),
+    0 1px 2px hsl(var(--nf-shadow-color) / 0.4),
+    0 4px 14px color-mix(in srgb, var(--nf-warning) 24%, transparent);
 }
 
 /* ---- danger ---- */
@@ -67,4 +99,13 @@
   background: var(--nf-danger);
   color: #fff;
   border-color: var(--nf-danger);
+  box-shadow:
+    var(--nf-edge-light),
+    0 1px 2px hsl(var(--nf-shadow-color) / 0.4),
+    0 4px 14px color-mix(in srgb, var(--nf-danger) 26%, transparent);
+}
+/* El anillo de foco de un destructivo va en su propio color: el azul
+   genérico sobre un botón rojo se lee como otro control. */
+.nf-btn--danger:focus-visible {
+  outline-color: color-mix(in srgb, var(--nf-danger) 70%, #fff);
 }

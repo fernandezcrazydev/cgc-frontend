@@ -1,5 +1,11 @@
 :host { display: block; }
 
+/* La pantalla era una tarjeta centrada sobre un vacío liso: correcta y
+   completamente inerte. Ahora el fondo lleva dos luces ambientales muy
+   tenues —una fría arriba a la izquierda, una cálida abajo a la derecha—
+   hechas con degradados radiales, no con el lineal de 45° de siempre.
+   Ninguna llega a leerse como "color": lo que hacen es que el fondo deje
+   de ser una superficie plana y la tarjeta tenga de dónde despegarse. */
 .login {
   position: relative;
   min-height: calc(var(--nf-vh) * 100);
@@ -8,17 +14,31 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
+  padding: var(--sp-6);
   box-sizing: border-box;
-  background: var(--nf-void);
+  background:
+    radial-gradient(
+      68% 52% at 18% 8%,
+      color-mix(in srgb, var(--nf-primary) 13%, transparent),
+      transparent 68%
+    ),
+    radial-gradient(
+      54% 44% at 88% 96%,
+      color-mix(in srgb, var(--nf-warning) 6%, transparent),
+      transparent 62%
+    ),
+    var(--nf-void);
 }
 
-/* tarjeta */
+/* tarjeta.
+   Se sube ópticamente: una caja centrada por matemáticas se ve caída,
+   porque el ojo busca el centro un poco por encima del geométrico. */
 .login__card {
   position: relative;
-  z-index: 3;
+  z-index: var(--z-base);
   width: 100%;
   max-width: 430px;
+  margin-bottom: clamp(0px, 4vh, 44px);
 }
 
 .login__pad { padding: clamp(26px, 5.5vw, 38px); }
@@ -30,11 +50,27 @@
   gap: 13px;
   margin-bottom: 26px;
 }
+/* La marca iba en degradado índigo→azul a 160°. Ese diagonal violeta-azul
+   es la huella dactilar más reconocible del diseño generado por IA, y
+   además metía un segundo acento (`tertiary`) que no pinta nada aquí.
+   Ahora es el acento único sobre sí mismo: un radial descentrado que
+   simula una luz que entra por arriba a la izquierda, coherente con la
+   dirección de luz del resto de la app. */
 .login__logo {
+  position: relative;
   width: 42px;
   height: 42px;
-  border-radius: 7px;
-  background: linear-gradient(160deg, var(--nf-tertiary), var(--nf-primary));
+  border-radius: 12px;
+  background:
+    radial-gradient(
+      120% 120% at 26% 14%,
+      color-mix(in srgb, var(--nf-primary) 78%, #fff) 0%,
+      var(--nf-primary) 46%,
+      var(--nf-primary-strong) 100%
+    );
+  box-shadow:
+    var(--nf-edge-light),
+    0 6px 18px color-mix(in srgb, var(--nf-primary) 32%, transparent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -47,65 +83,95 @@
   transform: rotate(45deg);
 }
 .login__wordmark {
-  font-weight: 800;
-  font-size: 16px;
-  color: #fff;
+  /* 800 en 16px es más peso del que un wordmark de esa altura sostiene:
+     los trazos se tocan y la palabra se lee como una mancha. */
+  font-weight: var(--fw-bold);
+  font-size: var(--fs-body-lg);
+  letter-spacing: var(--ls-tight);
+  color: var(--nf-text);
   line-height: 1;
 }
 .login__tag {
-  font-size: 11px;
+  font-size: var(--fs-label);
   color: var(--nf-text-dim);
   margin-top: 5px;
 }
 
 .login__eyebrow {
-  font-size: 11px;
-  color: var(--nf-secondary);
-  margin-bottom: 12px;
+  font-size: var(--fs-label);
+  font-weight: var(--fw-medium);
+  letter-spacing: var(--ls-eyebrow);
+  color: var(--nf-text-dim);
+  margin-bottom: var(--sp-3);
 }
 
+/* El titular es lo único que puede pesar en esta pantalla, así que se le
+   da cuerpo de verdad y el tracking cerrado que pide ese cuerpo. */
 .login__title {
-  font-weight: 800;
-  font-size: clamp(28px, 6.5vw, 36px);
+  font-weight: var(--fw-bold);
+  font-size: clamp(30px, 6.5vw, 38px);
   color: var(--nf-text);
-  margin: 0 0 12px;
-  letter-spacing: -0.6px;
-  line-height: 1.05;
+  margin: 0 0 var(--sp-3);
+  letter-spacing: var(--ls-display);
+  line-height: var(--lh-display);
 }
 .login__lead {
   color: var(--nf-text-mid);
-  font-size: 14.5px;
-  line-height: 1.6;
-  margin: 0 0 28px;
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  max-width: var(--measure);
+  text-wrap: pretty;
+  margin: 0 0 var(--sp-7);
 }
 
-/* ---- Discord button (blurple CTA) ---- */
+/* ---- Discord button (blurple CTA) ----
+   El blurple se mantiene: es color de marca ajena, no del tema, y aquí
+   identifica el proveedor. Lo que se corrige es el envoltorio, que era
+   retro suelto: radio 4px (fuera de la escala 8/10/16), borde claro de
+   2px que lo hacía parecer seleccionado, peso 800 y un `translate(1px,1px)`
+   al pulsar que movía el objetivo bajo el cursor.
+
+   El hover/active declaraban la MISMA sombra que el reposo: la transición
+   estaba escrita pero no cambiaba nada. Ahora sí hay recorrido — la sombra
+   crece al pasar y se apaga al pulsar. */
 .login__discord {
   width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: var(--sp-3);
   padding: 16px 20px;
   background: #5865f2;
   color: #fff;
-  border: 2px solid #7f8bff;
-  border-radius: 4px;
-  box-shadow: var(--nf-shadow-card);
+  border: var(--bw-2) solid transparent;
+  border-radius: var(--nf-radius);
+  box-shadow:
+    var(--nf-edge-light),
+    0 1px 2px hsl(var(--nf-shadow-color) / 0.45),
+    0 6px 20px rgba(88, 101, 242, 0.3);
   font-family: var(--nf-font);
-  font-weight: 800;
-  font-size: 14px;
+  font-weight: var(--fw-semibold);
+  font-size: var(--fs-body);
+  letter-spacing: var(--ls-tight);
   cursor: pointer;
-  transition: transform 0.14s, box-shadow 0.14s;
+  transition: background 0.16s ease, box-shadow 0.16s ease, filter 0.16s ease;
 }
 .login__discord:hover:not(:disabled) {
-  box-shadow: var(--nf-shadow-card);
+  background: #6874f5;
+  box-shadow:
+    var(--nf-edge-light),
+    0 1px 2px hsl(var(--nf-shadow-color) / 0.45),
+    0 10px 30px rgba(88, 101, 242, 0.42);
 }
 .login__discord:active:not(:disabled) {
-  transform: translate(1px, 1px);
-  box-shadow: var(--nf-shadow-card);
+  filter: brightness(0.94);
+  box-shadow: 0 1px 2px hsl(var(--nf-shadow-color) / 0.5);
 }
-.login__discord:disabled { opacity: 0.85; cursor: default; }
+.login__discord:focus-visible {
+  outline: var(--nf-focus-ring) solid #aab4ff;
+  outline-offset: var(--nf-focus-offset);
+}
+.login__discord:disabled { opacity: 0.85; cursor: default; box-shadow: none; }
 
 .login__discord-mark {
   display: flex;
@@ -120,21 +186,26 @@
 .login__checking {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 20px 0 8px;
+  gap: var(--sp-3);
+  padding: var(--sp-5) 0 var(--sp-2);
   color: var(--nf-text-dim);
-  font-size: 11px;
+  font-size: var(--fs-caption);
 }
 
-/* ---- error notice ---- */
+/* ---- error notice ----
+   Iba a 11px, el suelo de la escala: el único texto de la pantalla que el
+   usuario necesita leer con atención era el más pequeño de todos. Sube a
+   cuerpo de caption y el borde se aparta del rojo pleno, que sobre fondo
+   oscuro vibra. */
 .login__error {
-  margin: 0 0 16px;
-  padding: 11px 14px;
-  border: 1px solid var(--nf-danger, #ff3b59);
-  border-radius: 4px;
-  background: rgba(255, 59, 89, 0.1);
-  color: var(--nf-danger, #ff6b82);
-  font-size: 11px;
+  margin: 0 0 var(--sp-4);
+  padding: var(--sp-3) var(--sp-4);
+  border: var(--bw-2) solid color-mix(in srgb, var(--nf-danger) 45%, transparent);
+  border-left: 3px solid var(--nf-danger);
+  border-radius: var(--nf-radius-sm);
+  background: color-mix(in srgb, var(--nf-danger) 12%, transparent);
+  color: color-mix(in srgb, var(--nf-danger) 55%, #fff);
+  font-size: var(--fs-caption);
   line-height: 1.5;
 }
 
@@ -166,11 +237,11 @@
 .login__success .login__title {
   font-size: clamp(26px, 6vw, 32px);
   margin-bottom: 10px;
-  letter-spacing: -0.5px;
+  letter-spacing: var(--ls-tighter);
 }
-.login__success .login__lead { font-size: 14px; margin-bottom: 24px; }
+.login__success .login__lead { font-size: var(--fs-body); margin-bottom: var(--sp-6); }
 .login__status {
-  font-size: 11px;
+  font-size: var(--fs-caption);
   color: var(--nf-text-dim);
   display: flex;
   align-items: center;
@@ -186,13 +257,27 @@
 
 /* ---- footer ---- */
 .login__footer {
-  margin-top: 30px;
-  padding-top: 18px;
-  border-top: 1px solid var(--nf-border);
+  margin-top: var(--sp-7);
+  padding-top: var(--sp-5);
+  border-top: var(--bw-2) solid var(--nf-border);
 }
 .login__terms {
-  font-size: 11px;
-  line-height: 1.7;
+  font-size: var(--fs-caption);
+  line-height: 1.65;
   color: var(--nf-text-dim);
+  text-wrap: pretty;
   margin: 0;
+}
+/* Los términos y la privacidad eran texto plano: se citaban como si
+   existieran, pero no había forma de llegar a ellos. */
+.login__terms a {
+  color: var(--nf-text-mid);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-color: var(--nf-border-strong);
+  transition: color 0.16s ease, text-decoration-color 0.16s ease;
+}
+.login__terms a:hover {
+  color: var(--nf-text);
+  text-decoration-color: var(--nf-primary);
 }

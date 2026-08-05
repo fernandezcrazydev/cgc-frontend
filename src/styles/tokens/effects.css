@@ -5,8 +5,46 @@
    ============================================================ */
 
 :root {
-  --nf-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-  --nf-shadow-card: 0 1px 2px rgba(0, 0, 0, 0.5), 0 12px 40px rgba(0, 0, 0, 0.35);
+  /* ---- Sombras ----
+     Tintadas, no negro puro. Una sombra negra sobre una superficie fría
+     lee como un agujero gris sucio; llevando el mismo matiz de la rampa
+     (~250°) la sombra parece falta de luz y no un objeto aparte.
+
+     Dirección de luz única para toda la app: cenital y ligeramente al
+     frente. Por eso todos los desplazamientos son +Y y ninguno lleva X:
+     dos sombras que caen hacia lados distintos delatan la maqueta.
+
+     La escala es de contacto → elevación: el primer trazo, corto y
+     opaco, ancla el borde del elemento contra el fondo; el segundo,
+     amplio y difuso, es el que da la altura. Una sombra sola nunca
+     consigue las dos cosas. */
+  --nf-shadow-color: 236 20% 3%;
+
+  --nf-shadow-sm:
+    0 1px 2px hsl(var(--nf-shadow-color) / 0.5);
+  --nf-shadow:
+    0 1px 2px hsl(var(--nf-shadow-color) / 0.5),
+    0 2px 6px hsl(var(--nf-shadow-color) / 0.3);
+  --nf-shadow-card:
+    0 1px 2px hsl(var(--nf-shadow-color) / 0.55),
+    0 12px 40px hsl(var(--nf-shadow-color) / 0.45);
+  --nf-shadow-pop:
+    0 1px 2px hsl(var(--nf-shadow-color) / 0.6),
+    0 24px 70px hsl(var(--nf-shadow-color) / 0.6);
+
+  /* Realce de canto: la línea de 1px que recibe la luz por arriba. Es lo
+     que separa una superficie "impresa" de una que parece tener grosor. */
+  --nf-edge-light: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+
+  /* ---- Escala de z-index ----
+     Los valores ya eran razonables, pero vivían sueltos por 6 ficheros y
+     no había forma de saber qué se apila sobre qué sin buscarlos todos. */
+  --z-base: 1;
+  --z-sticky: 100;
+  --z-overlay: 120;
+  --z-modal: 150;
+  --z-toast: 200;
+  --z-boot: 300;
 }
 
 /* ---- Keyframes (globales; los estados y animaciones no se pueden encapsular) ---- */

@@ -7,6 +7,62 @@
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
 
+/* ---- Anillo de foco ----
+   La app no tenía ninguno: `nf-btn`, los enlaces de navegación y la mayoría
+   de controles heredaban el outline del navegador, que sobre fondo oscuro es
+   casi invisible, y varios lo perdían del todo. Navegar con teclado era
+   avanzar a ciegas.
+
+   Va sobre `:focus-visible`, no sobre `:focus`, para que el anillo aparezca
+   al tabular pero no al hacer clic con el ratón. El `:focus:not(:focus-visible)`
+   silencia el outline por defecto sin dejar hueco descubierto. */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  /* El outline sigue por sí solo el border-radius del elemento, así que no
+     hay que redeclararlo aquí (hacerlo heredaría el radio del padre). */
+  outline: var(--nf-focus-ring) solid var(--nf-focus);
+  outline-offset: var(--nf-focus-offset);
+}
+:where(a, button, input, select, textarea, summary, [tabindex]):focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Las regiones que solo son destino del enlace de salto reciben el foco pero
+   no son controles: un anillo alrededor de todo el contenido no informa de
+   nada y pesa mucho. El salto ya se nota porque el siguiente tabulador
+   continúa dentro del contenido. */
+main[tabindex='-1']:focus,
+main[tabindex='-1']:focus-visible {
+  outline: none;
+}
+
+/* ---- Enlace de salto ----
+   Primer tabulable del documento. Sin él, llegar al contenido con teclado
+   obliga a recorrer la navegación entera en cada cambio de ruta. Solo se ve
+   cuando tiene el foco. */
+.nf-skip {
+  position: absolute;
+  top: var(--sp-2);
+  left: var(--sp-2);
+  z-index: var(--z-toast);
+  padding: var(--sp-2) var(--sp-4);
+  border-radius: var(--nf-radius-sm);
+  background: var(--nf-surface-2);
+  color: var(--nf-text);
+  font-size: var(--fs-caption);
+  font-weight: var(--fw-semibold);
+  text-decoration: none;
+  box-shadow: var(--nf-shadow-card);
+  transform: translateY(calc(-100% - var(--sp-4)));
+  transition: transform 0.18s ease;
+}
+.nf-skip:focus-visible { transform: translateY(0); }
+
+/* El scroll suave es para los saltos a ancla; quien haya pedido menos
+   movimiento en el sistema no lo recibe. */
+@media (prefers-reduced-motion: no-preference) {
+  html { scroll-behavior: smooth; }
+}
+
 /* ---- Zoom de interfaz ----
    La densidad de la UI está pensada para verse al 110% en escritorio: en 1920x1080
    el texto y los controles a escala 1 quedan pequeños para el ancho disponible.
@@ -45,7 +101,54 @@ body {
   min-height: calc(var(--nf-vh) * 100);
 }
 
-::selection { background: rgba(10, 132, 255, 0.35); color: #fff; }
+/* ---- Grano ----
+   Capa fija de ruido a muy baja opacidad sobre toda la página. Una UI
+   oscura hecha solo de rellenos planos se lee como vectorial y sintética;
+   el grano le devuelve algo de materia y, de paso, rompe el banding de
+   los degradados grandes (el del splash, los de las tarjetas de grupo).
+
+   Es un SVG en data-URI, así que no hay petición de red ni imagen que
+   mantener. `pointer-events: none` para que no intercepte nada, y se
+   retira en pantallas de alto contraste, donde el patrón se ve.
+
+   Va en `app-root::after` y NO en `body::after` a propósito: la skin
+   `original` ya usa body::before y body::after para sus dos resplandores
+   a la deriva. Compartir pseudo-elemento con ella dejaba el `inset: 0` de
+   aquí mezclado con el `bottom/right` de allí —caja sobre-restringida— y
+   el resplandor de abajo a la derecha se iba a la esquina contraria. */
+app-root {
+  display: block;
+  position: relative;
+}
+app-root::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-toast);
+  pointer-events: none;
+  opacity: 0.028;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+@media (prefers-contrast: more) {
+  app-root::after { display: none; }
+}
+
+/* ---- Prosa ----
+   Limita la medida a ~65 caracteres y deja que el navegador reparta las
+   últimas líneas, para que no quede una palabra sola colgando al final
+   del párrafo. Solo para texto corrido: en tablas y UI densa estorba. */
+.nf-prose {
+  max-width: var(--measure);
+  line-height: var(--lh-body);
+  text-wrap: pretty;
+}
+
+/* Los titulares se equilibran: `balance` reparte las líneas de un titular
+   corto en vez de dejar la última con una palabra huérfana. */
+:where(h1, h2, h3) { text-wrap: balance; }
+
+::selection { background: color-mix(in srgb, var(--nf-primary) 40%, transparent); color: #fff; }
 
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track { background: var(--nf-void); }
