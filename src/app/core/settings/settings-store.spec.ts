@@ -53,8 +53,8 @@ class ApiStub {
   }
 }
 
-const OPEN: UserSettings = { allowGroupInvites: true };
-const CLOSED: UserSettings = { allowGroupInvites: false };
+const OPEN: UserSettings = { allowGroupInvites: true, discordNotifications: true };
+const CLOSED: UserSettings = { allowGroupInvites: false, discordNotifications: true };
 
 describe('SettingsStore', () => {
   let store: SettingsStore;

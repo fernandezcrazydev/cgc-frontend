@@ -120,6 +120,11 @@ import { errorMessage } from '../../../core/http';
               <button nfButton variant="secondary" size="md" [routerLink]="['/app', 'grupos', g.id, 'ranking']">Ranking</button>
               <button nfButton variant="secondary" size="md" [routerLink]="['/app', 'grupos', g.id, 'estadisticas']">Estadísticas</button>
               <button nfButton variant="secondary" size="md" [routerLink]="['/app', 'grupos', g.id, 'historial']">Historial</button>
+              <!-- Solo para quien gestiona: cambiar dónde avisa el grupo afecta a todo el mundo.
+                   Esconderlo es UX, no seguridad — el backend revalida con @groupSecurity.isAdmin. -->
+              @if (store.canManage()) {
+                <button nfButton variant="secondary" size="md" [routerLink]="['/app', 'grupos', g.id, 'discord']">Discord</button>
+              }
               @if (store.isOwner()) {
                 <button nfButton variant="danger" size="md" [disabled]="store.busy()" (click)="confirmDelete.set(true)">Borrar grupo</button>
               } @else {

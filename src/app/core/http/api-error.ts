@@ -64,6 +64,10 @@ const MESSAGES_BY_CODE: Record<string, string> = {
   ALREADY_MEMBER: 'Este usuario ya es miembro del grupo.',
   CHAMPION_NOT_FOUND: 'No se ha encontrado ese campeón.',
   DEVICE_NOT_FOUND: 'Ese dispositivo ya no estaba vinculado.',
+  DISCORD_API_UNAVAILABLE: 'No hemos podido hablar con Discord ahora mismo. Prueba en un minuto.',
+  DISCORD_CHANNEL_UNREACHABLE:
+    'El bot no ve ese canal. Comprueba que lo has invitado al servidor, que el canal es de texto y que tiene permiso para escribir ahí.',
+  DISCORD_GUILD_MISMATCH: 'Ese canal no pertenece al servidor que has indicado.',
   DUPLICATE_PENDING_INVITATION: 'Este usuario ya tiene una invitación pendiente.',
   EMPTY_AUDIT_WINDOW: 'Ese periodo está al revés: la fecha de fin debe ser posterior a la de inicio.',
   FEEDBACK_QUOTA_EXCEEDED:
