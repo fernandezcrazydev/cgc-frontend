@@ -1,14 +1,28 @@
 /**
  * Espejo de `GroupDiscordLinkResponse`: a qué servidor y canal de Discord escribe un grupo.
  *
- * Un grupo sin conectar no es un error, es el estado de partida: el backend responde 200 con
- * `linked: false` para que la pantalla pueda pintar el vacío con su llamada a la acción en vez
- * de un 404 que parecería una avería.
+ * Tiene **tres** estados, no dos, porque conectar exige una ida y vuelta a Discord:
+ *
+ * - sin `guildId` → no se ha hecho nada. El asistente arranca en el paso 1.
+ * - con `guildId` y sin `channelId` → el bot ya está en el servidor pero nadie ha dicho dónde
+ *   escribe. El asistente retoma en el paso 2, sin repetir el viaje a Discord.
+ * - con los dos (`linked: true`) → los avisos salen.
+ *
+ * `linked` responde solo a "¿llegan los avisos?", que es lo único que pregunta el resto de la
+ * pantalla. El estado intermedio se distingue por `guildId`, así que ningún booleano tiene que
+ * significar dos cosas a la vez.
+ *
+ * Un grupo sin conectar no es un error: el backend responde 200 para que la pantalla pinte el vacío
+ * con su llamada a la acción en vez de un 404 que parecería una avería.
  */
 export interface GroupDiscordLink {
   linked: boolean;
   guildId: string | null;
+  /** Nombre del servidor, para pintar. Foto del momento de vincular: puede quedarse viejo. */
+  guildName: string | null;
   channelId: string | null;
+  /** Nombre del canal, sin el `#`. Misma foto que `guildName`. */
+  channelName: string | null;
   linkedAt: string | null;
   /** Nombre de quien lo configuró. Vacío si esa cuenta ya no existe: el vínculo la sobrevive. */
   linkedByName: string | null;
@@ -20,16 +34,38 @@ export interface GroupDiscordLink {
   linkHealthy: boolean;
 }
 
-/** Cuerpo de `PUT /groups/{id}/discord-link`. Los dos ids se copian a mano desde Discord. */
-export interface LinkDiscordRequest {
-  guildId: string;
+/**
+ * Cuerpo de `PUT /groups/{id}/discord-link`. **Solo el canal**: el servidor lo fijó Discord al
+ * autorizar al bot y lo lee el backend de su propia fila. Mandarlo desde aquí devolvería justo la
+ * capacidad que el asistente quita —nombrar un servidor que nadie ha demostrado administrar—.
+ */
+export interface LinkDiscordChannelRequest {
   channelId: string;
+}
+
+/** Espejo de `DiscordAuthorizationStartResponse`. */
+export interface DiscordAuthorizationStart {
+  /** A dónde llevar el navegador para que Discord pregunte en qué servidor va el bot. */
+  authorizationUrl: string;
+}
+
+/** Una opción del desplegable de canales. */
+export interface DiscordGuildChannel {
+  id: string;
+  name: string;
+  /** Categoría de la que cuelga, o null si está suelto arriba del todo. */
+  categoryName: string | null;
+}
+
+/** Espejo de `DiscordGuildChannelsResponse`. Lista vacía = servidor sin canales escribibles. */
+export interface DiscordGuildChannels {
+  guildId: string;
+  guildName: string | null;
+  channels: DiscordGuildChannel[];
 }
 
 /** Espejo de `DiscordBotInfoResponse`. */
 export interface DiscordBotInfo {
   /** False si la integración está apagada en este servidor: no hay nada que conectar. */
   enabled: boolean;
-  /** URL que añade el bot a un servidor, con los permisos justos. La construye el backend. */
-  botInviteUrl: string;
 }

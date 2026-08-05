@@ -10,6 +10,7 @@ import { MatchStore, MatchRoom } from '../../core/match-store';
 import { NotificationsStore, NotificationView, notificationView } from '../../core/notifications';
 import { RiotAccountStore } from '../../core/riot';
 import { DevicesStore } from '../../core/devices';
+import { DiscordStore } from '../../core/discord';
 import { PreferencesStore } from '../../core/preferences';
 import { ToastService } from '../../core/toast';
 import { RiotMetricsStore, RiotUsageStore } from '../../core/admin';
@@ -63,6 +64,7 @@ export class Shell {
   private readonly riot = inject(RiotAccountStore);
   private readonly devices = inject(DevicesStore);
   private readonly prefs = inject(PreferencesStore);
+  private readonly discord = inject(DiscordStore);
   private readonly toasts = inject(ToastService);
   /** Solo para poder pararlos y vaciarlos al cerrar sesión; el indicador se arranca solo. */
   private readonly riotUsage = inject(RiotUsageStore);
@@ -352,6 +354,9 @@ export class Shell {
     this.riot.clear();
     this.devices.clear();
     this.prefs.clear();
+    // El canal de Discord de un grupo del usuario anterior es exactamente el tipo de dato que
+    // pasaría por bueno al siguiente: un nombre de canal plausible en una pantalla que ya conoce.
+    this.discord.clear();
     // Además de vaciar el dato, esto para el polling: si no, el siguiente usuario (que puede no
     // ser admin) heredaría una petición cada 10 s a un endpoint que le va a devolver 403.
     this.riotUsage.clear();
