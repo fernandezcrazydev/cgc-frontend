@@ -24,20 +24,20 @@ describe('SettingsApi', () => {
 
     const req = http.expectOne(`${environment.apiUrl}/me/settings`);
     expect(req.request.method).toBe('GET');
-    req.flush({ allowGroupInvites: false });
+    req.flush({ allowGroupInvites: false, discordNotifications: true });
 
-    expect(await settings).toEqual({ allowGroupInvites: false });
+    expect(await settings).toEqual({ allowGroupInvites: false, discordNotifications: true });
   });
 
   /** PUT y no PATCH: el cuerpo lleva el ajuste completo, que es lo que espera el backend. */
   it('guarda los ajustes con un PUT y el cuerpo completo', async () => {
-    const saved = firstValueFrom(api.update({ allowGroupInvites: false }));
+    const saved = firstValueFrom(api.update({ allowGroupInvites: false, discordNotifications: true }));
 
     const req = http.expectOne(`${environment.apiUrl}/me/settings`);
     expect(req.request.method).toBe('PUT');
-    expect(req.request.body).toEqual({ allowGroupInvites: false });
-    req.flush({ allowGroupInvites: false });
+    expect(req.request.body).toEqual({ allowGroupInvites: false, discordNotifications: true });
+    req.flush({ allowGroupInvites: false, discordNotifications: true });
 
-    expect(await saved).toEqual({ allowGroupInvites: false });
+    expect(await saved).toEqual({ allowGroupInvites: false, discordNotifications: true });
   });
 });

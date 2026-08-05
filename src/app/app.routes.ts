@@ -75,6 +75,12 @@ export const routes: Routes = [
           import('./features/shell/views/grupo-estadisticas').then((m) => m.GrupoEstadisticas),
       },
       {
+        path: 'grupos/:id/discord',
+        title: 'Discord · Sale Custom',
+        loadComponent: () =>
+          import('./features/shell/views/grupo-discord').then((m) => m.GrupoDiscord),
+      },
+      {
         path: 'grupos/:id/historial',
         title: 'Historial del grupo · Sale Custom',
         loadComponent: () =>

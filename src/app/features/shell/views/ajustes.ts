@@ -82,6 +82,38 @@ const SCOPE_LABELS: Record<string, string> = {
           </div>
         </nf-window>
 
+        <nf-window title="Notificaciones" bodyPadding="22px">
+          <div class="settings-eyebrow nf-mono">Discord</div>
+
+          <div class="setting-row setting-row--last" [attr.aria-busy]="settings.isLoading() || null">
+            <div>
+              <div class="setting-title">Avisarme por Discord</div>
+              <div class="setting-sub setting-sub--help">
+                Te escribiremos al canal de tu grupo cuando se convoque, se confirme o se cancele una
+                partida, y por privado si subes de suplente a titular
+              </div>
+            </div>
+
+            @switch (settings.status()) {
+              @case ('error') {
+                <button nfButton variant="ghost" size="sm" (click)="retry()">Reintentar</button>
+              }
+              @default {
+                @if (discordNotifs() === null) {
+                  <nf-skeleton width="48px" height="28px" />
+                } @else {
+                  <nf-toggle
+                    [checked]="!!discordNotifs()"
+                    ariaLabel="Avisarme por Discord"
+                    [disabled]="settings.saving()"
+                    (checkedChange)="setDiscordNotifs($event)"
+                  />
+                }
+              }
+            }
+          </div>
+        </nf-window>
+
         <nf-window title="Dispositivos" bodyPadding="22px">
           <div class="settings-eyebrow nf-mono">Dispositivos vinculados</div>
           <div class="setting-sub setting-sub--help device-intro">
@@ -314,12 +346,41 @@ export class Ajustes {
     if (this.settings.saving() || allow === previous) return;
     this.allowInvites.set(allow);
     try {
-      await this.settings.update({ allowGroupInvites: allow });
+      // PUT es escritura completa: si solo viajara el campo que se ha tocado, el backend
+      // respondería 422. Por eso el otro ajuste se manda tal y como está ahora mismo.
+      await this.settings.update({
+        allowGroupInvites: allow,
+        discordNotifications: this.settings.settings()?.discordNotifications ?? true,
+      });
       this.toasts.success(
         allow ? 'Ya puedes recibir invitaciones a grupos' : 'No recibirás más invitaciones a grupos',
       );
     } catch (e) {
       this.allowInvites.set(previous);
+      this.toasts.error(errorMessage(e));
+    }
+  }
+
+  /** Misma mecánica que {@link allowInvites}: el `nf-toggle` mueve su propio estado al pulsarlo. */
+  readonly discordNotifs = linkedSignal<boolean | null>(
+    () => this.settings.settings()?.discordNotifications ?? null,
+  );
+
+  /** Optimista con rollback, igual que el de invitaciones y por el mismo motivo. */
+  async setDiscordNotifs(enabled: boolean): Promise<void> {
+    const previous = this.discordNotifs();
+    if (this.settings.saving() || enabled === previous) return;
+    this.discordNotifs.set(enabled);
+    try {
+      await this.settings.update({
+        allowGroupInvites: this.settings.settings()?.allowGroupInvites ?? true,
+        discordNotifications: enabled,
+      });
+      this.toasts.success(
+        enabled ? 'Te avisaremos por Discord' : 'No te avisaremos por Discord',
+      );
+    } catch (e) {
+      this.discordNotifs.set(previous);
       this.toasts.error(errorMessage(e));
     }
   }
