@@ -747,7 +747,7 @@
   position: absolute;
   top: 60px;
   right: clamp(12px, 4vw, 30px);
-  width: 340px;
+  width: 380px;
   max-width: calc(var(--nf-vw) * 100 - 24px);
   animation: nf-pop 0.18s ease both;
 }
@@ -782,7 +782,9 @@
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  padding: 13px 16px;
+  // Hueco reservado a la derecha para la × absoluta: sin él la primera línea del texto le pasa
+  // por debajo.
+  padding: 13px 34px 13px 16px;
   border: none;
   border-bottom: 1px solid var(--nf-border);
   background: transparent;
@@ -829,7 +831,18 @@
   font-size: 13px;
 }
 .shell__notif-text { min-width: 0; flex: 1; }
+.shell__notif-text--skel {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 3px 0;
+}
 .shell__notif-title {
+  // El punto de no leído va aquí dentro, junto al antetítulo: en la esquina derecha competía
+  // por el mismo hueco que la × de descartar.
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 11px;
   color: var(--nf-text-mid);
 }
@@ -837,22 +850,27 @@
 .shell__notif-msg {
   margin-top: 3px;
   font-size: 12px;
+  line-height: 1.45;
   color: var(--nf-text-dim);
-  white-space: nowrap;
+  // Los mensajes son frases enteras ("Se ha cancelado la partida de X"), así que a una línea
+  // se cortaban casi siempre. Dos líneas completas antes de recortar; el resto, elipsis.
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
   overflow: hidden;
-  text-overflow: ellipsis;
+  // Un nombre de grupo largo sin espacios no debe desbordar la fila.
+  overflow-wrap: anywhere;
 }
 .shell__notif-time {
   margin-top: 5px;
   font-size: 11px;
   color: var(--nf-text-dim);
-  opacity: 0.7;
 }
 .shell__notif-dot {
-  width: 7px;
-  height: 7px;
+  width: 6px;
+  height: 6px;
   flex: none;
-  margin-top: 6px;
   border-radius: 50%;
   background: var(--notif-accent);
 }

@@ -393,7 +393,7 @@
             <span class="shell__notif-eyebrow nf-mono">Actividad reciente</span>
             @if (notifs.hasUnread()) {
               <button type="button" class="shell__notif-clear nf-mono" (click)="markAllRead($event)">
-                Marcar leídas ✓
+                Marcar leídas
               </button>
             }
           </div>
@@ -424,7 +424,12 @@
                 >×</button>
                 <div class="shell__notif-icon">{{ n.glyph }}</div>
                 <div class="shell__notif-text">
-                  <div class="shell__notif-title nf-mono">{{ n.title }}</div>
+                  <div class="shell__notif-title nf-mono">
+                    @if (!n.read) {
+                      <span class="shell__notif-dot"></span>
+                    }
+                    {{ n.title }}
+                  </div>
                   <div class="shell__notif-msg nf-mono">{{ n.message }}</div>
                   <div class="shell__notif-time nf-mono">{{ n.time }}</div>
                   @if (n.invite; as inv) {
@@ -449,18 +454,19 @@
                     }
                   }
                 </div>
-                @if (!n.read) {
-                  <span class="shell__notif-dot"></span>
-                }
               </div>
             } @empty {
               @if (notifs.isLoading()) {
                 @for (row of [0, 1, 2]; track row) {
+                  <!-- Misma geometría que una fila real (icono 28px, antetítulo, dos líneas de
+                       mensaje y hora) para que al llegar el dato no salte nada. -->
                   <div class="shell__notif-item" aria-hidden="true">
-                    <nf-skeleton width="34px" height="34px" radius="10px" />
-                    <div class="shell__notif-text">
-                      <nf-skeleton width="55%" height="11px" />
-                      <nf-skeleton width="80%" height="13px" />
+                    <nf-skeleton width="28px" height="28px" radius="4px" />
+                    <div class="shell__notif-text shell__notif-text--skel">
+                      <nf-skeleton width="45%" height="11px" />
+                      <nf-skeleton width="100%" height="12px" />
+                      <nf-skeleton width="62%" height="12px" />
+                      <nf-skeleton width="28%" height="11px" />
                     </div>
                   </div>
                 }
