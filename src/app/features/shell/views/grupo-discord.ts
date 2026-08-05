@@ -23,7 +23,7 @@ const SNOWFLAKE = /^\d{17,20}$/;
   standalone: true,
   imports: [RouterLink, NfButton, NfWindow, NfSkeleton],
   template: `
-    <div class="view">
+    <div class="view max-520">
       @if (group(); as g) {
         <a class="view-back nf-mono" [routerLink]="['/app', 'grupos', g.id]">
           <span class="view-back__arrow" aria-hidden="true">←</span> {{ g.name }}
@@ -39,7 +39,7 @@ const SNOWFLAKE = /^\d{17,20}$/;
         @if (botInfo(); as info) {
           @if (!info.enabled) {
             <nf-window title="Integración desactivada" bodyPadding="22px">
-              <p class="setting-sub setting-sub--help">
+              <p class="field__warning">
                 La integración con Discord está apagada en este servidor. Habla con quien lo
                 administra: hasta entonces no se puede conectar ningún grupo.
               </p>
@@ -48,75 +48,80 @@ const SNOWFLAKE = /^\d{17,20}$/;
         }
 
         <nf-window title="1 · Invita al bot a tu servidor" bodyPadding="22px">
-          <p class="setting-sub setting-sub--help">
+          <p class="field__hint dc-block">
             El bot tiene que estar dentro del servidor para poder escribir en él. Solo pide permiso
             para ver el canal, escribir y crear eventos.
           </p>
           @if (botInfo(); as info) {
-            <a
+            <button
               nfButton
               variant="primary"
               size="sm"
-              [href]="info.botInviteUrl"
-              target="_blank"
-              rel="noopener"
-              [attr.aria-disabled]="!info.enabled || null"
-              >Invitar al bot</a
+              [disabled]="!info.enabled"
+              (click)="invite(info.botInviteUrl)"
             >
+              Invitar al bot
+            </button>
           } @else {
             <nf-skeleton width="140px" height="32px" />
           }
         </nf-window>
 
         <nf-window title="2 · Pega los IDs" bodyPadding="22px">
-          <details class="setting-sub setting-sub--help">
-            <summary>¿De dónde saco los IDs?</summary>
-            <p>
+          <details class="dc-help">
+            <summary class="dc-help__summary">¿De dónde saco los IDs?</summary>
+            <p class="field__hint dc-help__body">
               En Discord: Ajustes de usuario → Avanzado → activa <b>Modo desarrollador</b>. Luego
               clic derecho en el servidor → Copiar ID del servidor, y clic derecho en el canal →
               Copiar ID del canal.
             </p>
           </details>
 
-          <label class="field">
-            <span class="field__label nf-mono">ID del servidor</span>
-            <input
-              class="field__input"
-              type="text"
-              inputmode="numeric"
-              autocomplete="off"
-              placeholder="111222333444555666"
-              [value]="guildId()"
-              (input)="guildId.set($any($event.target).value.trim())"
-            />
-          </label>
+          <div class="form-grid">
+            <div class="field">
+              <label class="field__label nf-mono" for="discord-guild">ID del servidor</label>
+              <input
+                id="discord-guild"
+                class="field__input"
+                type="text"
+                inputmode="numeric"
+                autocomplete="off"
+                placeholder="111222333444555666"
+                [value]="guildId()"
+                (input)="guildId.set($any($event.target).value.trim())"
+              />
+            </div>
 
-          <label class="field">
-            <span class="field__label nf-mono">ID del canal</span>
-            <input
-              class="field__input"
-              type="text"
-              inputmode="numeric"
-              autocomplete="off"
-              placeholder="987654321098765432"
-              [value]="channelId()"
-              (input)="channelId.set($any($event.target).value.trim())"
-            />
-          </label>
+            <div class="field">
+              <label class="field__label nf-mono" for="discord-channel">ID del canal</label>
+              <input
+                id="discord-channel"
+                class="field__input"
+                type="text"
+                inputmode="numeric"
+                autocomplete="off"
+                placeholder="987654321098765432"
+                [value]="channelId()"
+                (input)="channelId.set($any($event.target).value.trim())"
+              />
+            </div>
+          </div>
 
           @if (formError(); as message) {
-            <p class="setting-sub setting-sub--help" role="alert">{{ message }}</p>
+            <p class="dc-error" role="alert">{{ message }}</p>
           }
 
-          <button
-            nfButton
-            variant="primary"
-            size="sm"
-            [disabled]="discord.saving() || !isValid()"
-            (click)="save(g.id)"
-          >
-            {{ discord.saving() ? 'Comprobando…' : 'Conectar' }}
-          </button>
+          <div class="form-foot">
+            <button
+              nfButton
+              variant="primary"
+              size="sm"
+              [disabled]="discord.saving() || !isValid()"
+              (click)="save(g.id)"
+            >
+              {{ discord.saving() ? 'Comprobando…' : 'Conectar' }}
+            </button>
+          </div>
         </nf-window>
 
         <nf-window title="3 · Estado" bodyPadding="22px">
@@ -125,27 +130,27 @@ const SNOWFLAKE = /^\d{17,20}$/;
               <nf-skeleton width="100%" height="72px" />
             }
             @case ('error') {
-              <p class="setting-sub setting-sub--help">No hemos podido leer la conexión.</p>
+              <p class="field__hint dc-block">No hemos podido leer la conexión.</p>
               <button nfButton variant="ghost" size="sm" (click)="retry(g.id)">Reintentar</button>
             }
             @default {
               @if (discord.link(); as link) {
                 @if (link.linked) {
-                  <div class="setting-row">
+                  <div class="setting-row setting-row--last">
                     <div>
                       <div class="setting-title">Canal conectado</div>
-                      <div class="setting-sub setting-sub--help">
-                        Canal <code>{{ link.channelId }}</code> del servidor
-                        <code>{{ link.guildId }}</code>
+                      <div class="field__hint">
+                        Canal <code class="dc-id">{{ link.channelId }}</code> del servidor
+                        <code class="dc-id">{{ link.guildId }}</code>
                         @if (link.linkedByName) {
                           · lo conectó {{ link.linkedByName }}
                         }
                       </div>
                       @if (!link.linkHealthy) {
-                        <div class="setting-sub setting-sub--help" role="alert">
+                        <p class="field__warning dc-block" role="alert">
                           Los últimos avisos no han llegado. Comprueba que el bot sigue en el
                           servidor y que el canal existe.
-                        </div>
+                        </p>
                       }
                     </div>
                     <button
@@ -159,7 +164,7 @@ const SNOWFLAKE = /^\d{17,20}$/;
                     </button>
                   </div>
                 } @else {
-                  <p class="setting-sub setting-sub--help">
+                  <p class="field__hint dc-block">
                     Este grupo todavía no avisa por Discord. Rellena los dos IDs de arriba.
                   </p>
                 }
@@ -170,6 +175,50 @@ const SNOWFLAKE = /^\d{17,20}$/;
       }
     </div>
   `,
+  styles: [
+    `
+      /* Los helpers de views.scss no traen margen propio: dentro de un .field se lo dan los
+         gaps del flex, pero aquí van sueltos dentro de la ventana y necesitan separarse de
+         lo que tienen encima y debajo. */
+      .dc-block {
+        margin: 0 0 14px;
+      }
+
+      .dc-help {
+        margin-bottom: 18px;
+      }
+      .dc-help__summary {
+        font-size: 12px;
+        color: var(--nf-text-dim);
+        cursor: pointer;
+      }
+      .dc-help__summary:hover {
+        color: var(--nf-text-mid);
+      }
+      .dc-help__body {
+        margin: 8px 0 0;
+      }
+
+      /* Los ids son cifras largas que se comparan a ojo con las de Discord, así que van en
+         tabular y con algo de fondo para que se distingan del texto que los rodea. */
+      .dc-id {
+        font-variant-numeric: tabular-nums;
+        padding: 1px 5px;
+        border-radius: 3px;
+        background: var(--nf-inset);
+        color: var(--nf-text-mid);
+      }
+
+      /* En rojo y no en el ámbar de field__warning: aquí sí es un error, algo que acaba de
+         fallar y hay que corregir antes de seguir. */
+      .dc-error {
+        margin: 14px 0 0;
+        font-size: 12px;
+        line-height: 1.5;
+        color: var(--nf-danger);
+      }
+    `,
+  ],
 })
 export class GrupoDiscord {
   private readonly route = inject(ActivatedRoute);
@@ -208,6 +257,15 @@ export class GrupoDiscord {
 
   protected retry(groupId: string): void {
     void this.discord.reload(groupId);
+  }
+
+  /**
+   * Abre el portal de Discord en otra pestaña. Un `<button>` y no un `<a nfButton>` porque el
+   * selector de la primitiva es `button[nfButton]`: en un enlace no aplica nada y sale un enlace
+   * pelado. Sale de un clic directo, así que ningún bloqueador de ventanas lo para.
+   */
+  protected invite(url: string): void {
+    window.open(url, '_blank', 'noopener');
   }
 
   /**
