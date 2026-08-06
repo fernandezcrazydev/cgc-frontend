@@ -1,4 +1,7 @@
 import { TestBed } from '@angular/core/testing';
+// Después de `@angular/core/testing` a propósito: importarlo antes carga `@angular/common/http`
+// entero sin que el compilador JIT esté registrado, y la suite entera muere al arrancar.
+import { HttpErrorResponse } from '@angular/common/http';
 import { Observable, of, throwError } from 'rxjs';
 import { DiscordApi } from './discord-api';
 import { DiscordStore } from './discord-store';
@@ -73,6 +76,7 @@ class ApiStub {
   failLinkOf = false;
   failLink = false;
   failChannels = false;
+  channelsFailureCode: string | null = null;
 
   private pending = new Map<string, (link: GroupDiscordLink) => void>();
   private pendingChannels = new Map<string, (channels: DiscordGuildChannels) => void>();
@@ -94,6 +98,12 @@ class ApiStub {
 
   channels(groupId: string): Observable<DiscordGuildChannels> {
     this.channelCalls.push(groupId);
+    if (this.channelsFailureCode) {
+      return throwError(
+        () =>
+          new HttpErrorResponse({ status: 409, error: { code: this.channelsFailureCode } }),
+      );
+    }
     if (this.failChannels) return throwError(() => new Error('boom'));
     return new Observable((sub) => {
       this.pendingChannels.set(groupId, (channels) => {
@@ -242,6 +252,32 @@ describe('DiscordStore', () => {
     expect(store.channelsStatus()).toBe('error');
     // El vínculo sigue leído: son dos peticiones con dos ciclos de vida.
     expect(store.status()).toBe('ready');
+  });
+
+  /**
+   * El motivo del fallo tiene que llegar a la vista. Los dos casos reales piden acciones opuestas
+   * —esperar a que Discord responda, o volver al paso 1 a meter el bot otra vez— así que un único
+   * mensaje genérico manda a la mitad de la gente a hacer lo que no es.
+   */
+  it('publica por qué falló la lista de canales', async () => {
+    api.channelsFailureCode = 'DISCORD_BOT_NOT_IN_GUILD';
+
+    await store.ensureChannels(GROUP_A);
+
+    expect(store.channelsStatus()).toBe('error');
+    expect(store.channelsError()).toContain('ya no está en ese servidor');
+  });
+
+  it('un reintento limpia el error anterior', async () => {
+    api.channelsFailureCode = 'DISCORD_BOT_NOT_IN_GUILD';
+    await store.ensureChannels(GROUP_A);
+
+    api.channelsFailureCode = null;
+    const retry = store.reloadChannels(GROUP_A);
+    await api.settleChannels(GROUP_A, channelsOf(GUILD_A));
+    await retry;
+
+    expect(store.channelsError()).toBeNull();
   });
 
   /**

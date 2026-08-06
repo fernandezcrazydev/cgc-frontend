@@ -70,6 +70,8 @@ const MESSAGES_BY_CODE: Record<string, string> = {
   DISCORD_AUTH_FORBIDDEN: 'Ya no administras este grupo, así que no puedes cambiar su Discord.',
   DISCORD_AUTH_STATE_INVALID:
     'Ese enlace de vuelta ya no vale: se usa una sola vez y caduca a los diez minutos. Empieza otra vez.',
+  DISCORD_BOT_NOT_IN_GUILD:
+    'El bot ya no está en ese servidor de Discord. Vuelve a empezar por el paso 1 para meterlo otra vez.',
   DISCORD_CHANNEL_UNREACHABLE:
     'El bot ya no ve ese canal. Puede que lo hayan borrado o que le hayan quitado el permiso para verlo.',
   DISCORD_CHANNEL_WRITE_FAILED:
