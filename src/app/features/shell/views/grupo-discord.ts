@@ -3,7 +3,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
 import { NfButton, NfSelect, NfSkeleton, NfWindow } from '../../../ui';
-import { GroupStore } from '../../../core/group-store';
+import { GroupsStore } from '../../../core/groups';
 import { DiscordStore } from '../../../core/discord';
 import { ToastService } from '../../../core/toast';
 import { errorMessage, messageForCode } from '../../../core/http/api-error';
@@ -291,6 +291,21 @@ const STEP_LABELS: readonly string[] = ['Servidor', 'Canal', 'Listo'];
             }
           }
         }
+      } @else if (groups.isReady()) {
+        <!-- La lista ya está cargada y este grupo no está en ella. Sin esta rama la pantalla se
+             quedaba EN BLANCO, que es el peor de los dos: la persona no sabe si está cargando,
+             si se ha roto algo o si el enlace es malo. -->
+        <div class="view__head">
+          <div class="view__eyebrow nf-mono">Discord</div>
+          <p class="view__lead">Este grupo no existe, o ya no formas parte de él.</p>
+        </div>
+        <a class="view-back nf-mono" routerLink="/app/grupos">
+          <span class="view-back__arrow" aria-hidden="true">←</span> Tus grupos
+        </a>
+      } @else {
+        <nf-skeleton width="40%" height="18px" aria-hidden="true" />
+        <div class="dc-gap"></div>
+        <nf-skeleton width="100%" height="180px" aria-hidden="true" />
       }
     </div>
   `,
@@ -406,7 +421,7 @@ export class GrupoDiscord {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly toasts = inject(ToastService);
-  protected readonly groups = inject(GroupStore);
+  protected readonly groups = inject(GroupsStore);
   protected readonly discord = inject(DiscordStore);
 
   protected readonly stepLabels = STEP_LABELS;
@@ -455,6 +470,11 @@ export class GrupoDiscord {
   );
 
   constructor() {
+    // Sin esto la pantalla dependía de que otra vista hubiera cargado los grupos antes, y por
+    // ahí llega justo el caso que importa: el callback de Discord vuelve al navegador con una
+    // carga completa de página, no navegando por dentro de la SPA.
+    void this.groups.ensureLoaded();
+
     // Se recarga al cambiar de :id sin desmontar el componente, que es lo que pasa navegando
     // entre grupos por el sidebar. Lo local se olvida: pertenecía al grupo anterior.
     effect(() => {
