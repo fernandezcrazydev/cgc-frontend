@@ -1,5 +1,6 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
+import { errorMessage } from '../http/api-error';
 import { DiscordApi } from './discord-api';
 import {
   DiscordBotInfo,
@@ -34,6 +35,13 @@ export class DiscordStore {
   private readonly _authorizing = signal(false);
 
   private readonly _channels = signal<DiscordGuildChannels | null>(null);
+  /**
+   * Por qué falló la lista de canales, ya traducido. Hasta ahora el `catch` se lo tragaba y la
+   * pantalla decía siempre lo mismo, que es un problema cuando los motivos piden cosas distintas:
+   * "Discord no responde" se arregla esperando y "el bot ya no está en el servidor" solo se
+   * arregla volviendo al paso 1.
+   */
+  private readonly _channelsError = signal<string | null>(null);
   private readonly _channelsStatus = signal<DiscordLinkStatus>('idle');
 
   /** De qué grupo son los datos actuales. */
@@ -50,6 +58,7 @@ export class DiscordStore {
   readonly authorizing = this._authorizing.asReadonly();
   readonly channels = this._channels.asReadonly();
   readonly channelsStatus = this._channelsStatus.asReadonly();
+  readonly channelsError = this._channelsError.asReadonly();
   readonly isLoading = computed(() => this._status() === 'loading');
 
   ensureLoaded(groupId: string): Promise<GroupDiscordLink | null> {
@@ -115,6 +124,7 @@ export class DiscordStore {
   async reloadChannels(groupId: string): Promise<void> {
     this.channelsGroupId = groupId;
     this._channelsStatus.set('loading');
+    this._channelsError.set(null);
     try {
       const channels = await firstValueFrom(this.api.channels(groupId));
       // Igual que el vínculo: una respuesta lenta puede llegar cuando ya se mira otro grupo, y
@@ -122,9 +132,10 @@ export class DiscordStore {
       if (this.channelsGroupId !== groupId) return;
       this._channels.set(channels);
       this._channelsStatus.set('ready');
-    } catch {
+    } catch (error) {
       if (this.channelsGroupId !== groupId) return;
       this._channels.set(null);
+      this._channelsError.set(errorMessage(error));
       this._channelsStatus.set('error');
     }
   }
@@ -189,6 +200,7 @@ export class DiscordStore {
   private forgetChannels(): void {
     this.channelsGroupId = null;
     this._channels.set(null);
+    this._channelsError.set(null);
     this._channelsStatus.set('idle');
   }
 

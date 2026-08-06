@@ -138,12 +138,25 @@ const STEP_LABELS: readonly string[] = ['Servidor', 'Canal', 'Listo'];
                   @switch (discord.channelsStatus()) {
                     @case ('error') {
                       <p class="field__hint dc-block">
-                        No hemos podido leer los canales del servidor. Comprueba que el bot sigue
-                        dentro.
+                        {{
+                          discord.channelsError() ||
+                            'No hemos podido leer los canales del servidor. Comprueba que el bot sigue dentro.'
+                        }}
                       </p>
-                      <button nfButton variant="ghost" size="sm" (click)="reloadChannels(g.id)">
-                        Reintentar
-                      </button>
+                      <div class="form-foot">
+                        <button nfButton variant="ghost" size="sm" (click)="reloadChannels(g.id)">
+                          Reintentar
+                        </button>
+                        <button
+                          nfButton
+                          variant="ghost"
+                          size="sm"
+                          [disabled]="discord.authorizing()"
+                          (click)="authorize(g.id)"
+                        >
+                          Volver a meter el bot
+                        </button>
+                      </div>
                     }
                     @case ('ready') {
                       @if (channelOptions().length) {
@@ -187,8 +200,10 @@ const STEP_LABELS: readonly string[] = ['Servidor', 'Canal', 'Listo'];
                         </p>
                       } @else {
                         <p class="field__hint dc-block">
-                          El bot no ve ningún canal de texto en este servidor. Crea uno en Discord (o
-                          dale permiso para verlo) y vuelve a cargar la lista.
+                          Aquí solo salen los canales en los que el bot puede <b>ver y escribir</b>, y
+                          ahora mismo no hay ninguno. En Discord, entra en el canal que quieras usar →
+                          Editar canal → Permisos, y dale al rol del bot «Ver canal» y «Enviar
+                          mensajes». Luego vuelve a cargar la lista.
                         </p>
                         <div class="form-foot">
                           <button nfButton variant="secondary" size="sm" (click)="reloadChannels(g.id)">
