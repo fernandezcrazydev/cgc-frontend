@@ -61,6 +61,8 @@ function channelsOf(guildId: string): DiscordGuildChannels {
     guildId,
     guildName: 'Los Randoms',
     channels: [{ id: 'canal-' + guildId, name: 'customs', categoryName: 'LoL' }],
+    botRoleName: 'Sale Custom',
+    hiddenChannels: 2,
   };
 }
 

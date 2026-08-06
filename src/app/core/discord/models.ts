@@ -61,7 +61,16 @@ export interface DiscordGuildChannel {
 export interface DiscordGuildChannels {
   guildId: string;
   guildName: string | null;
+  /** Solo los canales donde el bot puede ver Y escribir. El backend ya ha filtrado el resto. */
   channels: DiscordGuildChannel[];
+  /**
+   * Cómo se llama el rol del bot en ese servidor, o null si no se pudo averiguar. Viaja hasta
+   * aquí porque es lo que hay que teclear en el diálogo de permisos de Discord: "dale acceso al
+   * rol del bot" no se puede seguir sin saber cómo se llama.
+   */
+  botRoleName: string | null;
+  /** Canales de texto que se han quedado fuera por permisos. Explica una lista corta o vacía. */
+  hiddenChannels: number;
 }
 
 /** Espejo de `DiscordBotInfoResponse`. */

@@ -2,6 +2,7 @@ import { Component, computed, effect, inject, signal, untracked } from '@angular
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
+import { NgTemplateOutlet } from '@angular/common';
 import { NfButton, NfSelect, NfSkeleton, NfWindow } from '../../../ui';
 import { GroupsStore } from '../../../core/groups';
 import { DiscordStore } from '../../../core/discord';
@@ -33,7 +34,7 @@ const STEP_LABELS: readonly string[] = ['Servidor', 'Canal', 'Listo'];
 @Component({
   selector: 'app-grupo-discord',
   standalone: true,
-  imports: [RouterLink, NfButton, NfWindow, NfSkeleton, NfSelect],
+  imports: [RouterLink, NgTemplateOutlet, NfButton, NfWindow, NfSkeleton, NfSelect],
   template: `
     <div class="view max-520">
       @if (group(); as g) {
@@ -198,16 +199,46 @@ const STEP_LABELS: readonly string[] = ['Servidor', 'Canal', 'Listo'];
                         <p class="field__hint dc-foot">
                           Al conectar, el bot publicará un mensaje ahí para que se vea que funciona.
                         </p>
+
+                        <!-- Plegado y no a la vista: con la lista llena esto no le hace falta a
+                             nadie, y desplegado solo añadiría ruido al camino que ya funciona. -->
+                        @if (discord.channels()?.hiddenChannels; as hidden) {
+                          <details class="dc-help">
+                            <summary class="dc-help__summary">
+                              No veo el canal que quiero
+                              <span class="dc-help__count nf-mono">{{ hidden }} sin permiso</span>
+                            </summary>
+                            <div class="dc-help__body">
+                              <ng-container [ngTemplateOutlet]="permisos" />
+                            </div>
+                          </details>
+                        }
                       } @else {
-                        <p class="field__hint dc-block">
-                          Aquí solo salen los canales en los que el bot puede <b>ver y escribir</b>, y
-                          ahora mismo no hay ninguno. En Discord, entra en el canal que quieras usar →
-                          Editar canal → Permisos, y dale al rol del bot «Ver canal» y «Enviar
-                          mensajes». Luego vuelve a cargar la lista.
-                        </p>
+                        <!-- Dos motivos muy distintos para una lista vacía: el servidor no tiene
+                             canales de texto, o los tiene y el bot no entra en ninguno. Mandar a
+                             dar permisos a quien no tiene canales es enviarle a un diálogo que no
+                             va a encontrar. -->
+                        @if (discord.channels()?.hiddenChannels; as hidden) {
+                          <p class="dc-block">
+                            El bot no puede escribir en ningún canal de <b>{{ serverName() }}</b>.
+                            {{ hidden === 1 ? 'Hay 1 canal de texto' : 'Hay ' + hidden + ' canales de texto' }},
+                            pero está todo cerrado para él.
+                          </p>
+                          <p class="field__hint dc-block">
+                            Es lo normal en servidores donde los canales son privados: estar dentro
+                            del servidor no le da acceso a nada, se lo tienes que dar tú. Y solo
+                            hace falta en el canal que vayas a usar.
+                          </p>
+                          <ng-container [ngTemplateOutlet]="permisos" />
+                        } @else {
+                          <p class="dc-block">
+                            <b>{{ serverName() }}</b> no tiene ningún canal de texto. Crea uno en
+                            Discord y vuelve a cargar la lista.
+                          </p>
+                        }
                         <div class="form-foot">
-                          <button nfButton variant="secondary" size="sm" (click)="reloadChannels(g.id)">
-                            Volver a cargar
+                          <button nfButton variant="primary" size="sm" (click)="reloadChannels(g.id)">
+                            Volver a cargar la lista
                           </button>
                           <button
                             nfButton
@@ -308,6 +339,26 @@ const STEP_LABELS: readonly string[] = ['Servidor', 'Canal', 'Listo'];
         <nf-skeleton width="100%" height="180px" aria-hidden="true" />
       }
     </div>
+
+    <!-- Un solo sitio para las instrucciones, usado desde las dos ramas del paso 2: desplegable
+         corto (plegadas) y desplegable vacío (a la vista). Copiarlas sería garantizar que un día
+         digan cosas distintas. -->
+    <ng-template #permisos>
+      <ol class="dc-help__steps">
+        <li>
+          En Discord, clic derecho sobre el canal que quieras usar y entra en <b>Editar canal</b>,
+          pestaña <b>Permisos</b>.
+        </li>
+        <li>
+          En <b>Añadir miembros o roles</b>, busca <b>{{ botRoleName() }}</b>.
+        </li>
+        <li>Actívale <b>Ver canal</b> y <b>Enviar mensajes</b>, y guarda los cambios.</li>
+      </ol>
+      <p class="field__hint dc-block">
+        También vale darle al bot un rol que ya vea ese canal, desde Ajustes del servidor,
+        Miembros. Es más cómodo si vas a usar varios canales.
+      </p>
+    </ng-template>
   `,
   styles: [
     `
@@ -322,6 +373,52 @@ const STEP_LABELS: readonly string[] = ['Servidor', 'Canal', 'Listo'];
       }
       .dc-gap {
         height: 12px;
+      }
+
+      /* El "no veo mi canal". Un <details> nativo y no un acordeón propio: ya sabe abrirse con
+         teclado, ya se anuncia como plegable, y la mitad de las veces nadie lo abre. */
+      .dc-help {
+        margin: 14px 0 0;
+        border-top: 1px solid var(--nf-border);
+        padding: 12px 0 0;
+      }
+      .dc-help__summary {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        font-size: 13px;
+        color: var(--nf-text-dim);
+      }
+      .dc-help__summary:hover {
+        color: var(--nf-text);
+      }
+      .dc-help__count {
+        font-size: 11px;
+        color: var(--nf-text-dim);
+        border: 1px solid var(--nf-border);
+        border-radius: 999px;
+        padding: 1px 8px;
+      }
+      .dc-help__body {
+        margin: 12px 0 0;
+      }
+
+      /* Instrucciones que se siguen con Discord delante, así que van numeradas: hay que saber por
+         cuál se iba al volver de la otra ventana. */
+      .dc-help__steps {
+        margin: 0 0 12px;
+        padding: 0 0 0 20px;
+        font-size: 13px;
+        line-height: 1.65;
+        color: var(--nf-text-dim);
+      }
+      .dc-help__steps b {
+        color: var(--nf-text);
+        font-weight: 600;
+      }
+      .dc-help__steps li + li {
+        margin-top: 6px;
       }
 
       /* El indicador de pasos. Una lista y no tres divs: es una secuencia numerada, y así un
@@ -447,6 +544,24 @@ export class GrupoDiscord {
 
   /** Sin bot configurado no hay nada que conectar; mientras no se sabe, se deja probar. */
   protected readonly integrationLive = computed(() => this.botInfo()?.enabled !== false);
+
+  /**
+   * El servidor autorizado. Se prefiere el nombre que viene con la lista de canales porque es el
+   * más reciente: el del vínculo se guardó al autorizar y a un servidor le pueden cambiar el
+   * nombre entre un paso y el siguiente.
+   */
+  protected readonly serverName = computed(
+    () => this.discord.channels()?.guildName ?? this.discord.link()?.guildName ?? 'este servidor',
+  );
+
+  /**
+   * Cómo se llama el rol del bot, que es lo que hay que buscar en el diálogo de Discord. El
+   * genérico es el último recurso: "busca el rol del bot" es seguible a duras penas, pero mejor
+   * que un hueco vacío en mitad de una instrucción.
+   */
+  protected readonly botRoleName = computed(
+    () => this.discord.channels()?.botRoleName ?? 'el rol del bot',
+  );
 
   /**
    * En qué paso está el grupo, según lo que hay guardado. Sin canal pero con servidor es el estado
