@@ -58,6 +58,8 @@ describe('DiscordApi', () => {
       guildId: '111222333444555666',
       guildName: 'Los Randoms',
       channels: [{ id: '987654321098765432', name: 'customs', categoryName: 'LoL' }],
+      botRoleName: 'Sale Custom',
+      hiddenChannels: 3,
     };
     let received: DiscordGuildChannels | undefined;
     api.channels(GROUP).subscribe((r) => (received = r));
