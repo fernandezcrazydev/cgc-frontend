@@ -440,11 +440,21 @@ const STEP_LABELS: readonly string[] = ['Servidor', 'Canal', 'Listo'];
         font-size: 12px;
         color: var(--nf-text-dim);
       }
-      .dc-step + .dc-step::before {
+      /* La línea va DETRÁS de cada paso, no delante del siguiente. Puesta delante, el paso 1 —que
+         no tiene— se quedaba con su espacio sobrante suelto detrás de la etiqueta, y la línea del
+         paso 2 pegada a su círculo: "Servidor" flotando lejos de una raya desplazada a la derecha.
+         Detrás, el hueco que sobra ES la línea, y queda a 8px de la etiqueta y a 8px del círculo
+         siguiente sin tener que calcular nada. */
+      .dc-step:not(:last-child)::after {
         content: '';
         flex: 1;
         height: 1px;
         background: var(--nf-border);
+      }
+      /* El último no crece: si creciera, el sobrante volvería a quedarse colgando detrás de
+         "Listo", que es el mismo defecto en la otra punta. */
+      .dc-step:last-child {
+        flex: none;
       }
       .dc-step__dot {
         display: grid;
