@@ -54,10 +54,23 @@ jobs:
           # reemplazar el directorio lo dejaria sirviendo el inodo viejo, ya desenlazado.
           rsync -a dist/cgc-frontend/browser/ /srv/cgc/www/
 
+          # Re-sella con la fecha de hoy TODO lo que forma parte de esta version, que es la
+          # premisa de la que vive la recogida de basura de abajo.
+          #
+          # Hace falta porque `rsync -a` conserva el mtime del ORIGEN, y no todo lo que hay en
+          # el build se genera en cada deploy: los ficheros estaticos de `public/` (favicon.ico,
+          # lanes/*.svg) los copia Angular tal cual, con el mtime que traen del checkout, que
+          # puede ser de hace meses. Sin este touch, el `find -mtime +7 -delete` de abajo los
+          # borraba en la MISMA ejecucion que acababa de copiarlos: produccion llevaba desde
+          # principios de agosto sin favicon y sin los iconos de linea, y el sintoma era un 404
+          # que la SPA disfrazaba devolviendo el index.html.
+          (cd dist/cgc-frontend/browser && find . -type f -print0) \
+            | (cd /srv/cgc/www && xargs -0 --no-run-if-empty touch)
+
           # Recogida de basura. Sin --delete el disco creceria sin fin, asi que barremos los
-          # assets huerfanos por antiguedad: rsync refresca el mtime de TODO lo que sigue en
-          # el build (el index.html y los chunks vigentes se re-tocan en cada deploy), asi
-          # que solo los que dejaron de formar parte de la version actual conservan un mtime
-          # viejo. 7 dias de gracia -- de sobra para que cualquiera refresque la pestaña.
+          # assets huerfanos por antiguedad: tras el touch de arriba, TODO lo que sigue en el
+          # build lleva la fecha de hoy, asi que solo los que dejaron de formar parte de la
+          # version actual conservan un mtime viejo. 7 dias de gracia -- de sobra para que
+          # cualquiera refresque la pestaña.
           find /srv/cgc/www -type f -mtime +7 -delete
           find /srv/cgc/www -type d -empty -delete
