@@ -1,15 +1,16 @@
 import { Component, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { NfLane, NfLaneIcon } from './nf-lane-icon';
+import { NfLane, NfLaneIcon, NfLaneIconMode } from './nf-lane-icon';
 
 @Component({
   standalone: true,
   imports: [NfLaneIcon],
-  template: `<nf-lane-icon [lane]="lane()" [fallbackGlyph]="glyph()" />`,
+  template: `<nf-lane-icon [lane]="lane()" [fallbackGlyph]="glyph()" [mode]="mode()" />`,
 })
 class Host {
   readonly lane = signal<NfLane>('TOP');
   readonly glyph = signal('◤');
+  readonly mode = signal<NfLaneIconMode>('tinted');
 }
 
 describe('NfLaneIcon', () => {
@@ -27,6 +28,7 @@ describe('NfLaneIcon', () => {
   const mask = () => root().querySelector<HTMLElement>('.nf-laneicon__mask');
   const glyph = () => root().querySelector('.nf-laneicon__glyph');
   const probe = () => root().querySelector<HTMLImageElement>('.nf-laneicon__probe');
+  const image = () => root().querySelector<HTMLImageElement>('.nf-laneicon__img');
 
   /**
    * El mapeo rol → fichero NO es 1:1 con el nombre del rol salvo en TOP: es
@@ -55,6 +57,30 @@ describe('NfLaneIcon', () => {
     fixture.detectChanges();
 
     expect(mask()).toBeFalsy();
+    expect(glyph()!.textContent).toBe('◤');
+  });
+
+  /**
+   * `original` es lo contrario de `tinted`: nada de máscara ni de sonda aparte, el
+   * `<img>` visible ES el icono, para que salga con el dorado del fichero.
+   */
+  it('mode="original" pinta el SVG como imagen, sin máscara ni sonda', () => {
+    host.mode.set('original');
+    host.lane.set('SUPPORT');
+    fixture.detectChanges();
+
+    expect(mask()).toBeFalsy();
+    expect(probe()).toBeFalsy();
+    expect(image()!.src).toContain('/lanes/position-utility.svg');
+  });
+
+  it('mode="original" cae al glifo si la imagen no carga', () => {
+    host.mode.set('original');
+    fixture.detectChanges();
+    image()!.dispatchEvent(new Event('error'));
+    fixture.detectChanges();
+
+    expect(image()).toBeFalsy();
     expect(glyph()!.textContent).toBe('◤');
   });
 

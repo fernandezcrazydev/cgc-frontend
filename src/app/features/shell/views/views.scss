@@ -1741,9 +1741,13 @@
   background: var(--nf-secondary);
 }
 /* El icono de línea se dimensiona en 1em: aquí se sube por encima del texto del chip
-   para que la silueta se lea. El color lo hereda (`currentColor`), así que sigue al
-   estado del chip sin una regla por estado. */
-.cp-chip__ico { font-size: 15px; }
+   para que el dibujo se lea. Va en `mode="original"`, o sea con su dorado de origen,
+   que sobre el fondo hundido del chip contrasta de sobra. */
+.cp-chip__ico { font-size: 17px; }
+/* Salvo cuando el chip está activo: ahí el fondo es `--nf-secondary` (azul claro) y
+   el dorado se pierde encima. Se pasa a negro, que es justo el color con el que ya
+   se pinta la etiqueta del chip activo (`--nf-void`). */
+.cp-chip.is-active .cp-chip__ico { filter: brightness(0); }
 
 /* selected tray */
 .cp-tray {
@@ -1896,7 +1900,7 @@
   font-weight: 700;
   color: var(--nf-text);
 }
-.cp-cover__roleico { font-size: 16px; color: var(--nf-text-mid); }
+.cp-cover__roleico { font-size: 18px; }
 .cp-cover__count { font-size: 12px; color: var(--nf-success); }
 .cp-cover__role.is-tight .cp-cover__count { color: var(--nf-warning); }
 .cp-cover__role.is-bad .cp-cover__count { color: var(--nf-danger); }
@@ -2001,7 +2005,9 @@
   border-color: var(--nf-secondary);
   background: var(--nf-secondary);
 }
-.cp-rolechip__ico { font-size: 14px; }
+.cp-rolechip__ico { font-size: 16px; }
+/* Mismo caso que el chip de filtro: encendido el fondo es azul claro y el dorado no se lee. */
+.cp-rolechip.is-on .cp-rolechip__ico { filter: brightness(0); }
 
 /* reset always occupies its slot (visibility, not display) so the row never shifts */
 .cp-line__reset {

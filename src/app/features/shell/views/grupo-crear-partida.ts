@@ -285,7 +285,12 @@ interface GeneratedTeams {
                           (click)="roleFilter.set(rf.key)"
                         >
                           @if (rf.lane; as lane) {
-                            <nf-lane-icon class="cp-chip__ico" [lane]="lane" [fallbackGlyph]="rf.glyph ?? '?'" />
+                            <nf-lane-icon
+                              class="cp-chip__ico"
+                              mode="original"
+                              [lane]="lane"
+                              [fallbackGlyph]="rf.glyph ?? '?'"
+                            />
                           }
                           {{ rf.label }}
                         </button>
@@ -363,7 +368,12 @@ interface GeneratedTeams {
                         >
                           <span class="cp-cover__rolelabel nf-mono">
                             @if (r.lane; as lane) {
-                              <nf-lane-icon class="cp-cover__roleico" [lane]="lane" [fallbackGlyph]="r.glyph ?? '?'" />
+                              <nf-lane-icon
+                                class="cp-cover__roleico"
+                                mode="original"
+                                [lane]="lane"
+                                [fallbackGlyph]="r.glyph ?? '?'"
+                              />
                             }
                             {{ r.label }}
                           </span>
@@ -414,7 +424,12 @@ interface GeneratedTeams {
                               (click)="toggleLine(m.tag, r.key)"
                             >
                               @if (r.lane; as lane) {
-                                <nf-lane-icon class="cp-rolechip__ico" [lane]="lane" [fallbackGlyph]="r.glyph ?? '?'" />
+                                <nf-lane-icon
+                                  class="cp-rolechip__ico"
+                                  mode="original"
+                                  [lane]="lane"
+                                  [fallbackGlyph]="r.glyph ?? '?'"
+                                />
                               }
                               {{ r.label }}
                             </button>
