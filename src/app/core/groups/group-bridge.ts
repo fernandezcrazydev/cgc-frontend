@@ -144,6 +144,8 @@ function toMockMember(m: GroupMemberResponse): Member {
     admin: m.role === 'ADMIN',
     // Del userId y no del índice: el color de un jugador no cambia al entrar o salir otro.
     hue: hueOf(m.userId),
+    // La foto de Discord que ya sirve el roster; sin ella el avatar cae a las iniciales.
+    avatar: m.avatarUrl ?? undefined,
   };
 }
 

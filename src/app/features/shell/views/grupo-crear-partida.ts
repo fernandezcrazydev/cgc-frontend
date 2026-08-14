@@ -3,7 +3,16 @@ import { FormsModule } from '@angular/forms';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
-import { NfAvatar, NfBadge, NfButton, NfSkeleton, NfWindow } from '../../../ui';
+import {
+  NfAvatar,
+  NfBadge,
+  NfButton,
+  NfLane,
+  NfLaneIcon,
+  NfMeter,
+  NfSkeleton,
+  NfWindow,
+} from '../../../ui';
 import { GroupBridge } from '../../../core/groups';
 import { LobbiesStore, MAX_NOTE_LENGTH, MAX_SLOTS } from '../../../core/lobbies';
 import { errorMessage } from '../../../core/http';
@@ -29,10 +38,17 @@ interface WizardStep {
   label: string;
 }
 
-/** Role filter chips for the participant picker (key matches member-detail roles). */
+/**
+ * Role filter chips for the participant picker (key matches member-detail roles).
+ * `lane`/`glyph` alimentan el `<nf-lane-icon>` del chip; el filtro "Todos" no es una
+ * línea del juego, así que va sin icono (de ahí que sean opcionales).
+ */
 interface RoleFilter {
   key: string;
   label: string;
+  lane?: NfLane;
+  /** Glifo Unicode de reserva si el SVG de la línea no carga. */
+  glyph?: string;
 }
 
 /** How the match is assembled: captain picks everyone, or players sign up. */
@@ -104,7 +120,17 @@ interface GeneratedTeams {
 @Component({
   selector: 'app-grupo-crear-partida',
   standalone: true,
-  imports: [FormsModule, RouterLink, NfBadge, NfButton, NfWindow, NfAvatar, NfSkeleton],
+  imports: [
+    FormsModule,
+    RouterLink,
+    NfBadge,
+    NfButton,
+    NfWindow,
+    NfAvatar,
+    NfLaneIcon,
+    NfMeter,
+    NfSkeleton,
+  ],
   template: `
     <div class="view">
       @if (loading()) {
@@ -207,6 +233,37 @@ interface GeneratedTeams {
               }
             </div>
 
+            <!-- Aviso permanente en los pasos de restricciones: el tono sube con la rigidez. -->
+            @if (step() >= 2) {
+              <div class="cp-rigid" [attr.data-level]="rigidityLevel()">
+                <span class="cp-rigid__ico" aria-hidden="true">⚠</span>
+                <div class="cp-rigid__body">
+                  <!-- Live solo el titular: cambia al saltar de nivel, no con cada toggle. -->
+                  <div class="cp-rigid__title" role="status">{{ rigidityTitle() }}</div>
+                  <p class="cp-rigid__text">
+                    Cada línea que fijas, cada dúo o duelo que atas y cada campeón que reservas es
+                    algo que el reparto tiene que respetar sí o sí, así que le queda menos sitio
+                    para compensar el nivel de los dos equipos. Con muchas restricciones a la vez
+                    es normal que salgan partidas desequilibradas: ponlas solo cuando de verdad
+                    importen.
+                  </p>
+                  <div class="cp-rigid__counts nf-mono">
+                    <span><b>{{ customLineCount() }}</b> líneas fijadas</span>
+                    <span><b>{{ rules().length }}</b> reglas</span>
+                    <span><b>{{ reservedCount() }}</b> campeones reservados</span>
+                  </div>
+                </div>
+                <nf-meter
+                  class="cp-rigid__meter"
+                  label="Rigidez"
+                  [value]="rigidity()"
+                  [max]="100"
+                  [warnAt]="RIGIDITY_WARN"
+                  [dangerAt]="RIGIDITY_DANGER"
+                />
+              </div>
+            }
+
             <nf-window [title]="windowTitle()" bodyPadding="0">
               @switch (step()) {
                 @case (1) {
@@ -226,7 +283,12 @@ interface GeneratedTeams {
                           class="cp-chip nf-mono"
                           [class.is-active]="roleFilter() === rf.key"
                           (click)="roleFilter.set(rf.key)"
-                        >{{ rf.label }}</button>
+                        >
+                          @if (rf.lane; as lane) {
+                            <nf-lane-icon class="cp-chip__ico" [lane]="lane" [fallbackGlyph]="rf.glyph ?? '?'" />
+                          }
+                          {{ rf.label }}
+                        </button>
                       }
                     </div>
                   </div>
@@ -246,7 +308,7 @@ interface GeneratedTeams {
                           [title]="'Quitar ' + m.name"
                           (click)="toggle(m)"
                         >
-                          <span class="cp-tray__avatar" [style.background]="avatarBg(m.hue)">{{ m.initials }}</span>
+                          <nf-avatar class="cp-tray__avatar" [src]="m.avatar ?? null" [fallback]="m.name" [tint]="m.hue" [size]="30" shape="round" />
                           <span class="cp-tray__name nf-mono">{{ m.name }}</span>
                           <span class="cp-tray__x" aria-hidden="true">✕</span>
                         </button>
@@ -268,7 +330,7 @@ interface GeneratedTeams {
                         (click)="toggle(m)"
                       >
                         <span class="cp-pick__check" aria-hidden="true">{{ isSelected(m.tag) ? '✓' : '' }}</span>
-                        <span class="cp-pick__avatar" [style.background]="avatarBg(m.hue)">{{ m.initials }}</span>
+                        <nf-avatar class="cp-pick__avatar" [src]="m.avatar ?? null" [fallback]="m.name" [tint]="m.hue" [size]="46" shape="square" />
                         <span class="cp-pick__meta">
                           <span class="cp-pick__name nf-mono">{{ m.name }}</span>
                           <span class="cp-pick__roles nf-mono">{{ rolesLabel(m) }}</span>
@@ -299,7 +361,12 @@ interface GeneratedTeams {
                           [class.is-bad]="lineCoverage()[r.key] < 2"
                           [class.is-tight]="lineCoverage()[r.key] === 2"
                         >
-                          <span class="cp-cover__rolelabel nf-mono">{{ r.label }}</span>
+                          <span class="cp-cover__rolelabel nf-mono">
+                            @if (r.lane; as lane) {
+                              <nf-lane-icon class="cp-cover__roleico" [lane]="lane" [fallbackGlyph]="r.glyph ?? '?'" />
+                            }
+                            {{ r.label }}
+                          </span>
                           <span class="cp-cover__count nf-mono">
                             {{ lineCoverage()[r.key] }}/2 {{ lineCoverage()[r.key] < 2 ? '✗' : '✓' }}
                           </span>
@@ -331,7 +398,7 @@ interface GeneratedTeams {
                   <div class="cp-lines">
                     @for (m of selectedMembers(); track m.tag) {
                       <div class="cp-line" [class.is-bad]="unmatchedTags().includes(m.tag)">
-                        <span class="cp-pick__avatar" [style.background]="avatarBg(m.hue)">{{ m.initials }}</span>
+                        <nf-avatar class="cp-pick__avatar" [src]="m.avatar ?? null" [fallback]="m.name" [tint]="m.hue" [size]="46" shape="square" />
                         <div class="cp-line__meta">
                           <span class="cp-pick__name nf-mono">{{ m.name }}</span>
                           <span class="cp-line__state nf-mono" [class.is-custom]="isCustom(m.tag)">
@@ -345,7 +412,12 @@ interface GeneratedTeams {
                               class="cp-rolechip nf-mono"
                               [class.is-on]="isActive(m.tag, r.key)"
                               (click)="toggleLine(m.tag, r.key)"
-                            >{{ r.label }}</button>
+                            >
+                              @if (r.lane; as lane) {
+                                <nf-lane-icon class="cp-rolechip__ico" [lane]="lane" [fallbackGlyph]="r.glyph ?? '?'" />
+                              }
+                              {{ r.label }}
+                            </button>
                           }
                         </div>
                         <button
@@ -390,7 +462,7 @@ interface GeneratedTeams {
                       @for (m of selectedMembers(); track m.tag) {
                         @if (builderTwoSided()) {
                           <div class="cp-pchip cp-pchip--dual" [attr.data-side]="pickOf(m.tag)">
-                            <span class="cp-pchip__avatar" [style.background]="avatarBg(m.hue)">{{ m.initials }}</span>
+                            <nf-avatar class="cp-pchip__avatar" [src]="m.avatar ?? null" [fallback]="m.name" [tint]="m.hue" [size]="28" shape="round" />
                             <span class="cp-pchip__name nf-mono">{{ m.name }}</span>
                             <span class="cp-pchip__sides">
                               <button
@@ -416,7 +488,7 @@ interface GeneratedTeams {
                             [attr.data-side]="pickOf(m.tag)"
                             (click)="assignSide(m.tag, 'a')"
                           >
-                            <span class="cp-pchip__avatar" [style.background]="avatarBg(m.hue)">{{ m.initials }}</span>
+                            <nf-avatar class="cp-pchip__avatar" [src]="m.avatar ?? null" [fallback]="m.name" [tint]="m.hue" [size]="28" shape="round" />
                             <span class="cp-pchip__name nf-mono">{{ m.name }}</span>
                             @if (pickOf(m.tag)) {
                               <span class="cp-pchip__side">✓</span>
@@ -499,7 +571,7 @@ interface GeneratedTeams {
                     @for (m of selectedMembers(); track m.tag) {
                       <div class="cp-champrow" [class.is-open]="pickerTag() === m.tag">
                         <div class="cp-champrow__head">
-                          <span class="cp-pick__avatar" [style.background]="avatarBg(m.hue)">{{ m.initials }}</span>
+                          <nf-avatar class="cp-pick__avatar" [src]="m.avatar ?? null" [fallback]="m.name" [tint]="m.hue" [size]="46" shape="square" />
                           <span class="cp-champrow__name nf-mono">{{ m.name }}</span>
                           @if (reservedIdOf(m.tag); as rid) {
                             <button type="button" class="cp-reserved" [attr.aria-busy]="champsLoading() ? 'true' : null" (click)="togglePicker(m.tag)">
@@ -647,7 +719,7 @@ interface GeneratedTeams {
                         @for (s of generated().blue; track s.member.tag) {
                           <div class="cp-slot">
                             <span class="cp-slot__role nf-mono">{{ s.roleLabel }}</span>
-                            <span class="cp-pick__avatar" [style.background]="avatarBg(s.member.hue)">{{ s.member.initials }}</span>
+                            <nf-avatar class="cp-pick__avatar" [src]="s.member.avatar ?? null" [fallback]="s.member.name" [tint]="s.member.hue" [size]="46" shape="square" />
                             <div class="cp-slot__main">
                               <div class="cp-slot__line">
                                 <span class="cp-slot__name nf-mono">{{ s.member.name }}</span>
@@ -688,7 +760,7 @@ interface GeneratedTeams {
                         @for (s of generated().red; track s.member.tag) {
                           <div class="cp-slot">
                             <span class="cp-slot__role nf-mono">{{ s.roleLabel }}</span>
-                            <span class="cp-pick__avatar" [style.background]="avatarBg(s.member.hue)">{{ s.member.initials }}</span>
+                            <nf-avatar class="cp-pick__avatar" [src]="s.member.avatar ?? null" [fallback]="s.member.name" [tint]="s.member.hue" [size]="46" shape="square" />
                             <div class="cp-slot__main">
                               <div class="cp-slot__line">
                                 <span class="cp-slot__name nf-mono">{{ s.member.name }}</span>
@@ -748,7 +820,7 @@ interface GeneratedTeams {
                       <div class="cp-tray__chips">
                         @for (m of selectedMembers(); track m.tag) {
                           <span class="cp-tray__chip cp-tray__chip--static">
-                            <span class="cp-tray__avatar" [style.background]="avatarBg(m.hue)">{{ m.initials }}</span>
+                            <nf-avatar class="cp-tray__avatar" [src]="m.avatar ?? null" [fallback]="m.name" [tint]="m.hue" [size]="30" shape="round" />
                             <span class="cp-tray__name nf-mono">{{ m.name }}</span>
                           </span>
                         }
@@ -994,20 +1066,20 @@ export class GrupoCrearPartida {
 
   readonly roleFilters: RoleFilter[] = [
     { key: 'ALL', label: 'Todos' },
-    { key: 'TOP', label: 'TOP' },
-    { key: 'JUNGLA', label: 'JG' },
-    { key: 'MID', label: 'MID' },
-    { key: 'ADC', label: 'ADC' },
-    { key: 'SUPPORT', label: 'SUP' },
+    { key: 'TOP', label: 'TOP', lane: 'TOP', glyph: '◤' },
+    { key: 'JUNGLA', label: 'JG', lane: 'JUNGLA', glyph: '♣' },
+    { key: 'MID', label: 'MID', lane: 'MID', glyph: '◈' },
+    { key: 'ADC', label: 'ADC', lane: 'ADC', glyph: '➤' },
+    { key: 'SUPPORT', label: 'SUP', lane: 'SUPPORT', glyph: '✚' },
   ];
 
   /** The five playable roles (key matches member-detail roles; label is the short chip). */
   readonly lineRolesList: RoleFilter[] = [
-    { key: 'TOP', label: 'TOP' },
-    { key: 'JUNGLA', label: 'JG' },
-    { key: 'MID', label: 'MID' },
-    { key: 'ADC', label: 'ADC' },
-    { key: 'SUPPORT', label: 'SUP' },
+    { key: 'TOP', label: 'TOP', lane: 'TOP', glyph: '◤' },
+    { key: 'JUNGLA', label: 'JG', lane: 'JUNGLA', glyph: '♣' },
+    { key: 'MID', label: 'MID', lane: 'MID', glyph: '◈' },
+    { key: 'ADC', label: 'ADC', lane: 'ADC', glyph: '➤' },
+    { key: 'SUPPORT', label: 'SUP', lane: 'SUPPORT', glyph: '✚' },
   ];
 
   private readonly id = toSignal(
@@ -1351,10 +1423,6 @@ export class GrupoCrearPartida {
 
   rolesLabel(m: Member): string {
     return (this.memberRoles().get(m.tag) ?? []).join(' · ');
-  }
-
-  avatarBg(hue: number): string {
-    return `radial-gradient(circle at 32% 26%, hsl(${hue},90%,64%), hsl(${hue},78%,30%))`;
   }
 
   /** Name → accolade badges for this group's roster, shared with ranking/member list. */
@@ -1871,6 +1939,58 @@ export class GrupoCrearPartida {
   readonly customLineCount = computed(
     () => this.selectedMembers().filter((m) => this.isCustom(m.tag)).length,
   );
+
+  /* ---- Rigidez: el aviso de "cuantas más restricciones, menos equilibrio" ---- */
+
+  /**
+   * Peso de cada restricción en el índice de rigidez (0-100). Son pesos de PRESENTACIÓN
+   * —sirven para avisar al capitán, no entran en el reparto—, calibrados para que una
+   * configuración normal (un par de líneas ajustadas, una regla, algún reservado) se quede
+   * en verde y una partida atada de pies y manos llegue al rojo.
+   *
+   * BACKEND NOTE: la rigidez de verdad es "cuántos repartos válidos quedan", y eso solo lo
+   * sabe el matchmaker. Cuando viva en el servidor, que devuelva ese número junto al reparto
+   * y esta heurística se borra entera.
+   */
+  private static readonly RIGIDITY_WEIGHTS = { line: 3, rule: 8, champ: 4 };
+
+  /** Umbrales del medidor; los lee también la plantilla para que barra y texto no se separen. */
+  readonly RIGIDITY_WARN = 0.35;
+  readonly RIGIDITY_DANGER = 0.7;
+
+  /** Líneas retiradas respecto al perfil, sumadas sobre los seleccionados. */
+  private readonly narrowedLines = computed(() =>
+    this.selectedMembers().reduce(
+      (acc, m) =>
+        acc + Math.max(0, this.profileRolesOf(m.tag).length - this.selectionOf(m.tag).length),
+      0,
+    ),
+  );
+
+  readonly rigidity = computed(() => {
+    const w = GrupoCrearPartida.RIGIDITY_WEIGHTS;
+    const raw =
+      this.narrowedLines() * w.line + this.rules().length * w.rule + this.reservedCount() * w.champ;
+    return Math.min(100, Math.round(raw));
+  });
+
+  readonly rigidityLevel = computed<'ok' | 'warn' | 'danger'>(() => {
+    const fraction = this.rigidity() / 100;
+    if (fraction >= this.RIGIDITY_DANGER) return 'danger';
+    if (fraction >= this.RIGIDITY_WARN) return 'warn';
+    return 'ok';
+  });
+
+  readonly rigidityTitle = computed(() => {
+    switch (this.rigidityLevel()) {
+      case 'danger':
+        return 'Apenas queda margen para equilibrar';
+      case 'warn':
+        return 'El reparto empieza a ir justo';
+      default:
+        return 'El reparto tiene margen de sobra';
+    }
+  });
 
   elo(tag: string): number {
     return internalElo(tag);

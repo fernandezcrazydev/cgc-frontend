@@ -52,6 +52,8 @@ export interface Member {
   admin?: boolean;
   /** Hue (0-360) used for the avatar gradient. */
   hue: number;
+  /** Foto de Discord (URL absoluta del backend); ausente ⇒ iniciales sobre el degradado de `hue`. */
+  avatar?: string;
 }
 
 export const CURRENT_USER = {
