@@ -1701,9 +1701,49 @@
 .cp-rigid__counts b { color: var(--nf-text); font-weight: 700; }
 /* `nf-meter` no fija display en su host: sin esto el ancho no aplicaría. */
 .cp-rigid__meter { flex: none; display: block; width: 170px; }
+.cp-rigid__toggle {
+  flex: none;
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 13px;
+  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, var(--cp-rigid-accent) 35%, var(--nf-border));
+  background: transparent;
+  color: var(--cp-rigid-accent);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.14s, border-color 0.14s;
+}
+.cp-rigid__toggle:hover {
+  background: color-mix(in srgb, var(--cp-rigid-accent) 14%, transparent);
+  border-color: var(--cp-rigid-accent);
+}
+.cp-rigid__chev { font-size: 11px; transition: transform 0.18s ease; }
+.cp-rigid.is-collapsed .cp-rigid__chev { transform: rotate(-90deg); }
+
+/* Plegado: solo el titular, los contadores y el medidor, en una sola fila baja. */
+.cp-rigid.is-collapsed { align-items: center; padding: 12px 18px; }
+.cp-rigid.is-collapsed .cp-rigid__ico { width: 34px; height: 34px; font-size: 18px; }
+.cp-rigid.is-collapsed .cp-rigid__body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 18px;
+}
+.cp-rigid.is-collapsed .cp-rigid__title { margin-bottom: 0; font-size: 15px; }
+.cp-rigid.is-collapsed .cp-rigid__counts { margin-top: 0; }
+.cp-rigid.is-collapsed .cp-rigid__toggle { align-self: center; }
+
 @media (max-width: 720px) {
   .cp-rigid { flex-wrap: wrap; gap: 14px; }
   .cp-rigid__meter { width: 100%; }
+  .cp-rigid__toggle { align-self: stretch; justify-content: center; }
 }
 
 /* generic padded panel inside the window (empty / stub states) */
@@ -2958,21 +2998,27 @@
   align-items: center;
   gap: 16px;
   margin-top: 24px;
-  padding: 16px 0 14px;
+  /* Los laterales separan "Atrás" y "Siguiente" del borde de la barra, que mide justo lo
+     mismo que la ventana del wizard: sin ellos los dos botones quedan pegados al canto. */
+  padding: 16px 20px 18px;
   background: color-mix(in srgb, var(--nf-void) 86%, transparent);
   backdrop-filter: blur(8px);
   border-top: 1px solid var(--nf-border);
 }
 .cp-foot__status { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; font-size: 12px; color: var(--nf-text-dim); }
 
-/* "skip restrictions → launch" shortcut: optional steps can be bypassed once the lineup is valid */
+/* "skip restrictions → launch" shortcut: optional steps can be bypassed once the lineup is
+   valid. Mismo lenguaje que `.cp-discard` (el otro atajo de esta vista), en tono secundario. */
 .cp-foot__skip {
-  padding: 6px 14px;
-  border: 1px solid color-mix(in srgb, var(--nf-secondary) 40%, transparent);
-  border-radius: 4px;
+  padding: 9px 14px;
+  border: 1px solid color-mix(in srgb, var(--nf-secondary) 35%, var(--nf-border));
+  border-radius: 6px;
   background: color-mix(in srgb, var(--nf-secondary) 8%, transparent);
   color: var(--nf-secondary);
-  font-size: 11px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
   cursor: pointer;
   transition: background 0.14s, border-color 0.14s;
 }

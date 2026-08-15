@@ -233,20 +233,24 @@ interface GeneratedTeams {
               }
             </div>
 
-            <!-- Aviso permanente en los pasos de restricciones: el tono sube con la rigidez. -->
+            <!-- Aviso permanente en los pasos de restricciones: el tono sube con la rigidez.
+                 Plegable porque el texto solo hace falta la primera vez: plegado deja a la vista
+                 lo único que cambia mientras configuras (la rigidez y qué llevas puesto). -->
             @if (step() >= 2) {
-              <div class="cp-rigid" [attr.data-level]="rigidityLevel()">
+              <div class="cp-rigid" [attr.data-level]="rigidityLevel()" [class.is-collapsed]="!rigidOpen()">
                 <span class="cp-rigid__ico" aria-hidden="true">⚠</span>
                 <div class="cp-rigid__body">
                   <!-- Live solo el titular: cambia al saltar de nivel, no con cada toggle. -->
                   <div class="cp-rigid__title" role="status">{{ rigidityTitle() }}</div>
-                  <p class="cp-rigid__text">
-                    Cada línea que fijas, cada dúo o duelo que atas y cada campeón que reservas es
-                    algo que el reparto tiene que respetar sí o sí, así que le queda menos sitio
-                    para compensar el nivel de los dos equipos. Con muchas restricciones a la vez
-                    es normal que salgan partidas desequilibradas: ponlas solo cuando de verdad
-                    importen.
-                  </p>
+                  @if (rigidOpen()) {
+                    <p class="cp-rigid__text">
+                      Cada línea que fijas, cada dúo o duelo que atas y cada campeón que reservas es
+                      algo que el reparto tiene que respetar sí o sí, así que le queda menos sitio
+                      para compensar el nivel de los dos equipos. Con muchas restricciones a la vez
+                      es normal que salgan partidas desequilibradas: ponlas solo cuando de verdad
+                      importen.
+                    </p>
+                  }
                   <div class="cp-rigid__counts nf-mono">
                     <span><b>{{ customLineCount() }}</b> líneas fijadas</span>
                     <span><b>{{ rules().length }}</b> reglas</span>
@@ -261,6 +265,15 @@ interface GeneratedTeams {
                   [warnAt]="RIGIDITY_WARN"
                   [dangerAt]="RIGIDITY_DANGER"
                 />
+                <button
+                  type="button"
+                  class="cp-rigid__toggle"
+                  [attr.aria-expanded]="rigidOpen()"
+                  (click)="rigidOpen.set(!rigidOpen())"
+                >
+                  {{ rigidOpen() ? 'Plegar' : 'Ver por qué' }}
+                  <span class="cp-rigid__chev" aria-hidden="true">▾</span>
+                </button>
               </div>
             }
 
@@ -866,10 +879,10 @@ interface GeneratedTeams {
                   @if (step() < steps.length && canSkipToLaunch()) {
                     <button
                       type="button"
-                      class="cp-foot__skip nf-mono"
-                      title="Saltar las restricciones (son opcionales) e ir directo a lanzar"
+                      class="cp-foot__skip"
+                      title="Las restricciones son opcionales: puedes lanzar la partida sin tocarlas"
                       (click)="skipToLaunch()"
-                    >⏩ Saltar y lanzar</button>
+                    >Saltar restricciones y lanzar</button>
                   }
                 </div>
                 <button
@@ -1972,6 +1985,13 @@ export class GrupoCrearPartida {
   /** Umbrales del medidor; los lee también la plantilla para que barra y texto no se separen. */
   readonly RIGIDITY_WARN = 0.35;
   readonly RIGIDITY_DANGER = 0.7;
+
+  /**
+   * Si el aviso enseña su explicación. Estado de UI del wizard, no de dominio: abierto la
+   * primera vez y plegado a partir de que el capitán lo cierre, para los tres pasos de
+   * restricciones (el componente es uno solo, así que la elección sobrevive al cambio de paso).
+   */
+  readonly rigidOpen = signal(true);
 
   /** Líneas retiradas respecto al perfil, sumadas sobre los seleccionados. */
   private readonly narrowedLines = computed(() =>
