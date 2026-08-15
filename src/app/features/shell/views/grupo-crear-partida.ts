@@ -234,15 +234,45 @@ interface GeneratedTeams {
             </div>
 
             <!-- Aviso permanente en los pasos de restricciones: el tono sube con la rigidez.
-                 Plegable porque el texto solo hace falta la primera vez: plegado deja a la vista
-                 lo único que cambia mientras configuras (la rigidez y qué llevas puesto). -->
+                 Es un disclosure, no dos diseños: la cabecera —titular, condiciones y medidor—
+                 no se mueve nunca, y plegar se limita a quitar el párrafo. Así lo que ves de un
+                 vistazo mientras configuras es siempre lo mismo y en el mismo sitio. -->
             @if (step() >= 2) {
-              <div class="cp-rigid" [attr.data-level]="rigidityLevel()" [class.is-collapsed]="!rigidOpen()">
-                <span class="cp-rigid__ico" aria-hidden="true">⚠</span>
-                <div class="cp-rigid__body">
-                  <!-- Live solo el titular: cambia al saltar de nivel, no con cada toggle. -->
-                  <div class="cp-rigid__title" role="status">{{ rigidityTitle() }}</div>
-                  @if (rigidOpen()) {
+              <div class="cp-rigid" [attr.data-level]="rigidityLevel()" [class.is-open]="rigidOpen()">
+                <div class="cp-rigid__head">
+                  <span class="cp-rigid__ico" aria-hidden="true">{{ rigidityGlyph() }}</span>
+                  <!-- El botón lleva solo el texto y estira su objetivo de clic a toda la fila
+                       con un ::after. Envolver el nf-meter dentro del botón dejaría su
+                       role="progressbar" fuera del árbol de accesibilidad. -->
+                  <button
+                    type="button"
+                    class="cp-rigid__toggle"
+                    [attr.aria-expanded]="rigidOpen()"
+                    aria-controls="cp-rigid-more"
+                    (click)="rigidOpen.set(!rigidOpen())"
+                  >
+                    <!-- Live solo el titular: cambia al saltar de nivel, no con cada toggle. -->
+                    <span class="cp-rigid__title" role="status">{{ rigidityTitle() }}</span>
+                    <span class="cp-rigid__counts nf-mono">
+                      <span><b>{{ customLineCount() }}</b> línea{{ customLineCount() === 1 ? '' : 's' }} fijada{{ customLineCount() === 1 ? '' : 's' }}</span>
+                      <span><b>{{ rules().length }}</b> regla{{ rules().length === 1 ? '' : 's' }}</span>
+                      <span><b>{{ reservedCount() }}</b> campe{{ reservedCount() === 1 ? 'ón' : 'ones' }} reservado{{ reservedCount() === 1 ? '' : 's' }}</span>
+                    </span>
+                  </button>
+                  <nf-meter
+                    class="cp-rigid__meter"
+                    label="Rigidez"
+                    [value]="rigidity()"
+                    [max]="100"
+                    [warnAt]="RIGIDITY_WARN"
+                    [dangerAt]="RIGIDITY_DANGER"
+                  />
+                  <span class="cp-rigid__chev" aria-hidden="true">▾</span>
+                </div>
+                <!-- inert mientras está plegado: la rejilla 0fr lo deja a altura cero, pero sin
+                     esto el párrafo seguiría en el árbol de accesibilidad y sería tabulable. -->
+                <div class="cp-rigid__more" id="cp-rigid-more" [attr.inert]="rigidOpen() ? null : ''">
+                  <div class="cp-rigid__more-inner">
                     <p class="cp-rigid__text">
                       Cada línea que fijas, cada dúo o duelo que atas y cada campeón que reservas es
                       algo que el reparto tiene que respetar sí o sí, así que le queda menos sitio
@@ -250,30 +280,8 @@ interface GeneratedTeams {
                       es normal que salgan partidas desequilibradas: ponlas solo cuando de verdad
                       importen.
                     </p>
-                  }
-                  <div class="cp-rigid__counts nf-mono">
-                    <span><b>{{ customLineCount() }}</b> líneas fijadas</span>
-                    <span><b>{{ rules().length }}</b> reglas</span>
-                    <span><b>{{ reservedCount() }}</b> campeones reservados</span>
                   </div>
                 </div>
-                <nf-meter
-                  class="cp-rigid__meter"
-                  label="Rigidez"
-                  [value]="rigidity()"
-                  [max]="100"
-                  [warnAt]="RIGIDITY_WARN"
-                  [dangerAt]="RIGIDITY_DANGER"
-                />
-                <button
-                  type="button"
-                  class="cp-rigid__toggle"
-                  [attr.aria-expanded]="rigidOpen()"
-                  (click)="rigidOpen.set(!rigidOpen())"
-                >
-                  {{ rigidOpen() ? 'Plegar' : 'Ver por qué' }}
-                  <span class="cp-rigid__chev" aria-hidden="true">▾</span>
-                </button>
               </div>
             }
 
@@ -2026,6 +2034,13 @@ export class GrupoCrearPartida {
         return 'El reparto tiene margen de sobra';
     }
   });
+
+  /**
+   * El icono acompaña al nivel en vez de ser siempre un triángulo: un aviso de peligro
+   * sobre "el reparto tiene margen de sobra" contradice a su propio texto, y a fuerza de
+   * verlo cuando no pasa nada deja de mirarse cuando sí pasa.
+   */
+  readonly rigidityGlyph = computed(() => (this.rigidityLevel() === 'ok' ? '✓' : '⚠'));
 
   elo(tag: string): number {
     return internalElo(tag);

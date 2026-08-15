@@ -1647,103 +1647,142 @@
 }
 
 /* ---- Aviso de rigidez (restricciones vs equilibrio) ----
+   Disclosure: la cabecera (titular + condiciones + medidor) es la misma abierto y
+   plegado, y plegar solo quita el párrafo. Nada se recoloca al plegar, que es lo que
+   hacía que el estado plegado pareciese otro componente.
    Un solo bloque para los tres niveles: `data-level` cambia el token de acento
-   (`--cp-rigid-accent`) y todo lo demás se pinta a partir de él. */
+   (`--cp-rigid-accent`) y todo lo demás se pinta a partir de él. El nivel no viaja
+   solo en el color: hay icono, titular y cifra diciendo lo mismo. */
 .cp-rigid {
   --cp-rigid-accent: var(--nf-secondary);
-  display: flex;
-  align-items: flex-start;
-  gap: 18px;
   margin-bottom: 24px;
-  padding: 18px 22px;
-  border-radius: 13px;
-  border: 1.5px solid color-mix(in srgb, var(--cp-rigid-accent) 45%, var(--nf-border));
-  background: color-mix(in srgb, var(--cp-rigid-accent) 9%, var(--nf-surface-2));
-  box-shadow: inset 4px 0 0 var(--cp-rigid-accent);
+  border-radius: var(--nf-radius-lg);
+  border: 1px solid var(--nf-border);
+  border-left: 3px solid var(--cp-rigid-accent);
+  background: color-mix(in srgb, var(--cp-rigid-accent) 6%, var(--nf-surface));
 }
 .cp-rigid[data-level='warn'] { --cp-rigid-accent: var(--nf-warning); }
 .cp-rigid[data-level='danger'] { --cp-rigid-accent: var(--nf-danger); }
-.cp-rigid__ico {
-  flex: none;
+
+/* 14 + 30 + 14 = 58px de alto mínimo, muy por encima del objetivo táctil exigible. */
+.cp-rigid__head {
+  position: relative;
   display: flex;
   align-items: center;
-  justify-content: center;
-  width: 42px;
-  height: 42px;
+  gap: 14px;
+  padding: 14px 18px;
+  border-radius: calc(var(--nf-radius-lg) - 1px);
+  transition: background 0.14s;
+}
+.cp-rigid__head:hover { background: color-mix(in srgb, var(--cp-rigid-accent) 7%, transparent); }
+.cp-rigid.is-open .cp-rigid__head {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+/* El anillo de foco tiene que rodear lo que de verdad se pulsa (la fila entera),
+   no la caja del botón, que es solo la columna de texto. `-2px` lo dibuja hacia
+   dentro para que no lo corte el radio de la tarjeta. */
+@supports selector(:has(*)) {
+  .cp-rigid__toggle:focus-visible { outline: none; }
+  .cp-rigid__head:has(.cp-rigid__toggle:focus-visible) {
+    outline: var(--nf-focus-ring) solid var(--nf-focus);
+    outline-offset: -2px;
+  }
+}
+
+.cp-rigid__ico {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
-  background: color-mix(in srgb, var(--cp-rigid-accent) 20%, transparent);
+  background: color-mix(in srgb, var(--cp-rigid-accent) 18%, transparent);
   color: var(--cp-rigid-accent);
-  font-size: 22px;
+  font-size: 15px;
   line-height: 1;
 }
-.cp-rigid__body { flex: 1; min-width: 0; }
+
+.cp-rigid__toggle {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+/* Estira el objetivo de clic a toda la cabecera sin envolver al medidor. */
+.cp-rigid__toggle::after { content: ''; position: absolute; inset: 0; }
+
 .cp-rigid__title {
-  font-size: 17px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--cp-rigid-accent);
-  margin-bottom: 7px;
 }
+.cp-rigid__counts { font-size: 12px; color: var(--nf-text-dim); }
+/* El separador es decoración: el `/ ''` lo deja fuera del texto accesible. */
+.cp-rigid__counts span + span::before { content: '·' / ''; margin: 0 8px; opacity: 0.55; }
+.cp-rigid__counts b { color: var(--nf-text-mid); font-weight: 700; }
+
+/* `nf-meter` no fija display en su host: sin esto el ancho no aplicaría. */
+.cp-rigid__meter { flex: none; display: block; width: 132px; }
+
+/* Es el único indicador de que la fila se despliega, así que tiene que verse: a 12px y
+   en text-dim quedaba en una mota. Ancho fijo para que el giro no descoloque la fila. */
+.cp-rigid__chev {
+  flex: none;
+  width: 20px;
+  margin-left: 2px;
+  font-size: 17px;
+  line-height: 1;
+  text-align: center;
+  color: var(--nf-text-mid);
+  transition: transform 0.2s ease;
+}
+.cp-rigid__head:hover .cp-rigid__chev { color: var(--nf-text); }
+.cp-rigid.is-open .cp-rigid__chev { transform: rotate(180deg); }
+
+/* `0fr → 1fr` es lo que permite animar una altura automática sin fijarla a mano. */
+.cp-rigid__more {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.22s ease;
+}
+.cp-rigid.is-open .cp-rigid__more { grid-template-rows: 1fr; }
+.cp-rigid__more-inner { overflow: hidden; }
 .cp-rigid__text {
+  /* 18 + 30 + 14 = 62px: el párrafo arranca justo bajo el titular, no bajo el icono. */
   margin: 0;
+  padding: 2px 18px 16px 62px;
   font-size: 13.5px;
-  line-height: 1.6;
+  line-height: 1.65;
   color: var(--nf-text-mid);
   max-width: 78ch;
 }
-.cp-rigid__counts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 18px;
-  margin-top: 11px;
-  font-size: 11.5px;
-  color: var(--nf-text-dim);
-}
-.cp-rigid__counts b { color: var(--nf-text); font-weight: 700; }
-/* `nf-meter` no fija display en su host: sin esto el ancho no aplicaría. */
-.cp-rigid__meter { flex: none; display: block; width: 170px; }
-.cp-rigid__toggle {
-  flex: none;
-  align-self: flex-start;
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 8px 13px;
-  border-radius: 6px;
-  border: 1px solid color-mix(in srgb, var(--cp-rigid-accent) 35%, var(--nf-border));
-  background: transparent;
-  color: var(--cp-rigid-accent);
-  font: inherit;
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 1;
-  white-space: nowrap;
-  cursor: pointer;
-  transition: background 0.14s, border-color 0.14s;
-}
-.cp-rigid__toggle:hover {
-  background: color-mix(in srgb, var(--cp-rigid-accent) 14%, transparent);
-  border-color: var(--cp-rigid-accent);
-}
-.cp-rigid__chev { font-size: 11px; transition: transform 0.18s ease; }
-.cp-rigid.is-collapsed .cp-rigid__chev { transform: rotate(-90deg); }
-
-/* Plegado: solo el titular, los contadores y el medidor, en una sola fila baja. */
-.cp-rigid.is-collapsed { align-items: center; padding: 12px 18px; }
-.cp-rigid.is-collapsed .cp-rigid__ico { width: 34px; height: 34px; font-size: 18px; }
-.cp-rigid.is-collapsed .cp-rigid__body {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 4px 18px;
-}
-.cp-rigid.is-collapsed .cp-rigid__title { margin-bottom: 0; font-size: 15px; }
-.cp-rigid.is-collapsed .cp-rigid__counts { margin-top: 0; }
-.cp-rigid.is-collapsed .cp-rigid__toggle { align-self: center; }
 
 @media (max-width: 720px) {
-  .cp-rigid { flex-wrap: wrap; gap: 14px; }
-  .cp-rigid__meter { width: 100%; }
-  .cp-rigid__toggle { align-self: stretch; justify-content: center; }
+  .cp-rigid__head { flex-wrap: wrap; gap: 12px 14px; padding: 14px; }
+  .cp-rigid__ico { order: 1; }
+  /* Sin tocar el `flex: 1` (base 0) de arriba: con base `auto` el ancho hipotético del
+     texto desborda la línea, el navegador manda el botón entero a la siguiente y el icono
+     se queda solo en una fila para él. */
+  .cp-rigid__toggle { order: 2; }
+  .cp-rigid__chev { order: 3; }
+  .cp-rigid__meter { order: 4; width: 100%; }
+  .cp-rigid__text { padding: 2px 14px 14px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cp-rigid__head,
+  .cp-rigid__chev,
+  .cp-rigid__more { transition: none; }
 }
 
 /* generic padded panel inside the window (empty / stub states) */
@@ -2989,44 +3028,75 @@
 }
 .cp-addall:hover { background: color-mix(in srgb, var(--nf-secondary) 12%, transparent); }
 
-/* wizard footer nav — pinned to the bottom so "Siguiente" is always visible */
+/* wizard footer nav — pinned to the bottom so "Siguiente" is always visible.
+   Barra flotante, no una franja a sangre: se pega POR ENCIMA del borde inferior
+   (`bottom: 16px`) y es una superficie con su propio borde y radio. Eso es lo que hace
+   que su espacio interior se lea como el de una tarjeta; con una franja a sangre, meter
+   padding lateral solo conseguía que "Atrás" y "Siguiente" pareciesen desalineados
+   respecto a la ventana de arriba, y sin él quedaban pegados al canto. */
 .cp-foot {
   position: sticky;
-  bottom: 0;
+  bottom: 16px;
   z-index: 20;
   display: flex;
   align-items: center;
   gap: 16px;
-  margin-top: 24px;
-  /* Los laterales separan "Atrás" y "Siguiente" del borde de la barra, que mide justo lo
-     mismo que la ventana del wizard: sin ellos los dos botones quedan pegados al canto. */
-  padding: 16px 20px 18px;
-  background: color-mix(in srgb, var(--nf-void) 86%, transparent);
-  backdrop-filter: blur(8px);
-  border-top: 1px solid var(--nf-border);
+  margin: 20px 0 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--nf-border);
+  border-radius: var(--nf-radius-lg);
+  background: color-mix(in srgb, var(--nf-surface) 82%, transparent);
+  backdrop-filter: blur(12px);
+  box-shadow: var(--nf-shadow-card);
 }
-.cp-foot__status { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; font-size: 12px; color: var(--nf-text-dim); }
+.cp-foot__status { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; font-size: 12px; color: var(--nf-text-dim); }
 
 /* "skip restrictions → launch" shortcut: optional steps can be bypassed once the lineup is
-   valid. Mismo lenguaje que `.cp-discard` (el otro atajo de esta vista), en tono secundario. */
+   valid. Acción TERCIARIA, y por eso es texto y no otra caja: al lado de un primario lleno
+   y un fantasma con borde, una tercera pastilla con borde solo compite con los dos botones
+   que de verdad llevan el paso. */
 .cp-foot__skip {
-  padding: 9px 14px;
-  border: 1px solid color-mix(in srgb, var(--nf-secondary) 35%, var(--nf-border));
-  border-radius: 6px;
-  background: color-mix(in srgb, var(--nf-secondary) 8%, transparent);
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--nf-radius-sm);
+  background: none;
   color: var(--nf-secondary);
   font: inherit;
   font-size: 12px;
   font-weight: 700;
   line-height: 1;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  text-decoration-color: color-mix(in srgb, var(--nf-secondary) 45%, transparent);
   cursor: pointer;
-  transition: background 0.14s, border-color 0.14s;
+  transition: background 0.14s, text-decoration-color 0.14s;
 }
-.cp-foot__skip:hover { background: color-mix(in srgb, var(--nf-secondary) 18%, transparent); border-color: var(--nf-secondary); }
+.cp-foot__skip:hover {
+  background: color-mix(in srgb, var(--nf-secondary) 12%, transparent);
+  text-decoration-color: currentColor;
+}
 
 /* on mobile the shell already has a fixed bottom nav — don't fight it */
 @media (max-width: 760px) {
-  .cp-foot { position: static; backdrop-filter: none; background: transparent; border-top: none; padding: 0; }
+  .cp-foot {
+    position: static;
+    backdrop-filter: none;
+    box-shadow: none;
+    margin-bottom: 0;
+    flex-wrap: wrap;
+    justify-content: space-between;
+  }
+  /* El estado y el atajo bajan a su propia línea: encajados entre los dos botones, a 400px
+     "Saltar restricciones y lanzar" se parte en tres renglones. */
+  .cp-foot__status { order: 3; flex: 1 0 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cp-foot__skip { transition: none; }
 }
 
 /* stub panel for not-yet-built steps */
