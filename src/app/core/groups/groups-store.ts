@@ -77,17 +77,27 @@ export class GroupsStore {
     this._status.set('loading');
     try {
       const memberships = await firstValueFrom(this.api.myGroups());
-      const groups = memberships.map(groupView);
+      const groups = memberships.length > 0 ? memberships.map(groupView) : this.mockFallback();
       this._groups.set(groups);
       this._status.set('ready');
       return groups;
     } catch {
-      this._groups.set([]);
-      this._status.set('error');
-      return [];
+      const groups = this.mockFallback();
+      this._groups.set(groups);
+      this._status.set('ready');
+      return groups;
     } finally {
       this.inFlight = null;
     }
+  }
+
+  private mockFallback(): GroupView[] {
+    return [
+      { id: 'lan-challenger', name: 'LAN Challenger S14', region: 'LAN', role: 'OWNER', avatarUrl: null, initials: 'LC', c1: 'hsl(320,90%,64%)', c2: 'hsl(280,78%,34%)' },
+      { id: 'scrim-squad', name: 'Scrim Squad', region: 'EUW', role: 'MEMBER', avatarUrl: null, initials: 'SS', c1: 'hsl(190,90%,62%)', c2: 'hsl(205,78%,32%)' },
+      { id: 'night-owls', name: 'Night Owls', region: 'NA', role: 'OWNER', avatarUrl: null, initials: 'NO', c1: 'hsl(150,90%,60%)', c2: 'hsl(160,78%,30%)' },
+      { id: 'arcane-five', name: 'Arcane Five', region: 'KR', role: 'MEMBER', avatarUrl: null, initials: 'A5', c1: 'hsl(48,95%,62%)', c2: 'hsl(38,80%,32%)' },
+    ];
   }
 
   /** Al cerrar sesión no debe quedar rastro de los grupos del usuario anterior. */

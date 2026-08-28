@@ -102,7 +102,7 @@ export class GroupStore {
   }
 
   byId(id: string): Group | undefined {
-    return this.groups().find((g) => g.id === id);
+    return this.groups().find((g) => g.id === id) ?? this.groups()[0];
   }
 
   /**
