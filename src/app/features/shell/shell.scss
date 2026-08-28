@@ -403,6 +403,10 @@
 }
 
 .shell__logout {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   width: 100%;
   padding: 9px;
   background: transparent;
@@ -542,6 +546,121 @@
   padding: 18px 20px 20px;
 }
 .shell__invite-actions > * { flex: 1; }
+
+/* ---- disparador del menú (hamburguesa) ---- */
+/* Es una opción más de la lista, no un botón aparte: mismo alto, misma columna de
+   glifos y mismos estados de hover. Lo único que lo separa es la línea de abajo —el
+   recurso que ya usa "Descargar app"—, para que no se lea como una sección más. */
+.shell__burger {
+  border-bottom: 1px solid var(--nf-border);
+  border-radius: 0;
+  margin-bottom: 4px;
+  padding-bottom: 13px;
+}
+.shell__burger:focus-visible {
+  outline: 2px solid var(--nf-secondary);
+  outline-offset: -2px;
+}
+/* Barras dibujadas con cajas y no con el glifo "☰": así heredan el color del estado
+   (dim → blanco al pasar por encima) y no dependen de la fuente del sistema. */
+.shell__burger-bars {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  width: 18px;
+  height: 14px;
+  flex: none;
+}
+.shell__burger-bars > span {
+  display: block;
+  width: 100%;
+  height: 2px;
+  border-radius: 1px;
+  background: currentColor;
+}
+
+/* ---- menú plegado en rail (solo escritorio) ---- */
+/* Plegar deja un rail de 68px, no cero: los glifos siguen diciendo dónde estás y las
+   secciones siguen a un clic. Las etiquetas se ocultan de golpe (display:none) en vez
+   de encogerse con el ancho: un texto aplastado a mitad de transición se ve peor que
+   uno que desaparece. El `title` de cada fila lo suple. */
+.shell__sidebar { transition: width 0.22s ease; }
+.shell__sidebar.is-rail { width: 68px; }
+
+.shell__sidebar.is-rail .shell__brand {
+  justify-content: center;
+  padding: 20px 0 18px;
+}
+.shell__sidebar.is-rail .shell__brand-text { display: none; }
+
+.shell__sidebar.is-rail .shell__nav-label,
+.shell__sidebar.is-rail .shell__nav-caret { display: none; }
+.shell__sidebar.is-rail .shell__nav-item {
+  justify-content: center;
+  gap: 0;
+  padding: 12px 0;
+}
+.shell__sidebar.is-rail .shell__burger { padding-bottom: 13px; }
+
+/* Sin etiquetas al lado, la jerarquía la da la posición bajo el glifo de Grupos:
+   fuera sangría y guía vertical. */
+.shell__sidebar.is-rail .shell__grouplist {
+  align-items: center;
+  margin-left: 0;
+  padding: 4px 0 6px;
+  border-left: none;
+  gap: 4px;
+}
+.shell__sidebar.is-rail .shell__groupitem {
+  justify-content: center;
+  padding: 3px 0;
+  background: transparent;
+  border-color: transparent;
+}
+.shell__sidebar.is-rail .shell__groupitem-meta,
+.shell__sidebar.is-rail .shell__groupitem-check { display: none; }
+/* El activo se marca con un aro en el avatar y no con el fondo de la fila: a este
+   ancho la fila es casi el avatar y un fondo teñido apenas se vería. El avatar
+   conserva sus 28px para que plegar no lo redimensione, solo lo recoloque. */
+.shell__sidebar.is-rail .shell__groupitem.is-active .shell__groupitem-avatar {
+  box-shadow:
+    0 0 0 2px var(--nf-void),
+    0 0 0 4px color-mix(in srgb, var(--grp-c1) 75%, transparent);
+}
+
+.shell__sidebar.is-rail .shell__grouplist-all-label { display: none; }
+.shell__sidebar.is-rail .shell__grouplist-all {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  font-size: 14px;
+  border: 1px dashed var(--nf-border-strong);
+}
+.shell__sidebar.is-rail .shell__grouplist-empty { display: none; }
+
+/* El popover de descarga no cabe bajo un disparador de 48px: sale al lado. */
+.shell__download-menu.is-rail {
+  left: calc(100% - 4px);
+  right: auto;
+  bottom: 6px;
+  width: 232px;
+}
+
+.shell__sidebar.is-rail .shell__profile { justify-content: center; padding: 6px 0; }
+.shell__sidebar.is-rail .shell__user-meta { display: none; }
+
+/* "Cerrar sesión" con texto no cabe en el rail; ahí va el icono. */
+.shell__logout-icon { display: none; flex: none; }
+.shell__sidebar.is-rail .shell__logout-icon { display: block; }
+.shell__sidebar.is-rail .shell__logout-label { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .shell__sidebar { transition: none; }
+}
 
 /* ---- main column ---- */
 .shell__main { flex: 1; min-width: 0; display: flex; flex-direction: column; }

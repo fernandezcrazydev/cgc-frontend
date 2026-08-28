@@ -19,6 +19,17 @@ import { FeedbackDialog } from '../feedback/feedback-dialog';
 import { RiotUsageIndicator } from './riot-usage-indicator';
 import { wireRiotAccountRefresh } from './riot-account-refresh';
 
+/** Preferencia por dispositivo: ¿la navegación lateral arranca plegada en rail? */
+const RAIL_KEY = 'cgc-sidebar-railed';
+
+function readRailed(): boolean {
+  try {
+    return localStorage.getItem(RAIL_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Sale Custom app shell — desktop sidebar + sticky header + mobile bottom nav,
  * with a routed <router-outlet> for the five views. Port of the APP SHELL block
@@ -115,6 +126,25 @@ export class Shell {
   readonly pageTitle = signal('Inicio');
   readonly confirmLogout = signal(false);
 
+  // ── Plegado de la navegación lateral (solo escritorio) ────────────
+  // Estado de UI puro (regla de oro 5): vive en el componente, no en un store de
+  // dominio. Se persiste en localStorage —como el tema— porque es una preferencia
+  // por dispositivo: quien pliega el menú en el portátil no quiere encontrárselo
+  // desplegado en cada recarga, y quien tiene monitor grande nunca lo toca.
+  // Plegado ≠ oculto: queda un rail de iconos, así que nunca se pierde ni el
+  // "dónde estoy" ni el acceso a las secciones.
+  readonly railed = signal(readRailed());
+
+  toggleRail(): void {
+    this.railed.update((v) => !v);
+    try {
+      localStorage.setItem(RAIL_KEY, this.railed() ? '1' : '0');
+    } catch {
+      // Modo privado o almacenamiento lleno: la preferencia no sobrevive a la
+      // recarga, pero la sesión actual funciona igual.
+    }
+  }
+
   /**
    * ¿El usuario es ADMIN? Comodidad de UI para mostrar el acceso al panel de admin. La
    * autorización de verdad la hacen `adminGuard` y el backend; esto solo esconde el enlace.
@@ -126,7 +156,23 @@ export class Shell {
   readonly groupsExpanded = signal(true);
   readonly showGroupSheet = signal(false);
 
-  toggleGroups(): void {
+  /**
+   * ¿Se ve la lista de grupos bajo la entrada "Grupos"? En rail va siempre abierta:
+   * los avatares SON la lista (no hay etiqueta que plegar), y un plegable de 68px
+   * de ancho sin texto no comunica nada.
+   */
+  readonly groupsOpen = computed(() => this.railed() || this.groupsExpanded());
+
+  /**
+   * Clic en la entrada "Grupos". Desplegada, pliega/despliega la lista; en rail no
+   * hay nada que plegar, así que navega a la gestión de grupos en vez de dejar un
+   * control muerto.
+   */
+  onGroupsNav(): void {
+    if (this.railed()) {
+      void this.router.navigate(['/app', 'grupos']);
+      return;
+    }
     this.groupsExpanded.update((v) => !v);
   }
 

@@ -7,16 +7,36 @@
 
   <!-- desktop sidebar -->
   @if (!isMobile()) {
-    <aside class="shell__sidebar">
+    <aside class="shell__sidebar" [class.is-rail]="railed()">
       <div class="shell__brand">
         <div class="shell__logo"><span class="shell__diamond"></span></div>
-        <div>
+        <div class="shell__brand-text">
           <div class="shell__wordmark">Sale Custom</div>
           <div class="shell__tag">Organiza tus customs de LoL</div>
         </div>
       </div>
 
-      <nav class="shell__nav">
+      <!-- El disparador es la primera fila del menú, no un adorno de la cabecera de
+           marca: así comparte columna con los glifos de las secciones (se lee como
+           parte de la lista) y no compite por ancho con el wordmark y su bajada.
+           Lleva etiqueta visible cuando hay sitio —"Plegar menú" dice qué hace mejor
+           que tres rayas solas— y se queda en glifo cuando el menú está en rail. -->
+      <nav class="shell__nav" id="shell-nav">
+        <button
+          type="button"
+          class="shell__nav-item shell__burger"
+          aria-controls="shell-nav"
+          [attr.aria-expanded]="!railed()"
+          [attr.aria-label]="railed() ? 'Desplegar el menú' : 'Plegar el menú'"
+          [attr.title]="railed() ? 'Desplegar el menú' : null"
+          (click)="toggleRail()"
+        >
+          <span class="shell__nav-glyph shell__burger-bars" aria-hidden="true">
+            <span></span><span></span><span></span>
+          </span>
+          <span class="shell__nav-label">Plegar menú</span>
+        </button>
+
         @for (item of nav; track item.id) {
           @if (item.id === 'grupos') {
             <div class="shell__nav-group">
@@ -24,15 +44,16 @@
                 type="button"
                 class="shell__nav-item shell__nav-item--toggle"
                 [class.is-open]="groupsExpanded()"
-                [attr.aria-expanded]="groupsExpanded()"
-                (click)="toggleGroups()"
+                [attr.aria-expanded]="railed() ? null : groupsExpanded()"
+                [attr.title]="railed() ? item.label : null"
+                (click)="onGroupsNav()"
               >
                 <span class="shell__nav-glyph">{{ item.glyph }}</span>
-                {{ item.label }}
-                <span class="shell__nav-caret">▾</span>
+                <span class="shell__nav-label">{{ item.label }}</span>
+                <span class="shell__nav-caret" aria-hidden="true">▾</span>
               </button>
 
-              <div class="shell__groupwrap" [class.is-open]="groupsExpanded()" [attr.aria-hidden]="!groupsExpanded()">
+              <div class="shell__groupwrap" [class.is-open]="groupsOpen()" [attr.aria-hidden]="!groupsOpen()">
                 <div class="shell__grouplist">
                   @for (g of groups.groups(); track g.id) {
                     <button
@@ -41,7 +62,9 @@
                       [class.is-active]="g.id === groups.selectedId()"
                       [style.--grp-c1]="g.c1"
                       [style.--grp-c2]="g.c2"
-                      [attr.tabindex]="groupsExpanded() ? null : -1"
+                      [attr.tabindex]="groupsOpen() ? null : -1"
+                      [attr.title]="railed() ? g.name : null"
+                      [attr.aria-label]="railed() ? g.name : null"
                       (click)="selectGroup(g.id)"
                     >
                       <span class="shell__groupitem-avatar">
@@ -62,9 +85,12 @@
                   <a
                     class="shell__grouplist-all nf-mono"
                     [routerLink]="['/app', 'grupos']"
-                    [attr.tabindex]="groupsExpanded() ? null : -1"
+                    [attr.tabindex]="groupsOpen() ? null : -1"
+                    [attr.title]="railed() ? 'Gestionar grupos' : null"
+                    [attr.aria-label]="railed() ? 'Gestionar grupos' : null"
                   >
-                    ＋ Gestionar grupos
+                    <span aria-hidden="true">＋</span>
+                    <span class="shell__grouplist-all-label">Gestionar grupos</span>
                   </a>
                 </div>
               </div>
@@ -74,9 +100,10 @@
               class="shell__nav-item"
               [routerLink]="['/app', item.path]"
               routerLinkActive="is-active"
+              [attr.title]="railed() ? item.label : null"
             >
               <span class="shell__nav-glyph">{{ item.glyph }}</span>
-              {{ item.label }}
+              <span class="shell__nav-label">{{ item.label }}</span>
             </a>
           }
         }
@@ -87,9 +114,10 @@
             [routerLink]="['/app', 'admin']"
             routerLinkActive="is-active"
             [routerLinkActiveOptions]="{ exact: true }"
+            [attr.title]="railed() ? 'Admin' : null"
           >
             <span class="shell__nav-glyph">🛡</span>
-            Admin
+            <span class="shell__nav-label">Admin</span>
           </a>
         }
       </nav>
@@ -106,6 +134,8 @@
           [class.is-open]="showDownload()"
           [attr.aria-expanded]="showDownload()"
           aria-haspopup="menu"
+          [attr.title]="railed() ? 'Descargar app' : null"
+          [attr.aria-label]="railed() ? 'Descargar app' : null"
           (click)="toggleDownload()"
         >
           <span class="shell__nav-glyph shell__download-glyph" aria-hidden="true">
@@ -115,13 +145,19 @@
               <path d="M2.8 12.9h10.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
             </svg>
           </span>
-          Descargar app
-          <span class="shell__nav-caret">▾</span>
+          <span class="shell__nav-label">Descargar app</span>
+          <span class="shell__nav-caret" aria-hidden="true">▾</span>
         </button>
 
         @if (showDownload()) {
           <div class="shell__download-backdrop" (click)="showDownload.set(false)"></div>
-          <div class="shell__download-menu" role="menu" aria-label="Descargar la app de escritorio">
+          <!-- En rail el popover no cabe bajo un disparador de 48px: sale al lado. -->
+          <div
+            class="shell__download-menu"
+            [class.is-rail]="railed()"
+            role="menu"
+            aria-label="Descargar la app de escritorio"
+          >
             <div class="shell__download-head nf-mono">App de escritorio</div>
 
             <!-- <a download> y no un botón: son ficheros estáticos servidos por el mismo
@@ -171,7 +207,11 @@
 
       <div class="shell__sidefoot">
         @if (session.user(); as me) {
-          <a class="shell__profile" [routerLink]="['/app', 'perfil']">
+          <a
+            class="shell__profile"
+            [routerLink]="['/app', 'perfil']"
+            [attr.title]="railed() ? me.discordUsername + ' — ver perfil' : null"
+          >
             <div class="shell__avatar">
               @if (showAvatarImage()) {
                 <img
@@ -200,7 +240,20 @@
             </div>
           </div>
         }
-        <button type="button" class="shell__logout" (click)="confirmLogout.set(true)">Cerrar sesión</button>
+        <button
+          type="button"
+          class="shell__logout"
+          [attr.title]="railed() ? 'Cerrar sesión' : null"
+          [attr.aria-label]="railed() ? 'Cerrar sesión' : null"
+          (click)="confirmLogout.set(true)"
+        >
+          <svg class="shell__logout-icon" width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="M6.2 2.4H3.4a1 1 0 0 0-1 1v9.2a1 1 0 0 0 1 1h2.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+            <path d="M10.1 5.2 13 8l-2.9 2.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+            <path d="M12.7 8H6.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+          </svg>
+          <span class="shell__logout-label">Cerrar sesión</span>
+        </button>
       </div>
     </aside>
   }
