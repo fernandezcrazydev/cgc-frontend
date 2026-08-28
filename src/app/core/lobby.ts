@@ -72,7 +72,7 @@ export const NAV: NavItem[] = [
 ];
 
 export const GROUPS: Group[] = [
-  { id: 'lan-challenger', name: 'LAN Challenger S14', tag: 'LAN', initials: 'LC', role: 'Capitán',   members: 8,  c1: 'hsl(320,90%,64%)', c2: 'hsl(280,78%,34%)' },
+  { id: 'lan-challenger', name: 'LAN Challenger S14', tag: 'LAN', initials: 'LC', role: 'Capitán',   members: 28,  c1: 'hsl(320,90%,64%)', c2: 'hsl(280,78%,34%)' },
   { id: 'scrim-squad',    name: 'Scrim Squad',        tag: 'EUW', initials: 'SS', role: 'Miembro', members: 12, c1: 'hsl(190,90%,62%)', c2: 'hsl(205,78%,32%)' },
   { id: 'night-owls',     name: 'Night Owls',         tag: 'NA',  initials: 'NO', role: 'Capitán',   members: 5,  c1: 'hsl(150,90%,60%)', c2: 'hsl(160,78%,30%)' },
   { id: 'arcane-five',    name: 'Arcane Five',         tag: 'KR',  initials: 'A5', role: 'Miembro', members: 9,  c1: 'hsl(48,95%,62%)',  c2: 'hsl(38,80%,32%)'  },
@@ -85,6 +85,31 @@ export const MATCHES: MatchItem[] = [
 ];
 
 export const REGION_OPTIONS = ['LAN', 'BR', 'NA', 'EUW', 'KR'];
+
+/**
+ * Nombres de jugador de mentira, la ÚNICA lista. La consumen los dos
+ * generadores de roster que existen: `MEMBER_POOL` de `group-store.ts` (que
+ * monta `Nombre#REGION`) y `NAME_POOL` de `group-ranking.ts` (que le pega una
+ * región de sabor). Antes eran dos listas de 12 "sincronizadas por convención";
+ * se unificaron al subir los grupos a 28 miembros, porque con 12 nombres se
+ * repetían y eso rompe de verdad: los `@for` clavean por `tag` (`grupo-sala`,
+ * `grupo-crear-partida`) y `perksOf(groupId, tag)` mezclaría dos jugadores.
+ *
+ * BACKEND NOTE: desaparece entera con el endpoint de miembros; los nombres
+ * reales vienen de Discord.
+ *
+ * INVARIANTE: los nombres deben ser únicos y ser al menos tantos como el grupo
+ * semilla más grande (hoy `lan-challenger`, 28).
+ */
+export const MOCK_NAMES = [
+  'Pix3lQueen', 'Cr1msonByte', 'D4rkFl4me', 'V0idWalker', 'NeonRift',
+  'GlitchKid', 'St0rmcaller', 'HexHunter', 'AshenWolf', 'LumeCore',
+  'Zer0Cool', 'ByteSiren', 'Nyx0verdrive', 'R1ftBreaker', 'SolarFang',
+  'M4chinaDusk', 'EchoVanta', 'Gr1mHalo', 'VelvetN0va', 'KiloWraith',
+  'Ob3lisk', 'SaintCircuit', 'PaleMonsoon', 'Ir0nLullaby', 'Xen0Bloom',
+  'QuartzVeil', 'DriftAugur', 'N1neLives', 'CobaltPsalm', 'Vantablack',
+];
+
 
 /**
  * BACKEND NOTE: lista corta (~15) de ids REALES de ddragon usada por los
@@ -113,4 +138,13 @@ export const REAL_CHAMPION_IDS = [
   55, // Katarina
   30, // Karthus
   33, // Rammus
+  141, // Kayn
+  875, // Sett
+  246, // Qiyana
+  517, // Sylas
+  350, // Yuumi
+  360, // Samira
+  777, // Yone
+  200, // Bel'Veth
+  895, // Nilah
 ];

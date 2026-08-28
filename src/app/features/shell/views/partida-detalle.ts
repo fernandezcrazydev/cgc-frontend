@@ -4,7 +4,13 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
 import { NfAvatar, NfBadge, NfButton, NfSkeleton, NfWindow } from '../../../ui';
 import { matchById, kdaRatio } from '../../../core/match-history';
-import { hash } from '../../../core/group-ranking';
+import { hash, rankingFor } from '../../../core/group-ranking';
+import {
+  groupIdFromRankMatchId,
+  rankMatchAsRecord,
+  rankMatchById,
+} from '../../../core/ranking-matches';
+import { GroupStore } from '../../../core/group-store';
 import { GameDataStore } from '../../../core/game-data';
 
 @Component({
@@ -92,6 +98,7 @@ import { GameDataStore } from '../../../core/game-data';
 })
 export class PartidaDetalle {
   private readonly route = inject(ActivatedRoute);
+  private readonly groups = inject(GroupStore);
   readonly ratio = kdaRatio;
 
   protected readonly gameData = inject(GameDataStore);
@@ -121,8 +128,26 @@ export class PartidaDetalle {
 
   readonly match = computed(() => {
     const id = this.id();
-    return id ? matchById(id) ?? null : null;
+    if (!id) return null;
+    return matchById(id) ?? this.rankMatch(id);
   });
+
+  /**
+   * Partidas que vienen del acordeón del ranking. No están en el `SEED` de
+   * `match-history.ts` —se generan por pareja de jugadores—, así que se
+   * reconstruyen desde el propio id; sin esto los cinco enlaces del cajón
+   * caerían todos en el 404 de esta misma vista.
+   */
+  private rankMatch(id: string) {
+    const groupId = groupIdFromRankMatchId(id);
+    if (!groupId) return null;
+
+    const g = this.groups.byId(groupId);
+    if (!g || g.id !== groupId) return null;
+
+    const found = rankMatchById(id, rankingFor(g.id, g.members));
+    return found ? rankMatchAsRecord(found, g.id, g.name) : null;
+  }
 
   readonly csPerMin = computed(() => {
     const m = this.match();

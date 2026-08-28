@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, linkedSignal, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
@@ -188,12 +188,12 @@ type StatTab = 'resumen' | 'jugadores' | 'premios';
             <nf-window title="Jugadores" bodyPadding="0">
               <div class="members">
                 @for (p of players(); track p.member.tag) {
-                  <div class="member-row" [class.member-row--open]="expandedTag() === p.member.tag">
+                  <div class="member-row" [class.member-row--open]="expandedName() === p.member.name">
                     <div
                       class="member"
                       role="button"
                       tabindex="0"
-                      [attr.aria-expanded]="expandedTag() === p.member.tag"
+                      [attr.aria-expanded]="expandedName() === p.member.name"
                       (click)="toggle(p.member)"
                       (keydown.enter)="toggle(p.member)"
                       (keydown.space)="$event.preventDefault(); toggle(p.member)"
@@ -207,7 +207,7 @@ type StatTab = 'resumen' | 'jugadores' | 'premios';
                       <span class="member__chevron" aria-hidden="true">▾</span>
                     </div>
 
-                    @if (expandedTag() === p.member.tag) {
+                    @if (expandedName() === p.member.name) {
                       <div class="member-detail">
                         <div class="member-detail__head">
                           <div class="member-detail__tag nf-mono">{{ p.member.tag }}</div>
@@ -300,8 +300,32 @@ export class GrupoEstadisticas {
   ];
 
   readonly scope = signal<StatScope>('temporada');
-  readonly tab = signal<StatTab>('resumen');
-  readonly expandedTag = signal<string | null>(null);
+
+  /**
+   * `?jugador=<nombre>` abre la vista directamente en la ficha de ese jugador.
+   * Lo usa el botón "Ver perfil" del acordeón del ranking, que necesitaba un
+   * destino real: `/app/perfil` es el del usuario logueado y enseñarlo bajo el
+   * nombre de otro sería un bug, no un placeholder.
+   *
+   * Va por NOMBRE y no por `tag` a propósito: el `tag` del roster es
+   * `Nombre#<región del grupo>` (aquí todos "#LAN") mientras que el del ranking
+   * es una región de sabor por jugador, así que no casan. El nombre sí es único
+   * dentro del grupo (ver la invariante de `MOCK_NAMES` en `lobby.ts`).
+   */
+  private readonly focusedName = toSignal(
+    this.route.queryParamMap.pipe(map((p) => p.get('jugador'))),
+    { initialValue: this.route.snapshot.queryParamMap.get('jugador') },
+  );
+
+  readonly tab = linkedSignal<string | null, StatTab>({
+    source: this.focusedName,
+    computation: (name, prev) => (name ? 'jugadores' : prev?.value ?? 'resumen'),
+  });
+
+  readonly expandedName = linkedSignal<string | null, string | null>({
+    source: this.focusedName,
+    computation: (name, prev) => name ?? prev?.value ?? null,
+  });
 
   private readonly id = toSignal(
     this.route.paramMap.pipe(map((p) => p.get('id'))),
@@ -343,7 +367,7 @@ export class GrupoEstadisticas {
   }
 
   toggle(m: Member): void {
-    this.expandedTag.update((t) => (t === m.tag ? null : m.tag));
+    this.expandedName.update((n) => (n === m.name ? null : m.name));
   }
 
   tiles = playerTiles;

@@ -96,8 +96,12 @@ export function matchesByGroup(groupId: string): MatchRecord[] {
   return MATCH_HISTORY.filter((m) => m.groupId === groupId);
 }
 
-/** KDA ratio as "x.xx", treating 0 deaths as a perfect game. */
-export function kdaRatio(m: MatchRecord): string {
+/**
+ * KDA ratio as "x.xx", treating 0 deaths as a perfect game.
+ * Acepta cualquier cosa con K/D/A (no solo `MatchRecord`) para que el historial
+ * del ranking (`ranking-matches.ts`) no duplique la regla del "0 muertes".
+ */
+export function kdaRatio(m: { kills: number; deaths: number; assists: number }): string {
   const ratio = m.deaths === 0 ? m.kills + m.assists : (m.kills + m.assists) / m.deaths;
   return ratio.toFixed(2);
 }

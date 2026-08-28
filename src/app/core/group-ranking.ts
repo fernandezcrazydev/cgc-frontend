@@ -1,28 +1,24 @@
 /**
  * Leaderboard data for the per-group "Ranking" view. Members are ranked by
- * rating (desc). Each entry carries the win/loss record, peak rating, LoL rank,
- * lane, champion, streak sparkline, and trophy data. Deterministic so
- * a given group always renders the same board until the backend lands.
+ * rating (desc), with sanctioned players pushed to the bottom. Each entry
+ * carries the win/loss record, peak rating, LoL rank, lane, champion, streak
+ * sparkline, and trophy data. Deterministic so a given group always renders
+ * the same board until the backend lands.
  */
 import { NfLane } from '../ui/lane-icon/nf-lane-icon';
-import { REAL_CHAMPION_IDS } from './lobby';
+import { MOCK_NAMES, REAL_CHAMPION_IDS } from './lobby';
 import { opggUrl } from './member-detail';
 
-/** Roster name pool — kept in sync (by convention) with grupo-detalle's roster. */
-const NAME_POOL = [
-  { name: 'Pix3lQueen', tag: 'EUW' },
-  { name: 'Cr1msonByte', tag: 'PSOE' },
-  { name: 'D4rkFl4me', tag: 'CITY' },
-  { name: 'V0idWalker', tag: '666' },
-  { name: 'NeonRift', tag: 'DRWHO' },
-  { name: 'GlitchKid', tag: 'EUW' },
-  { name: 'St0rmcaller', tag: 'LANA' },
-  { name: 'HexHunter', tag: 'NA' },
-  { name: 'AshenWolf', tag: 'EUW' },
-  { name: 'LumeCore', tag: 'KR' },
-  { name: 'Zer0Cool', tag: 'BR' },
-  { name: 'ByteSiren', tag: 'EUW' },
-];
+/** Región de sabor por jugador. Solo decora el `Nombre#REGION` del ranking. */
+const REGIONS = ['EUW', 'LAN', 'NA', 'KR', 'BR'];
+
+/**
+ * Roster name pool — se deriva de `MOCK_NAMES` (`lobby.ts`), la misma lista que
+ * siembra el roster real en `group-store.ts`. Antes era una copia de 12 nombres
+ * "sincronizada por convención"; con grupos de 28 miembros esa copia se quedaba
+ * corta y repetía nombres, y un nombre repetido rompe los `track` de las vistas.
+ */
+const NAME_POOL = MOCK_NAMES.map((name, i) => ({ name, tag: REGIONS[i % REGIONS.length] }));
 
 const LANES: readonly NfLane[] = ['TOP', 'JUNGLA', 'MID', 'ADC', 'SUPPORT'];
 
@@ -31,11 +27,22 @@ export type LolTier = 'CHALLENGER' | 'GRANDMASTER' | 'MASTER' | 'DIAMOND' | 'EME
 export interface LolRankInfo {
   tier: LolTier;
   queue: 'SoloQ' | 'Flex';
+  /**
+   * Etiqueta legible ("SoloQ: Master"). Ya no se pinta como texto suelto: es el
+   * nombre accesible del escudo (`title`/`alt` de `nf-rank-emblem`).
+   */
   label: string;
   color: string;
 }
 
 export interface RankEntry {
+  /**
+   * Id estable de la fila: clave de `@for ... track` y del acordeón.
+   * BACKEND NOTE: lo generará el servidor. Nunca clavear por `name` ni por
+   * `tag` (regla de oro de CLAUDE.md — y aquí `tag` es la REGIÓN, que se
+   * repite entre jugadores).
+   */
+  playerId: string;
   rank: number;
   name: string;
   tag: string;
@@ -43,6 +50,8 @@ export interface RankEntry {
   hue: number;
   avatar?: string;
   rating: number;
+  /** LP en crudo. `formattedLp` lleva separador de millares y no se puede ordenar. */
+  lpValue: number;
   formattedLp: string;
   peak: number;
   wins: number;
@@ -50,8 +59,12 @@ export interface RankEntry {
   totalGames: number;
   /** Win-rate percentage, rounded. */
   wr: number;
+  /** Participación en asesinatos media (0-100). */
+  kp: number;
   /** Recent rating points (oldest → newest) for the trend sparkline. */
   spark: number[];
+  /** Polilínea SVG ya calculada: evita rehacerla en cada pasada de detección. */
+  sparkPath: string;
   /** Overall direction of the spark, for the line color. */
   trend: 'up' | 'down';
   /** LoL lane role. */
@@ -61,11 +74,16 @@ export interface RankEntry {
   /** Average LP gained/lost. */
   avgLpGain: number;
   avgLpLoss: number;
-  /** Circular golden badge score value. */
-  scoreBadge: number;
+  /**
+   * Jugador sancionado: sale siempre al final de la tabla y fuera de
+   * competición. BACKEND NOTE: la sanción (motivo y vigencia incluidos) será
+   * del backend; aquí se marca de forma determinista por `hash(name)`.
+   */
+  banned: boolean;
+  banReason?: string;
   /** Most played champion ID for the secondary icon. */
   mainChampionId: number;
-  /** Trophy image for top 3 (Trofeo1, Trofeo2, Trofeo3). */
+  /** Trophy image for the top 3 (Trofeo1, Trofeo2, Trofeo3). */
   trophyImg?: string;
   /** Direct link to OP.GG. */
   opggUrl: string;
@@ -92,16 +110,26 @@ export function hash(str: string): number {
   return h >>> 0;
 }
 
-const TIER_CONFIGS: { tier: LolTier; queue: 'SoloQ' | 'Flex'; label: string; color: string }[] = [
-  { tier: 'CHALLENGER', queue: 'SoloQ', label: 'SoloQ: Challenger', color: '#f4c053' },
-  { tier: 'GRANDMASTER', queue: 'SoloQ', label: 'SoloQ: Grandmaster', color: '#e43e3e' },
-  { tier: 'MASTER', queue: 'SoloQ', label: 'SoloQ: Master', color: '#b469ff' },
-  { tier: 'DIAMOND', queue: 'SoloQ', label: 'SoloQ: Diamond I', color: '#5aa9e6' },
-  { tier: 'DIAMOND', queue: 'Flex', label: 'Flex: Diamond II', color: '#5aa9e6' },
-  { tier: 'EMERALD', queue: 'SoloQ', label: 'SoloQ: Emerald I', color: '#00b894' },
-  { tier: 'PLATINUM', queue: 'SoloQ', label: 'SoloQ: Platinum I', color: '#00cec9' },
-  { tier: 'GOLD', queue: 'SoloQ', label: 'SoloQ: Gold I', color: '#e1b12c' },
+/**
+ * Umbrales de tier sobre el rating (1800-2900 en el generador). Antes el tier
+ * salía de la POSICIÓN en la tabla (`TIER_CONFIGS[min(i, len-1)]`), así que del
+ * 8.º en adelante todos eran "SoloQ: Gold I": con 28 jugadores serían 21 filas
+ * idénticas. Derivarlo del rating es además lo que hará el backend.
+ */
+const TIER_LADDER: { min: number; tier: LolTier; queue: 'SoloQ' | 'Flex'; label: string; color: string }[] = [
+  { min: 2750, tier: 'CHALLENGER',  queue: 'SoloQ', label: 'SoloQ: Challenger',  color: '#3fbfdd' },
+  { min: 2600, tier: 'GRANDMASTER', queue: 'SoloQ', label: 'SoloQ: Grandmaster', color: '#e43e3e' },
+  { min: 2400, tier: 'MASTER',      queue: 'SoloQ', label: 'SoloQ: Master',      color: '#9d48e0' },
+  { min: 2200, tier: 'DIAMOND',     queue: 'SoloQ', label: 'SoloQ: Diamante I',  color: '#5aa9e6' },
+  { min: 2050, tier: 'EMERALD',     queue: 'SoloQ', label: 'SoloQ: Esmeralda I', color: '#00b894' },
+  { min: 1900, tier: 'PLATINUM',    queue: 'Flex',  label: 'Flex: Platino I',    color: '#00cec9' },
+  { min: 0,    tier: 'GOLD',        queue: 'SoloQ', label: 'SoloQ: Oro I',       color: '#cd8837' },
 ];
+
+function tierForRating(rating: number): LolRankInfo {
+  const step = TIER_LADDER.find((t) => rating >= t.min) ?? TIER_LADDER[TIER_LADDER.length - 1];
+  return { tier: step.tier, queue: step.queue, label: step.label, color: step.color };
+}
 
 /** Build a leaderboard of `count` members for a group, ranked by rating desc. */
 export function rankingFor(groupId: string, count: number): RankEntry[] {
@@ -129,44 +157,55 @@ export function rankingFor(groupId: string, count: number): RankEntry[] {
     const avgGain = 18 + Math.floor(rnd() * 9);
     const avgLoss = 14 + Math.floor(rnd() * 8);
 
+    // ~1 de cada 8 sancionado (3 de los 28 del grupo semilla), estable por
+    // NOMBRE y no por posición: si dependiese del orden, el baneado cambiaría
+    // de persona cada vez que se reordena la tabla.
+    const banned = hash('ban|' + pick.name) % 8 === 0;
+
     return {
+      playerId: 'rk-' + groupId + '-' + i,
       name: pick.name,
       tag: pick.tag,
       initials: pick.name.slice(0, 2).toUpperCase(),
       hue: (i * 47) % 360,
       rating,
+      lpValue: rating,
       peak,
       wins,
       losses,
       totalGames: wins + losses,
       wr: games ? Math.round((wins / games) * 100) : 0,
+      kp: 42 + Math.floor(rnd() * 34),
       spark,
+      sparkPath: sparkPoints(spark, 100, 28),
       trend: spark[spark.length - 1] >= spark[0] ? ('up' as const) : ('down' as const),
       lane,
       avgLpGain: avgGain,
       avgLpLoss: avgLoss,
-      scoreBadge: 0, // filled after sorting
+      banned,
+      banReason: banned ? 'Jugador sancionado - Fuera de competición' : undefined,
       mainChampionId: champId,
-      opggUrl: opggUrl(`${pick.name}#${pick.tag}`),
+      opggUrl: opggUrl(pick.name + '#' + pick.tag),
     };
   });
 
-  // Sort descending by rating
-  const sorted = rawEntries.sort((a, b) => b.rating - a.rating);
+  // Rating descendente, pero los sancionados SIEMPRE al final: están fuera de
+  // competición, así que no ocupan puesto por delante de nadie activo.
+  const sorted = rawEntries.sort((a, b) => {
+    if (a.banned !== b.banned) return a.banned ? 1 : -1;
+    return b.rating - a.rating;
+  });
 
   return sorted.map((e, i) => {
     const rank = i + 1;
-    const tierConfig = TIER_CONFIGS[Math.min(i, TIER_CONFIGS.length - 1)];
-    const trophyImg = rank <= 3 ? `/assets/trofeos/Trofeo${rank}.png` : undefined;
-    const scoreBadge = Math.max(70, 99 - i * 3);
-    const formattedLp = `${e.rating.toLocaleString('es-ES')} LP`;
+    // El trofeo es del podio activo: un sancionado nunca lo luce.
+    const trophyImg = rank <= 3 && !e.banned ? '/assets/trofeos/Trofeo' + rank + '.png' : undefined;
 
     return {
       ...e,
       rank,
-      formattedLp,
-      lolRank: tierConfig,
-      scoreBadge,
+      formattedLp: e.rating.toLocaleString('es-ES') + ' LP',
+      lolRank: tierForRating(e.rating),
       trophyImg,
     };
   });
