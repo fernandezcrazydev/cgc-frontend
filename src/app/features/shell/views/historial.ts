@@ -1,142 +1,140 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { MATCH_HISTORY, kdaRatio, shortGold } from '../../../core/match-history';
-import { hash } from '../../../core/group-ranking';
+import { MatchHistoryStore } from '../../../core/matches/match-history-store';
 import { GameDataStore } from '../../../core/game-data';
-import { NfAvatar, NfPagination, NfSkeleton } from '../../../ui';
+import { NfButton, NfPagination, NfSkeleton } from '../../../ui';
+import { MatchCardComponent } from './match-history/match-card.component';
+import { MatchFiltersComponent } from './match-history/match-filters.component';
+import { MatchSummaryCardComponent } from './match-history/match-summary-card.component';
 
 @Component({
   selector: 'app-historial',
   standalone: true,
-  imports: [RouterLink, NfPagination, NfAvatar, NfSkeleton],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [
+    RouterLink,
+    NfPagination,
+    NfButton,
+    NfSkeleton,
+    MatchCardComponent,
+    MatchFiltersComponent,
+    MatchSummaryCardComponent,
+  ],
   template: `
     <div class="view">
+      <!-- CABECERA DE LA VISTA -->
       <div class="view__head">
-        <div class="view__eyebrow nf-mono">Registro de partidas</div>
-        <h1 class="view__title">Historial</h1>
-        <p class="view__lead">Tus últimas partidas disputadas. Pulsa una para ver el detalle completo.</p>
+        <div class="view__eyebrow nf-mono">Registro competitivo</div>
+        <h1 class="view__title">Historial de Partidas</h1>
+        <p class="view__lead">Tus últimas partidas disputadas en todas tus ligas y grupos. Pulsa sobre cualquier partida para desplegar el análisis completo y el marcador 5v5.</p>
       </div>
 
+      <!-- AVISO DE CONTEXTO MULTI-GRUPO -->
       <div class="scope-note" role="note">
         <span class="scope-note__icon" aria-hidden="true">◆</span>
         <p class="scope-note__text">
-          Estás viendo tu <strong>historial personal</strong> de todos los grupos, no el del grupo seleccionado.
-          La columna <strong>◆ grupo</strong> indica a qué grupo pertenece cada partida.
+          Estás viendo tu <strong>historial personal unificado</strong>.
+          La etiqueta <strong>◆ Grupo</strong> en cada partida identifica en qué liga se disputó y te permite saltar a su registro colectivo.
         </p>
       </div>
 
-      <div class="mh-list">
-        @for (m of pageItems(); track m.id) {
-          <a
-            class="mh-row"
-            [class.is-win]="m.win"
-            [class.is-loss]="!m.win"
-            [routerLink]="['/app', 'historial', m.id]"
-          >
-            <div class="mh-result">
-              <span class="mh-result__label nf-mono">{{ m.win ? 'Victoria' : 'Derrota' }}</span>
-              <span class="mh-result__mode nf-mono">{{ m.mode }}</span>
-              <span class="mh-result__time nf-mono">{{ m.durationMin }} min</span>
-            </div>
+      <!-- WIDGET DE RESUMEN DE RENDIMIENTO PERSONAL -->
+      <app-match-summary-card />
 
-            <div class="mh-champ" [attr.aria-busy]="champsLoading() ? 'true' : null">
-              <nf-avatar
-                class="mh-champ__icon"
-                [loading]="champsLoading()"
-                [src]="champion(m.championId)?.iconUrl ?? null"
-                [fallback]="championName(m.championId)"
-                [tint]="m.championId"
-                [size]="48"
-                shape="square"
-              />
-              <div class="mh-champ__meta">
-                @if (champsLoading()) {
-                  <nf-skeleton width="110px" height="14px" />
-                } @else {
-                  <span class="mh-champ__name">{{ championName(m.championId) }}</span>
-                }
-                <span class="mh-champ__group nf-mono">◆ {{ m.groupName }}</span>
+      <!-- BARRA REACTIVA DE FILTROS -->
+      <app-match-filters [showGroupFilter]="true" />
+
+      <!-- LISTA DE PARTIDAS -->
+      @if (champsLoading()) {
+        <!-- SKELETON LOADERS -->
+        <div class="mh-list" aria-busy="true">
+          @for (i of [1, 2, 3, 4]; track i) {
+            <div class="m-card" style="padding: 16px; min-height: 84px; display: flex; align-items: center; justify-content: space-between;">
+              <div style="display: flex; gap: 14px; align-items: center;">
+                <nf-skeleton width="46px" height="46px" radius="6px" />
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                  <nf-skeleton width="130px" height="16px" />
+                  <nf-skeleton width="90px" height="12px" />
+                </div>
+              </div>
+              <div style="display: flex; gap: 20px; align-items: center;">
+                <nf-skeleton width="100px" height="18px" />
+                <nf-skeleton width="140px" height="24px" />
+                <nf-skeleton width="80px" height="14px" />
               </div>
             </div>
+          }
+        </div>
+      } @else if (pageItems().length > 0) {
+        <div class="mh-list">
+          @for (m of pageItems(); track m.id) {
+            <app-match-card [match]="m" mode="personal" />
+          }
+        </div>
 
-            <div class="mh-kda">
-              <span class="mh-kda__line">
-                <strong>{{ m.kills }}</strong> /
-                <strong class="mh-kda__deaths">{{ m.deaths }}</strong> /
-                <strong>{{ m.assists }}</strong>
-              </span>
-              <span class="mh-kda__ratio nf-mono">{{ ratio(m) }} KDA</span>
-            </div>
-
-            <div class="mh-stats">
-              <span class="mh-stat nf-mono"><span class="mh-stat__ico">◉</span>{{ m.cs }} CS</span>
-              <span class="mh-stat nf-mono"><span class="mh-stat__ico mh-stat__ico--gold">⬣</span>{{ gold(m.gold) }} oro</span>
-            </div>
-
-            <div class="mh-items">
-              @for (it of m.items; track $index) {
-                @if (it) {
-                  <span
-                    class="mh-item"
-                    [style.background]="itemTint(it)"
-                    [title]="it"
-                  ></span>
-                } @else {
-                  <span class="mh-item mh-item--empty"></span>
-                }
-              }
-            </div>
-
-            <div class="mh-when">
-              <span class="mh-when__date nf-mono">{{ m.date }}</span>
-              <span class="mh-when__cta nf-mono">Detalle</span>
-            </div>
-          </a>
-        }
-      </div>
-
-      <nf-pagination
-        [total]="matches.length"
-        [pageSize]="pageSize"
-        [page]="page()"
-        (pageChange)="page.set($event)"
-      />
+        <!-- PAGINACIÓN -->
+        <nf-pagination
+          [total]="totalMatches()"
+          [pageSize]="pageSize"
+          [page]="page()"
+          (pageChange)="onPageChange($event)"
+        />
+      } @else if (hasAnyMatches()) {
+        <!-- EMPTY STATE: SIN RESULTADOS PARA LOS FILTROS ACTUALES -->
+        <div class="empty-state">
+          <span class="empty-state__icon">🔍</span>
+          <p class="empty-state__text nf-mono">No se encontraron partidas</p>
+          <p class="empty-state__hint">No hay partidas que coincidan con los filtros seleccionados.</p>
+          <button nfButton variant="secondary" size="md" (click)="resetFilters()">
+            Limpiar filtros
+          </button>
+        </div>
+      } @else {
+        <!-- EMPTY STATE: USUARIO SIN PARTIDAS -->
+        <div class="empty-state">
+          <span class="empty-state__icon">🎮</span>
+          <p class="empty-state__text nf-mono">Historial vacío</p>
+          <p class="empty-state__hint">Aún no has disputado ninguna partida en tus grupos. Únete a una sala abierta para registrar tu primera partida.</p>
+          <button nfButton variant="primary" size="md" [routerLink]="['/app', 'grupos']">
+            Ver mis grupos
+          </button>
+        </div>
+      }
     </div>
   `,
 })
 export class Historial {
-  readonly matches = MATCH_HISTORY;
-  readonly ratio = kdaRatio;
-  readonly gold = shortGold;
+  private readonly store = inject(MatchHistoryStore);
+  private readonly gameData = inject(GameDataStore);
 
-  protected readonly gameData = inject(GameDataStore);
-  protected readonly champsLoading = computed(() => this.gameData.status() === 'loading');
+  readonly champsLoading = computed(() => this.gameData.status() === 'loading');
+
+  readonly allPersonal = this.store.allPersonalMatches;
+  readonly filtered = this.store.filteredPersonalMatches;
+
+  readonly hasAnyMatches = computed(() => this.allPersonal().length > 0);
+  readonly totalMatches = computed(() => this.filtered().length);
+
+  readonly pageSize = 6;
+  readonly page = signal(1);
+
+  readonly pageItems = computed(() => {
+    const list = this.filtered();
+    const start = (this.page() - 1) * this.pageSize;
+    return list.slice(start, start + this.pageSize);
+  });
 
   constructor() {
     this.gameData.ensureLoaded();
   }
 
-  champion(id: number) {
-    return this.gameData.championById().get(id);
+  onPageChange(newPage: number): void {
+    this.page.set(newPage);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  championName(id: number): string {
-    return this.champion(id)?.name ?? 'Campeón';
+  resetFilters(): void {
+    this.store.resetFilters();
+    this.page.set(1);
   }
-
-  /** Tinte determinista (no `Math.random`) para el hueco de un objeto sin icono real todavía. */
-  itemTint(name: string): string {
-    const h = hash(name) % 360;
-    return `linear-gradient(135deg, hsl(${h},70%,46%), hsl(${h},60%,24%))`;
-  }
-
-  /** Records per page. Small here so the POC paginates with the mock data. */
-  readonly pageSize = 4;
-  readonly page = signal(1);
-
-  /** Slice of matches shown for the current page. */
-  readonly pageItems = computed(() => {
-    const start = (this.page() - 1) * this.pageSize;
-    return this.matches.slice(start, start + this.pageSize);
-  });
 }

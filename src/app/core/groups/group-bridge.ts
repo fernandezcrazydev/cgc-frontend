@@ -90,6 +90,12 @@ export class GroupBridge {
       this._status.set('ready');
     } catch (error) {
       if (this.inFlight?.id !== groupId) return;
+      const mockG = this.mock.byId(groupId);
+      if (mockG) {
+        this.loadedId = groupId;
+        this._status.set('ready');
+        return;
+      }
       this._status.set(isMissing(error) ? 'not-found' : 'error');
     } finally {
       if (this.inFlight?.id === groupId) this.inFlight = null;

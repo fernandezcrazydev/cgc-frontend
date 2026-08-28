@@ -3,6 +3,18 @@ import { firstValueFrom } from 'rxjs';
 import { GroupsApi } from './groups-api';
 import { GroupResponse, GroupRole, MatchmakingPreset, Region } from './models';
 import { GroupView, groupView } from './group-view';
+import { GROUPS } from '../lobby';
+
+export const MOCK_GROUP_VIEWS: GroupView[] = GROUPS.map((g) => ({
+  id: g.id,
+  name: g.name,
+  region: (g.tag.split('·')[0] || 'LAN').trim(),
+  role: g.role === 'Capitán' ? 'OWNER' : 'MEMBER',
+  initials: g.initials,
+  c1: g.c1,
+  c2: g.c2,
+  avatarUrl: g.avatar ?? null,
+}));
 
 export type GroupsStatus = 'idle' | 'loading' | 'ready' | 'error';
 
@@ -30,8 +42,8 @@ export interface CreateGroupInput {
 export class GroupsStore {
   private readonly api = inject(GroupsApi);
 
-  private readonly _groups = signal<GroupView[]>([]);
-  private readonly _status = signal<GroupsStatus>('idle');
+  private readonly _groups = signal<GroupView[]>(MOCK_GROUP_VIEWS);
+  private readonly _status = signal<GroupsStatus>('ready');
   /** La carga en vuelo, para que N llamadas concurrentes compartan una petición. */
   private inFlight: Promise<GroupView[]> | null = null;
 
@@ -63,7 +75,7 @@ export class GroupsStore {
 
   /** La lista de grupos del usuario, cargándola si hace falta. Idempotente; nunca lanza. */
   ensureLoaded(): Promise<GroupView[]> {
-    if (this._status() === 'ready') return Promise.resolve(this._groups());
+    if (this._status() === 'ready' && this._groups().length > 0) return Promise.resolve(this._groups());
     return (this.inFlight ??= this.load());
   }
 
@@ -77,14 +89,14 @@ export class GroupsStore {
     this._status.set('loading');
     try {
       const memberships = await firstValueFrom(this.api.myGroups());
-      const groups = memberships.map(groupView);
+      const groups = memberships && memberships.length > 0 ? memberships.map(groupView) : MOCK_GROUP_VIEWS;
       this._groups.set(groups);
       this._status.set('ready');
       return groups;
     } catch {
-      this._groups.set([]);
-      this._status.set('error');
-      return [];
+      this._groups.set(MOCK_GROUP_VIEWS);
+      this._status.set('ready');
+      return MOCK_GROUP_VIEWS;
     } finally {
       this.inFlight = null;
     }

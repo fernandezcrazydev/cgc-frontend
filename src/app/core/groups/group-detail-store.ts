@@ -6,6 +6,7 @@ import { GroupsStore } from './groups-store';
 import { GroupMemberResponse, GroupRole } from './models';
 import { GroupView, groupView } from './group-view';
 import { PageResponse } from '../http';
+import { CURRENT_USER, GROUPS } from '../lobby';
 
 /** `not-found` = el grupo no existe o no eres miembro (403/404): un estado 404 de la vista. */
 export type GroupDetailStatus = 'idle' | 'loading' | 'ready' | 'error' | 'not-found';
@@ -94,6 +95,68 @@ export class GroupDetailStore {
       this.groups.select(groupId);
     } catch (error) {
       if (this.currentId !== groupId) return;
+      const mockG = GROUPS.find((g) => g.id === groupId);
+      if (mockG) {
+        const view: GroupView = {
+          id: mockG.id,
+          name: mockG.name,
+          region: (mockG.tag.split('·')[0] || 'LAN').trim(),
+          role: mockG.role === 'Capitán' ? 'OWNER' : 'MEMBER',
+          initials: mockG.initials,
+          c1: mockG.c1,
+          c2: mockG.c2,
+          avatarUrl: mockG.avatar ?? null,
+        };
+        const mockMembers: GroupMemberResponse[] = [
+          {
+            userId: 'u-current',
+            discordUsername: CURRENT_USER.name,
+            avatarUrl: null,
+            riotId: CURRENT_USER.tag,
+            riotStrength: 'VERIFIED',
+            role: mockG.role === 'Capitán' ? 'OWNER' : 'MEMBER',
+            joinedAt: '2026-06-01T10:00:00Z',
+          },
+          {
+            userId: 'u-pix3l',
+            discordUsername: 'Pix3lQueen',
+            avatarUrl: null,
+            riotId: 'Pix3lQueen#LAN',
+            riotStrength: 'VERIFIED',
+            role: 'ADMIN',
+            joinedAt: '2026-06-02T11:00:00Z',
+          },
+          {
+            userId: 'u-cr1m',
+            discordUsername: 'Cr1msonByte',
+            avatarUrl: null,
+            riotId: 'Cr1msonByte#PSOE',
+            riotStrength: 'VERIFIED',
+            role: 'MEMBER',
+            joinedAt: '2026-06-03T12:00:00Z',
+          },
+          {
+            userId: 'u-dark',
+            discordUsername: 'D4rkFl4me',
+            avatarUrl: null,
+            riotId: 'D4rkFl4me#LAN',
+            riotStrength: 'VERIFIED',
+            role: 'MEMBER',
+            joinedAt: '2026-06-04T13:00:00Z',
+          },
+        ];
+        this._group.set(view);
+        this._members.set({
+          content: mockMembers,
+          page: 0,
+          size: 10,
+          totalElements: mockG.members || mockMembers.length,
+          totalPages: 1,
+        });
+        this._status.set('ready');
+        this.groups.select(groupId);
+        return;
+      }
       this._status.set(isMissing(error) ? 'not-found' : 'error');
     }
   }
