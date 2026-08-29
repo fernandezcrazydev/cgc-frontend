@@ -40,6 +40,13 @@ export interface Group {
 
 /** A single member of a group's roster. */
 export interface Member {
+  /**
+   * UUID del usuario en nuestra BD, cuando el miembro viene del backend (`GroupBridge`). Los
+   * rosters puramente mock no lo traen, y quien lo consuma debe caer a `tag`, que tambien es
+   * unico. BACKEND NOTE: al migrar matchmaking, esta pasa a ser LA clave del miembro y `tag`
+   * se queda solo como texto a pintar.
+   */
+  userId?: string;
   name: string;
   /** Riot-style tag, e.g. "Pix3lQueen#EUW". */
   tag: string;
@@ -67,6 +74,7 @@ export const CURRENT_USER = {
 export const NAV: NavItem[] = [
   { id: 'inicio',    glyph: '◈', label: 'Inicio',    short: 'Inicio',    title: 'Inicio',    path: 'inicio'    },
   { id: 'historial', glyph: '▣', label: 'Historial', short: 'Historial', title: 'Historial', path: 'historial' },
+  { id: 'campeones', glyph: '⚔', label: 'Campeones', short: 'Campeones', title: 'Campeones', path: 'campeones' },
   { id: 'grupos',    glyph: '◆', label: 'Grupos',    short: 'Grupos',    title: 'Grupos',    path: 'grupos'    },
   { id: 'ajustes',   glyph: '▦', label: 'Ajustes',   short: 'Ajustes',   title: 'Ajustes',   path: 'ajustes'   },
 ];

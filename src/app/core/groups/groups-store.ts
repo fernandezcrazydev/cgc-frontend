@@ -3,6 +3,18 @@ import { firstValueFrom } from 'rxjs';
 import { GroupsApi } from './groups-api';
 import { GroupResponse, GroupRole, MatchmakingPreset, Region } from './models';
 import { GroupView, groupView } from './group-view';
+import { GROUPS } from '../lobby';
+
+export const MOCK_GROUP_VIEWS: GroupView[] = GROUPS.map((g) => ({
+  id: g.id,
+  name: g.name,
+  region: (g.tag.split('·')[0] || 'LAN').trim(),
+  role: g.role === 'Capitán' ? 'OWNER' : 'MEMBER',
+  initials: g.initials,
+  c1: g.c1,
+  c2: g.c2,
+  avatarUrl: g.avatar ?? null,
+}));
 
 export type GroupsStatus = 'idle' | 'loading' | 'ready' | 'error';
 

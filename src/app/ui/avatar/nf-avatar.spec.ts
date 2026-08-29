@@ -125,7 +125,7 @@ describe('NfAvatar', () => {
 
   it('expone `size` como la custom property --nf-avatar-size, no como width/height inline', () => {
     // A propósito: un `[style.width.px]` inline ganaría siempre a cualquier CSS de
-    // vista (p. ej. la media query que sube `.mh-champ__icon` a 52px en móvil), así
+    // vista (p. ej. la media query que sube `.m-card__champ-icon` a 52px en móvil), así
     // que el tamaño se aplica vía custom property y es el CSS del componente quien
     // la traduce a `width`/`height` (con hueco de override, ver nf-avatar.scss).
     expect(hostEl().style.getPropertyValue('--nf-avatar-size')).toBe('40px');
