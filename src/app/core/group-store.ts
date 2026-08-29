@@ -103,6 +103,10 @@ export class GroupStore {
     this._selectedId.set(id);
   }
 
+  /**
+   * BACKEND NOTE / TODO (repaso final): Fallback temporal a `this.groups()[0]` para permitir
+   * navegar y visualizar sub-views cuando el backend de grupos esté en transición.
+   */
   byId(id: string): Group | undefined {
     return this.groups().find((g) => g.id === id) ?? this.groups()[0];
   }

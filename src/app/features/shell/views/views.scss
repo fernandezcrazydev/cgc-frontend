@@ -1886,6 +1886,11 @@
   stroke: var(--nf-danger);
 }
 
+/* Mobile sorting chips: hidden on desktop */
+.rk-mobile-sort {
+  display: none;
+}
+
 /* ---- Podio (top 3) ----
    Un único acento para las tres cajas: el oro/plata/bronce de antes eran
    colores fijos que ignoraban el tema. Aquí el acento sale de los tokens, así
@@ -2713,8 +2718,31 @@
 
 @media (max-width: 1000px) {
   .rk-top3-grid {
-    grid-template-columns: 1fr;
+    gap: 12px;
+    margin: 6px 0 20px;
   }
+  .rk-top-card {
+    min-height: 220px;
+    padding: 12px 14px;
+  }
+  .rk-top-card__lp {
+    font-size: 26px;
+  }
+  .rk-top-card:nth-child(1) .rk-top-card__trophy,
+  .rk-top-card--1st .rk-top-card__trophy {
+    width: 90px;
+    height: 90px;
+  }
+  .rk-top-card:nth-child(2) .rk-top-card__trophy,
+  .rk-top-card--2nd .rk-top-card__trophy {
+    width: 76px;
+    height: 76px;
+  }
+  .rk-top-card__trophy {
+    width: 60px;
+    height: 60px;
+  }
+
   .rk-list {
     --rk-cols: 44px minmax(150px, 1fr) 88px 92px minmax(122px, 1.2fr) 76px 44px 24px;
   }
@@ -2737,47 +2765,821 @@
 }
 
 @media (max-width: 760px) {
-  .rk-list {
-    --rk-cols: 38px minmax(130px, 1fr) 84px minmax(112px, 1.2fr) 40px 22px;
+  /* ---- Barra de Ordenación Móvil (Chips) ---- */
+  .rk-mobile-sort {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+    padding: 2px 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
-  .rk-list__head .rk-th:nth-child(3),
-  .rk-list__head .rk-th:nth-child(7),
-  .rk-row__summary .rk-cell--lane,
-  .rk-row__summary .rk-cell--avg-lp {
+  .rk-mobile-sort__label {
+    font-size: 11px;
+    color: var(--nf-text-dim);
+    flex-shrink: 0;
+  }
+  .rk-mobile-sort__chips {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  .rk-sort-chip {
+    appearance: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 12px;
+    border-radius: 7px;
+    font-family: var(--nf-mono);
+    font-size: 11px;
+    font-weight: 700;
+    border: 1.5px solid var(--nf-border);
+    background: var(--nf-surface-2);
+    color: var(--nf-text-dim);
+    cursor: pointer;
+    transition:
+      background 0.14s ease,
+      border-color 0.14s ease,
+      color 0.14s ease;
+  }
+  .rk-sort-chip:hover {
+    color: var(--nf-text);
+    border-color: var(--nf-border-strong);
+  }
+  .rk-sort-chip.is-active {
+    background: color-mix(in srgb, var(--nf-secondary) 14%, var(--nf-surface-2));
+    border-color: var(--nf-secondary);
+    color: var(--nf-secondary);
+  }
+  .rk-sort-chip__arrow {
+    font-size: 9px;
+    opacity: 0.85;
+  }
+
+  /* ---- Podio Top 3 en Móvil: Estructura Olímpica ---- */
+  .rk-top3-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      "first first"
+      "second third";
+    gap: 10px;
+    margin: 4px 0 18px;
+  }
+
+  .rk-top-card {
+    min-height: unset;
+    border-radius: 12px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* #1 (Primer puesto / Oro): Card Hero Destacada */
+  .rk-top-card:nth-child(1),
+  .rk-top-card--1st {
+    grid-area: first;
+    --card-accent: #f59e0b;
+    border: 1.5px solid color-mix(in srgb, var(--card-accent) 55%, var(--nf-border));
+    background:
+      radial-gradient(ellipse at 92% 50%, color-mix(in srgb, var(--card-accent) 18%, transparent), transparent 65%),
+      linear-gradient(135deg, color-mix(in srgb, var(--card-accent) 10%, var(--nf-surface-2)), var(--nf-surface-2));
+    box-shadow: 0 4px 18px color-mix(in srgb, var(--card-accent) 15%, transparent);
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .rk-top-card--1st .rk-top-card__head {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    position: static;
+    width: 100%;
+  }
+
+  .rk-top-card--1st .rk-top-card__pos {
+    padding: 3px 8px;
+    font-size: 12px;
+    font-weight: 800;
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--card-accent) 30%, var(--nf-surface-1));
+    border: 1px solid var(--card-accent);
+    color: #fbbf24;
+    flex-shrink: 0;
+  }
+
+  .rk-top-card--1st .rk-top-card__user {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    flex: 1;
+  }
+
+  .rk-top-card--1st .rk-top-card__user nf-avatar,
+  .rk-top-card--1st .rk-top-card__user .nf-avatar {
+    width: 44px !important;
+    height: 44px !important;
+    font-size: 16px !important;
+    flex-shrink: 0;
+    border: 2px solid color-mix(in srgb, var(--card-accent) 60%, transparent);
+  }
+
+  .rk-top-card--1st .rk-top-card__user-meta {
+    text-align: left;
+    min-width: 0;
+    flex: 1;
+  }
+
+  .rk-top-card--1st .rk-top-card__name {
+    font-size: 15px;
+    font-weight: 800;
+    text-align: left;
+    max-width: 100%;
+    color: var(--nf-text);
+  }
+
+  .rk-top-card--1st .rk-top-card__tag {
+    display: inline-block;
+    font-size: 11px;
+    color: var(--nf-text-dim);
+  }
+
+  .rk-top-card--1st .rk-top-card__emblem {
+    display: flex;
+    position: static;
+    flex-shrink: 0;
+  }
+
+  .rk-top-card--1st .rk-top-card__mid {
+    position: static;
+    transform: none;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px;
+    width: 100%;
+    padding: 2px 0;
+    margin: 0;
+    z-index: 1;
+  }
+
+  .rk-top-card--1st .rk-top-card__lane {
+    font-size: 20px;
+  }
+
+  .rk-top-card--1st .rk-top-card__lp {
+    font-size: 24px;
+    font-weight: 800;
+    color: #fbbf24;
+    text-shadow: 0 0 14px color-mix(in srgb, var(--card-accent) 50%, transparent);
+    letter-spacing: -0.3px;
+  }
+
+  .rk-top-card--1st .rk-top-card__foot {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 10px;
+  }
+
+  .rk-top-card--1st .rk-top-card__stats {
+    display: flex;
+    flex-direction: row;
+    align-items: baseline;
+    gap: 12px;
+    text-align: left;
+    width: auto;
+  }
+
+  .rk-top-card--1st .rk-top-card__stat-line {
+    display: flex;
+    align-items: baseline;
+    gap: 5px;
+  }
+
+  .rk-top-card--1st .rk-top-card__wl {
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .rk-top-card--1st .rk-top-card__total {
+    display: inline;
+    font-size: 11px;
+    color: var(--nf-text-dim);
+  }
+
+  .rk-top-card--1st .rk-top-card__wr-group {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+  }
+
+  .rk-top-card--1st .rk-top-card__wr-val {
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--nf-text);
+  }
+
+  .rk-top-card--1st .rk-top-card__wr-lbl {
+    display: inline;
+    font-size: 11px;
+    color: var(--nf-text-dim);
+  }
+
+  .rk-top-card--1st .rk-top-card__trophy {
+    position: absolute;
+    right: 14px;
+    bottom: 12px;
+    width: 58px;
+    height: 58px;
+    z-index: 0;
+    opacity: 0.9;
+  }
+
+  /* #2 (Plata) y #3 (Bronce) */
+  .rk-top-card:nth-child(2),
+  .rk-top-card--2nd {
+    grid-area: second;
+    --card-accent: #94a3b8;
+    border: 1.5px solid color-mix(in srgb, var(--card-accent) 45%, var(--nf-border));
+    background:
+      radial-gradient(ellipse at 85% 85%, color-mix(in srgb, var(--card-accent) 14%, transparent), transparent 70%),
+      linear-gradient(135deg, color-mix(in srgb, var(--card-accent) 7%, var(--nf-surface-2)), var(--nf-surface-2));
+    padding: 12px 10px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 6px;
+    min-height: 155px;
+  }
+
+  .rk-top-card:nth-child(3),
+  .rk-top-card--3rd {
+    grid-area: third;
+    --card-accent: #d97706;
+    border: 1.5px solid color-mix(in srgb, var(--card-accent) 45%, var(--nf-border));
+    background:
+      radial-gradient(ellipse at 85% 85%, color-mix(in srgb, var(--card-accent) 14%, transparent), transparent 70%),
+      linear-gradient(135deg, color-mix(in srgb, var(--card-accent) 7%, var(--nf-surface-2)), var(--nf-surface-2));
+    padding: 12px 10px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 6px;
+    min-height: 155px;
+  }
+
+  .rk-top-card--2nd .rk-top-card__head,
+  .rk-top-card--3rd .rk-top-card__head {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    position: static;
+    gap: 6px;
+  }
+
+  .rk-top-card--2nd .rk-top-card__pos,
+  .rk-top-card--3rd .rk-top-card__pos {
+    padding: 2px 6px;
+    font-size: 11px;
+    font-weight: 800;
+    border-radius: 5px;
+    background: color-mix(in srgb, var(--card-accent) 26%, var(--nf-surface-1));
+    border: 1px solid var(--card-accent);
+    color: var(--nf-text);
+  }
+
+  .rk-top-card--2nd .rk-top-card__emblem,
+  .rk-top-card--3rd .rk-top-card__emblem {
+    display: flex;
+    position: static;
+  }
+
+  .rk-top-card--2nd .rk-top-card__user,
+  .rk-top-card--3rd .rk-top-card__user {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    width: 100%;
+    text-align: center;
+  }
+
+  .rk-top-card--2nd .rk-top-card__user nf-avatar,
+  .rk-top-card--3rd .rk-top-card__user nf-avatar {
+    width: 36px !important;
+    height: 36px !important;
+    font-size: 13px !important;
+    border: 1.5px solid color-mix(in srgb, var(--card-accent) 55%, transparent);
+  }
+
+  .rk-top-card--2nd .rk-top-card__user-meta,
+  .rk-top-card--3rd .rk-top-card__user-meta {
+    text-align: center;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .rk-top-card--2nd .rk-top-card__name,
+  .rk-top-card--3rd .rk-top-card__name {
+    font-size: 12.5px;
+    font-weight: 700;
+    text-align: center;
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .rk-top-card--2nd .rk-top-card__tag,
+  .rk-top-card--3rd .rk-top-card__tag {
     display: none;
   }
-  .rk-match {
-    grid-template-columns: minmax(84px, 1fr) max-content max-content 56px;
-    row-gap: 8px;
+
+  .rk-top-card--2nd .rk-top-card__mid,
+  .rk-top-card--3rd .rk-top-card__mid {
+    position: static;
+    transform: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 2px 0;
+    width: 100%;
   }
-  .rk-match__side--foe,
-  .rk-match__vs,
-  .rk-match__build,
+
+  .rk-top-card--2nd .rk-top-card__lane,
+  .rk-top-card--3rd .rk-top-card__lane {
+    font-size: 17px;
+  }
+
+  .rk-top-card--2nd .rk-top-card__lp,
+  .rk-top-card--3rd .rk-top-card__lp {
+    font-size: 17px;
+    font-weight: 800;
+    letter-spacing: -0.3px;
+  }
+
+  .rk-top-card--2nd .rk-top-card__foot,
+  .rk-top-card--3rd .rk-top-card__foot {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 4px;
+    width: 100%;
+  }
+
+  .rk-top-card--2nd .rk-top-card__stats,
+  .rk-top-card--3rd .rk-top-card__stats {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    text-align: left;
+    width: auto;
+  }
+
+  .rk-top-card--2nd .rk-top-card__wl,
+  .rk-top-card--3rd .rk-top-card__wl {
+    font-size: 10px;
+  }
+
+  .rk-top-card--2nd .rk-top-card__total,
+  .rk-top-card--3rd .rk-top-card__total {
+    display: none;
+  }
+
+  .rk-top-card--2nd .rk-top-card__wr-val,
+  .rk-top-card--3rd .rk-top-card__wr-val {
+    font-size: 11.5px;
+    font-weight: 700;
+  }
+
+  .rk-top-card--2nd .rk-top-card__trophy,
+  .rk-top-card--3rd .rk-top-card__trophy {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+  }
+
+  /* ---- Clasificación Móvil: Tarjetas de 2 Niveles Limpias ---- */
+  .rk-list {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    gap: 8px;
+    margin-bottom: 16px;
+    overflow: visible;
+  }
+
+  .rk-list__head {
+    display: none;
+  }
+
+  .rk-row {
+    border-radius: 12px;
+    border: 1px solid var(--nf-border);
+    background: var(--nf-surface-2);
+    box-shadow: var(--nf-shadow-card);
+    overflow: hidden;
+  }
+
+  .rk-row__summary {
+    display: grid;
+    grid-template-columns: 28px minmax(0, 1fr) auto auto 24px;
+    grid-template-rows: auto auto;
+    grid-template-areas:
+      "pos  user  lane  lp    toggle"
+      "pos  wr    trend avg   main";
+    align-items: center;
+    gap: 8px 10px;
+    padding: 11px 13px;
+  }
+
+  .rk-cell--pos {
+    grid-area: pos;
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--nf-text-dim);
+    align-self: center;
+    justify-content: center;
+  }
+
+  .rk-cell--user {
+    grid-area: user;
+    min-width: 0;
+    gap: 8px;
+  }
+  .rk-cell--user nf-avatar,
+  .rk-cell--user .nf-avatar {
+    width: 34px !important;
+    height: 34px !important;
+    font-size: 13px !important;
+    flex-shrink: 0;
+  }
+  .rk-user-meta {
+    gap: 1px;
+  }
+  .rk-user-name {
+    font-size: 13.5px;
+    font-weight: 700;
+  }
+  .rk-user-riot {
+    font-size: 10.5px;
+    color: var(--nf-text-dim);
+  }
+
+  .rk-cell--lane {
+    grid-area: lane;
+    font-size: 18px;
+    justify-content: center;
+  }
+
+  .rk-cell--lp {
+    grid-area: lp;
+    font-size: 15px;
+    font-weight: 800;
+    justify-content: flex-end;
+    color: var(--nf-text);
+  }
+
+  .rk-row__toggle {
+    grid-area: toggle;
+    justify-self: center;
+  }
+
+  .rk-cell--wr {
+    grid-area: wr;
+    min-width: 0;
+    gap: 3px;
+  }
+  .rk-wr-text {
+    justify-content: flex-start;
+    gap: 6px;
+  }
+  .rk-wr-pct {
+    font-size: 11.5px;
+    font-weight: 800;
+  }
+  .rk-wr-counts {
+    font-size: 10px;
+    color: var(--nf-text-dim);
+  }
+  .rk-wr-bar {
+    height: 4px;
+  }
+
+  .rk-cell--trend {
+    grid-area: trend;
+    width: 44px;
+    height: 18px;
+    justify-self: center;
+  }
+  .rk-spark {
+    height: 18px;
+  }
+
+  .rk-cell--avg-lp {
+    grid-area: avg;
+    font-size: 10.5px;
+    gap: 1px;
+    justify-self: center;
+  }
+
+  .rk-cell--main {
+    grid-area: main;
+    justify-self: center;
+  }
+  .rk-cell--main nf-avatar,
+  .rk-cell--main .nf-avatar {
+    width: 24px !important;
+    height: 24px !important;
+    font-size: 9px !important;
+    border-radius: 5px;
+  }
+
+  /* ---- Cajón de Historial Móvil (Match Ticket Card en 2 Niveles) ---- */
+  .rk-drawer {
+    padding: 12px 10px 14px;
+    background: var(--nf-inset);
+    border-top: 1px solid var(--nf-border);
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  .rk-drawer__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--nf-border);
+  }
+
+  .rk-drawer__tab {
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--nf-text);
+  }
+
+  .rk-drawer__btn {
+    padding: 5px 10px;
+    font-size: 11px;
+    border-radius: 6px;
+  }
+
+  .rk-matches {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .rk-match {
+    display: grid;
+    grid-template-columns: auto auto auto auto 1fr;
+    grid-template-rows: auto auto auto;
+    grid-template-areas:
+      "result result result result lp"
+      "lane   mine   vs     foe    kda"
+      "build  build  build  build  build";
+    align-items: center;
+    gap: 6px 8px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--nf-border);
+    border-left: 4px solid var(--side);
+    background: var(--nf-surface-2);
+    text-decoration: none;
+    color: inherit;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+    transition:
+      background 0.14s ease,
+      border-color 0.14s ease;
+  }
+
+  .rk-match.is-win {
+    --side: var(--nf-success);
+    background: linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--nf-success) 8%, var(--nf-surface-2)),
+      var(--nf-surface-2)
+    );
+  }
+  .rk-match.is-loss {
+    --side: var(--nf-danger);
+    background: linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--nf-danger) 8%, var(--nf-surface-2)),
+      var(--nf-surface-2)
+    );
+  }
+
+  /* Fila 1 - Izquierda: Estado de la partida */
+  .rk-match__result {
+    grid-area: result;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+  }
+  .rk-match__verdict {
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--side);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  .rk-match__meta {
+    font-size: 11px;
+    color: var(--nf-text-dim);
+    white-space: nowrap;
+  }
+
+  /* Fila 1 - Derecha: Ganancia / Pérdida de LP */
+  .rk-match__lp {
+    grid-area: lp;
+    text-align: right;
+    font-size: 13.5px;
+    font-weight: 800;
+    color: var(--nf-danger);
+    justify-self: end;
+  }
+  .rk-match__lp.is-gain {
+    color: var(--nf-success);
+  }
+
+  /* Fila 2 - Icono de Posición / Rol a la izquierda del campeón jugado */
+  .rk-match__lane {
+    grid-area: lane;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    font-size: 19px;
+    flex-shrink: 0;
+    margin-right: 2px;
+  }
+
+  .rk-match__side--mine {
+    grid-area: mine;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-self: start;
+    gap: 4px;
+    min-width: 0;
+  }
+  .rk-match__side--mine nf-avatar,
+  .rk-match__side--mine .nf-avatar {
+    width: 32px !important;
+    height: 32px !important;
+    font-size: 12px !important;
+    border-radius: 6px;
+    flex-shrink: 0;
+  }
+  .rk-match__side--mine .rk-match__spells {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex-shrink: 0;
+  }
+  .rk-match__side--mine .rk-match__spells nf-game-icon,
+  .rk-match__side--mine .rk-match__spells .nf-game-icon {
+    width: 14px !important;
+    height: 14px !important;
+    border-radius: 3px;
+  }
+  .rk-match__side--mine .rk-match__perks {
+    display: none;
+  }
+
+  .rk-match__vs {
+    grid-area: vs;
+    font-size: 10px;
+    font-weight: 800;
+    color: var(--nf-text-dim);
+    padding: 0 3px;
+    justify-self: center;
+  }
+
+  .rk-match__side--foe {
+    grid-area: foe;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-self: start;
+    gap: 5px;
+    min-width: 0;
+  }
+  .rk-match__side--foe nf-avatar,
+  .rk-match__side--foe .nf-avatar {
+    width: 28px !important;
+    height: 28px !important;
+    font-size: 11px !important;
+    border-radius: 6px;
+    opacity: 0.9;
+    flex-shrink: 0;
+  }
+  .rk-match__side--foe .rk-match__spells,
+  .rk-match__side--foe .rk-match__perks,
+  .rk-match__side--foe .rk-match__foe-tag {
+    display: none;
+  }
+  .rk-match__side--foe .rk-match__foe-name {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    max-width: 60px;
+    overflow: hidden;
+  }
+  .rk-match__side--foe .rk-match__foe-nick {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--nf-text-mid);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Fila 2 - Derecha: KDA y Rendimiento */
+  .rk-match__kda {
+    grid-area: kda;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 2px;
+    text-align: right;
+    min-width: 0;
+    justify-self: end;
+  }
+  .rk-match__kda-line {
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--nf-text);
+    white-space: nowrap;
+  }
+  .rk-match__deaths {
+    color: var(--nf-danger);
+    font-weight: 800;
+  }
+  .rk-match__kda-sub {
+    font-size: 10px;
+    color: var(--nf-text-dim);
+    white-space: nowrap;
+  }
+
+  /* Fila 3 - Tira de Objetos + Trinket */
+  .rk-match__build {
+    grid-area: build;
+    display: flex !important;
+    align-items: center;
+    gap: 4px;
+    padding-top: 6px;
+    margin-top: 2px;
+    border-top: 1px dashed color-mix(in srgb, var(--nf-border) 70%, transparent);
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .rk-match__build .rk-item {
+    width: 22px;
+    height: 22px;
+    border-radius: 5px;
+    border: 1px solid var(--nf-border);
+    flex-shrink: 0;
+  }
+  .rk-match__build .rk-item--empty {
+    background: var(--nf-inset);
+    opacity: 0.55;
+  }
+  .rk-match__build .rk-item--trinket {
+    border-radius: 50%;
+    margin-left: 6px;
+    border-color: color-mix(in srgb, var(--nf-secondary) 50%, var(--nf-border));
+  }
+
   .rk-match__chev {
     display: none;
-  }
-  /* Sin rival al lado, el bloque del jugador vuelve a leerse de izquierda a
-     derecha: el espejo solo tiene sentido mientras hay un VS que reflejar. */
-  .rk-match__side--mine {
-    flex-direction: row;
-    justify-self: start;
-  }
-  .rk-top-card__lp {
-    font-size: 28px;
-  }
-  .rk-top-card__trophy {
-    width: 64px;
-    height: 64px;
-  }
-  .rk-top-card:nth-child(1) .rk-top-card__trophy,
-  .rk-top-card--1st .rk-top-card__trophy {
-    width: 88px;
-    height: 88px;
-  }
-  .rk-top-card:nth-child(2) .rk-top-card__trophy,
-  .rk-top-card--2nd .rk-top-card__trophy {
-    width: 76px;
-    height: 76px;
   }
 }
 

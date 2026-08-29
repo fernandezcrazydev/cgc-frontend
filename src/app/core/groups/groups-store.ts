@@ -77,11 +77,15 @@ export class GroupsStore {
     this._status.set('loading');
     try {
       const memberships = await firstValueFrom(this.api.myGroups());
+      // BACKEND NOTE / TODO (repaso final): Cuando el backend y la base de datos estén completamente
+      // poblados, eliminar el fallback para que un array vacío [] pinte el estado vacío real sin inyectar grupos semilla.
       const groups = memberships.length > 0 ? memberships.map(groupView) : this.mockFallback();
       this._groups.set(groups);
       this._status.set('ready');
       return groups;
     } catch {
+      // BACKEND NOTE / TODO (repaso final): Fallback temporal cuando el backend local/dev no responde.
+      // Reemplazar por this._status.set('error') en la revisión final.
       const groups = this.mockFallback();
       this._groups.set(groups);
       this._status.set('ready');
@@ -91,6 +95,10 @@ export class GroupsStore {
     }
   }
 
+  /**
+   * TODO (repaso final): Eliminar este fallback temporal una vez todos los flujos estén
+   * conectados y se prueben con usuarios/grupos reales en base de datos.
+   */
   private mockFallback(): GroupView[] {
     return [
       { id: 'lan-challenger', name: 'LAN Challenger S14', region: 'LAN', role: 'OWNER', avatarUrl: null, initials: 'LC', c1: 'hsl(320,90%,64%)', c2: 'hsl(280,78%,34%)' },

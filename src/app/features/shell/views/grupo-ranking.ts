@@ -129,6 +129,37 @@ const PAGE_SIZE = 15;
           </div>
         }
 
+        <!-- Ordenación móvil (chips): visible solo en pantallas táctiles/estrechas donde se oculta la cabecera -->
+        <div class="rk-mobile-sort nf-mono" role="toolbar" aria-label="Ordenar clasificación">
+          <span class="rk-mobile-sort__label">Ordenar:</span>
+          <div class="rk-mobile-sort__chips">
+            <button
+              type="button"
+              class="rk-sort-chip"
+              [class.is-active]="sortKey() === 'rank'"
+              (click)="sortBy('rank')"
+            >
+              Posición <span class="rk-sort-chip__arrow">{{ sortKey() === 'rank' ? arrow('rank') : '↕' }}</span>
+            </button>
+            <button
+              type="button"
+              class="rk-sort-chip"
+              [class.is-active]="sortKey() === 'lane'"
+              (click)="sortBy('lane')"
+            >
+              Rol <span class="rk-sort-chip__arrow">{{ sortKey() === 'lane' ? arrow('lane') : '↕' }}</span>
+            </button>
+            <button
+              type="button"
+              class="rk-sort-chip"
+              [class.is-active]="sortKey() === 'wr'"
+              (click)="sortBy('wr')"
+            >
+              Winrate <span class="rk-sort-chip__arrow">{{ sortKey() === 'wr' ? arrow('wr') : '↕' }}</span>
+            </button>
+          </div>
+        </div>
+
         <!-- CLASIFICACIÓN: lista en grid (no <table>: el cajón desplegable
              heredaría el scroll horizontal del contenedor y se saldría de
              pantalla al desplazar las columnas). -->
