@@ -14,13 +14,13 @@ const EMPTY_MANIFEST: GameDataManifest = { version: null, updatedAt: null };
  * (`core/auth/session.ts`): `status` explícito y `ensureLoaded()` idempotente
  * con deduplicación de la petición en vuelo.
  *
- * Carga manifest + campeones + hechizos + runas a la vez: son las cuatro colecciones
- * acotadas que una vista resuelve por id, y traerlas juntas evita que cada consumidor
- * tenga que orquestar su propia espera. Los objetos NO entran aquí: son una
- * colección paginada que solo usa el buscador del selector (`GameDataApi.items`
- * suelto). Un `version: null` (nunca se ha importado) no es un error: el
- * backend responde 200 con catálogo vacío, así que el store queda `ready`
- * con una lista vacía, no `error`.
+ * Carga manifest + campeones + hechizos de invocador + runas a la vez. Hechizos y
+ * runas son listas fijas y cortas (una docena y ~108) que el marcador de una partida
+ * y el acordeón del ranking necesitan para resolver `id → icono`, así que caben en la
+ * misma carga; los objetos NO entran aquí porque son una colección paginada que solo
+ * usa el buscador del selector (`GameDataApi.items` suelto). Un `version: null` (nunca
+ * se ha importado) no es un error: el backend responde 200 con catálogo vacío, así que
+ * el store queda `ready` con una lista vacía, no `error`.
  */
 @Injectable({ providedIn: 'root' })
 export class GameDataStore {
@@ -49,12 +49,16 @@ export class GameDataStore {
     () => new Map(this._champions().map((c) => [c.id, c])),
   );
 
-  /** Mismo índice para los hechizos: la vista tiene el id de la partida, no el objeto. */
-  readonly spellById = computed<Map<number, SummonerSpell>>(
+  /** Índice por id para resolver los dos hechizos de un participante (`stats.spells`). */
+  readonly summonerSpellById = computed<Map<number, SummonerSpell>>(
     () => new Map(this._summonerSpells().map((s) => [s.id, s])),
   );
 
-  /** Runas y árboles comparten espacio de ids sin solaparse, así que un solo índice basta. */
+  /**
+   * Índice por id de runas y árboles. Comparten espacio de ids sin solaparse (verificado
+   * contra los dos feeds), así que un solo mapa resuelve tanto la runa clave como el árbol
+   * secundario que pinta el acordeón del ranking.
+   */
   readonly perkById = computed<Map<number, Perk>>(
     () => new Map(this._perks().map((p) => [p.id, p])),
   );
@@ -89,7 +93,7 @@ export class GameDataStore {
   private async load(): Promise<void> {
     this._status.set('loading');
     try {
-      const [manifest, champions, summonerSpells, perks] = await Promise.all([
+      const [manifest, champions, spells, perks] = await Promise.all([
         firstValueFrom(this.api.manifest()),
         firstValueFrom(this.api.champions()),
         firstValueFrom(this.api.summonerSpells()),
@@ -97,7 +101,7 @@ export class GameDataStore {
       ]);
       this._manifest.set(manifest);
       this._champions.set(champions);
-      this._summonerSpells.set(summonerSpells);
+      this._summonerSpells.set(spells);
       this._perks.set(perks);
       this._status.set('ready');
     } catch {

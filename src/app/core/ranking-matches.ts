@@ -2,9 +2,9 @@
  * Historial de partidas del acordeón del ranking: las últimas partidas de un
  * jugador del grupo, cruzadas contra OTROS jugadores del mismo ranking.
  *
- * No vive en `match-history.ts` a propósito: aquel es el historial del usuario
- * actual (6 partidas escritas a mano, otra forma y otros consumidores). Aquí
- * hace falta un generador por jugador con oponente, hechizos, runas y build.
+ * No vive en `core/matches/` a propósito: aquel es el historial real (partidas
+ * completas 5v5, otra forma y otros consumidores). Aquí hace falta un generador
+ * por jugador con oponente, hechizos, runas y build.
  *
  * BACKEND NOTE: placeholder completo (categoría desechable de CLAUDE.md). El
  * endpoint real de historial devolverá esto embebido —con las `iconUrl` ya
@@ -16,7 +16,6 @@
  * aquí es únicamente el sorteo determinista, que es lo que sustituirá el endpoint.
  */
 import { NfLane } from '../ui/lane-icon/nf-lane-icon';
-import { MatchRecord } from './match-history';
 import { RankEntry, hash, seeded } from './group-ranking';
 
 /**
@@ -286,34 +285,3 @@ export function groupIdFromRankMatchId(id: string): string | null {
   return groupId || null;
 }
 
-const MONTHS = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
-
-/**
- * Adapta una partida del ranking a la forma que ya consume `partida-detalle`
- * (`MatchRecord`), para que los enlaces del acordeón lleven a un detalle real
- * en vez de al 404. Se adapta en vez de reescribir la vista porque el DTO
- * bueno lo definirá el backend: cuando llegue, sobra este puente y la vista se
- * conecta directa.
- */
-export function rankMatchAsRecord(m: RankMatch, groupId: string, groupName: string): MatchRecord {
-  const d = new Date(m.playedAt);
-  const pad = (n: number) => String(n).padStart(2, '0');
-
-  return {
-    id: m.id,
-    championId: m.player.championId,
-    win: m.win,
-    mode: '5v5 · CUSTOM',
-    date: `${pad(d.getDate())} ${MONTHS[d.getMonth()]} · ${pad(d.getHours())}:${pad(d.getMinutes())}`,
-    durationMin: m.durationMin,
-    groupId,
-    groupName,
-    kills: m.kills,
-    deaths: m.deaths,
-    assists: m.assists,
-    cs: m.cs,
-    // Oro estimado a partir de farmeo y kills: el backend mandará el real.
-    gold: Math.round(m.cs * 21 + m.kills * 320 + m.assists * 95 + m.durationMin * 118),
-    items: m.items.map((it) => it?.name ?? null),
-  };
-}

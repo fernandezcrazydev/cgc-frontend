@@ -1,0 +1,103 @@
+/* Sheet (global, ViewEncapsulation.None) */
+
+/* el host no participa en el layout: el panel es `fixed` sobre todo lo demás */
+.nf-sheet-host { display: contents; }
+
+.nf-sheet__overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: flex-end;
+  background: color-mix(in srgb, var(--nf-void) 66%, transparent);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  animation: nf-fade 0.16s ease both;
+}
+
+.nf-sheet {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  /* 88% y no 100%: el asomo del fondo por arriba es lo que dice que hay una vista
+     detrás y que esto se cierra. `--nf-vh` en vez de `vh` por el zoom de :root. */
+  max-height: calc(var(--nf-vh) * 88);
+  padding-bottom: max(14px, env(safe-area-inset-bottom));
+  background: var(--nf-elevated);
+  border-top: var(--bw-1) solid var(--nf-border-strong);
+  border-radius: 18px 18px 0 0;
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.5);
+  animation: nf-sheet-up 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes nf-sheet-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.nf-sheet__handle {
+  flex: none;
+  width: 42px;
+  height: 4px;
+  margin: 8px auto 4px;
+  border-radius: 2px;
+  background: var(--nf-border-strong);
+}
+
+.nf-sheet__head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 8px 12px 18px;
+}
+
+.nf-sheet__title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: var(--fw-bold);
+  color: var(--nf-text);
+}
+
+/* 44px de área táctil aunque el aspa mida 18: el objetivo es el botón, no el glifo. */
+.nf-sheet__close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: var(--nf-radius);
+  color: var(--nf-text-mid);
+  cursor: pointer;
+  transition: color 0.14s, background 0.14s;
+}
+.nf-sheet__close:hover {
+  color: var(--nf-text);
+  background: var(--nf-surface-2);
+}
+
+/* El cuerpo es lo único que hace scroll: la cabecera y el pie se quedan. */
+.nf-sheet__body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 18px 18px;
+}
+
+/* Vacío mientras nadie proyecte `[sheetFoot]`: sin contenido no ocupa ni pinta línea. */
+.nf-sheet__foot:not(:empty) {
+  flex: none;
+  padding: 14px 18px 4px;
+  border-top: var(--bw-1) solid var(--nf-border);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nf-sheet__overlay,
+  .nf-sheet { animation: none; }
+}

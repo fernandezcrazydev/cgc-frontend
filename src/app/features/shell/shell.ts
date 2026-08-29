@@ -362,10 +362,17 @@ export class Shell {
         takeUntilDestroyed(this.destroyRef),
       )
       .subscribe((url) => {
-        const seg = url.split('/').filter(Boolean).pop() ?? 'inicio';
+        const cleanUrl = (url ?? '').split('?')[0];
+        const seg = cleanUrl.split('/').filter(Boolean).pop() ?? 'inicio';
         const item = this.nav.find((n) => n.path === seg);
-        // A group detail route (/app/grupos/:id) still belongs to the "Grupos" section.
-        const title = item?.title ?? (this.groups.byId(seg) ? 'Grupos' : 'Inicio');
+        let title = item?.title ?? (this.groups.byId(seg) ? 'Grupos' : 'Inicio');
+        if (cleanUrl.includes('/perfil')) {
+          title = 'Perfil';
+        } else if (cleanUrl.includes('/campeones')) {
+          title = 'Campeones';
+        } else if (cleanUrl.includes('/historial')) {
+          title = 'Historial';
+        }
         this.pageTitle.set(title);
       });
   }

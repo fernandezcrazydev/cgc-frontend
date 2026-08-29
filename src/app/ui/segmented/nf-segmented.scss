@@ -38,6 +38,18 @@
   outline-offset: 1px;
 }
 
+/* El tinte solo aparece cuando el segmento está activo: coloreado en reposo, un control de
+   tres opciones parece un semáforo y deja de leerse como un grupo. */
+.nf-seg__btn--success.nf-seg__btn--on {
+  background: color-mix(in srgb, var(--nf-success) 22%, var(--nf-elevated));
+  color: var(--nf-success);
+}
+
+.nf-seg__btn--danger.nf-seg__btn--on {
+  background: color-mix(in srgb, var(--nf-danger) 22%, var(--nf-elevated));
+  color: var(--nf-danger);
+}
+
 /* ---- variant "tabs": pestañas pegadas al contenedor que gobiernan ----
    Sin borde ni radio propios y a ancho completo, para encajar a hueso bajo la barra de
    título de una <nf-window>. La pestaña activa toma el fondo del cuerpo y borra su línea

@@ -12,7 +12,7 @@ import { GameDataStore } from './game-data-store';
 class ApiStub {
   manifestCalls = 0;
   championsCalls = 0;
-  spellsCalls = 0;
+  summonerSpellsCalls = 0;
   perksCalls = 0;
 
   private resolveManifest!: (m: GameDataManifest) => void;
@@ -46,10 +46,10 @@ class ApiStub {
   }
 
   summonerSpells(): Observable<SummonerSpell[]> {
-    this.spellsCalls++;
+    this.summonerSpellsCalls++;
     return new Observable((sub) => {
-      this.resolveSpells = (s) => {
-        sub.next(s);
+      this.resolveSpells = (spells) => {
+        sub.next(spells);
         sub.complete();
       };
     });
@@ -59,8 +59,8 @@ class ApiStub {
     this.perksCalls++;
     if (this.failPerks) return throwError(() => new Error('boom'));
     return new Observable((sub) => {
-      this.resolvePerks = (p) => {
-        sub.next(p);
+      this.resolvePerks = (perks) => {
+        sub.next(perks);
         sub.complete();
       };
     });
@@ -130,7 +130,7 @@ describe('GameDataStore', () => {
     expect(store.perks()).toEqual([]);
     expect(store.version()).toBeNull();
     expect(store.championById().size).toBe(0);
-    expect(store.spellById().size).toBe(0);
+    expect(store.summonerSpellById().size).toBe(0);
     expect(store.perkById().size).toBe(0);
   });
 
@@ -145,7 +145,7 @@ describe('GameDataStore', () => {
     expect(store.version()).toBe('16.14.1');
     expect(store.champions()).toEqual([AHRI]);
     expect(store.championById().get(103)).toEqual(AHRI);
-    expect(store.spellById().get(4)).toEqual(FLASH);
+    expect(store.summonerSpellById().get(4)).toEqual(FLASH);
     expect(store.perkById().get(8112)).toEqual(ELECTROCUTE);
   });
 
@@ -157,7 +157,7 @@ describe('GameDataStore', () => {
 
     expect(api.manifestCalls).toBe(1);
     expect(api.championsCalls).toBe(1);
-    expect(api.spellsCalls).toBe(1);
+    expect(api.summonerSpellsCalls).toBe(1);
     expect(api.perksCalls).toBe(1);
   });
 
@@ -179,8 +179,8 @@ describe('GameDataStore', () => {
   /**
    * Las cuatro peticiones van en el mismo `Promise.all`, así que si cae una cae la carga
    * entera: un catálogo a medias dejaría la vista pintando unos iconos sí y otros no sin
-   * que `status` lo delatara. Se prueba con las runas porque son la que viene de otro
-   * host (CommunityDragon) y por tanto la que más probablemente falle sola.
+   * que `status` lo delatara. Se prueba con las runas porque son las que vienen de otro
+   * host (CommunityDragon) y por tanto las que más probablemente fallen solas.
    */
   it('un fallo solo de las runas deja el catálogo entero en error, no a medias', async () => {
     api.failPerks = true;

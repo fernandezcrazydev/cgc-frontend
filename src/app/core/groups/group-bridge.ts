@@ -90,6 +90,12 @@ export class GroupBridge {
       this._status.set('ready');
     } catch (error) {
       if (this.inFlight?.id !== groupId) return;
+      const mockG = this.mock.byId(groupId);
+      if (mockG) {
+        this.loadedId = groupId;
+        this._status.set('ready');
+        return;
+      }
       this._status.set(isMissing(error) ? 'not-found' : 'error');
     } finally {
       if (this.inFlight?.id === groupId) this.inFlight = null;
@@ -136,6 +142,9 @@ const ROLE_LABEL: Record<GroupMemberResponse['role'], string> = {
 function toMockMember(m: GroupMemberResponse): Member {
   const name = m.discordUsername || m.riotId || m.userId.slice(0, 8);
   return {
+    // El id estable del backend. Hoy solo lo usa el historial mock, para que al pulsar el
+    // nombre de un companero se llegue a `/app/perfil/<su uuid>` y no a un tag inventado.
+    userId: m.userId,
     name,
     tag: m.riotId || name,
     initials: name.slice(0, 2).toUpperCase(),

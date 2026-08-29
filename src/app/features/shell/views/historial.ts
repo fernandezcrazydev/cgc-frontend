@@ -1,142 +1,153 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, computed, inject, viewChild } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { MATCH_HISTORY, kdaRatio, shortGold } from '../../../core/match-history';
-import { hash } from '../../../core/group-ranking';
+import { MatchHistoryStore } from '../../../core/matches/match-history-store';
+import { filterPersonalMatches, sortMatches } from '../../../core/matches/match-filtering';
 import { GameDataStore } from '../../../core/game-data';
-import { NfAvatar, NfPagination, NfSkeleton } from '../../../ui';
+import { GroupsStore } from '../../../core/groups';
+import { Viewport } from '../../../shared/viewport';
+import { NfButton, NfPagination, NfSkeleton } from '../../../ui';
+import { MatchFiltersComponent } from './match-history/match-filters.component';
+import { MatchHistoryUiState } from './match-history/match-history-ui';
+import { MatchSummaryCardComponent } from './match-history/match-summary-card.component';
+import { PersonalMatchCardComponent } from './match-history/personal-match-card.component';
 
 @Component({
   selector: 'app-historial',
   standalone: true,
-  imports: [RouterLink, NfPagination, NfAvatar, NfSkeleton],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  // Por vista, no global: los filtros de aquí no deben aparecer puestos en el historial de
+  // un grupo, y al salir de la ruta se limpian solos.
+  providers: [MatchHistoryUiState],
+  imports: [
+    RouterLink,
+    NfPagination,
+    NfButton,
+    NfSkeleton,
+    MatchFiltersComponent,
+    MatchSummaryCardComponent,
+    PersonalMatchCardComponent,
+  ],
   template: `
     <div class="view">
       <div class="view__head">
-        <div class="view__eyebrow nf-mono">Registro de partidas</div>
-        <h1 class="view__title">Historial</h1>
-        <p class="view__lead">Tus últimas partidas disputadas. Pulsa una para ver el detalle completo.</p>
-      </div>
-
-      <div class="scope-note" role="note">
-        <span class="scope-note__icon" aria-hidden="true">◆</span>
-        <p class="scope-note__text">
-          Estás viendo tu <strong>historial personal</strong> de todos los grupos, no el del grupo seleccionado.
-          La columna <strong>◆ grupo</strong> indica a qué grupo pertenece cada partida.
+        <div class="view__eyebrow nf-mono">Registro competitivo</div>
+        <h1 class="view__title">Historial de partidas</h1>
+        <p class="view__lead">
+          Tus partidas en todas tus ligas y grupos. La etiqueta de cada fila dice dónde se
+          disputó; púlsala para ir al registro de esa liga, o pulsa la fila para ver quién jugaba.
         </p>
       </div>
 
-      <div class="mh-list">
-        @for (m of pageItems(); track m.id) {
-          <a
-            class="mh-row"
-            [class.is-win]="m.win"
-            [class.is-loss]="!m.win"
-            [routerLink]="['/app', 'historial', m.id]"
-          >
-            <div class="mh-result">
-              <span class="mh-result__label nf-mono">{{ m.win ? 'Victoria' : 'Derrota' }}</span>
-              <span class="mh-result__mode nf-mono">{{ m.mode }}</span>
-              <span class="mh-result__time nf-mono">{{ m.durationMin }} min</span>
-            </div>
+      <app-match-summary-card />
 
-            <div class="mh-champ" [attr.aria-busy]="champsLoading() ? 'true' : null">
-              <nf-avatar
-                class="mh-champ__icon"
-                [loading]="champsLoading()"
-                [src]="champion(m.championId)?.iconUrl ?? null"
-                [fallback]="championName(m.championId)"
-                [tint]="m.championId"
-                [size]="48"
-                shape="square"
-              />
-              <div class="mh-champ__meta">
-                @if (champsLoading()) {
-                  <nf-skeleton width="110px" height="14px" />
-                } @else {
-                  <span class="mh-champ__name">{{ championName(m.championId) }}</span>
-                }
-                <span class="mh-champ__group nf-mono">◆ {{ m.groupName }}</span>
+      <app-match-filters
+        mode="personal"
+        [resultCount]="filtered().length"
+        [totalCount]="allPersonal().length"
+      />
+
+      @if (champsLoading()) {
+        <div class="mh-list" aria-busy="true">
+          @for (i of skeletonRows; track i) {
+            <div class="m-card m-card--skeleton">
+              <div class="m-card__skeleton-left">
+                <nf-skeleton width="46px" height="46px" radius="6px" />
+                <div class="m-card__skeleton-stack">
+                  <nf-skeleton width="130px" height="16px" />
+                  <nf-skeleton width="90px" height="12px" />
+                </div>
+              </div>
+              <div class="m-card__skeleton-right">
+                <nf-skeleton width="100px" height="18px" />
+                <nf-skeleton width="140px" height="24px" />
+                <nf-skeleton width="80px" height="14px" />
               </div>
             </div>
+          }
+        </div>
+      } @else if (pageItems().length > 0) {
+        <div class="mh-list" #list>
+          @for (m of pageItems(); track m.id) {
+            <app-personal-match-card [match]="m" />
+          }
+        </div>
 
-            <div class="mh-kda">
-              <span class="mh-kda__line">
-                <strong>{{ m.kills }}</strong> /
-                <strong class="mh-kda__deaths">{{ m.deaths }}</strong> /
-                <strong>{{ m.assists }}</strong>
-              </span>
-              <span class="mh-kda__ratio nf-mono">{{ ratio(m) }} KDA</span>
-            </div>
-
-            <div class="mh-stats">
-              <span class="mh-stat nf-mono"><span class="mh-stat__ico">◉</span>{{ m.cs }} CS</span>
-              <span class="mh-stat nf-mono"><span class="mh-stat__ico mh-stat__ico--gold">⬣</span>{{ gold(m.gold) }} oro</span>
-            </div>
-
-            <div class="mh-items">
-              @for (it of m.items; track $index) {
-                @if (it) {
-                  <span
-                    class="mh-item"
-                    [style.background]="itemTint(it)"
-                    [title]="it"
-                  ></span>
-                } @else {
-                  <span class="mh-item mh-item--empty"></span>
-                }
-              }
-            </div>
-
-            <div class="mh-when">
-              <span class="mh-when__date nf-mono">{{ m.date }}</span>
-              <span class="mh-when__cta nf-mono">Detalle</span>
-            </div>
-          </a>
-        }
-      </div>
-
-      <nf-pagination
-        [total]="matches.length"
-        [pageSize]="pageSize"
-        [page]="page()"
-        (pageChange)="page.set($event)"
-      />
+        <nf-pagination
+          [total]="filtered().length"
+          [pageSize]="pageSize"
+          [page]="ui.page()"
+          (pageChange)="onPageChange($event)"
+        />
+      } @else if (allPersonal().length > 0) {
+        <div class="empty-state">
+          <p class="empty-state__text nf-mono">No se encontraron partidas</p>
+          <p class="empty-state__hint">Ninguna partida coincide con los filtros seleccionados.</p>
+          <button nfButton variant="secondary" size="md" (click)="resetFilters()">
+            Limpiar filtros
+          </button>
+        </div>
+      } @else {
+        <div class="empty-state">
+          <p class="empty-state__text nf-mono">Historial vacío</p>
+          <p class="empty-state__hint">
+            Aún no has disputado ninguna partida en tus grupos. Únete a una sala abierta para
+            registrar la primera.
+          </p>
+          <button nfButton variant="primary" size="md" [routerLink]="['/app', 'grupos']">
+            Ver mis grupos
+          </button>
+        </div>
+      }
     </div>
   `,
 })
 export class Historial {
-  readonly matches = MATCH_HISTORY;
-  readonly ratio = kdaRatio;
-  readonly gold = shortGold;
+  private readonly store = inject(MatchHistoryStore);
+  private readonly gameData = inject(GameDataStore);
+  private readonly groupsStore = inject(GroupsStore);
+  private readonly viewport = inject(Viewport);
+  protected readonly ui = inject(MatchHistoryUiState);
 
-  protected readonly gameData = inject(GameDataStore);
   protected readonly champsLoading = computed(() => this.gameData.status() === 'loading');
+
+  protected readonly skeletonRows = [1, 2, 3, 4];
+  protected readonly pageSize = 6;
+
+  private readonly list = viewChild<ElementRef<HTMLElement>>('list');
+
+  protected readonly allPersonal = this.store.allPersonalMatches;
+
+  protected readonly filtered = computed(() => {
+    const f = this.ui.filters();
+    return sortMatches(filterPersonalMatches(this.allPersonal(), f), f.sortBy);
+  });
+
+  protected readonly pageItems = computed(() => {
+    const start = (this.ui.page() - 1) * this.pageSize;
+    return this.filtered().slice(start, start + this.pageSize);
+  });
 
   constructor() {
     this.gameData.ensureLoaded();
+    // El historial se reparte sobre las ligas del usuario, asi que la lista tiene que estar
+    // pedida aunque se entre aqui directamente por URL. Idempotente y deduplicada.
+    this.groupsStore.ensureLoaded();
   }
 
-  champion(id: number) {
-    return this.gameData.championById().get(id);
+  /**
+   * Al cambiar de página, en móvil se vuelve al principio de la LISTA y no del documento:
+   * por encima están el resumen y los filtros, que ahí son casi dos pantallas de scroll
+   * para llegar otra vez a las partidas que se acaban de pedir. En escritorio ese trecho
+   * es corto y el comportamiento no cambia.
+   */
+  protected onPageChange(page: number): void {
+    this.ui.setPage(page);
+    const list = this.viewport.isMobile() ? this.list()?.nativeElement : null;
+    if (list) list.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    else window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  championName(id: number): string {
-    return this.champion(id)?.name ?? 'Campeón';
+  protected resetFilters(): void {
+    this.ui.reset();
   }
-
-  /** Tinte determinista (no `Math.random`) para el hueco de un objeto sin icono real todavía. */
-  itemTint(name: string): string {
-    const h = hash(name) % 360;
-    return `linear-gradient(135deg, hsl(${h},70%,46%), hsl(${h},60%,24%))`;
-  }
-
-  /** Records per page. Small here so the POC paginates with the mock data. */
-  readonly pageSize = 4;
-  readonly page = signal(1);
-
-  /** Slice of matches shown for the current page. */
-  readonly pageItems = computed(() => {
-    const start = (this.page() - 1) * this.pageSize;
-    return this.matches.slice(start, start + this.pageSize);
-  });
 }

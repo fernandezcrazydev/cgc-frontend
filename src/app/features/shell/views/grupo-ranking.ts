@@ -13,7 +13,7 @@ import {
 import { GroupStore } from '../../../core/group-store';
 import { GameDataStore } from '../../../core/game-data';
 import { hash, rankingFor, RankEntry } from '../../../core/group-ranking';
-import { kdaRatio } from '../../../core/match-history';
+import { formatKda } from '../../../core/matches';
 import { timeAgo } from '../../../core/notifications';
 import { RankMatch, rankMatchesFor } from '../../../core/ranking-matches';
 
@@ -307,11 +307,16 @@ const PAGE_SIZE = 15;
                     @if (ms.length) {
                       <div class="rk-matches">
                         @for (m of ms; track m.id) {
-                          <a
+                          <!-- BACKEND NOTE: sin enlace al detalle a propósito. Estas partidas las
+                               genera ranking-matches.ts (placeholder) con ids inventados, y
+                               partida-detalle las resuelve contra MatchHistoryStore, que solo
+                               conoce las suyas: enlazar aquí llevaría a un 404. Cuando el endpoint
+                               de historial sirva las partidas del ranking, los ids serán reales y
+                               esta fila vuelve a ser un enlace a /app/historial/:id. -->
+                          <div
                             class="rk-match"
                             [class.is-win]="m.win"
                             [class.is-loss]="!m.win"
-                            [routerLink]="['/app', 'historial', m.id]"
                           >
                             <span class="rk-match__result">
                               <span class="rk-match__verdict nf-mono">{{ m.win ? 'Victoria' : 'Derrota' }}</span>
@@ -364,8 +369,7 @@ const PAGE_SIZE = 15;
                               {{ m.lpDelta >= 0 ? '+' : '' }}{{ m.lpDelta }} LP
                             </span>
 
-                            <span class="rk-match__chev" aria-hidden="true">›</span>
-                          </a>
+                          </div>
                         }
                       </div>
                     } @else {
@@ -458,7 +462,8 @@ export class GrupoRanking {
   protected readonly gameData = inject(GameDataStore);
 
   protected readonly PAGE_SIZE = PAGE_SIZE;
-  protected readonly ratio = kdaRatio;
+  /** `formatKda` y no `kdaRatio`: aquel devuelve el número, este el texto de dos decimales. */
+  protected readonly ratio = formatKda;
 
   constructor() {
     this.gameData.ensureLoaded();
@@ -593,7 +598,7 @@ export class GrupoRanking {
   }
 
   spell(id: number) {
-    return this.gameData.spellById().get(id);
+    return this.gameData.summonerSpellById().get(id);
   }
 
   spellName(id: number): string {

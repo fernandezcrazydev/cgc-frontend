@@ -3,7 +3,16 @@ import { ChangeDetectionStrategy, Component, ViewEncapsulation, input, model } f
 export interface NfSegmentOption {
   value: string;
   label: string;
+  /**
+   * Tinte del segmento cuando está activo. Solo para opciones que YA significan algo bueno o
+   * malo por sí mismas (victorias/derrotas, aprobado/rechazado); sin `tone` el segmento activo
+   * usa el color neutro del tema, que es lo correcto para la mayoría de los casos.
+   */
+  tone?: NfSegmentTone;
 }
+
+/** Se nombra por lo que significa, nunca por el color que salga hoy. */
+export type NfSegmentTone = 'success' | 'danger';
 
 /**
  * Cómo se dibuja el control, con la MISMA semántica (`tablist`) en ambos casos:
@@ -51,6 +60,8 @@ export type NfSegmentedVariant = 'pill' | 'tabs';
           role="tab"
           class="nf-seg__btn"
           [class.nf-seg__btn--on]="opt.value === value()"
+          [class.nf-seg__btn--success]="opt.tone === 'success'"
+          [class.nf-seg__btn--danger]="opt.tone === 'danger'"
           [attr.aria-selected]="opt.value === value()"
           (click)="value.set(opt.value)"
         >
@@ -62,7 +73,7 @@ export type NfSegmentedVariant = 'pill' | 'tabs';
   styleUrl: './nf-segmented.scss',
 })
 export class NfSegmented {
-  readonly options = input.required<NfSegmentOption[]>();
+  readonly options = input.required<readonly NfSegmentOption[]>();
   readonly value = model.required<string>();
   readonly ariaLabel = input<string>('');
   readonly variant = input<NfSegmentedVariant>('pill');
