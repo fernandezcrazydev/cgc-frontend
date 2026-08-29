@@ -36,9 +36,17 @@ const FILE_BY_TIER: Record<NfRankTier, string> = {
  *
  *   <nf-rank-emblem tier="MASTER" label="SoloQ: Master" [size]="28" />
  *
- * Los emblemas de rango NO están en Data Dragon (solo en CommunityDragon y en
- * el pack de assets de Riot), así que van vendorizados en `public/`, igual que
- * los iconos de línea. Si el SVG no carga, cae a un glifo de reserva.
+ * Van vendorizados en `public/assets/ranks/`, igual que los iconos de línea, y
+ * son la excepción a "los assets de juego se piden al backend". Ojo, el motivo NO
+ * es que no se puedan pedir: no están en Data Dragon, pero sí en CommunityDragon
+ * (`rcp-fe-lol-static-assets/.../ranked-mini-crests/{tier}.svg`), y estos diez
+ * ficheros salieron literalmente de ahí, byte por byte. El motivo es el coste:
+ * son 44 KB en total y, a diferencia de campeones, objetos o runas, NO cambian
+ * con el parche —los tiers son un enum fijo—, así que montarles endpoint, tabla e
+ * import en el backend costaría más de lo que ahorra. Si algún día se quiere la
+ * coherencia estricta, basta un `AssetUrls.rankIcon(tier)` sin nada que importar.
+ *
+ * Si el SVG no carga, cae a un glifo de reserva.
  */
 @Component({
   selector: 'nf-rank-emblem',
