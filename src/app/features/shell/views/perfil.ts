@@ -1,32 +1,38 @@
 import { Component, DestroyRef, computed, inject, linkedSignal, signal } from '@angular/core';
-import { NfWindow, NfButton, NfSelect, NfModal, NfToggle, NfSkeleton, NfAvatar, NfLaneIcon } from '../../../ui';
+import {
+  NfButton,
+  NfSelect,
+  NfModal,
+  NfToggle,
+  NfSkeleton,
+  NfAvatar,
+  NfLaneIcon,
+  NfSegmented,
+  NfSegmentOption,
+} from '../../../ui';
 import { Session } from '../../../core/auth';
 import { CURRENT_USER } from '../../../core/lobby';
 import { GroupStore } from '../../../core/group-store';
 import { opggUrl } from '../../../core/member-detail';
 import { NotificationsStore } from '../../../core/notifications';
-import { buildPlayerProfile } from '../../../core/player-profile';
+import { PlayerRecentMatch, buildPlayerProfile } from '../../../core/player-profile';
 import { LANE_ROLES, LaneRole, PreferencesStore, RolePreferences } from '../../../core/preferences';
 import { PairingCode, RIOT_REGIONS, RiotAccount, RiotAccountStore, RiotRegion } from '../../../core/riot';
 import { errorMessage } from '../../../core/http';
 import { ToastService } from '../../../core/toast';
 import { GameDataStore } from '../../../core/game-data';
-import { championTagLabel } from '../../../shared/champion-tags';
+import { itemBg } from '../../../core/matches/match-view';
 import { wireConnectModalOnRiotEvent } from './perfil-connect-modal';
 
-/** "may 2025" — el chip lo pone en mayúsculas. Fijado a es-ES: la UI es en español. */
 const MEMBER_SINCE_FMT = new Intl.DateTimeFormat('es-ES', { month: 'short', year: 'numeric' });
 
-/** Presentación de cada rol: el dominio solo conoce la clave (`LaneRole`). */
 interface RoleTile {
   role: LaneRole;
-  /** Código corto, como en el resto de la app (JUNGLA → JG, SUPPORT → SUP). */
   short: string;
   name: string;
   glyph: string;
 }
 
-/** "23 jul, 10:00" — la fecha en que el cooldown de re-vinculación se levanta. */
 const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
   day: 'numeric',
   month: 'short',
@@ -34,169 +40,593 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
   minute: '2-digit',
 });
 
-/**
- * Personal player profile — a cross-group career card. Every figure here is
- * aggregated over ALL groups the user belongs to (made explicit by the
- * disclaimer up top); per-group exactness lives inside each group's
- * Estadísticas. Reads the live roster set from the GroupStore so the head-to-head
- * highlights are drawn from real teammates/rivals.
- */
 @Component({
   selector: 'app-perfil',
   standalone: true,
-  imports: [NfWindow, NfButton, NfSelect, NfModal, NfToggle, NfSkeleton, NfAvatar, NfLaneIcon],
+  imports: [
+    NfButton,
+    NfSelect,
+    NfModal,
+    NfToggle,
+    NfSkeleton,
+    NfAvatar,
+    NfLaneIcon,
+    NfSegmented,
+  ],
   template: `
-    <div class="view">
+    <div class="view pf-view">
       @if (profile(); as p) {
-        <!-- Hero: identity (Discord) + headline win-rate ring -->
-        <section class="pf-hero" [attr.aria-busy]="identityLoading() ? 'true' : null">
-          <span class="pf-hero__avatar" [style.background]="grad(p.hue)">
-            @if (identityLoading()) {
-              <!-- Ni iniciales de relleno ni "??": hasta que /me conteste, hueco. -->
-              <nf-skeleton width="100%" height="100%" radius="0" />
-            } @else if (showAvatarImage()) {
-              <img
-                class="pf-hero__avatar-img"
-                [src]="session.avatarUrl()"
-                alt=""
-                referrerpolicy="no-referrer"
-                (error)="avatarBroken.set(true)"
-              />
-            } @else {
-              {{ session.initials() }}
-            }
-          </span>
-          <div class="pf-hero__id">
-            <!--
-              Identidad = datos de red (GET /me). Mientras cargan, skeletons con la
-              forma y el alto del contenido final, para que al llegar el dato no
-              salte nada de sitio.
-            -->
-            @if (identityLoading()) {
-              <nf-skeleton class="pf-hero__sk-name" width="min(260px, 60%)" height="30px" />
-              <div class="pf-hero__meta">
-                <nf-skeleton width="152px" height="23px" radius="6px" />
-              </div>
-            } @else {
-              <h1 class="pf-hero__name">{{ heroName() }}</h1>
-              <!-- Un único chip, y con dato real: la fecha de alta que manda GET /me.
-                   Los de rol / nº de grupos vivían del mock y se han quitado. -->
-              @if (memberSince(); as since) {
-                <div class="pf-hero__meta nf-mono">
-                  <span class="pf-hero__chip">◷ Desde {{ since }}</span>
-                </div>
+        <!-- ════════ HERO UNIFICADO COMPACTO (~100px) ════════ -->
+        <header class="pf-hero-compact" [attr.aria-busy]="identityLoading() ? 'true' : null">
+          <div class="pf-hero-compact__left">
+            <span class="pf-hero-compact__avatar" [style.background]="grad(p.hue)">
+              @if (identityLoading()) {
+                <nf-skeleton width="100%" height="100%" radius="0" />
+              } @else if (showAvatarImage()) {
+                <img
+                  class="pf-hero-compact__avatar-img"
+                  [src]="session.avatarUrl()"
+                  alt=""
+                  referrerpolicy="no-referrer"
+                  (error)="avatarBroken.set(true)"
+                />
+              } @else {
+                {{ session.initials() }}
               }
-            }
-          </div>
+            </span>
 
-          <div class="pf-ring" [style.--wr]="p.wr" [class.pf-ring--lo]="p.wr < 50">
-            <div class="pf-ring__inner">
-              <div class="pf-ring__val nf-mono">{{ p.wr }}%</div>
-              <div class="pf-ring__lbl nf-mono">Win rate</div>
-            </div>
-          </div>
-        </section>
+            <div class="pf-hero-compact__info">
+              <div class="pf-hero-compact__name-row">
+                @if (identityLoading()) {
+                  <nf-skeleton width="180px" height="24px" />
+                } @else {
+                  <h1 class="pf-hero-compact__name">{{ heroName() }}</h1>
+                  <!-- Badge Arquetipo -->
+                  <div class="pf-badge-archetype nf-mono" [title]="p.archetype.subtitle">
+                    <span class="pf-badge-archetype__icon">{{ p.archetype.icon }}</span>
+                    <span class="pf-badge-archetype__title">{{ p.archetype.title }}</span>
+                  </div>
+                }
+              </div>
 
-        <!--
-          Roles preferidos: preferencia GLOBAL de cuenta (no de grupo). Editable en
-          sitio, con borrador local y guardado explícito — sin modal, porque es un
-          ajuste que el jugador querrá ver de un vistazo y tocar a menudo.
-        -->
-        <div class="view__label-row">
-          <div class="view__label-help">
-            <div class="view__label nf-mono">▸ Roles preferidos</div>
-            <button
-              type="button"
-              class="view__help"
-              [class.view__help--on]="rolesHelp()"
-              [attr.aria-expanded]="rolesHelp()"
-              aria-controls="roles-help"
-              aria-label="Qué son los roles preferidos"
-              title="Qué son los roles preferidos"
-              (click)="rolesHelp.set(!rolesHelp())"
-            >
-              ?
-            </button>
-          </div>
-          @if (rolesDirty()) {
-            <div class="pf-roles__actions">
-              <button nfButton variant="ghost" size="sm" [disabled]="prefs.saving()" (click)="discardRoles()">
-                Descartar
-              </button>
-              <button nfButton variant="primary" size="sm" [disabled]="!canSaveRoles()" (click)="saveRoles()">
-                {{ prefs.saving() ? 'Guardando…' : 'Guardar cambios' }}
-              </button>
-            </div>
-          }
-        </div>
-
-        <!--
-          El malentendido que hay que evitar: creer que esto manda dentro del grupo. Detrás
-          del "?" y no siempre visible: quien ya lo sabe no necesita leerlo cada vez. Va
-          fuera del @switch a propósito — es texto fijo, no dato de red, así que se puede
-          consultar también mientras cargan los roles o si la carga falla.
-        -->
-        @if (rolesHelp()) {
-          <div class="scope-note" role="note" id="roles-help">
-            <span class="scope-note__icon" aria-hidden="true">ⓘ</span>
-            <p class="scope-note__text">
-              Los eliges tú, y solo sirven para
-              <strong>inicializar tu perfil dentro de un grupo</strong>: al entrar en uno nuevo se
-              copiarán ahí como punto de partida. A partir de ese momento manda la copia del grupo,
-              que podréis cambiar tanto tú como cualquier <strong>administrador</strong> — y eso no
-              toca lo que elijas aquí. Al revés tampoco: cambiarlos aquí no afecta a los grupos en
-              los que ya estás.
-            </p>
-          </div>
-        }
-
-        @switch (prefs.status()) {
-          @case ('loading') {
-            <div class="pf-roles" aria-busy="true">
-              <div class="pf-roles__grid">
-                @for (t of roleTiles; track t.role) {
-                  <nf-skeleton height="112px" radius="10px" />
+              <div class="pf-hero-compact__meta-row nf-mono">
+                @if (memberSince(); as since) {
+                  <span class="pf-meta-chip">◷ Desde {{ since }}</span>
+                }
+                <!-- Estado Riot -->
+                @if (riot.account(); as account) {
+                  @switch (account.strength) {
+                    @case ('VERIFIED') {
+                      <span class="pf-meta-chip pf-meta-chip--verified" title="Cuenta verificada">
+                        ✓ {{ account.riotId }} ({{ account.region }})
+                      </span>
+                    }
+                    @case ('PAIRED') {
+                      <span class="pf-meta-chip" title="Vinculada desde la app">
+                        ↔ {{ account.riotId }} ({{ account.region }})
+                      </span>
+                    }
+                    @default {
+                      <span class="pf-meta-chip" title="Sin verificar">
+                        {{ account.riotId }}
+                      </span>
+                    }
+                  }
+                } @else {
+                  <button
+                    type="button"
+                    class="pf-meta-chip pf-meta-chip--action"
+                    (click)="activeTab.set('ajustes')"
+                  >
+                    ＋ Vincular Riot ID
+                  </button>
                 }
               </div>
             </div>
-          }
-          @case ('error') {
-            <div class="pf-roles pf-roles--error" role="alert">
-              <p class="pf-roles__errtext">No hemos podido cargar tus roles preferidos.</p>
-              <button nfButton variant="ghost" size="sm" (click)="prefs.reload()">Reintentar</button>
+          </div>
+
+          <!-- Resumen de Desempeño Rápido (Winrate Ring + LP) -->
+          <div class="pf-hero-compact__right">
+            <div class="pf-hero-compact__kpi-group">
+              <div class="pf-hero-compact__ring" [style.--wr]="p.wr" [class.pf-hero-compact__ring--lo]="p.wr < 50">
+                <div class="pf-hero-compact__ring-inner">
+                  <span class="pf-hero-compact__ring-val nf-mono">{{ p.wr }}%</span>
+                  <span class="pf-hero-compact__ring-lbl nf-mono">WR</span>
+                </div>
+              </div>
+              <div class="pf-hero-compact__kpi-text">
+                <div class="pf-hero-compact__record nf-mono">
+                  <span class="pf-pos">{{ p.wins }}V</span>
+                  <span class="pf-sep">-</span>
+                  <span class="pf-neg">{{ p.losses }}D</span>
+                </div>
+                <div
+                  class="pf-hero-compact__lp nf-mono"
+                  [class.pf-pos]="p.recentLpTrend >= 0"
+                  [class.pf-neg]="p.recentLpTrend < 0"
+                >
+                  {{ p.recentLpTrend >= 0 ? '▲ +' + p.recentLpTrend : '▼ ' + p.recentLpTrend }} LP
+                </div>
+              </div>
             </div>
-          }
-          @default {
-            <div class="pf-roles">
-              <div class="pf-roles__grid" role="group" aria-label="Roles que quieres jugar">
+          </div>
+        </header>
+
+        <!-- ════════ NAVEGACIÓN MODULAR DE PESTAÑAS ════════ -->
+        <nav class="pf-tabs-bar">
+          <nf-segmented
+            variant="tabs"
+            [options]="tabOptions"
+            [value]="activeTab()"
+            (valueChange)="setTab($event)"
+            ariaLabel="Secciones del perfil"
+          />
+        </nav>
+
+        <!-- ════════ PESTAÑA 1: RESUMEN (BENTO GRID) ════════ -->
+        @if (activeTab() === 'resumen') {
+          <div class="pf-bento">
+            <!-- ── Columna Principal (60%) ── -->
+            <div class="pf-bento__col pf-bento__col--main">
+              <!-- Franja de KPIs clave -->
+              <section class="pf-kpi-strip">
+                <div class="pf-kpi-tile">
+                  <div class="pf-kpi-tile__lbl nf-mono">KDA Medio</div>
+                  <div class="pf-kpi-tile__val nf-mono">{{ p.kda }}</div>
+                  <div class="pf-kpi-tile__sub nf-mono">{{ p.dna.survival.avgDeaths }} d/p</div>
+                </div>
+                <div class="pf-kpi-tile">
+                  <div class="pf-kpi-tile__lbl nf-mono">CS / min</div>
+                  <div class="pf-kpi-tile__val nf-mono">{{ p.dna.economy.csPerMinAvg }}</div>
+                  <div class="pf-kpi-tile__sub nf-mono">{{ p.dna.economy.goldPerMinAvg }} o/m</div>
+                </div>
+                <div class="pf-kpi-tile">
+                  <div class="pf-kpi-tile__lbl nf-mono">% Daño Eq.</div>
+                  <div class="pf-kpi-tile__val nf-mono">{{ p.dna.combat.damageSharePercentage }}%</div>
+                  <div class="pf-kpi-tile__sub nf-mono">{{ p.dna.combat.killParticipation }}% KP</div>
+                </div>
+                <div class="pf-kpi-tile">
+                  <div class="pf-kpi-tile__lbl nf-mono">% Línea @14</div>
+                  <div class="pf-kpi-tile__val nf-mono" [class.pf-pos]="p.dna.lane.wonLanePercentage >= 50">
+                    {{ p.dna.lane.wonLanePercentage }}%
+                  </div>
+                  <div class="pf-kpi-tile__sub nf-mono">
+                    {{ p.dna.lane.avgGoldDiffAt14 >= 0 ? '+' : '' }}{{ p.dna.lane.avgGoldDiffAt14 }} oro
+                  </div>
+                </div>
+                <div class="pf-kpi-tile">
+                  <div class="pf-kpi-tile__lbl nf-mono">Tasa MVP</div>
+                  <div class="pf-kpi-tile__val nf-mono pf-pos">{{ p.dna.clutch.mvpRate }}%</div>
+                  <div class="pf-kpi-tile__sub nf-mono">{{ p.pentas }} pentas</div>
+                </div>
+              </section>
+
+              <!-- Forma Reciente (12 partidas compactas + Tooltips) -->
+              <section class="pf-card pf-form-card">
+                <div class="pf-card__header">
+                  <span class="pf-card__title nf-mono">▸ Forma Reciente & Racha</span>
+                  <div class="pf-streak-badge nf-mono" [class.pf-streak-badge--lose]="p.streakType === 'L'">
+                    {{ p.currentStreak }}{{ p.streakType }}
+                    <span class="pf-streak-badge__label">{{ p.streakType === 'W' ? 'Victorias seguidas' : 'Derrotas' }}</span>
+                  </div>
+                </div>
+
+                <div class="pf-form-chain">
+                  @for (m of p.recentMatches; track m.id) {
+                    <div
+                      class="pf-match-node"
+                      (mouseenter)="hoveredMatch.set(m)"
+                      (mouseleave)="hoveredMatch.set(null)"
+                      [class.pf-match-node--win]="m.won"
+                      [class.pf-match-node--loss]="!m.won"
+                      [class.pf-match-node--mvp]="m.isMvp"
+                    >
+                      <span class="pf-match-node__text nf-mono">{{ m.won ? 'V' : 'D' }}</span>
+                      @if (m.isMvp) {
+                        <span class="pf-match-node__crown" title="MVP">★</span>
+                      }
+                    </div>
+                  }
+                </div>
+
+                <!-- Tooltip flotante interactivo -->
+                @if (hoveredMatch(); as hm) {
+                  <div class="pf-form-tooltip nf-mono" role="tooltip">
+                    <div class="pf-form-tooltip__row">
+                      <span [class.pf-pos]="hm.won" [class.pf-neg]="!hm.won">
+                        {{ hm.won ? 'Victoria' : 'Derrota' }}
+                        @if (hm.isMvp) { · 👑 MVP }
+                      </span>
+                      <span class="pf-form-tooltip__time">{{ hm.dateFormatted }} · {{ hm.durationFormatted }}</span>
+                    </div>
+                    <div class="pf-form-tooltip__row pf-form-tooltip__row--sub">
+                      <span>{{ championName(hm.championId) }} ({{ hm.role }})</span>
+                      <span>KDA {{ hm.kda }}</span>
+                      <span [class.pf-pos]="hm.lpDelta >= 0" [class.pf-neg]="hm.lpDelta < 0">
+                        {{ hm.lpDelta >= 0 ? '+' : '' }}{{ hm.lpDelta }} LP
+                      </span>
+                    </div>
+                  </div>
+                }
+              </section>
+
+              <!-- Top Campeones Insignia -->
+              <section class="pf-card">
+                <div class="pf-card__header">
+                  <span class="pf-card__title nf-mono">▸ Campeones Insignia</span>
+                  <button
+                    type="button"
+                    class="pf-link-btn nf-mono"
+                    (click)="activeTab.set('campeones')"
+                  >
+                    Ver catálogo completo →
+                  </button>
+                </div>
+
+                <div class="pf-mini-champs" [attr.aria-busy]="champsLoading() ? 'true' : null">
+                  @for (c of topSignatureChampions(); track c.championId) {
+                    <div class="pf-mini-champ">
+                      <nf-avatar
+                        class="pf-mini-champ__avatar"
+                        [loading]="champsLoading()"
+                        [src]="champion(c.championId)?.iconUrl ?? null"
+                        [fallback]="championName(c.championId)"
+                        [tint]="c.championId"
+                        [size]="38"
+                        shape="square"
+                      />
+                      <div class="pf-mini-champ__meta">
+                        <div class="pf-mini-champ__name-row">
+                          <span class="pf-mini-champ__name">{{ championName(c.championId) }}</span>
+                          <span class="pf-mini-champ__role nf-mono">{{ c.role }}</span>
+                        </div>
+                        <div class="pf-mini-champ__bar">
+                          <div
+                            class="pf-mini-champ__bar-fill"
+                            [class.pf-mini-champ__bar-fill--lo]="c.wr < 50"
+                            [style.width.%]="c.wr"
+                          ></div>
+                        </div>
+                      </div>
+                      <div class="pf-mini-champ__stats nf-mono">
+                        <span class="pf-mini-champ__wr" [class.pf-neg]="c.wr < 50">{{ c.wr }}%</span>
+                        <span class="pf-mini-champ__games">{{ c.games }}p · {{ c.kda }} KDA</span>
+                      </div>
+                    </div>
+                  }
+                </div>
+              </section>
+            </div>
+
+            <!-- ── Columna Lateral (40%) ── -->
+            <div class="pf-bento__col pf-bento__col--side">
+              <!-- Cara a cara (Aliado & Némesis) -->
+              <section class="pf-card">
+                <div class="pf-card__header">
+                  <span class="pf-card__title nf-mono">▸ Rivalidades & Sinergias</span>
+                </div>
+
+                <div class="pf-h2h-stack">
+                  @if (p.bestAlly; as a) {
+                    <div class="pf-h2h-compact pf-h2h-compact--ally">
+                      <div class="pf-h2h-compact__head nf-mono">
+                        <span>🤝 Mejor Aliado</span>
+                        <span class="pf-pos">{{ a.wr }}% WR juntos</span>
+                      </div>
+                      <div class="pf-h2h-compact__body">
+                        <span class="pf-h2h-compact__avatar" [style.background]="grad(a.hue)">{{ a.initials }}</span>
+                        <div class="pf-h2h-compact__info">
+                          <div class="pf-h2h-compact__name">{{ a.name }}</div>
+                          <div class="pf-h2h-compact__sub nf-mono">{{ a.wins }}V - {{ a.losses }}D juntos</div>
+                        </div>
+                      </div>
+                    </div>
+                  }
+
+                  @if (p.nemesis; as n) {
+                    <div class="pf-h2h-compact pf-h2h-compact--nemesis">
+                      <div class="pf-h2h-compact__head nf-mono">
+                        <span>💀 Némesis</span>
+                        <span class="pf-neg">{{ n.wr }}% WR contra él</span>
+                      </div>
+                      <div class="pf-h2h-compact__body">
+                        <span class="pf-h2h-compact__avatar" [style.background]="grad(n.hue)">{{ n.initials }}</span>
+                        <div class="pf-h2h-compact__info">
+                          <div class="pf-h2h-compact__name">{{ n.name }}</div>
+                          <div class="pf-h2h-compact__sub nf-mono">{{ n.wins }}V - {{ n.losses }}D rivales</div>
+                        </div>
+                      </div>
+                    </div>
+                  }
+                </div>
+              </section>
+
+              <!-- Tus Grupos Activos -->
+              <section class="pf-card">
+                <div class="pf-card__header">
+                  <span class="pf-card__title nf-mono">▸ Tus Grupos</span>
+                </div>
+
+                <div class="pf-group-list">
+                  @for (g of p.groups; track g.id) {
+                    <div class="pf-group-item">
+                      <span class="pf-group-item__avatar" [style.background]="'linear-gradient(135deg,' + g.c1 + ',' + g.c2 + ')'">
+                        {{ g.initials }}
+                      </span>
+                      <div class="pf-group-item__info">
+                        <div class="pf-group-item__name-row">
+                          <span class="pf-group-item__name">{{ g.name }}</span>
+                          <span class="pf-group-item__rank nf-mono">#{{ g.rankPosition }} · {{ g.lp }} LP</span>
+                        </div>
+                        <div class="pf-group-item__sub nf-mono">
+                          {{ g.wins }}V {{ g.losses }}D ({{ g.wr }}%) · {{ g.role }}
+                        </div>
+                      </div>
+                    </div>
+                  } @empty {
+                    <div class="empty-state empty-state--compact">
+                      <span class="empty-state__icon">◎</span>
+                      <span class="empty-state__text nf-mono">Sin grupos todavía</span>
+                    </div>
+                  }
+                </div>
+              </section>
+            </div>
+          </div>
+        }
+
+        <!-- ════════ PESTAÑA 2: ADN & TELEMETRÍA 5V5 ════════ -->
+        @if (activeTab() === 'dna') {
+          <div class="pf-tab-content">
+            <div class="pf-dna-grid">
+              <!-- Tarjeta 1: Fase de Líneas -->
+              <div class="pf-dna-card">
+                <div class="pf-dna-card__head nf-mono">
+                  <span class="pf-dna-card__icon">⚔️</span> Fase de líneas (@14)
+                </div>
+                <div class="pf-dna-card__big nf-mono" [class.pf-pos]="p.dna.lane.wonLanePercentage >= 50">
+                  {{ p.dna.lane.wonLanePercentage }}%
+                </div>
+                <div class="pf-dna-card__sub nf-mono">Líneas 1v1 ganadas</div>
+                <div class="pf-dna-card__metrics nf-mono">
+                  <span [class.pf-pos]="p.dna.lane.avgGoldDiffAt14 >= 0" [class.pf-neg]="p.dna.lane.avgGoldDiffAt14 < 0">
+                    {{ p.dna.lane.avgGoldDiffAt14 >= 0 ? '+' : '' }}{{ p.dna.lane.avgGoldDiffAt14 }} oro @14
+                  </span>
+                  <span [class.pf-pos]="p.dna.lane.avgCsDiffAt14 >= 0" [class.pf-neg]="p.dna.lane.avgCsDiffAt14 < 0">
+                    {{ p.dna.lane.avgCsDiffAt14 >= 0 ? '+' : '' }}{{ p.dna.lane.avgCsDiffAt14 }} CS @14
+                  </span>
+                </div>
+              </div>
+
+              <!-- Tarjeta 2: Combate & Daño -->
+              <div class="pf-dna-card">
+                <div class="pf-dna-card__head nf-mono">
+                  <span class="pf-dna-card__icon">💥</span> Combate & Daño
+                </div>
+                <div class="pf-dna-card__big nf-mono">{{ p.dna.combat.damageSharePercentage }}%</div>
+                <div class="pf-dna-card__sub nf-mono">Cuota de daño del equipo</div>
+                <div class="pf-dna-card__metrics nf-mono">
+                  <span>{{ p.dna.combat.damagePerMin }} daño/min</span>
+                  <span>{{ p.dna.combat.killParticipation }}% participación</span>
+                </div>
+              </div>
+
+              <!-- Tarjeta 3: Visión & Mapa -->
+              <div class="pf-dna-card">
+                <div class="pf-dna-card__head nf-mono">
+                  <span class="pf-dna-card__icon">👁️</span> Visión & Mapa
+                </div>
+                <div class="pf-dna-card__big nf-mono">{{ p.dna.vision.visionScoreAvg }}</div>
+                <div class="pf-dna-card__sub nf-mono">Puntos de visión / partida</div>
+                <div class="pf-dna-card__metrics nf-mono">
+                  <span>{{ p.dna.vision.wardsPlacedAvg }} wards/min</span>
+                  <span>{{ p.dna.vision.wardsKilledAvg }} destruidos</span>
+                </div>
+              </div>
+
+              <!-- Tarjeta 4: Economía & Farm -->
+              <div class="pf-dna-card">
+                <div class="pf-dna-card__head nf-mono">
+                  <span class="pf-dna-card__icon">🌾</span> Economía & Farm
+                </div>
+                <div class="pf-dna-card__big nf-mono">{{ p.dna.economy.csPerMinAvg }}</div>
+                <div class="pf-dna-card__sub nf-mono">CS por minuto medio</div>
+                <div class="pf-dna-card__metrics nf-mono">
+                  <span>{{ p.dna.economy.goldPerMinAvg }} oro/min</span>
+                  <span>{{ p.hoursPlayed }}h jugadas</span>
+                </div>
+              </div>
+
+              <!-- Tarjeta 5: Factor Decisivo -->
+              <div class="pf-dna-card">
+                <div class="pf-dna-card__head nf-mono">
+                  <span class="pf-dna-card__icon">👑</span> Factor Decisivo
+                </div>
+                <div class="pf-dna-card__big nf-mono pf-pos">{{ p.dna.clutch.mvpRate }}%</div>
+                <div class="pf-dna-card__sub nf-mono">Tasa de MVP</div>
+                <div class="pf-dna-card__metrics nf-mono">
+                  <span>{{ p.dna.clutch.firstBloodRate }}% 1ª sangre</span>
+                  <span>{{ p.pentas }} pentas</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Tabla Detallada por Rol -->
+            <section class="pf-card" style="margin-top: 16px;">
+              <div class="pf-card__header">
+                <span class="pf-card__title nf-mono">▸ Rendimiento Detallado por Posición</span>
+              </div>
+              <div class="pf-role-table">
+                <div class="pf-role-table__row pf-role-table__row--head nf-mono">
+                  <span>Posición</span>
+                  <span>Partidas</span>
+                  <span>Win Rate</span>
+                  <span>% Línea Ganada</span>
+                  <span>Estado</span>
+                </div>
+                @for (t of roleTiles; track t.role) {
+                  @if (p.roleStats[t.role]; as rs) {
+                    <div class="pf-role-table__row nf-mono">
+                      <div class="pf-role-table__lane">
+                        <nf-lane-icon [lane]="t.role" [fallbackGlyph]="t.glyph" />
+                        <span class="pf-role-table__lane-name">{{ t.name }}</span>
+                      </div>
+                      <span>{{ rs.games }} partidas</span>
+                      <span [class.pf-pos]="rs.wr >= 50" [class.pf-neg]="rs.wr < 50">{{ rs.wr }}%</span>
+                      <span>{{ rs.wonLaneRate }}%</span>
+                      <span class="pf-role-table__tag">
+                        {{ isPrimary(t.role) ? '★ Principal' : isSelected(t.role) ? 'Activo' : 'Inactivo' }}
+                      </span>
+                    </div>
+                  }
+                }
+              </div>
+            </section>
+          </div>
+        }
+
+        <!-- ════════ PESTAÑA 3: CAMPEONES ════════ -->
+        @if (activeTab() === 'campeones') {
+          <div class="pf-tab-content">
+            <div class="pf-champ-toolbar-compact">
+              <nf-segmented
+                [options]="champRoleFilterOptions"
+                [value]="champRoleFilter()"
+                (valueChange)="champRoleFilter.set($event)"
+                ariaLabel="Filtrar campeones por línea"
+              />
+              <nf-select
+                [options]="champSortOptions"
+                [value]="champSortBy()"
+                (valueChange)="champSortBy.set($event)"
+              />
+            </div>
+
+            <div class="pf-champ-grid">
+              @for (c of filteredChampions(); track c.championId) {
+                <div class="pf-champ-tile">
+                  <div class="pf-champ-tile__head">
+                    <nf-avatar
+                      class="pf-champ-tile__avatar"
+                      [loading]="champsLoading()"
+                      [src]="champion(c.championId)?.iconUrl ?? null"
+                      [fallback]="championName(c.championId)"
+                      [tint]="c.championId"
+                      [size]="44"
+                      shape="square"
+                    />
+                    <div class="pf-champ-tile__info">
+                      <div class="pf-champ-tile__name-row">
+                        <span class="pf-champ-tile__name">{{ championName(c.championId) }}</span>
+                        <span class="pf-champ-tile__role nf-mono">{{ c.role }}</span>
+                      </div>
+                      <div class="pf-champ-tile__kda nf-mono">
+                        KDA {{ c.kda }} · {{ c.csPerMin }} CS/m
+                      </div>
+                    </div>
+                    <div class="pf-champ-tile__wr-side nf-mono">
+                      <span class="pf-champ-tile__wr" [class.pf-neg]="c.wr < 50">{{ c.wr }}%</span>
+                      <span class="pf-champ-tile__games">{{ c.games }} part.</span>
+                    </div>
+                  </div>
+
+                  <div class="pf-champ-tile__foot">
+                    <div class="pf-champ-tile__bar">
+                      <div
+                        class="pf-champ-tile__bar-fill"
+                        [class.pf-champ-tile__bar-fill--lo]="c.wr < 50"
+                        [style.width.%]="c.wr"
+                      ></div>
+                    </div>
+                    <div class="pf-champ-tile__items" title="Objetos más frecuentes">
+                      @for (itemId of c.coreItemIds; track $index) {
+                        <span
+                          class="pf-champ-tile__item-slot nf-mono"
+                          [style.background]="itemSlotBg(itemId)"
+                          [title]="'Objeto #' + itemId"
+                        >
+                          ●
+                        </span>
+                      }
+                    </div>
+                  </div>
+                </div>
+              } @empty {
+                <div class="empty-state">
+                  <div class="empty-state__icon">◎</div>
+                  <div class="empty-state__text nf-mono">No hay campeones para este filtro</div>
+                </div>
+              }
+            </div>
+          </div>
+        }
+
+        <!-- ════════ PESTAÑA 4: ROLES & AJUSTES ════════ -->
+        @if (activeTab() === 'ajustes') {
+          <div class="pf-tab-content">
+            <!-- Selector de Roles Horizontal Compacto -->
+            <section class="pf-card pf-roles-section">
+              <div class="pf-card__header">
+                <div class="pf-card__title-row">
+                  <span class="pf-card__title nf-mono">▸ Roles Preferidos (Preferencia Global)</span>
+                  <button
+                    type="button"
+                    class="pf-help-toggle"
+                    [class.pf-help-toggle--on]="rolesHelp()"
+                    (click)="rolesHelp.set(!rolesHelp())"
+                    title="Qué son los roles preferidos"
+                  >
+                    ?
+                  </button>
+                </div>
+
+                @if (rolesDirty()) {
+                  <div class="pf-roles-actions">
+                    <button nfButton variant="ghost" size="sm" [disabled]="prefs.saving()" (click)="discardRoles()">
+                      Descartar
+                    </button>
+                    <button nfButton variant="primary" size="sm" [disabled]="!canSaveRoles()" (click)="saveRoles()">
+                      {{ prefs.saving() ? 'Guardando…' : 'Guardar roles' }}
+                    </button>
+                  </div>
+                }
+              </div>
+
+              @if (rolesHelp()) {
+                <div class="scope-note" role="note">
+                  <span class="scope-note__icon" aria-hidden="true">ⓘ</span>
+                  <p class="scope-note__text">
+                    Sirven para <strong>inicializar tu perfil al unirte a nuevos grupos</strong>.
+                    Dentro de cada grupo manda la copia interna del grupo.
+                  </p>
+                </div>
+              }
+
+              <!-- Barra de Roles Horizontal -->
+              <div class="pf-roles-strip" role="group" aria-label="Roles que quieres jugar">
                 @for (t of roleTiles; track t.role) {
                   <div
-                    class="role-tile"
-                    [class.role-tile--on]="isSelected(t.role)"
-                    [class.role-tile--primary]="isPrimary(t.role)"
+                    class="pf-role-pill"
+                    [class.pf-role-pill--on]="isSelected(t.role)"
+                    [class.pf-role-pill--primary]="isPrimary(t.role)"
                   >
                     <button
                       type="button"
-                      role="checkbox"
-                      class="role-tile__pick"
+                      class="pf-role-pill__btn"
                       [attr.aria-checked]="isSelected(t.role)"
-                      [attr.aria-label]="'Jugar ' + t.name"
                       (click)="toggleRole(t.role)"
                     >
-                      <nf-lane-icon class="role-tile__glyph" [lane]="t.role" [fallbackGlyph]="t.glyph" />
-                      <span class="role-tile__code nf-mono">{{ t.short }}</span>
-                      <span class="role-tile__name">{{ t.name }}</span>
+                      <nf-lane-icon class="pf-role-pill__glyph" [lane]="t.role" [fallbackGlyph]="t.glyph" />
+                      <span class="pf-role-pill__code nf-mono">{{ t.short }}</span>
+                      <span class="pf-role-pill__name">{{ t.name }}</span>
                     </button>
 
-                    <!-- La estrella solo existe si el rol está seleccionado: no se puede
-                         ser principal de un rol que no juegas. -->
                     @if (isSelected(t.role)) {
                       <button
                         type="button"
-                        class="role-tile__star"
+                        class="pf-role-pill__star"
                         [attr.aria-pressed]="isPrimary(t.role)"
-                        [attr.aria-label]="'Marcar ' + t.name + ' como rol principal'"
-                        [title]="isPrimary(t.role) ? 'Es tu rol principal' : 'Marcar como rol principal'"
+                        [title]="isPrimary(t.role) ? 'Rol principal' : 'Marcar como principal'"
                         (click)="setPrimaryRole(t.role)"
                       >
                         ★
@@ -206,291 +636,127 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
                 }
               </div>
 
-              <div class="pf-roles__foot">
-                <div class="pf-roles__flex">
+              <div class="pf-roles-foot">
+                <div class="pf-roles-flex">
                   <nf-toggle
                     [checked]="isFlex()"
-                   
-                    ariaLabel="Soy FLEX: juego cualquier rol"
+                    ariaLabel="Soy FLEX: me vale cualquier rol"
                     (checkedChange)="toggleFlex($event)"
                   />
-                  <div class="pf-roles__flextext">
-                    <div class="pf-roles__flexname">Soy FLEX</div>
-                    <div class="pf-roles__flexsub">Me vale cualquier rol de los cinco.</div>
-                  </div>
+                  <span class="pf-roles-flex__text nf-mono">Soy FLEX (juego cualquier rol)</span>
                 </div>
 
-                <!-- El "por qué" completo está en la nota de arriba; aquí solo lo accionable. -->
                 @if (!hasRoles()) {
-                  <p class="pf-roles__warn nf-mono">⚠ Selecciona al menos un rol</p>
+                  <span class="pf-warn nf-mono">⚠ Selecciona al menos un rol</span>
                 } @else if (!roleDraft().primary) {
-                  <p class="pf-roles__hint">
-                    Marca uno con la <strong>estrella</strong> si tienes rol principal. Es opcional: sin
-                    él, el reparto te dará igual cualquiera de los que has elegido.
-                  </p>
+                  <span class="pf-hint nf-mono">Marca con ★ tu rol principal si tienes uno preferido.</span>
                 }
               </div>
-            </div>
-          }
-        }
+            </section>
 
-        <!-- Cuenta de Riot vinculada -->
-        <div class="view__label nf-mono">▸ Cuenta de Riot</div>
-        @switch (riot.status()) {
-          @case ('loading') {
-            <!-- Mismo hueco que la tarjeta real: al llegar el dato no salta nada. -->
-            <div aria-busy="true"><nf-skeleton width="100%" height="84px" radius="10px" /></div>
-          }
-          @case ('error') {
-            <div class="pf-riot pf-riot--empty">
-              <div class="pf-riot__cta">
-                <div class="pf-riot__ctatitle">No hemos podido cargar tu cuenta de Riot</div>
-                <p class="pf-riot__ctatext">Puede ser un problema de conexión.</p>
+            <!-- Gestión de Cuenta Riot -->
+            <section class="pf-card pf-riot-section">
+              <div class="pf-card__header">
+                <span class="pf-card__title nf-mono">▸ Vinculación de Cuenta Riot</span>
               </div>
-              <button nfButton variant="ghost" size="md" (click)="retryRiot()">Reintentar</button>
-            </div>
-          }
-          @default {
-            @if (riot.account(); as account) {
-              <div class="pf-riot pf-riot--linked">
-                <nf-avatar
-                  class="pf-riot__logo"
-                  [src]="account.profileIconUrl"
-                  [fallback]="account.riotId"
-                  [size]="52"
-                  shape="square"
-                />
-                <div class="pf-riot__meta">
-                  <div class="pf-riot__id">{{ account.riotId }}</div>
-                  <div class="pf-riot__sub nf-mono">
-                    <span class="pf-riot__chip"><span class="pf-ping"></span>{{ account.region }}</span>
-                    <!-- El chip dice la verdad de cada peldaño: solo VERIFIED afirma titularidad. -->
-                    @switch (account.strength) {
-                      @case ('VERIFIED') {
-                        <span class="pf-riot__chip pf-riot__chip--ok">✓ Verificada</span>
-                      }
-                      @case ('PAIRED') {
-                        <span class="pf-riot__chip">↔ Vinculada desde el cliente</span>
-                      }
-                      @default {
-                        <span class="pf-riot__chip">Sin verificar</span>
-                      }
+
+              @switch (riot.status()) {
+                @case ('loading') {
+                  <div aria-busy="true"><nf-skeleton width="100%" height="70px" radius="8px" /></div>
+                }
+                @case ('error') {
+                  <div class="pf-riot-box pf-riot-box--empty">
+                    <div>
+                      <div class="pf-riot-box__title">Error al cargar la cuenta Riot</div>
+                      <p class="pf-riot-box__text">Comprueba tu conexión e inténtalo de nuevo.</p>
+                    </div>
+                    <button nfButton variant="ghost" size="sm" (click)="retryRiot()">Reintentar</button>
+                  </div>
+                }
+                @default {
+                  @if (riot.account(); as account) {
+                    <div class="pf-riot-box pf-riot-box--linked">
+                      <nf-avatar
+                        class="pf-riot-box__logo"
+                        [src]="account.profileIconUrl"
+                        [fallback]="account.riotId"
+                        [size]="46"
+                        shape="square"
+                      />
+                      <div class="pf-riot-box__meta">
+                        <div class="pf-riot-box__id">{{ account.riotId }}</div>
+                        <div class="pf-riot-box__sub nf-mono">
+                          <span class="pf-meta-chip">{{ account.region }}</span>
+                          @switch (account.strength) {
+                            @case ('VERIFIED') {
+                              <span class="pf-meta-chip pf-meta-chip--verified">✓ Verificada</span>
+                            }
+                            @case ('PAIRED') {
+                              <span class="pf-meta-chip">↔ Vinculada app</span>
+                            }
+                            @default {
+                              <span class="pf-meta-chip">Sin verificar</span>
+                            }
+                          }
+                        </div>
+                      </div>
+                      <div class="pf-riot-box__actions">
+                        <a class="pf-link-btn nf-mono" [href]="opgg(account.riotId)" target="_blank" rel="noopener">
+                          OP.GG ↗
+                        </a>
+                        <button nfButton variant="ghost" size="sm" [disabled]="riot.saving()" (click)="askUnlink()">
+                          Desvincular
+                        </button>
+                      </div>
+                    </div>
+
+                    @if (account.strength !== 'VERIFIED') {
+                      <div class="pf-riot-verify-banner">
+                        <div class="pf-riot-verify-banner__text">
+                          <strong>¿Quieres verificar la titularidad?</strong> Abre la app de escritorio para comprobar tu cuenta mediante cambio de icono.
+                        </div>
+                        <button nfButton variant="accent" size="sm" (click)="openConnect()">
+                          Verificar con la app
+                        </button>
+                      </div>
                     }
-                  </div>
-                </div>
-                <div class="pf-riot__actions">
-                  <a class="pf-hero__opgg nf-mono" [href]="opgg(account.riotId)" target="_blank" rel="noopener">
-                    Ver en OP.GG
-                  </a>
-                  <button nfButton variant="ghost" size="sm" [disabled]="riot.saving()" (click)="askUnlink()">
-                    Desvincular
-                  </button>
-                </div>
-              </div>
-              @if (account.strength !== 'VERIFIED') {
-                <!-- Mientras no esté verificada, se invita a demostrar la titularidad con la app. -->
-                <div class="pf-riot pf-riot--empty">
-                  <div class="pf-riot__cta">
-                    <div class="pf-riot__ctatitle">Verifica que esta cuenta es tuya</div>
-                    <p class="pf-riot__ctatext">
-                      Con la app de escritorio confirmamos tu cuenta de verdad: te pedirá cambiar tu
-                      icono de invocador un momento y lo comprobaremos con Riot. Hasta entonces, tus
-                      estadísticas cuentan como no verificadas.
-                    </p>
-                  </div>
-                  <button nfButton variant="accent" size="md" (click)="openConnect()">
-                    Conectar la app
-                  </button>
-                </div>
+                  } @else {
+                    <div class="pf-riot-box pf-riot-box--empty">
+                      <div>
+                        <div class="pf-riot-box__title">Sin cuenta de Riot vinculada</div>
+                        <p class="pf-riot-box__text">
+                          Vincula tu cuenta para importar automáticamente tus estadísticas de invocador.
+                          @if (relinkAvailableAt(); as until) {
+                            <br /><span class="pf-hint">Re-vinculación disponible el {{ until }}.</span>
+                          }
+                        </p>
+                      </div>
+                      <div class="pf-riot-box__cta-btns">
+                        <button nfButton variant="accent" size="sm" (click)="openConnect()">
+                          Conectar app
+                        </button>
+                        <button nfButton variant="ghost" size="sm" [disabled]="riot.saving()" (click)="startLinking()">
+                          ＋ Riot ID manual
+                        </button>
+                      </div>
+                    </div>
+                  }
+                }
               }
-            } @else {
-              <div class="pf-riot pf-riot--empty">
-                <div class="pf-riot__cta">
-                  <div class="pf-riot__ctatitle">Sin cuenta de Riot vinculada</div>
-                  <p class="pf-riot__ctatext">
-                    Vincula tu cuenta para que tus estadísticas de invocador aparezcan en tu perfil.
-                    @if (relinkAvailableAt(); as until) {
-                      <br />
-                      Desvinculaste hace poco: puedes volver a poner <strong>la misma</strong> cuando
-                      quieras, pero para vincular una <strong>distinta</strong> tendrás que esperar
-                      hasta el {{ until }}.
-                    }
-                  </p>
-                </div>
-                <div class="pf-riot__ctarow">
-                  <!-- El camino fuerte primero: la app empareja y verifica. El manual, como rápido. -->
-                  <button nfButton variant="accent" size="md" (click)="openConnect()">
-                    Conectar la app
-                  </button>
-                  <button nfButton variant="ghost" size="md" [disabled]="riot.saving()" (click)="startLinking()">
-                    ＋ Escribir mi Riot ID
-                  </button>
-                </div>
-              </div>
-            }
-          }
+            </section>
+          </div>
         }
-
-        <!-- Global record strip -->
-        <div class="totals pf-totals">
-          <div class="totals__item">
-            <div class="totals__val nf-mono">{{ p.games }}</div>
-            <div class="totals__lbl nf-mono">Partidas</div>
-          </div>
-          <div class="totals__item">
-            <div class="totals__val nf-mono pf-pos">{{ p.wins }}</div>
-            <div class="totals__lbl nf-mono">Victorias</div>
-          </div>
-          <div class="totals__item">
-            <div class="totals__val nf-mono pf-neg">{{ p.losses }}</div>
-            <div class="totals__lbl nf-mono">Derrotas</div>
-          </div>
-          <div class="totals__item">
-            <div class="totals__val nf-mono">{{ p.kda }}</div>
-            <div class="totals__lbl nf-mono">KDA medio</div>
-          </div>
-          <div class="totals__item">
-            <div class="totals__val nf-mono">{{ p.hoursPlayed }}h</div>
-            <div class="totals__lbl nf-mono">Jugadas</div>
-          </div>
-          <div class="totals__item">
-            <div class="totals__val nf-mono">{{ p.pentas }}</div>
-            <div class="totals__lbl nf-mono">Pentas</div>
-          </div>
-        </div>
-
-        <!-- Streak + recent form -->
-        <div class="pf-form">
-          <div class="pf-form__streak" [class.pf-form__streak--lose]="p.streakType === 'L'">
-            <div class="pf-form__big nf-mono">{{ p.currentStreak }}<span class="pf-form__unit">{{ p.streakType }}</span></div>
-            <div class="pf-form__cap nf-mono">{{ p.streakType === 'W' ? 'Racha de victorias' : 'Racha de derrotas' }}</div>
-            <div class="pf-form__sub nf-mono">Mejor racha · {{ p.bestStreak }}W</div>
-          </div>
-          <div class="pf-form__recent">
-            <div class="view__label nf-mono">▸ Forma reciente</div>
-            <div class="pf-pills">
-              @for (r of p.recentForm; track $index) {
-                <span class="pf-pill" [class.pf-pill--w]="r === 'W'" [class.pf-pill--l]="r === 'L'">{{ r }}</span>
-              }
-            </div>
-          </div>
-        </div>
-
-        <!-- Head-to-head highlights -->
-        <div class="view__label nf-mono">▸ Cara a cara · todos los grupos</div>
-        <div class="hl-grid pf-h2h">
-          @if (p.bestAlly; as a) {
-            <div class="hl" data-accent="secondary">
-              <div class="hl__eyebrow nf-mono">🤝 Mejor aliado</div>
-              <div class="hl__hero">
-                <span class="hl__avatar" [style.background]="grad(a.hue)">{{ a.initials }}</span>
-                <div class="hl__who">
-                  <div class="hl__name">{{ a.name }}</div>
-                  <div class="hl__blurb nf-mono">{{ a.wr }}% juntos · {{ a.wins }}V {{ a.losses }}D</div>
-                </div>
-              </div>
-              <div class="hl__score nf-mono">Con quien más ganas</div>
-            </div>
-          }
-          @if (p.nemesis; as n) {
-            <div class="hl" data-accent="primary">
-              <div class="hl__eyebrow nf-mono">💀 Némesis</div>
-              <div class="hl__hero">
-                <span class="hl__avatar" [style.background]="grad(n.hue)">{{ n.initials }}</span>
-                <div class="hl__who">
-                  <div class="hl__name">{{ n.name }}</div>
-                  <div class="hl__blurb nf-mono">{{ n.wr }}% WR · {{ n.wins }}V {{ n.losses }}D</div>
-                </div>
-              </div>
-              <div class="hl__score nf-mono">Contra quien más pierdes</div>
-            </div>
-          }
-          @if (p.favoriteVictim; as v) {
-            <div class="hl" data-accent="warning">
-              <div class="hl__eyebrow nf-mono">🎯 Víctima favorita</div>
-              <div class="hl__hero">
-                <span class="hl__avatar" [style.background]="grad(v.hue)">{{ v.initials }}</span>
-                <div class="hl__who">
-                  <div class="hl__name">{{ v.name }}</div>
-                  <div class="hl__blurb nf-mono">{{ v.wr }}% WR · {{ v.wins }}V {{ v.losses }}D</div>
-                </div>
-              </div>
-              <div class="hl__score nf-mono">A quien más ganas</div>
-            </div>
-          }
-        </div>
-
-        <!-- Most-played champions -->
-        <div class="view__label nf-mono">▸ Campeones más jugados</div>
-        <nf-window class="pf-champ-window" title="Campeones" bodyPadding="0">
-          <div class="pf-champs" [attr.aria-busy]="champsLoading() ? 'true' : null">
-            @for (c of p.topChampions; track c.championId) {
-              <div class="pf-champ">
-                <nf-avatar
-                  class="champ-icon"
-                  [loading]="champsLoading()"
-                  [src]="champion(c.championId)?.iconUrl ?? null"
-                  [fallback]="championName(c.championId)"
-                  [tint]="c.championId"
-                  [size]="34"
-                  shape="square"
-                />
-                <div class="pf-champ__meta">
-                  <div class="pf-champ__name">
-                    @if (champsLoading()) {
-                      <nf-skeleton width="90px" height="12px" />
-                    } @else {
-                      {{ championName(c.championId) }}
-                      <span class="pf-champ__role nf-mono">{{ championRole(c.championId) }}</span>
-                    }
-                  </div>
-                  <div class="pf-champ__bar">
-                    <span class="pf-champ__fill" [class.pf-champ__fill--lo]="c.wr < 50" [style.width.%]="c.wr"></span>
-                  </div>
-                </div>
-                <div class="pf-champ__nums">
-                  <span class="pf-champ__wr nf-mono" [class.pf-neg]="c.wr < 50">{{ c.wr }}%</span>
-                  <span class="pf-champ__games nf-mono">{{ c.games }} part.</span>
-                </div>
-              </div>
-            }
-          </div>
-        </nf-window>
-
-        <!-- Per-group breakdown -->
-        <div class="view__label nf-mono">▸ Desglose por grupo</div>
-        <div class="pf-groups">
-          @for (g of p.groups; track g.id) {
-            <div class="pf-group" [style.--grp-c1]="g.c1" [style.--grp-c2]="g.c2">
-              <span class="pf-group__avatar">{{ g.initials }}</span>
-              <div class="pf-group__meta">
-                <div class="pf-group__name">{{ g.name }}</div>
-                <div class="pf-group__sub nf-mono">{{ g.wins }}V {{ g.losses }}D · {{ g.games }} partidas · {{ g.role }}</div>
-              </div>
-              <span class="pf-group__wr nf-mono" [class.pf-neg]="g.wr < 50">{{ g.wr }}%</span>
-            </div>
-          } @empty {
-            <div class="empty-state">
-              <div class="empty-state__icon">◎</div>
-              <div class="empty-state__text nf-mono">Sin grupos todavía</div>
-            </div>
-          }
-        </div>
       }
 
-      <!-- Vincular cuenta de Riot: diálogo sobre fondo difuminado -->
+      <!-- Modales de Riot y Conexión -->
       @if (linking()) {
         <nf-modal title="Vincular cuenta de Riot" (closed)="cancelLinking()">
           <div class="settings-eyebrow nf-mono">Vincular cuenta de Riot</div>
-
           <div class="riot-link">
-            <span class="pf-riot__logo nf-mono" aria-hidden="true">R</span>
             <p class="riot-link__text">
-              Introduce tu Riot ID tal y como aparece en el cliente. Lo usaremos para traer tus
-              estadísticas de invocador a este perfil.
+              Introduce tu Riot ID tal y como aparece en el cliente (ej. <code>Nombre#TAG</code>).
             </p>
           </div>
-
           <div class="form-grid">
             <div class="field">
               <label class="field__label nf-mono" for="riot-id">Riot ID</label>
@@ -505,7 +771,6 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
                 (keydown.enter)="confirmLink()"
               />
             </div>
-
             <div class="field">
               <label class="field__label nf-mono">Región</label>
               <nf-select
@@ -515,20 +780,10 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
               />
             </div>
           </div>
-
-          <!-- Aviso de honor: la vinculación no está verificada contra Riot. -->
-          <div class="scope-note scope-note--warn" role="note">
-            <span class="scope-note__icon" aria-hidden="true">⚠</span>
-            <p class="scope-note__text">
-              <strong>No podemos verificar de manera real que tienes dicha cuenta en propiedad.</strong>
-              Vincula solo tu cuenta: si pones la de otra persona, falsearás tus estadísticas y las
-              de tus grupos, y quien lo haga a propósito puede ser expulsado.
-            </p>
-          </div>
-
           <div class="form-foot">
             <button nfButton variant="primary" size="md" [disabled]="!canLink()" (click)="confirmLink()">
-              {{ riot.saving() ? 'Vinculando…' : 'Vincular' }}</button>
+              {{ riot.saving() ? 'Vinculando…' : 'Vincular' }}
+            </button>
             <button nfButton variant="ghost" size="md" [disabled]="riot.saving()" (click)="cancelLinking()">
               Cancelar
             </button>
@@ -536,23 +791,12 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
         </nf-modal>
       }
 
-      <!-- Desvincular: acción destructiva, siempre confirmada -->
       @if (unlinking(); as account) {
         <nf-modal title="Desvincular cuenta de Riot" width="440px" (closed)="cancelUnlink()">
           <div class="settings-eyebrow nf-mono">Desvincular cuenta de Riot</div>
-
-          <!-- Lo que NO se pierde importa tanto como lo que sí: nada del histórico cuelga de la
-               cuenta de Riot, así que conviene decirlo antes de que el usuario se lo pregunte. -->
           <p class="confirm__text">
-            Vas a desvincular <strong>{{ account.riotId }}</strong> de tu perfil. Dejaremos de
-            mostrar tus estadísticas de invocador. Tus partidas, tu rating y tus grupos
-            <strong>no se tocan</strong>: cuelgan de tu cuenta, no de la de Riot.
+            Vas a desvincular <strong>{{ account.riotId }}</strong>. Tus partidas y grupos no se tocan.
           </p>
-          <p class="confirm__text">
-            Podrás volver a vincular <strong>esta misma</strong> cuenta cuando quieras; para
-            vincular una <strong>distinta</strong> tendrás que esperar 24 horas.
-          </p>
-
           <div class="form-foot">
             <button nfButton variant="danger" size="md" [disabled]="riot.saving()" (click)="confirmUnlink()">
               {{ riot.saving() ? 'Desvinculando…' : 'Sí, desvincular' }}
@@ -564,27 +808,11 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
         </nf-modal>
       }
 
-      <!-- Conectar la app de escritorio: el deep-link es la vía cómoda; el código, el plan B -->
       @if (connecting()) {
         <nf-modal title="Conectar la aplicación" width="460px" (closed)="closeConnect()">
-          <div class="settings-eyebrow nf-mono">Conectar la app de escritorio</div>
-
-          <p class="riot-link__text">
-            La app empareja tu cuenta y la verifica de verdad: te pedirá cambiar tu icono de invocador
-            un momento y lo comprobaremos con Riot.
-          </p>
-
-          <!-- Vía cómoda: deep-link. La conduce la app, no la web. -->
-          <ol class="connect-steps">
-            <li>Abre la app de escritorio y pulsa <strong>«Conectar»</strong>.</li>
-            <li>Se abrirá tu navegador; como ya estás dentro, autorizas de un clic.</li>
-          </ol>
-
-          <!-- Plan B: el código, para cuando el navegador no se abre. -->
+          <div class="settings-eyebrow nf-mono">Conectar app de escritorio</div>
+          <p class="riot-link__text">Abre la app de escritorio y pulsa «Conectar» o pega este código:</p>
           <div class="connect-fallback">
-            <div class="settings-eyebrow nf-mono">¿No se abre el navegador?</div>
-            <p class="riot-link__text">Pega este código en la app:</p>
-
             @if (pairingCode(); as pc) {
               <div class="connect-code" [class.is-expired]="codeExpired()">
                 <span class="connect-code__value nf-mono">{{ pc.code }}</span>
@@ -592,13 +820,11 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
                   {{ copied() ? 'Copiado' : 'Copiar' }}
                 </button>
               </div>
-              @if (codeExpired()) {
-                <p class="connect-code__hint nf-mono">Caducado. Genera otro para volver a intentarlo.</p>
-              } @else {
-                <p class="connect-code__hint nf-mono">Caduca en {{ codeCountdown() }}</p>
-              }
+              <p class="connect-code__hint nf-mono">
+                {{ codeExpired() ? 'Caducado. Genera otro.' : 'Caduca en ' + codeCountdown() }}
+              </p>
               <button nfButton variant="ghost" size="sm" [disabled]="riot.generatingCode()" (click)="generateCode()">
-                {{ riot.generatingCode() ? 'Generando…' : 'Generar otro' }}
+                Generar otro
               </button>
             } @else {
               <button nfButton variant="primary" size="md" [disabled]="riot.generatingCode()" (click)="generateCode()">
@@ -606,12 +832,6 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
               </button>
             }
           </div>
-
-          <p class="connect-get nf-mono">
-            ¿No tienes la app?
-            <a [href]="desktopAppUrl" target="_blank" rel="noopener">Descárgala aquí</a>.
-          </p>
-
           <div class="form-foot">
             <button nfButton variant="ghost" size="md" (click)="closeConnect()">Cerrar</button>
           </div>
@@ -619,101 +839,98 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
       }
     </div>
   `,
-  styles: [
-    `
-      .connect-steps {
-        margin: 12px 0 18px;
-        padding-left: 20px;
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-        font-size: var(--fs-body);
-        color: var(--nf-text-mid);
-      }
-      .connect-fallback {
-        padding: 14px;
-        border: var(--bw-1) solid var(--nf-border);
-        border-radius: var(--nf-radius);
-        background: var(--nf-surface-2);
-      }
-      .connect-code {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        margin: 8px 0 4px;
-        padding: 10px 14px;
-        border: var(--bw-1) solid var(--nf-border-strong);
-        border-radius: var(--nf-radius-sm);
-        background: var(--nf-surface);
-      }
-      .connect-code.is-expired .connect-code__value {
-        opacity: 0.5;
-        text-decoration: line-through;
-      }
-      .connect-code__value {
-        font-size: 22px;
-        font-weight: var(--fw-bold);
-      }
-      .connect-code__hint {
-        font-size: 12px;
-        color: var(--nf-text-mid);
-        margin: 0 0 10px;
-      }
-      .connect-get {
-        margin-top: 14px;
-        font-size: 12px;
-        color: var(--nf-text-mid);
-      }
-      .connect-get a {
-        color: var(--nf-secondary);
-      }
-    `,
-  ],
 })
 export class Perfil {
   private readonly groups = inject(GroupStore);
-  /** Identidad real del usuario (Discord). Singleton ya cargado por el shell vía
-   * `ensureLoaded()`: leer sus signals aquí NO dispara ninguna petición extra. */
   protected readonly session = inject(Session);
-  /** Mock legacy: solo alimenta las estadísticas agregadas (placeholder). La
-   * identidad mostrada (nombre/avatar) viene de `session`, no de aquí. */
   private readonly user = CURRENT_USER;
 
   readonly profile = computed(() =>
     buildPlayerProfile(this.user, this.groups.groups(), (id) => this.groups.rosterOf(id)),
   );
 
-  // ── Catálogo de campeones reales (Data Dragon) ─────────────────────
+  // ── Navegación Modular por Pestañas ───────────────────────────────
+  readonly activeTab = signal<'resumen' | 'dna' | 'campeones' | 'ajustes'>('resumen');
+  readonly tabOptions: readonly NfSegmentOption[] = [
+    { value: 'resumen', label: 'Resumen' },
+    { value: 'dna', label: 'ADN & Stats' },
+    { value: 'campeones', label: 'Campeones' },
+    { value: 'ajustes', label: 'Roles & Cuenta' },
+  ];
+
+  setTab(val: string): void {
+    if (['resumen', 'dna', 'campeones', 'ajustes'].includes(val)) {
+      this.activeTab.set(val as any);
+    }
+  }
+
+  // ── Tooltip interactivo de partidas recientes ─────────────────────
+  readonly hoveredMatch = signal<PlayerRecentMatch | null>(null);
+
+  // ── Top Signature Champions (Top 3 para el resumen) ───────────────
+  readonly topSignatureChampions = computed(() => {
+    const p = this.profile();
+    return p ? p.topChampions.slice(0, 3) : [];
+  });
+
+  // ── Catálogo de campeones ─────────────────────────────────────────
   protected readonly gameData = inject(GameDataStore);
   protected readonly champsLoading = computed(() => this.gameData.status() === 'loading');
+
+  readonly champRoleFilter = signal<string>('TODOS');
+  readonly champRoleFilterOptions: readonly NfSegmentOption[] = [
+    { value: 'TODOS', label: 'Todos' },
+    { value: 'TOP', label: 'TOP' },
+    { value: 'JUNGLA', label: 'JG' },
+    { value: 'MID', label: 'MID' },
+    { value: 'ADC', label: 'ADC' },
+    { value: 'SUPPORT', label: 'SUP' },
+  ];
+
+  readonly champSortBy = signal<string>('games');
+  readonly champSortOptions = [
+    { value: 'games', label: 'Más jugados' },
+    { value: 'wr', label: 'Mayor Win rate' },
+    { value: 'kda', label: 'Mejor KDA' },
+  ];
+
+  readonly filteredChampions = computed(() => {
+    const p = this.profile();
+    if (!p) return [];
+    let list = [...p.topChampions];
+    const role = this.champRoleFilter();
+    if (role !== 'TODOS') {
+      list = list.filter((c) => c.role === role);
+    }
+    const sort = this.champSortBy();
+    if (sort === 'wr') {
+      list.sort((a, b) => b.wr - a.wr || b.games - a.games);
+    } else if (sort === 'kda') {
+      list.sort((a, b) => b.kda - a.kda || b.games - a.games);
+    } else {
+      list.sort((a, b) => b.games - a.games);
+    }
+    return list;
+  });
 
   champion(id: number) {
     return this.gameData.championById().get(id);
   }
 
-  /** Nombre real si el catálogo ya lo resolvió; genérico si el id es desconocido. */
   championName(id: number): string {
     return this.champion(id)?.name ?? 'Campeón';
   }
 
-  /** Primer tag traducido ("Mage" → "Maga"); vacío si el campeón aún no se resolvió. */
-  championRole(id: number): string {
-    const tag = this.champion(id)?.tags[0];
-    return tag ? championTagLabel(tag) : '';
+  itemSlotBg(id: number): string {
+    return itemBg(`Item ${id}`);
   }
 
-  // ── Roles preferidos (preferencia global de cuenta) ────────────────
+  // ── Roles preferidos ──────────────────────────────────────────────
   protected readonly prefs = inject(PreferencesStore);
   private readonly toast = inject(ToastService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly notifs = inject(NotificationsStore);
 
-  /**
-   * La explicación de qué son (y qué NO son) estos roles, plegada tras el "?". Estado de
-   * UI puro, así que vive aquí y no en el store. Arranca cerrada a propósito: el que ya lo
-   * sabe no tiene que volver a leerlo, y el que duda tiene el interrogante al lado.
-   */
   protected readonly rolesHelp = signal(false);
 
   protected readonly roleTiles: RoleTile[] = [
@@ -725,23 +942,11 @@ export class Perfil {
   ];
 
   constructor() {
-    // Idempotentes y deduplicadas: si otra vista ya las pidió, no hay petición extra.
     this.prefs.ensureLoaded();
     this.riot.ensureLoaded();
     this.gameData.ensureLoaded();
-    // El temporizador de la cuenta atrás no debe sobrevivir a la vista.
     this.destroyRef.onDestroy(() => this.stopTick());
 
-    // Si el usuario está esperando en el modal de conexión con el código pegado en la app, la
-    // confirmación del backend (emparejamiento o verificación) cierra el modal sola y avisa
-    // con un toast — es el pago real de todo el flujo: pegar el código y ver la web
-    // reaccionar sin recargar. El refetch de la cuenta ya lo dispara el `effect` global de
-    // `shell.ts`; aquí solo se atiende la UI local del modal. `lastArrived` de
-    // `NotificationsStore` solo se rellena con pushes en vivo del stream, nunca con la carga
-    // inicial de la bandeja, así que esto no puede dispararse con una notificación vieja al
-    // montar la vista. Si el evento llega con el modal ya cerrado, no hay toast que sacar: no
-    // pasa nada (el refresh ya corre por su cuenta). Extraído a `perfil-connect-modal.ts` para
-    // poder testear el cableado sin montar esta vista entera (ver ese fichero).
     wireConnectModalOnRiotEvent(this.notifs, this.connecting, (riotId, type) => {
       const message =
         type === 'RIOT_ACCOUNT_PAIRED'
@@ -752,18 +957,12 @@ export class Perfil {
     });
   }
 
-  /**
-   * Borrador editable. `linkedSignal` sobre el valor confirmado por el servidor:
-   * se resincroniza solo cuando este cambia (carga, guardado, `reload()`), así que
-   * tras guardar el borrador deja de estar sucio sin tocarlo a mano.
-   */
   readonly roleDraft = linkedSignal<RolePreferences, RolePreferences>({
     source: this.prefs.prefs,
     computation: (saved) => ({ roles: [...saved.roles], primary: saved.primary }),
   });
 
   readonly hasRoles = computed(() => this.roleDraft().roles.length > 0);
-  /** FLEX = los cinco roles marcados (lo que el matchmaking lee como "cualquiera"). */
   readonly isFlex = computed(() => this.roleDraft().roles.length === LANE_ROLES.length);
 
   readonly rolesDirty = computed(() => {
@@ -789,7 +988,6 @@ export class Perfil {
   toggleRole(role: LaneRole): void {
     this.roleDraft.update((d) => {
       const on = d.roles.includes(role);
-      // Se reconstruye desde LANE_ROLES para mantener siempre el orden de líneas.
       const roles = LANE_ROLES.filter((r) => (r === role ? !on : d.roles.includes(r)));
       return { roles, primary: this.keepPrimary(roles, d.primary) };
     });
@@ -800,7 +998,6 @@ export class Perfil {
     this.roleDraft.update((d) => ({ ...d, primary: role }));
   }
 
-  /** FLEX marca los cinco; al desmarcarlo se queda solo el principal. */
   toggleFlex(flex: boolean): void {
     this.roleDraft.update((d) => {
       const roles = flex ? [...LANE_ROLES] : d.primary ? [d.primary] : [];
@@ -813,11 +1010,6 @@ export class Perfil {
     this.roleDraft.set({ roles: [...saved.roles], primary: saved.primary });
   }
 
-  /**
-   * Escritura pesimista: el store no publica nada hasta que el servidor confirma,
-   * y el botón queda deshabilitado mientras (`canSaveRoles`), así que no hay doble
-   * submit posible. El fallo se cuenta y el borrador sobrevive para reintentar.
-   */
   async saveRoles(): Promise<void> {
     if (!this.canSaveRoles()) return;
     const ok = await this.prefs.save(this.roleDraft());
@@ -825,29 +1017,17 @@ export class Perfil {
     else this.toast.error('No se han podido guardar tus roles. Inténtalo de nuevo.');
   }
 
-  /** El principal debe seguir estando entre los roles elegidos; si no, cae al primero. */
   private keepPrimary(roles: readonly LaneRole[], primary: LaneRole | null): LaneRole | null {
     if (primary && roles.includes(primary)) return primary;
     return roles[0] ?? null;
   }
 
-  /** Nombre del hero: el de Discord, con las estadísticas mock como reserva. */
   readonly heroName = computed(() => this.session.displayName() || this.profile()?.name || '');
 
-  /**
-   * La identidad todavía viene en camino: el hero pinta skeletons en su sitio.
-   * En `error` NO se skeletoniza (sería una espera eterna): el guard ya expulsa a
-   * quien no tiene sesión, así que aquí solo quedaría un hero sin nombre.
-   */
   readonly identityLoading = computed(
     () => this.session.status() === 'idle' || this.session.status() === 'loading',
   );
 
-  /**
-   * Fecha de alta formateada (`2025-05-14T…Z` → "MAY 2025"). Null mientras no haya
-   * usuario cargado, o si el backend mandase algo no parseable: antes de pintar un
-   * "Invalid Date" en el perfil, mejor no pintar el chip.
-   */
   readonly memberSince = computed(() => {
     const iso = this.session.createdAt();
     if (!iso) return null;
@@ -856,54 +1036,33 @@ export class Perfil {
     return MEMBER_SINCE_FMT.format(date).replace('.', '').toUpperCase();
   });
 
-  /**
-   * El CDN de Discord puede devolver 404 si el usuario cambió su avatar tras
-   * nuestro último login. Si la imagen falla, caemos a las iniciales.
-   * `linkedSignal` para reintentar al cambiar la URL (p. ej. `session.reload()`).
-   */
   readonly avatarBroken = linkedSignal({
     source: this.session.avatarUrl,
     computation: () => false,
   });
   readonly showAvatarImage = computed(() => !!this.session.avatarUrl() && !this.avatarBroken());
 
-  // ── Cuenta de Riot vinculada ──────────────────────────────────────
-  /**
-   * Estado real del servidor. La vinculación es **declarativa**: el backend comprueba que el
-   * Riot ID tiene forma válida y que no lo tiene ya otro usuario, pero no que sea tuyo — eso
-   * solo lo demuestra RSO (el OAuth de Riot), de ahí el aviso del diálogo.
-   */
+  // ── Cuenta de Riot ────────────────────────────────────────────────
   protected readonly riot = inject(RiotAccountStore);
 
   readonly linking = signal(false);
-  /** Cuenta pendiente de confirmar su desvinculación (null = sin diálogo abierto). */
   readonly unlinking = signal<RiotAccount | null>(null);
   readonly riotIdDraft = signal('');
   readonly regionDraft = signal<RiotRegion>('EUW');
   readonly regions = [...RIOT_REGIONS];
 
-  /**
-   * Descarga de la app de escritorio (empareja y verifica la cuenta, y en el futuro sube customs).
-   * TODO(backend): apuntar a la release real cuando exista; hoy es el repositorio del scraper.
-   */
-  protected readonly desktopAppUrl = 'https://github.com/fernandezcrazydev/cgc-scraper/releases';
-
-  /** Riot ID con forma de `Nombre#TAG`; el backend es quien valida de verdad los límites. */
   readonly linkValid = computed(() => /^.+#.+$/.test(this.riotIdDraft().trim()));
   readonly canLink = computed(() => this.linkValid() && !this.riot.saving());
 
-  /** Cuándo se levanta el cooldown, ya formateado; null si no hay ninguno vivo. */
   readonly relinkAvailableAt = computed(() => {
     const iso = this.riot.relinkAvailableAt();
     return iso ? RELINK_FMT.format(new Date(iso)) : null;
   });
 
-  /** Un fallo de red no deja el bloque muerto: el store vuelve a intentarlo desde cero. */
   retryRiot(): void {
     this.riot.reload();
   }
 
-  /** `nf-select` emite `string`; aquí se estrecha al enum en vez de repartir `$any` por la vista. */
   setRegion(value: string): void {
     if ((RIOT_REGIONS as readonly string[]).includes(value)) this.regionDraft.set(value as RiotRegion);
   }
@@ -919,11 +1078,6 @@ export class Perfil {
     this.linking.set(false);
   }
 
-  /**
-   * Escritura pesimista: el diálogo no se cierra hasta que el servidor confirma. Si rechaza
-   * (la cuenta ya la tiene otro, cooldown vivo, Riot ID inválido) el borrador sobrevive para
-   * corregirlo, y el motivo sale del `code` del ProblemDetail — nunca de un texto fijo.
-   */
   async confirmLink(): Promise<void> {
     if (!this.canLink()) return;
     try {
@@ -939,7 +1093,6 @@ export class Perfil {
     }
   }
 
-  /** Desvincular es destructivo: no se ejecuta sin pasar por el diálogo. */
   askUnlink(): void {
     this.unlinking.set(this.riot.account());
   }
@@ -949,12 +1102,6 @@ export class Perfil {
     this.unlinking.set(null);
   }
 
-  /**
-   * No hay nada que refrescar más allá de este bloque: ninguna partida, rating ni estadística
-   * cuelga de la cuenta de Riot — todas anclan en el usuario. Lo que deja de funcionar es solo
-   * lo que la necesita de aquí en adelante (resolver un import por `puuid`, sembrar un rating
-   * que aún no existe).
-   */
   async confirmUnlink(): Promise<void> {
     try {
       const ok = await this.riot.unlink();
@@ -967,18 +1114,11 @@ export class Perfil {
     }
   }
 
-  // ── Conectar la app (deep-link + código de emparejamiento) ─────────
-  /** Modal de "Conectar la app" abierto. */
+  // ── Conectar app ──────────────────────────────────────────────────
   readonly connecting = signal(false);
-  /**
-   * Código que se está enseñando. Estado de UI **efímero**: es una credencial de un solo uso, así
-   * que vive aquí, en la vista, mientras el modal está abierto — nunca en el store compartido.
-   */
   readonly pairingCode = signal<PairingCode | null>(null);
-  /** "Copiado" transitorio tras pulsar copiar. */
   readonly copied = signal(false);
 
-  /** Reloj para la cuenta atrás; solo corre con el modal abierto (se limpia al cerrar y al destruir). */
   private readonly now = signal(Date.now());
   private tick: ReturnType<typeof setInterval> | null = null;
 
@@ -988,7 +1128,6 @@ export class Perfil {
     return Math.max(0, new Date(pc.expiresAt).getTime() - this.now());
   });
   readonly codeExpired = computed(() => this.pairingCode() !== null && this.codeRemainingMs() === 0);
-  /** "m:ss" para la cuenta atrás. */
   readonly codeCountdown = computed(() => {
     const total = Math.floor(this.codeRemainingMs() / 1000);
     const seconds = total % 60;
@@ -1008,11 +1147,6 @@ export class Perfil {
     this.stopTick();
   }
 
-  /**
-   * Emite un código nuevo (invalida el anterior). Pesimista y no reentrante: el botón queda
-   * deshabilitado mientras vuela (`riot.generatingCode()`). El código no se cachea en el store —
-   * es una credencial— y un fallo se traduce con `errorMessage`.
-   */
   async generateCode(): Promise<void> {
     if (this.riot.generatingCode()) return;
     try {
@@ -1032,7 +1166,7 @@ export class Perfil {
       this.copied.set(true);
       setTimeout(() => this.copied.set(false), 2000);
     } catch {
-      // Sin API de portapapeles o sin permiso: el código está a la vista para copiarlo a mano.
+      // Ignorar fallo de portapapeles
     }
   }
 
@@ -1049,7 +1183,6 @@ export class Perfil {
     }
   }
 
-  /** Avatar radial gradient from a hue, matching the roster/ranking look. */
   grad(hue: number): string {
     return `radial-gradient(circle at 32% 26%, hsl(${hue},90%,64%), hsl(${hue},78%,30%))`;
   }
@@ -1058,3 +1191,4 @@ export class Perfil {
     return opggUrl(tag);
   }
 }
+

@@ -5855,469 +5855,1180 @@ $touch: 44px;
   .cp-dots i { animation: none; }
 }
 
-/* ============ PERFIL (cross-group career card) ============ */
-/* ---- Hero: avatar + identity + win-rate ring ---- */
-.pf-hero {
+/* ============ PERFIL V2 (Dashboard Bento Grid & Cero Scroll Inútil) ============ */
+.pf-view {
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+/* ── Hero Unificado Compacto (~96px) ───────────────────────────────── */
+.pf-hero-compact {
   display: flex;
   align-items: center;
-  gap: 22px;
-  margin-bottom: 24px;
-  padding: 22px;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 16px;
+  padding: 16px 20px;
   border-radius: 12px;
   border: 1.5px solid var(--nf-border);
   border-top: 2px solid var(--nf-border-accent);
   background:
-    radial-gradient(120% 140% at 0% 0%, color-mix(in srgb, var(--nf-primary) 9%, transparent), transparent 60%),
+    radial-gradient(120% 140% at 0% 0%, color-mix(in srgb, var(--nf-primary) 8%, transparent), transparent 60%),
     var(--nf-surface-2);
 }
-.pf-hero__avatar {
+
+.pf-hero-compact__left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+  flex: 1;
+}
+
+.pf-hero-compact__avatar {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 84px;
-  height: 84px;
+  width: 58px;
+  height: 58px;
   flex: none;
-  border-radius: 18px;
+  border-radius: 14px;
   border: 2px solid var(--nf-border);
   font-family: var(--nf-mono);
   font-weight: 800;
-  font-size: 30px;
+  font-size: 22px;
   color: #fff;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.55);
+  overflow: hidden;
 }
-.pf-hero__avatar { overflow: hidden; }
-.pf-hero__avatar-img {
+
+.pf-hero-compact__avatar-img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
 }
-.pf-hero__id { flex: 1; min-width: 0; }
-.pf-hero__name {
-  margin: 0 0 4px;
-  font-weight: 800;
-  font-size: clamp(22px, 4vw, 30px);
-  letter-spacing: -0.5px;
-  color: var(--nf-text);
+
+.pf-hero-compact__info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
 }
-.pf-hero__tag { font-size: 13px; color: var(--nf-text-dim); margin-bottom: 12px; }
-.pf-hero__meta { display: flex; flex-wrap: wrap; gap: 8px; }
-/* mismo alto y margen que .pf-hero__name, para que el nombre no dé un salto al llegar */
-.pf-hero__sk-name { margin: 4px 0 8px; }
-.pf-hero__chip {
+
+.pf-hero-compact__name-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.pf-hero-compact__name {
+  margin: 0;
+  font-weight: 800;
+  font-size: clamp(20px, 2.5vw, 24px);
+  letter-spacing: -0.4px;
+  color: var(--nf-text);
+  line-height: 1.2;
+}
+
+.pf-badge-archetype {
   display: inline-flex;
   align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--nf-primary) 12%, var(--nf-surface));
+  border: 1px solid color-mix(in srgb, var(--nf-primary) 35%, transparent);
+  font-size: 11px;
+  font-weight: 700;
+}
+.pf-badge-archetype__icon { font-size: 12px; }
+.pf-badge-archetype__title { color: var(--nf-primary); }
+
+.pf-hero-compact__meta-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
   gap: 6px;
-  padding: 4px 10px;
-  border-radius: 6px;
-  font-size: 11.5px;
+}
+
+.pf-meta-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: 5px;
+  font-size: 11px;
   color: var(--nf-text-mid);
   background: var(--nf-surface);
   border: 1px solid var(--nf-border);
 }
-.pf-ping {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--nf-success);
-}
-.pf-hero__opgg {
-  display: inline-block;
-  margin-top: 14px;
-  font-size: 13px;
-  color: var(--nf-secondary);
-  text-decoration: none;
-  transition: color 0.14s;
-}
-.pf-hero__opgg:hover { color: var(--nf-text); }
 
-/* win-rate ring: conic fill driven by the --wr custom prop */
-.pf-ring {
+.pf-meta-chip--verified {
+  color: var(--nf-success);
+  border-color: color-mix(in srgb, var(--nf-success) 35%, transparent);
+  background: color-mix(in srgb, var(--nf-success) 8%, var(--nf-surface));
+}
+
+.pf-meta-chip--action {
+  cursor: pointer;
+  color: var(--nf-secondary);
+  border-color: color-mix(in srgb, var(--nf-secondary) 40%, transparent);
+  transition: background 0.14s, color 0.14s;
+}
+.pf-meta-chip--action:hover {
+  background: color-mix(in srgb, var(--nf-secondary) 15%, var(--nf-surface));
+  color: var(--nf-text);
+}
+
+/* Desempeño Rápido Hero (Winrate Ring + LP) */
+.pf-hero-compact__right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex: none;
+}
+
+.pf-hero-compact__kpi-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  background: var(--nf-surface);
+  border: 1px solid var(--nf-border);
+}
+
+.pf-hero-compact__ring {
   --wr: 50;
   --ring: var(--nf-success);
-  flex: none;
-  width: 116px;
-  height: 116px;
+  width: 54px;
+  height: 54px;
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background:
-    conic-gradient(var(--ring) calc(var(--wr) * 1%), var(--nf-border) 0);
+  flex: none;
+  background: conic-gradient(var(--ring) calc(var(--wr) * 1%), var(--nf-border) 0);
 }
-.pf-ring--lo { --ring: var(--nf-danger); }
-.pf-ring__inner {
-  width: 92px;
-  height: 92px;
+.pf-hero-compact__ring--lo { --ring: var(--nf-danger); }
+.pf-hero-compact__ring-inner {
+  width: 42px;
+  height: 42px;
   border-radius: 50%;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
   background: var(--nf-surface-2);
   border: 1px solid var(--nf-border);
 }
-.pf-ring__val { font-size: 26px; font-weight: 800; color: var(--nf-text); line-height: 1; }
-.pf-ring__lbl { font-size: 11px; color: var(--nf-text-dim); }
-@media (max-width: 560px) {
-  .pf-hero { flex-wrap: wrap; }
-  .pf-ring { order: -1; }
+.pf-hero-compact__ring-val {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--nf-text);
+  line-height: 1;
+}
+.pf-hero-compact__ring-lbl {
+  font-size: 8px;
+  color: var(--nf-text-dim);
 }
 
-/* ── Roles preferidos (preferencia global de cuenta) ───────────────── */
-.pf-roles {
-  margin-bottom: 24px;
-  padding: 18px;
-  border-radius: 12px;
+.pf-hero-compact__kpi-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.pf-hero-compact__record {
+  font-size: 13px;
+  font-weight: 700;
+}
+.pf-sep { color: var(--nf-text-dim); margin: 0 3px; }
+.pf-hero-compact__lp {
+  font-size: 11px;
+  font-weight: 700;
+}
+
+@media (max-width: 640px) {
+  .pf-hero-compact {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .pf-hero-compact__right {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+
+/* ── Barra de Pestañas de Navegación ───────────────────────────────── */
+.pf-tabs-bar {
+  margin-bottom: 18px;
+}
+
+/* ── Dashboard Bento Grid (Pestaña Resumen) ────────────────────────── */
+.pf-bento {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.pf-bento__col {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+@media (max-width: 920px) {
+  .pf-bento {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Tarjetas Reutilizables de Dashboard ───────────────────────────── */
+.pf-card {
+  padding: 16px 18px;
+  border-radius: 10px;
   border: 1.5px solid var(--nf-border);
   background: var(--nf-surface-2);
-}
-.pf-roles__actions { display: flex; flex: none; gap: 10px; }
-.pf-roles__grid {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  display: flex;
+  flex-direction: column;
   gap: 12px;
 }
 
-/* Una casilla por rol: el botón grande alterna el rol, la estrella lo marca
-   como principal (solo existe si el rol está seleccionado). */
-.role-tile {
-  position: relative;
-  border-radius: 10px;
+.pf-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.pf-card__title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pf-card__title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--nf-text-mid);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.pf-link-btn {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  font-size: 11.5px;
+  color: var(--nf-secondary);
+  cursor: pointer;
+  text-decoration: none;
+  transition: color 0.14s;
+}
+.pf-link-btn:hover { color: var(--nf-text); }
+
+/* ── Franja de KPIs Clave (KPI Strip) ──────────────────────────────── */
+.pf-kpi-strip {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+}
+
+.pf-kpi-tile {
+  padding: 12px 10px;
+  border-radius: 8px;
   border: 1.5px solid var(--nf-border);
-  background: var(--nf-inset);
-  transition: border-color 0.14s, background 0.14s, box-shadow 0.14s;
-}
-.role-tile:hover { border-color: var(--nf-border-strong); }
-.role-tile--on {
-  border-color: var(--nf-secondary);
-  background: var(--nf-elevated);
-}
-.role-tile--primary {
-  border-color: var(--nf-primary);
-  box-shadow: 0 0 0 1px var(--nf-primary);
-}
-.role-tile__pick {
+  background: var(--nf-surface-2);
   display: flex;
   flex-direction: column;
   align-items: center;
+  text-align: center;
+  gap: 3px;
+  transition: border-color 0.14s;
+}
+.pf-kpi-tile:hover {
+  border-color: var(--nf-border-strong);
+}
+.pf-kpi-tile__lbl {
+  font-size: 10.5px;
+  color: var(--nf-text-dim);
+}
+.pf-kpi-tile__val {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--nf-text);
+  line-height: 1.1;
+}
+.pf-kpi-tile__sub {
+  font-size: 10px;
+  color: var(--nf-text-mid);
+}
+
+@media (max-width: 600px) {
+  .pf-kpi-strip {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* ── Forma Reciente & Racha ────────────────────────────────────────── */
+.pf-streak-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--nf-success);
+  background: color-mix(in srgb, var(--nf-success) 12%, var(--nf-surface));
+  border: 1px solid color-mix(in srgb, var(--nf-success) 35%, transparent);
+}
+.pf-streak-badge--lose {
+  color: var(--nf-danger);
+  background: color-mix(in srgb, var(--nf-danger) 12%, var(--nf-surface));
+  border-color: color-mix(in srgb, var(--nf-danger) 35%, transparent);
+}
+.pf-streak-badge__label {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--nf-text-mid);
+}
+
+.pf-form-chain {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.pf-match-node {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 0.12s, box-shadow 0.12s;
+}
+.pf-match-node:hover {
+  transform: translateY(-2px) scale(1.1);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+.pf-match-node--win {
+  color: var(--nf-success);
+  background: color-mix(in srgb, var(--nf-success) 16%, var(--nf-surface));
+  border: 1px solid color-mix(in srgb, var(--nf-success) 45%, transparent);
+}
+.pf-match-node--loss {
+  color: var(--nf-danger);
+  background: color-mix(in srgb, var(--nf-danger) 14%, var(--nf-surface));
+  border: 1px solid color-mix(in srgb, var(--nf-danger) 40%, transparent);
+}
+.pf-match-node--mvp {
+  border-color: var(--nf-warning) !important;
+  box-shadow: 0 0 6px color-mix(in srgb, var(--nf-warning) 40%, transparent);
+}
+.pf-match-node__crown {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  font-size: 9px;
+  color: var(--nf-warning);
+}
+
+.pf-form-tooltip {
+  padding: 8px 12px;
+  border-radius: 7px;
+  border: 1px solid var(--nf-border-strong);
+  background: var(--nf-surface);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 11px;
+  animation: pfPop 0.14s ease-out;
+}
+.pf-form-tooltip__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.pf-form-tooltip__time {
+  color: var(--nf-text-dim);
+}
+.pf-form-tooltip__row--sub {
+  color: var(--nf-text-mid);
+}
+
+@keyframes pfPop {
+  from { opacity: 0; transform: translateY(3px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Top 3 Campeones Insignia ──────────────────────────────────────── */
+.pf-mini-champs {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pf-mini-champ {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--nf-border);
+  background: var(--nf-surface);
+}
+
+.pf-mini-champ__avatar {
+  flex: none;
+}
+
+.pf-mini-champ__meta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
   gap: 4px;
-  width: 100%;
-  padding: 16px 8px 14px;
-  border: 0;
+}
+
+.pf-mini-champ__name-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pf-mini-champ__name {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--nf-text);
+}
+
+.pf-mini-champ__role {
+  font-size: 10px;
+  color: var(--nf-text-dim);
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: var(--nf-surface-2);
+  border: 1px solid var(--nf-border);
+}
+
+.pf-mini-champ__bar {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--nf-border);
+  overflow: hidden;
+}
+
+.pf-mini-champ__bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: var(--nf-success);
+}
+.pf-mini-champ__bar-fill--lo { background: var(--nf-danger); }
+
+.pf-mini-champ__stats {
+  text-align: right;
+  flex: none;
+}
+
+.pf-mini-champ__wr {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: var(--nf-success);
+  display: block;
+  line-height: 1;
+}
+
+.pf-mini-champ__games {
+  font-size: 10.5px;
+  color: var(--nf-text-dim);
+  margin-top: 2px;
+  display: block;
+}
+
+/* ── Rivalidades & Sinergias (Cara a Cara Compacto) ────────────────── */
+.pf-h2h-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pf-h2h-compact {
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--nf-border);
+  background: var(--nf-surface);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.pf-h2h-compact--ally {
+  border-left: 3px solid var(--nf-secondary);
+}
+.pf-h2h-compact--nemesis {
+  border-left: 3px solid var(--nf-primary);
+}
+
+.pf-h2h-compact__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--nf-text-mid);
+}
+
+.pf-h2h-compact__body {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pf-h2h-compact__avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border-radius: 7px;
+  font-family: var(--nf-mono);
+  font-weight: 700;
+  font-size: 12px;
+  color: #fff;
+}
+
+.pf-h2h-compact__name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--nf-text);
+}
+
+.pf-h2h-compact__sub {
+  font-size: 11px;
+  color: var(--nf-text-dim);
+}
+
+/* ── Tus Grupos (Lista Compacta) ───────────────────────────────────── */
+.pf-group-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pf-group-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--nf-border);
+  background: var(--nf-surface);
+  transition: border-color 0.14s;
+}
+.pf-group-item:hover { border-color: var(--nf-border-strong); }
+
+.pf-group-item__avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border-radius: 7px;
+  font-family: var(--nf-mono);
+  font-weight: 700;
+  font-size: 12px;
+  color: #fff;
+}
+
+.pf-group-item__info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pf-group-item__name-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.pf-group-item__name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--nf-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pf-group-item__rank {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--nf-text-mid);
+}
+
+.pf-group-item__sub {
+  font-size: 11px;
+  color: var(--nf-text-dim);
+}
+
+/* ── Pestaña 2: ADN & Telemetría 5v5 ───────────────────────────────── */
+.pf-tab-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.pf-dna-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px;
+}
+
+.pf-dna-card {
+  padding: 14px 16px;
+  border-radius: 10px;
+  border: 1.5px solid var(--nf-border);
+  background: var(--nf-surface-2);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: transform 0.14s, border-color 0.14s;
+}
+.pf-dna-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--nf-border-strong);
+}
+
+.pf-dna-card__head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--nf-text-dim);
+}
+
+.pf-dna-card__big {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--nf-text);
+  line-height: 1;
+}
+
+.pf-dna-card__sub {
+  font-size: 11px;
+  color: var(--nf-text-dim);
+}
+
+.pf-dna-card__metrics {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: auto;
+  padding-top: 8px;
+  border-top: 1px dashed var(--nf-border);
+  font-size: 11px;
+  color: var(--nf-text-mid);
+}
+
+/* Tabla de Rendimiento por Rol */
+.pf-role-table {
+  display: flex;
+  flex-direction: column;
+  overflow-x: auto;
+}
+
+.pf-role-table__row {
+  display: grid;
+  grid-template-columns: 1.5fr 1.2fr 1fr 1.2fr 1fr;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--nf-border);
+  font-size: 12px;
+  align-items: center;
+}
+.pf-role-table__row:last-child { border-bottom: none; }
+.pf-role-table__row--head {
+  background: var(--nf-surface);
+  font-weight: 700;
+  font-size: 11px;
+  color: var(--nf-text-dim);
+  text-transform: uppercase;
+}
+
+.pf-role-table__lane {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  color: var(--nf-text);
+}
+
+.pf-role-table__tag {
+  font-size: 10.5px;
+  color: var(--nf-text-dim);
+}
+
+/* ── Pestaña 3: Catálogo de Campeones ──────────────────────────────── */
+.pf-champ-toolbar-compact {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.pf-champ-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.pf-champ-tile {
+  padding: 12px 14px;
   border-radius: 9px;
+  border: 1.5px solid var(--nf-border);
+  background: var(--nf-surface-2);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: transform 0.12s, border-color 0.12s;
+}
+.pf-champ-tile:hover {
+  transform: translateY(-2px);
+  border-color: var(--nf-border-strong);
+}
+
+.pf-champ-tile__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pf-champ-tile__avatar {
+  flex: none;
+}
+
+.pf-champ-tile__info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pf-champ-tile__name-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pf-champ-tile__name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--nf-text);
+}
+
+.pf-champ-tile__role {
+  font-size: 10px;
+  color: var(--nf-text-dim);
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: var(--nf-surface);
+  border: 1px solid var(--nf-border);
+}
+
+.pf-champ-tile__kda {
+  font-size: 11px;
+  color: var(--nf-text-mid);
+}
+
+.pf-champ-tile__wr-side {
+  text-align: right;
+  flex: none;
+}
+
+.pf-champ-tile__wr {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--nf-success);
+  display: block;
+}
+
+.pf-champ-tile__games {
+  font-size: 10.5px;
+  color: var(--nf-text-dim);
+  display: block;
+}
+
+.pf-champ-tile__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--nf-border);
+}
+
+.pf-champ-tile__bar {
+  flex: 1;
+  height: 5px;
+  border-radius: 2.5px;
+  background: var(--nf-border);
+  overflow: hidden;
+}
+
+.pf-champ-tile__bar-fill {
+  height: 100%;
+  border-radius: 2.5px;
+  background: var(--nf-success);
+}
+.pf-champ-tile__bar-fill--lo { background: var(--nf-danger); }
+
+.pf-champ-tile__items {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+}
+
+.pf-champ-tile__item-slot {
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 6px;
+  color: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+/* ── Pestaña 4: Roles & Ajustes (Selector Horizontal Compacto) ─────── */
+.pf-roles-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pf-help-toggle {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1px solid var(--nf-border);
+  background: var(--nf-surface);
+  color: var(--nf-text-dim);
+  font-size: 11px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.pf-help-toggle--on {
+  color: var(--nf-primary);
+  border-color: var(--nf-primary);
+}
+
+.pf-roles-strip {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+}
+
+.pf-role-pill {
+  position: relative;
+  border-radius: 8px;
+  border: 1.5px solid var(--nf-border);
+  background: var(--nf-surface);
+  transition: border-color 0.14s, background 0.14s;
+}
+.pf-role-pill:hover { border-color: var(--nf-border-strong); }
+.pf-role-pill--on {
+  border-color: var(--nf-secondary);
+  background: color-mix(in srgb, var(--nf-secondary) 8%, var(--nf-surface));
+}
+.pf-role-pill--primary {
+  border-color: var(--nf-primary);
+  box-shadow: 0 0 0 1px var(--nf-primary);
+}
+
+.pf-role-pill__btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 10px 8px;
+  border: 0;
   background: transparent;
   cursor: pointer;
   color: inherit;
   font: inherit;
 }
-.role-tile__pick:focus-visible {
-  outline: 2px solid var(--nf-secondary);
-  outline-offset: 2px;
-}
-.role-tile__glyph {
-  font-size: 24px;
-  line-height: 1;
+.pf-role-pill__glyph {
+  font-size: 18px;
   color: var(--nf-text-dim);
-  transition: color 0.14s;
 }
-.role-tile--on .role-tile__glyph { color: var(--nf-secondary); }
-.role-tile--primary .role-tile__glyph { color: var(--nf-primary); }
-.role-tile__code {
-  font-size: 13px;
+.pf-role-pill--on .pf-role-pill__glyph { color: var(--nf-secondary); }
+.pf-role-pill--primary .pf-role-pill__glyph { color: var(--nf-primary); }
+
+.pf-role-pill__code {
+  font-size: 12px;
   font-weight: 700;
   color: var(--nf-text-mid);
 }
-.role-tile--on .role-tile__code { color: var(--nf-text); }
-.role-tile__name { font-size: 11px; color: var(--nf-text-dim); }
+.pf-role-pill--on .pf-role-pill__code { color: var(--nf-text); }
+.pf-role-pill__name { font-size: 11px; color: var(--nf-text-dim); }
 
-.role-tile__star {
+.pf-role-pill__star {
   position: absolute;
-  top: 6px;
-  right: 6px;
+  top: 4px;
+  right: 4px;
+  width: 18px;
+  height: 18px;
+  border: 0;
+  background: transparent;
+  color: var(--nf-text-dim);
+  font-size: 11px;
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
-  padding: 0;
-  border: 0;
-  border-radius: var(--nf-radius-sm);
-  background: transparent;
-  font-size: 13px;
-  line-height: 1;
-  color: var(--nf-text-dim);
-  cursor: pointer;
-  transition: color 0.14s, transform 0.14s;
 }
-.role-tile__star:hover { color: var(--nf-warning); transform: scale(1.15); }
-.role-tile__star:focus-visible {
-  outline: 2px solid var(--nf-secondary);
-  outline-offset: 1px;
-}
-.role-tile--primary .role-tile__star {
+.pf-role-pill__star:hover { color: var(--nf-warning); }
+.pf-role-pill--primary .pf-role-pill__star {
   color: var(--nf-warning);
   cursor: default;
 }
 
-.pf-roles__foot {
+.pf-roles-foot {
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 16px;
-  margin-top: 16px;
-  padding-top: 16px;
+  gap: 12px;
+  padding-top: 10px;
   border-top: 1px dashed var(--nf-border);
 }
-.pf-roles__flex { display: flex; align-items: center; gap: 12px; }
-.pf-roles__flexname { font-weight: 700; font-size: 14px; color: var(--nf-text); }
-.pf-roles__flexsub { font-size: 12px; color: var(--nf-text-dim); }
-.pf-roles__hint {
-  flex: 1;
-  min-width: 240px;
-  margin: 0;
-  text-align: right;
-  font-size: 12px;
-  line-height: 1.5;
-  color: var(--nf-text-dim);
+
+.pf-roles-flex {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
-.pf-roles__hint strong { color: var(--nf-text-mid); font-weight: 700; }
-.pf-roles__warn {
-  flex: 1;
-  min-width: 240px;
-  margin: 0;
-  text-align: right;
-  font-size: 11px;
-  color: var(--nf-warning);
+.pf-roles-flex__text {
+  font-size: 12px;
+  color: var(--nf-text-mid);
 }
 
-.pf-roles--error {
+.pf-warn { font-size: 11px; color: var(--nf-warning); }
+.pf-hint { font-size: 11px; color: var(--nf-text-dim); }
+
+@media (max-width: 680px) {
+  .pf-roles-strip {
+    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  }
+}
+
+/* ── Gestión de Cuenta Riot ────────────────────────────────────────── */
+.pf-riot-box {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  flex-wrap: wrap;
   gap: 16px;
-  border-left: 2px solid var(--nf-danger);
-}
-.pf-roles__errtext { margin: 0; font-size: 13px; color: var(--nf-text-dim); }
-
-@media (max-width: 720px) {
-  .pf-roles__grid { grid-template-columns: repeat(auto-fit, minmax(92px, 1fr)); }
-  .pf-roles__hint, .pf-roles__warn { text-align: left; }
-}
-
-/* ── Cuenta de Riot vinculada ──────────────────────────────────────── */
-.pf-riot {
-  display: flex;
-  align-items: center;
-  gap: 18px;
-  margin-bottom: 24px;
-  padding: 18px;
-  border-radius: 12px;
+  padding: 14px 16px;
+  border-radius: 9px;
   border: 1.5px solid var(--nf-border);
-  background: var(--nf-surface-2);
+  background: var(--nf-surface);
 }
-.pf-riot--linked { border-left: 2px solid var(--nf-success); }
-.pf-riot--empty { flex-wrap: wrap; }
-.pf-riot__logo {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 52px;
-  height: 52px;
+.pf-riot-box--linked {
+  border-left: 3px solid var(--nf-success);
+}
+.pf-riot-box--empty {
+  flex-wrap: wrap;
+}
+
+.pf-riot-box__logo {
   flex: none;
-  border-radius: 12px;
-  font-size: 24px;
-  font-weight: 800;
-  color: #fff;
-  background: linear-gradient(135deg, #eb0029, #a10018);
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
 }
-.pf-riot__meta { flex: 1; min-width: 0; }
-.pf-riot__id {
-  font-weight: 800;
-  font-size: 18px;
-  letter-spacing: -0.3px;
+
+.pf-riot-box__meta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.pf-riot-box__id {
+  font-size: 15px;
+  font-weight: 700;
   color: var(--nf-text);
-  margin-bottom: 6px;
-  word-break: break-word;
 }
-.pf-riot__sub { display: flex; flex-wrap: wrap; gap: 8px; }
-.pf-riot__chip {
-  display: inline-flex;
+
+.pf-riot-box__sub {
+  display: flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 10px;
-  border-radius: 6px;
-  font-size: 11px;
-  color: var(--nf-text-mid);
-  background: var(--nf-surface);
-  border: 1px solid var(--nf-border);
 }
-.pf-riot__chip--ok { color: var(--nf-success); }
-.pf-riot__actions {
+
+.pf-riot-box__actions {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 10px;
   flex: none;
 }
-.pf-riot__actions .pf-hero__opgg { margin-top: 0; }
-.pf-riot__cta { flex: 1; min-width: 220px; }
-.pf-riot__ctarow { display: flex; align-items: center; gap: 10px; flex: none; flex-wrap: wrap; }
-.pf-riot__ctatitle { font-weight: 700; font-size: 15px; color: var(--nf-text); margin-bottom: 4px; }
-.pf-riot__ctatext { margin: 0; font-size: 13px; color: var(--nf-text-dim); }
-@media (max-width: 560px) {
-  .pf-riot--linked { flex-wrap: wrap; }
-  .pf-riot__actions { width: 100%; justify-content: space-between; }
-}
 
-/* cabecera del modal de vinculación: logo de Riot + explicación */
-.riot-link {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  margin-bottom: 18px;
+.pf-riot-box__title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--nf-text);
+  margin-bottom: 2px;
 }
-.riot-link__text { margin: 0; font-size: 13px; line-height: 1.5; color: var(--nf-text-dim); }
-
-/* cuerpo de un diálogo de confirmación (acción destructiva) */
-.confirm__text {
-  margin: 0 0 22px;
-  font-size: 13px;
-  line-height: 1.6;
+.pf-riot-box__text {
+  margin: 0;
+  font-size: 12px;
   color: var(--nf-text-dim);
 }
-.confirm__text strong { color: var(--nf-text); word-break: break-word; }
+.pf-riot-box__cta-btns {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 
-/* ---- Global record strip (6 cols) ---- */
-.pf-totals { grid-template-columns: repeat(6, 1fr); }
-.pf-pos { color: var(--nf-success) !important; }
-.pf-neg { color: var(--nf-danger) !important; }
-@media (max-width: 760px) { .pf-totals { grid-template-columns: repeat(3, 1fr); } }
-@media (max-width: 420px) { .pf-totals { grid-template-columns: repeat(2, 1fr); } }
+.pf-riot-verify-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--nf-primary) 8%, var(--nf-surface-2));
+  border: 1px solid color-mix(in srgb, var(--nf-primary) 25%, transparent);
+  font-size: 11.5px;
+  color: var(--nf-text-mid);
+}
 
-/* ---- Streak + recent form ---- */
-.pf-form {
+/* ── Módulo VS Battle Card (Perfil Miembro) ────────────────────────── */
+.pf-vs-card {
+  border-left: 3px solid var(--nf-secondary);
+}
+
+.pf-vs-grid {
   display: grid;
-  grid-template-columns: minmax(170px, 0.7fr) 1fr;
-  gap: 14px;
-  margin-bottom: 26px;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
 }
-@media (max-width: 560px) { .pf-form { grid-template-columns: 1fr; } }
-.pf-form__streak {
+
+.pf-vs-tile {
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--nf-border);
+  background: var(--nf-surface);
   display: flex;
   flex-direction: column;
-  justify-content: center;
   gap: 4px;
-  padding: 18px;
-  border-radius: 10px;
-  border: 1.5px solid var(--nf-border);
-  border-left: 3px solid var(--nf-success);
-  background: color-mix(in srgb, var(--nf-success) 6%, var(--nf-surface-2));
 }
-.pf-form__streak--lose {
-  border-left-color: var(--nf-danger);
-  background: color-mix(in srgb, var(--nf-danger) 6%, var(--nf-surface-2));
+.pf-vs-tile--synergy {
+  border-left: 2px solid var(--nf-secondary);
 }
-.pf-form__big { font-size: 40px; font-weight: 800; line-height: 1; color: var(--nf-text); }
-.pf-form__unit { font-size: 18px; margin-left: 3px; color: var(--nf-success); }
-.pf-form__streak--lose .pf-form__unit { color: var(--nf-danger); }
-.pf-form__cap { font-size: 12px; color: var(--nf-text-mid); }
-.pf-form__sub { font-size: 11.5px; color: var(--nf-text-dim); }
-.pf-form__recent {
+.pf-vs-tile--rivalry {
+  border-left: 2px solid var(--nf-primary);
+}
+
+.pf-vs-tile__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--nf-text-dim);
+}
+
+.pf-vs-tile__val {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--nf-text);
+  line-height: 1.1;
+}
+
+.pf-vs-tile__sub {
+  font-size: 11px;
+  color: var(--nf-text-mid);
+}
+
+.pf-compare-compact {
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  padding: 18px;
-  border-radius: 10px;
-  border: 1.5px solid var(--nf-border);
-  background: var(--nf-surface-2);
-}
-.pf-pills { display: flex; flex-wrap: wrap; gap: 6px; }
-.pf-pill {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 26px;
-  border-radius: 6px;
-  font-family: var(--nf-mono);
-  font-size: 12px;
-  font-weight: 700;
-}
-.pf-pill--w { color: var(--nf-success); background: color-mix(in srgb, var(--nf-success) 16%, transparent); border: 1px solid color-mix(in srgb, var(--nf-success) 40%, transparent); }
-.pf-pill--l { color: var(--nf-danger); background: color-mix(in srgb, var(--nf-danger) 14%, transparent); border: 1px solid color-mix(in srgb, var(--nf-danger) 36%, transparent); }
-
-/* ---- Head-to-head: el pie sigue el acento de la tarjeta ---- */
-.pf-h2h .hl__score {
-  color: var(--ac);
-  background: color-mix(in srgb, var(--ac) 12%, transparent);
-  border-color: color-mix(in srgb, var(--ac) 36%, transparent);
-}
-
-/* ---- Most-played champions ---- */
-/* hueco para la sombra de la ventana, para que no invada la seccion siguiente */
-.pf-champ-window { display: block; margin-bottom: 26px; }
-.pf-champs { display: flex; flex-direction: column; }
-.pf-champ {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 13px 18px;
-  border-bottom: 1px solid var(--nf-border);
-}
-.pf-champ:last-child { border-bottom: none; }
-.pf-champ__meta { flex: 1; min-width: 0; }
-.pf-champ__name { font-size: 15px; color: var(--nf-text); margin-bottom: 7px; }
-.pf-champ__role { font-size: 11.5px; color: var(--nf-text-dim); margin-left: 6px; }
-.pf-champ__bar {
-  height: 6px;
-  border-radius: 3px;
-  background: var(--nf-border);
+  border-radius: 8px;
+  border: 1px solid var(--nf-border);
+  background: var(--nf-surface);
   overflow: hidden;
 }
-.pf-champ__fill { display: block; height: 100%; border-radius: 3px; background: var(--nf-success); }
-.pf-champ__fill--lo { background: var(--nf-danger); }
-.pf-champ__nums { text-align: right; flex: none; }
-.pf-champ__wr { display: block; font-size: 16px; font-weight: 800; color: var(--nf-success); line-height: 1; }
-.pf-champ__games { font-size: 11.5px; color: var(--nf-text-dim); }
 
-/* ---- Per-group breakdown ---- */
-.pf-groups { display: flex; flex-direction: column; gap: 10px; }
-.pf-group {
-  --grp-c1: var(--nf-secondary);
-  --grp-c2: var(--nf-tertiary);
-  display: flex;
+.pf-compare-compact__head,
+.pf-compare-compact__row {
+  display: grid;
+  grid-template-columns: 1fr 2fr 1fr;
+  padding: 8px 14px;
   align-items: center;
-  gap: 14px;
-  padding: 13px 16px;
-  border-radius: 8px;
-  border: 1.5px solid var(--nf-border);
-  border-left: 3px solid var(--grp-c1);
+  font-size: 11.5px;
+}
+
+.pf-compare-compact__head {
   background: var(--nf-surface-2);
-  transition: border-color 0.14s, background 0.14s;
-}
-.pf-group:hover { border-color: var(--nf-border-strong); background: var(--nf-surface); }
-.pf-group__avatar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  flex: none;
-  border-radius: 8px;
-  font-family: var(--nf-mono);
   font-weight: 700;
-  font-size: 14px;
-  color: #fff;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-  background: linear-gradient(135deg, var(--grp-c1), var(--grp-c2));
+  font-size: 11px;
+  color: var(--nf-text-dim);
+  border-bottom: 1px solid var(--nf-border);
 }
-.pf-group__meta { flex: 1; min-width: 0; }
-.pf-group__name { font-size: 15px; color: var(--nf-text); }
-.pf-group__sub { font-size: 12px; color: var(--nf-text-dim); margin-top: 3px; }
-.pf-group__wr { font-size: 18px; font-weight: 800; color: var(--nf-success); flex: none; }
+
+.pf-compare-compact__row {
+  border-bottom: 1px solid var(--nf-border);
+}
+.pf-compare-compact__row:last-child { border-bottom: none; }
+
+.pf-compare-compact__col--me,
+.pf-compare-compact__val--me {
+  text-align: left;
+  font-weight: 700;
+}
+
+.pf-compare-compact__col--metric,
+.pf-compare-compact__label {
+  text-align: center;
+  color: var(--nf-text-mid);
+}
+
+.pf-compare-compact__col--foe,
+.pf-compare-compact__val--foe {
+  text-align: right;
+  font-weight: 700;
+}
+
+@media (max-width: 600px) {
+  .pf-vs-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+
 
 /* ============ DETALLE DE GRUPO (real): miembros + invitar ============ */
 .gd-members { display: flex; flex-direction: column; }
