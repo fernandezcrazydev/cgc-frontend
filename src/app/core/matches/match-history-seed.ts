@@ -1,5 +1,6 @@
-import { Match, MatchParticipant, ParticipantStats } from './models';
-import { GROUPS, REAL_CHAMPION_IDS } from '../lobby';
+import { Match, MatchMilestones, MatchParticipant, TeamSummary } from './models';
+import { GROUPS } from '../lobby';
+import { hash } from '../group-ranking';
 
 /** Items reales con IDs típicos de League of Legends */
 export const MOCK_ITEMS = {
@@ -40,11 +41,8 @@ export const SEED_MATCHES: Match[] = [
     groupId: 'lan-challenger',
     group: getGroupCtx('lan-challenger'),
     source: 'import',
-    mode: '5v5 · Competitivo',
     durationSeconds: 1934,
-    durationFormatted: '32m 14s',
     decidedAt: '2026-06-23T21:45:00Z',
-    dateFormatted: '23 JUN · 21:45',
     winningTeam: 'blue',
     mvpParticipantId: 'p-blue-mid-1',
     blueTeam: {
@@ -53,7 +51,7 @@ export const SEED_MATCHES: Match[] = [
       totalKills: 28,
       totalDeaths: 19,
       totalAssists: 56,
-      totalGold: 68420,
+      totalGold: 64420,
       totalDamage: 92400,
       dragons: 3,
       barons: 1,
@@ -167,7 +165,7 @@ export const SEED_MATCHES: Match[] = [
       totalKills: 19,
       totalDeaths: 28,
       totalAssists: 38,
-      totalGold: 61300,
+      totalGold: 57300,
       totalDamage: 71200,
       dragons: 1,
       barons: 0,
@@ -284,11 +282,8 @@ export const SEED_MATCHES: Match[] = [
     groupId: 'lan-challenger',
     group: getGroupCtx('lan-challenger'),
     source: 'import',
-    mode: '5v5 · Competitivo',
     durationSeconds: 1680,
-    durationFormatted: '28m 00s',
     decidedAt: '2026-06-23T20:58:00Z',
-    dateFormatted: '23 JUN · 20:58',
     winningTeam: 'red',
     mvpParticipantId: 'p-red-mid-2',
     blueTeam: {
@@ -296,8 +291,8 @@ export const SEED_MATCHES: Match[] = [
       won: false,
       totalKills: 14,
       totalDeaths: 27,
-      totalAssists: 26,
-      totalGold: 48900,
+      totalAssists: 22,
+      totalGold: 47940,
       totalDamage: 52100,
       dragons: 1,
       barons: 0,
@@ -336,7 +331,7 @@ export const SEED_MATCHES: Match[] = [
           wasAutofill: false,
           lpDelta: -15,
           stats: {
-            kills: 4, deaths: 7, assists: 11, cs: 198, csPerMin: 7.1, gold: 11240,
+            kills: 4, deaths: 7, assists: 7, cs: 198, csPerMin: 7.1, gold: 11240,
             totalDamageToChampions: 15800, damageSharePercentage: 30, damageTaken: 26400,
             visionScore: 36, wardsPlaced: 19, wardsKilled: 7,
             items: [MOCK_ITEMS.tomoArcano, MOCK_ITEMS.cetroAbisal, MOCK_ITEMS.botasVeloces, MOCK_ITEMS.veloBanshee, null, null, MOCK_ITEMS.trinketRojo],
@@ -397,7 +392,7 @@ export const SEED_MATCHES: Match[] = [
           lpDelta: -15,
           stats: {
             kills: 1, deaths: 3, assists: 5, cs: 22, csPerMin: 0.8, gold: 6800,
-            totalDamageToChampions: 2200, damageSharePercentage: 5, damageTaken: 14100,
+            totalDamageToChampions: 2200, damageSharePercentage: 4, damageTaken: 14100,
             visionScore: 48, wardsPlaced: 24, wardsKilled: 8,
             items: [MOCK_ITEMS.tomoArcano, MOCK_ITEMS.botasVeloces, null, null, null, null, MOCK_ITEMS.trinketRojo],
             spells: [4, 14], goldAt14: 2300, csAt14: 12, wonLane: false,
@@ -528,11 +523,8 @@ export const SEED_MATCHES: Match[] = [
     groupId: 'scrim-squad',
     group: getGroupCtx('scrim-squad'),
     source: 'import',
-    mode: '5v5 · Scrim Oficial',
     durationSeconds: 2460,
-    durationFormatted: '41m 00s',
     decidedAt: '2026-06-22T23:10:00Z',
-    dateFormatted: '22 JUN · 23:10',
     winningTeam: 'blue',
     mvpParticipantId: 'p-blue-mid-3',
     blueTeam: {
@@ -541,7 +533,7 @@ export const SEED_MATCHES: Match[] = [
       totalKills: 34,
       totalDeaths: 26,
       totalAssists: 68,
-      totalGold: 84200,
+      totalGold: 78330,
       totalDamage: 118400,
       dragons: 4,
       barons: 2,
@@ -655,7 +647,7 @@ export const SEED_MATCHES: Match[] = [
       totalKills: 26,
       totalDeaths: 34,
       totalAssists: 52,
-      totalGold: 76800,
+      totalGold: 70800,
       totalDamage: 98200,
       dragons: 2,
       barons: 0,
@@ -772,11 +764,8 @@ export const SEED_MATCHES: Match[] = [
     groupId: 'night-owls',
     group: getGroupCtx('night-owls'),
     source: 'import',
-    mode: '5v5 · Casual',
     durationSeconds: 1560,
-    durationFormatted: '26m 00s',
     decidedAt: '2026-06-21T01:34:00Z',
-    dateFormatted: '21 JUN · 01:34',
     winningTeam: 'blue',
     mvpParticipantId: 'p-blue-sup-4',
     blueTeam: {
@@ -785,8 +774,8 @@ export const SEED_MATCHES: Match[] = [
       totalKills: 25,
       totalDeaths: 12,
       totalAssists: 58,
-      totalGold: 54300,
-      totalDamage: 69800,
+      totalGold: 57820,
+      totalDamage: 76700,
       dragons: 3,
       barons: 1,
       towers: 8,
@@ -805,7 +794,7 @@ export const SEED_MATCHES: Match[] = [
           lpDelta: 19,
           stats: {
             kills: 5, deaths: 3, assists: 8, cs: 184, csPerMin: 7.1, gold: 11400,
-            totalDamageToChampions: 14200, damageSharePercentage: 20, damageTaken: 19400,
+            totalDamageToChampions: 14200, damageSharePercentage: 19, damageTaken: 19400,
             visionScore: 19, wardsPlaced: 10, wardsKilled: 3,
             items: [MOCK_ITEMS.egidaSolar, MOCK_ITEMS.botasVeloces, MOCK_ITEMS.mazaEspinada, null, null, null, MOCK_ITEMS.trinketAmarillo],
             spells: [4, 12], goldAt14: 4100, csAt14: 104, wonLane: true,
@@ -825,7 +814,7 @@ export const SEED_MATCHES: Match[] = [
           lpDelta: 21,
           stats: {
             kills: 7, deaths: 2, assists: 11, cs: 154, csPerMin: 5.9, gold: 11800,
-            totalDamageToChampions: 16100, damageSharePercentage: 23, damageTaken: 18900,
+            totalDamageToChampions: 16100, damageSharePercentage: 21, damageTaken: 18900,
             visionScore: 36, wardsPlaced: 18, wardsKilled: 7,
             items: [MOCK_ITEMS.hidraVoraz, MOCK_ITEMS.botasVeloces, MOCK_ITEMS.dagaFilo, null, null, null, MOCK_ITEMS.trinketRojo],
             spells: [4, 11], goldAt14: 4400, csAt14: 92, wonLane: true,
@@ -845,7 +834,7 @@ export const SEED_MATCHES: Match[] = [
           lpDelta: 20,
           stats: {
             kills: 6, deaths: 2, assists: 10, cs: 198, csPerMin: 7.6, gold: 12600,
-            totalDamageToChampions: 19800, damageSharePercentage: 28, damageTaken: 11200,
+            totalDamageToChampions: 19800, damageSharePercentage: 26, damageTaken: 11200,
             visionScore: 24, wardsPlaced: 12, wardsKilled: 5,
             items: [MOCK_ITEMS.sombreroRabadon, MOCK_ITEMS.tomoArcano, MOCK_ITEMS.botasVeloces, null, null, null, MOCK_ITEMS.trinketAmarillo],
             spells: [4, 14], goldAt14: 4600, csAt14: 114, wonLane: true,
@@ -865,7 +854,7 @@ export const SEED_MATCHES: Match[] = [
           lpDelta: 22,
           stats: {
             kills: 5, deaths: 1, assists: 8, cs: 204, csPerMin: 7.8, gold: 12900,
-            totalDamageToChampions: 14200, damageSharePercentage: 20, damageTaken: 8900,
+            totalDamageToChampions: 14200, damageSharePercentage: 19, damageTaken: 8900,
             visionScore: 18, wardsPlaced: 9, wardsKilled: 3,
             items: [MOCK_ITEMS.hojaInfinita, MOCK_ITEMS.botasVeloces, MOCK_ITEMS.dagaFilo, null, null, null, MOCK_ITEMS.trinketAmarillo],
             spells: [4, 7], goldAt14: 4300, csAt14: 116, wonLane: true,
@@ -885,7 +874,7 @@ export const SEED_MATCHES: Match[] = [
           lpDelta: 24,
           stats: {
             kills: 2, deaths: 4, assists: 21, cs: 64, csPerMin: 2.5, gold: 9120,
-            totalDamageToChampions: 12400, damageSharePercentage: 18, damageTaken: 9800,
+            totalDamageToChampions: 12400, damageSharePercentage: 16, damageTaken: 9800,
             visionScore: 64, wardsPlaced: 32, wardsKilled: 12,
             items: [MOCK_ITEMS.tomoArcano, MOCK_ITEMS.egidaSolar, MOCK_ITEMS.botasVeloces, MOCK_ITEMS.veloBanshee, null, null, MOCK_ITEMS.trinketRojo],
             spells: [4, 14], goldAt14: 3100, csAt14: 24, wonLane: true, isMvp: true,
@@ -1016,11 +1005,8 @@ export const SEED_MATCHES: Match[] = [
     groupId: 'arcane-five',
     group: getGroupCtx('arcane-five'),
     source: 'import',
-    mode: '5v5 · Flex',
     durationSeconds: 2280,
-    durationFormatted: '38m 00s',
     decidedAt: '2026-06-20T22:19:00Z',
-    dateFormatted: '20 JUN · 22:19',
     winningTeam: 'blue',
     mvpParticipantId: 'p-blue-adc-5',
     blueTeam: {
@@ -1029,8 +1015,8 @@ export const SEED_MATCHES: Match[] = [
       totalKills: 39,
       totalDeaths: 28,
       totalAssists: 72,
-      totalGold: 78900,
-      totalDamage: 108400,
+      totalGold: 72040,
+      totalDamage: 109400,
       dragons: 3,
       barons: 2,
       towers: 9,
@@ -1109,7 +1095,7 @@ export const SEED_MATCHES: Match[] = [
           lpDelta: 23,
           stats: {
             kills: 15, deaths: 6, assists: 9, cs: 226, csPerMin: 5.9, gold: 16240,
-            totalDamageToChampions: 34200, damageSharePercentage: 32, damageTaken: 15800,
+            totalDamageToChampions: 34200, damageSharePercentage: 31, damageTaken: 15800,
             visionScore: 22, wardsPlaced: 11, wardsKilled: 4,
             items: [MOCK_ITEMS.filoNocturno, MOCK_ITEMS.hidraVoraz, MOCK_ITEMS.botasVeloces, MOCK_ITEMS.hojaInfinita, MOCK_ITEMS.dagaFilo, MOCK_ITEMS.mazaEspinada, MOCK_ITEMS.trinketAmarillo],
             spells: [4, 7], goldAt14: 4800, csAt14: 122, wonLane: true, isMvp: true,
@@ -1143,7 +1129,7 @@ export const SEED_MATCHES: Match[] = [
       totalKills: 28,
       totalDeaths: 39,
       totalAssists: 48,
-      totalGold: 72400,
+      totalGold: 65900,
       totalDamage: 91200,
       dragons: 2,
       barons: 0,
@@ -1259,11 +1245,8 @@ export const SEED_MATCHES: Match[] = [
     groupId: 'scrim-squad',
     group: getGroupCtx('scrim-squad'),
     source: 'import',
-    mode: '5v5 · Scrim Oficial',
     durationSeconds: 1820,
-    durationFormatted: '30m 20s',
     decidedAt: '2026-06-15T19:30:00Z',
-    dateFormatted: '15 JUN · 19:30',
     winningTeam: 'blue',
     mvpParticipantId: 'p-blue-mid-6',
     blueTeam: {
@@ -1502,11 +1485,8 @@ export const SEED_MATCHES: Match[] = [
     groupId: 'night-owls',
     group: getGroupCtx('night-owls'),
     source: 'import',
-    mode: '5v5 · Casual Night',
     durationSeconds: 1680,
-    durationFormatted: '28m 00s',
     decidedAt: '2026-06-11T23:15:00Z',
-    dateFormatted: '11 JUN · 23:15',
     winningTeam: 'red',
     mvpParticipantId: 'p-red-mid-7',
     blueTeam: {
@@ -1629,8 +1609,8 @@ export const SEED_MATCHES: Match[] = [
       totalKills: 29,
       totalDeaths: 16,
       totalAssists: 58,
-      totalGold: 61800,
-      totalDamage: 81200,
+      totalGold: 62800,
+      totalDamage: 86000,
       dragons: 3,
       barons: 1,
       towers: 7,
@@ -1649,7 +1629,7 @@ export const SEED_MATCHES: Match[] = [
           lpDelta: 18,
           stats: {
             kills: 7, deaths: 3, assists: 10, cs: 210, csPerMin: 7.5, gold: 12800,
-            totalDamageToChampions: 19800, damageSharePercentage: 24, damageTaken: 22100,
+            totalDamageToChampions: 19800, damageSharePercentage: 23, damageTaken: 22100,
             visionScore: 24, wardsPlaced: 12, wardsKilled: 5,
             items: [MOCK_ITEMS.egidaSolar, MOCK_ITEMS.mazaEspinada, MOCK_ITEMS.botasVeloces, null, null, null, MOCK_ITEMS.trinketAmarillo],
             spells: [4, 12], goldAt14: 4200, csAt14: 106, wonLane: true,
@@ -1669,7 +1649,7 @@ export const SEED_MATCHES: Match[] = [
           lpDelta: 19,
           stats: {
             kills: 6, deaths: 4, assists: 14, cs: 165, csPerMin: 5.9, gold: 12400,
-            totalDamageToChampions: 21200, damageSharePercentage: 26, damageTaken: 19400,
+            totalDamageToChampions: 21200, damageSharePercentage: 25, damageTaken: 19400,
             visionScore: 32, wardsPlaced: 15, wardsKilled: 7,
             items: [MOCK_ITEMS.sombreroRabadon, MOCK_ITEMS.veloBanshee, MOCK_ITEMS.botasVeloces, null, null, null, MOCK_ITEMS.trinketAmarillo],
             spells: [4, 11], goldAt14: 4100, csAt14: 88, wonLane: true,
@@ -1689,7 +1669,7 @@ export const SEED_MATCHES: Match[] = [
           lpDelta: 22,
           stats: {
             kills: 10, deaths: 3, assists: 11, cs: 242, csPerMin: 8.6, gold: 15800,
-            totalDamageToChampions: 26400, damageSharePercentage: 33, damageTaken: 16500,
+            totalDamageToChampions: 26400, damageSharePercentage: 31, damageTaken: 16500,
             visionScore: 28, wardsPlaced: 13, wardsKilled: 6,
             items: [MOCK_ITEMS.hojaInfinita, MOCK_ITEMS.filoNocturno, MOCK_ITEMS.botasVeloces, MOCK_ITEMS.dagaFilo, null, null, MOCK_ITEMS.trinketAmarillo],
             spells: [4, 14], goldAt14: 4900, csAt14: 120, wonLane: true,
@@ -1709,7 +1689,7 @@ export const SEED_MATCHES: Match[] = [
           lpDelta: 17,
           stats: {
             kills: 5, deaths: 3, assists: 12, cs: 218, csPerMin: 7.8, gold: 13100,
-            totalDamageToChampions: 15200, damageSharePercentage: 19, damageTaken: 14200,
+            totalDamageToChampions: 15200, damageSharePercentage: 18, damageTaken: 14200,
             visionScore: 22, wardsPlaced: 11, wardsKilled: 4,
             items: [MOCK_ITEMS.hojaInfinita, MOCK_ITEMS.botasVeloces, null, null, null, null, MOCK_ITEMS.trinketAmarillo],
             spells: [4, 7], goldAt14: 4100, csAt14: 105, wonLane: true,
@@ -1740,21 +1720,349 @@ export const SEED_MATCHES: Match[] = [
   }
 ];
 
-/** Anota cada match con el participante de la sesión actual y su desenlace */
-export function enrichMatchesForUser(matches: Match[], currentRiotId = 'N1ghtfang#LAN'): Match[] {
-  return matches.map((m) => {
-    const allParticipants = [...m.blueTeam.participants, ...m.redTeam.participants];
-    const userP = allParticipants.find((p) => p.riotId.toLowerCase() === currentRiotId.toLowerCase());
+/* ------------------------------------------------------------------------------------------
+ * PLACEHOLDER AISLADO: clasificación e hitos
+ *
+ * Va aquí abajo, en dos mapas, y no repartido por las 1.700 líneas de arriba, para que el día
+ * que exista el endpoint de historial se borre de una pieza. `enrichMatchesForUser()` los
+ * fusiona sobre las partidas al construir el store.
+ *
+ * BACKEND NOTE: ambos los calcula el servidor. La posición en la clasificación depende del
+ * estado del grupo en el instante de la partida (no se puede recalcular a posteriori en
+ * cliente), y los hitos vienen de la telemetría de Riot.
+ * ---------------------------------------------------------------------------------------- */
 
-    let userOutcome: 'win' | 'loss' | 'cancelled' | undefined;
-    if (userP) {
-      userOutcome = userP.team === m.winningTeam ? 'win' : 'loss';
+/** `matchId -> participantId -> [posición antes, posición después]` en la clasificación del grupo. */
+const RANKS_BY_MATCH: Record<string, Record<string, [number, number]>> = {
+  'lan-2895': {
+    'p-blue-top-1': [8, 7],
+    'p-blue-jug-1': [6, 5],
+    'p-blue-mid-1': [5, 4],
+    'p-blue-adc-1': [3, 2],
+    'p-blue-sup-1': [2, 1],
+    'p-red-top-1': [4, 6],
+    'p-red-jug-1': [10, 10],
+    'p-red-mid-1': [9, 9],
+    'p-red-adc-1': [7, 8],
+    'p-red-sup-1': [1, 3],
+  },
+  'lan-2891': {
+    'p-blue-top-2': [2, 4],
+    'p-blue-jug-2': [9, 9],
+    'p-blue-mid-2': [4, 5],
+    'p-blue-adc-2': [10, 10],
+    'p-blue-sup-2': [7, 8],
+    'p-red-top-2': [6, 6],
+    'p-red-jug-2': [1, 1],
+    'p-red-mid-2': [8, 7],
+    'p-red-adc-2': [3, 2],
+    'p-red-sup-2': [5, 3],
+  },
+  'scrim-204': {
+    'p-blue-top-3': [2, 2],
+    'p-blue-jug-3': [5, 3],
+    'p-blue-mid-3': [6, 4],
+    'p-blue-adc-3': [1, 1],
+    'p-blue-sup-3': [7, 6],
+    'p-red-top-3': [10, 10],
+    'p-red-jug-3': [9, 9],
+    'p-red-mid-3': [8, 8],
+    'p-red-adc-3': [4, 7],
+    'p-red-sup-3': [3, 5],
+  },
+  'owl-118': {
+    'p-blue-top-4': [4, 1],
+    'p-blue-jug-4': [6, 6],
+    'p-blue-mid-4': [5, 3],
+    'p-blue-adc-4': [9, 8],
+    'p-blue-sup-4': [8, 7],
+    'p-red-top-4': [3, 5],
+    'p-red-jug-4': [7, 9],
+    'p-red-mid-4': [1, 2],
+    'p-red-adc-4': [10, 10],
+    'p-red-sup-4': [2, 4],
+  },
+  'flex-77': {
+    'p-blue-top-5': [9, 8],
+    'p-blue-jug-5': [8, 6],
+    'p-blue-mid-5': [2, 1],
+    'p-blue-adc-5': [5, 4],
+    'p-blue-sup-5': [3, 2],
+    'p-red-top-5': [7, 9],
+    'p-red-jug-5': [6, 7],
+    'p-red-mid-5': [1, 3],
+    'p-red-adc-5': [4, 5],
+    'p-red-sup-5': [10, 10],
+  },
+  'scrim-205': {
+    'p-blue-top-6': [8, 6],
+    'p-blue-jug-6': [2, 1],
+    'p-blue-mid-6': [4, 2],
+    'p-blue-adc-6': [6, 5],
+    'p-blue-sup-6': [9, 8],
+    'p-red-top-6': [3, 4],
+    'p-red-jug-6': [5, 7],
+    'p-red-mid-6': [1, 3],
+    'p-red-adc-6': [7, 9],
+    'p-red-sup-6': [10, 10],
+  },
+  'owl-119': {
+    'p-blue-top-7': [2, 3],
+    'p-blue-jug-7': [8, 9],
+    'p-blue-mid-7': [5, 6],
+    'p-blue-adc-7': [9, 10],
+    'p-blue-sup-7': [6, 7],
+    'p-red-top-7': [10, 8],
+    'p-red-jug-7': [1, 1],
+    'p-red-mid-7': [3, 2],
+    'p-red-adc-7': [7, 5],
+    'p-red-sup-7': [4, 4],
+  },
+};
+
+/** Quién se llevó cada primer objetivo. */
+const MILESTONES_BY_MATCH: Record<string, MatchMilestones> = {
+  // Los hitos concuerdan con los objetivos de cada equipo: quien acabó con 3 dragones y el
+  // barón es también quien abrió el marcador de objetivos.
+  'lan-2895': {
+    firstBloodParticipantId: 'p-blue-mid-1',
+    firstTowerTeam: 'blue',
+    firstDragonTeam: 'red',
+    firstBaronTeam: 'blue',
+  },
+  'lan-2891': {
+    firstBloodParticipantId: 'p-red-jug-2',
+    firstTowerTeam: 'red',
+    firstDragonTeam: 'blue',
+    firstBaronTeam: 'red',
+  },
+  'scrim-204': {
+    firstBloodParticipantId: 'p-blue-jug-3',
+    firstTowerTeam: 'blue',
+    firstDragonTeam: 'blue',
+    firstBaronTeam: 'blue',
+  },
+  'owl-118': {
+    firstBloodParticipantId: 'p-blue-sup-4',
+    firstTowerTeam: 'blue',
+    firstDragonTeam: 'blue',
+    firstBaronTeam: 'blue',
+  },
+  'flex-77': {
+    firstBloodParticipantId: 'p-red-mid-5',
+    firstTowerTeam: 'blue',
+    firstDragonTeam: 'red',
+    firstBaronTeam: 'blue',
+  },
+  'scrim-205': {
+    firstBloodParticipantId: 'p-blue-mid-6',
+    firstTowerTeam: 'blue',
+    firstDragonTeam: 'blue',
+    firstBaronTeam: 'blue',
+  },
+  // El rojo remonta: el azul abre con la primera sangre y la primera torre y aun así pierde.
+  'owl-119': {
+    firstBloodParticipantId: 'p-blue-jug-7',
+    firstTowerTeam: 'blue',
+    firstDragonTeam: 'red',
+    firstBaronTeam: 'red',
+  },
+};
+
+/* ------------------------------------------------------------------------------------------
+ * PLACEHOLDER AISLADO: proyección de la semilla sobre las ligas reales del usuario
+ *
+ * La semilla de arriba está escrita contra cuatro grupos inventados (`lan-challenger`,
+ * `scrim-squad`…), pero la barra lateral y la lista de grupos las sirve el backend real, con
+ * ids UUID. Sin esta proyección, entrar en una liga tuya y pulsar «Historial» llamaba a
+ * `matchesByGroup(<uuid>)`, que no encontraba nada, y la vista pintaba «Sin partidas todavía»:
+ * el historial de grupo era literalmente inalcanzable navegando.
+ *
+ * `buildMockHistory()` reparte una copia de las siete partidas sobre cada liga del usuario, con
+ * su identidad, sus compañeros de verdad y sus propias fechas. Así el historial personal y el de
+ * grupo dejan de ser dos mundos: la etiqueta de liga de una fila personal lleva a un grupo que
+ * sí está en tu barra lateral, y ese grupo enseña esa misma partida.
+ *
+ * BACKEND NOTE: desechable entero. El día que exista `GET /matches` (paginado y filtrado en
+ * servidor) se borra este bloque junto con `SEED_MATCHES` y los dos mapas de arriba.
+ * ---------------------------------------------------------------------------------------- */
+
+/**
+ * La ranura que la semilla reserva al usuario de la sesión. Cada una de las siete partidas tiene
+ * exactamente un participante con este Riot ID, colocado a mano en un bando y una línea distintos
+ * para que el historial personal no salga siempre desde el mismo sitio. La proyección la usa como
+ * ancla: ahí es donde entra quien mira, cuando le toca jugar.
+ */
+const VIEWER_SLOT_RIOT_ID = 'N1ghtfang#LAN';
+
+/**
+ * De cada diez partidas, en siete juega el usuario. Que en las otras tres no aparezca no es un
+ * descuido: es lo que hace visible el filtro «Participación → Otras» del historial de grupo, y lo
+ * que distingue el registro colectivo del personal. Con el usuario en las siete partidas —que es
+ * lo que hacía la semilla— ese filtro devolvía siempre una lista vacía.
+ */
+const VIEWER_PLAY_RATE = 7;
+
+/** Nombres de relleno para las ranuras que ni el usuario ni el roster real llegan a ocupar. */
+const FILLER_RIOT_IDS = [
+  'Vexil#LAN', 'Orbyn#EUW', 'Kaltra#NA', 'Sombra#LAS', 'Wren#KR',
+  'Tesela#BR', 'Nocturn#EUNE', 'Halcon#LAN',
+];
+
+/** La liga sobre la que se proyecta una copia del historial. Espejo reducido de `GroupView`. */
+export interface MockHistoryGroup {
+  id: string;
+  name: string;
+  region: string;
+  initials: string;
+  c1: string;
+  c2: string;
+}
+
+/** Quién mira: sus partidas son las que salen en el historial personal. */
+export interface MockHistoryViewer {
+  userId: string;
+  riotId: string;
+}
+
+/** Un compañero de liga, tal y como lo guarda el roster mock (`GroupStore.rosterOf`). */
+export interface MockHistoryMember {
+  userId?: string;
+  name: string;
+  tag: string;
+  avatar?: string;
+}
+
+/**
+ * El historial completo del usuario: las siete partidas semilla proyectadas sobre cada una de
+ * sus ligas.
+ *
+ * `rosterOf` es una función y no una lista porque el roster real de un grupo solo está sembrado
+ * después de que `GroupBridge` lo traiga (al entrar en cualquier sub-vista del grupo). Antes de
+ * eso las ranuras conservan los nombres de la semilla, y al llegar el roster la lista se
+ * recalcula sola: todo esto cuelga de signals.
+ */
+export function buildMockHistory(
+  groups: readonly MockHistoryGroup[],
+  viewer: MockHistoryViewer,
+  rosterOf: (groupId: string) => readonly MockHistoryMember[],
+): Match[] {
+  const out: Match[] = [];
+  for (const group of groups) {
+    const roster = rosterOf(group.id).filter((m) => identityOf(m).userId !== viewer.userId);
+    for (const seed of SEED_MATCHES) {
+      out.push(project(seed, group, viewer, roster));
     }
+  }
+  return out;
+}
 
-    return {
-      ...m,
-      userParticipant: userP,
-      userOutcome,
-    };
+function project(
+  seed: Match,
+  group: MockHistoryGroup,
+  viewer: MockHistoryViewer,
+  roster: readonly MockHistoryMember[],
+): Match {
+  // Id namespaced: la ruta `/app/historial/:id` tiene que poder distinguir la copia de una liga
+  // de la de otra. Los ids de PARTICIPANTE no se tocan — solo se comparan dentro de su partida
+  // (MVP, primera sangre, clasificación), así que namespacearlos solo rompería esos tres mapas.
+  const id = `${group.id}--${seed.id}`;
+  const ranks = RANKS_BY_MATCH[seed.id];
+
+  const slots = [...seed.blueTeam.participants, ...seed.redTeam.participants];
+  const viewerSlot = slots.findIndex((p) => p.riotId === VIEWER_SLOT_RIOT_ID);
+  const viewerPlays = viewerSlot >= 0 && hash(`${id}:juega`) % 10 < VIEWER_PLAY_RATE;
+
+  // El roster real entra por una ranura distinta en cada partida, para que la misma persona no
+  // salga siempre de jungla azul. Cada compañero ocupa como mucho una: repetirlos para llenar
+  // las diez pondría a alguien enfrentándose a sí mismo.
+  const offset = hash(id) % slots.length;
+  const free: number[] = [];
+  for (let k = 0; k < slots.length; k++) {
+    const index = (offset + k) % slots.length;
+    if (viewerPlays && index === viewerSlot) continue;
+    free.push(index);
+  }
+  const bySlot = new Map<number, MockHistoryMember>();
+  roster.slice(0, free.length).forEach((member, j) => bySlot.set(free[j], member));
+
+  const rebuilt = slots.map((p, index) => {
+    const withRank = applyRank(p, ranks);
+    if (viewerPlays && index === viewerSlot) {
+      return { ...withRank, userId: viewer.userId, riotId: viewer.riotId, isGuest: false };
+    }
+    const member = bySlot.get(index);
+    if (member) {
+      const who = identityOf(member);
+      return {
+        ...withRank,
+        userId: who.userId,
+        riotId: who.riotId,
+        isGuest: false,
+        avatarUrl: member.avatar,
+      };
+    }
+    // La ranura del usuario cuando no juega: dejarle su Riot ID puesto haría creer que jugó.
+    if (index === viewerSlot) {
+      const filler = FILLER_RIOT_IDS[hash(`${id}:relleno`) % FILLER_RIOT_IDS.length];
+      return { ...withRank, userId: `mock:${filler}`, riotId: filler, isGuest: true };
+    }
+    return withRank;
   });
+
+  const split = seed.blueTeam.participants.length;
+  const blueTeam: TeamSummary = { ...seed.blueTeam, participants: rebuilt.slice(0, split) };
+  const redTeam: TeamSummary = { ...seed.redTeam, participants: rebuilt.slice(split) };
+
+  const userParticipant = viewerPlays ? rebuilt[viewerSlot] : undefined;
+
+  return {
+    ...seed,
+    id,
+    groupId: group.id,
+    group: {
+      id: group.id,
+      name: group.name,
+      tag: group.region,
+      initials: group.initials,
+      color1: group.c1,
+      color2: group.c2,
+      seasonName: '2026 · Temporada 2',
+    },
+    // Cada liga corre su propio calendario: sin este desfase las siete partidas de todos los
+    // grupos caerían en el mismo instante y el orden por fecha del historial personal sería un
+    // empate de N grupos.
+    decidedAt: shiftDays(seed.decidedAt, -(hash(group.id) % 21)),
+    blueTeam,
+    redTeam,
+    milestones: MILESTONES_BY_MATCH[seed.id],
+    userParticipant,
+    userOutcome: userParticipant
+      ? userParticipant.team === seed.winningTeam
+        ? 'win'
+        : 'loss'
+      : undefined,
+  };
+}
+
+/** La posición en la clasificación de ese participante, si la partida la tiene registrada. */
+function applyRank(
+  p: MatchParticipant,
+  ranks: Record<string, [number, number]> | undefined,
+): MatchParticipant {
+  const pair = ranks?.[p.id];
+  return pair ? { ...p, rankBefore: pair[0], rankAfter: pair[1] } : p;
+}
+
+/**
+ * Identidad estable de un compañero. El `userId` real llega cuando `GroupBridge` ha sembrado el
+ * roster del backend; los rosters puramente mock no lo traen, y para esos la clave es su tag, que
+ * también es único.
+ */
+function identityOf(member: MockHistoryMember): { userId: string; riotId: string } {
+  return { userId: member.userId ?? `mock:${member.tag}`, riotId: member.tag || member.name };
+}
+
+function shiftDays(iso: string, days: number): string {
+  return new Date(Date.parse(iso) + days * 86_400_000).toISOString();
 }

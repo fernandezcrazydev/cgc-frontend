@@ -32,6 +32,12 @@ export interface ParticipantStats {
   items: (MatchItemSlot | null)[];
   /** IDs de Summoner Spells (D y F) */
   spells: [number, number];
+  /**
+   * BACKEND NOTE: sin uso todavía. No hay endpoint ni catálogo de runas en el proyecto
+   * (`GameDataApi` solo sirve campeones, hechizos y objetos), así que no hay forma de
+   * resolver estos ids a nombre e icono sin inventarse un catálogo estático, que sería
+   * fabricar datos de dominio en cliente. Se pintarán cuando exista `GET /game-data/runes`.
+   */
   primaryRuneId?: number;
   secondaryRuneTreeId?: number;
   goldAt14?: number;
@@ -59,6 +65,13 @@ export interface MatchParticipant {
    * REGLA DE DOMINIO: El MMR interno y tabla de poder NUNCA se exponen al usuario.
    */
   lpDelta: number;
+  /**
+   * Posición en la clasificación del grupo ANTES y DESPUÉS de esta partida. Es el dato que
+   * convierte un `lpDelta` en algo que importa: «+22 LP» no dice nada, «3.º → 2.º» sí.
+   * Opcionales: una partida amistosa o un grupo sin clasificación no los trae.
+   */
+  rankBefore?: number;
+  rankAfter?: number;
   stats: ParticipantStats;
 }
 
@@ -88,6 +101,18 @@ export interface TeamSummary {
   participants: MatchParticipant[];
 }
 
+/**
+ * Hitos de la partida. Cuentan cómo se decidió sin necesitar telemetría por minuto, que es
+ * justo el dato que no tenemos (haría falta la Match Timeline API de Riot).
+ */
+export interface MatchMilestones {
+  /** Quién hizo la primera sangre. */
+  firstBloodParticipantId?: string;
+  firstTowerTeam?: TeamSide;
+  firstDragonTeam?: TeamSide;
+  firstBaronTeam?: TeamSide;
+}
+
 /** Entidad completa de una partida disputada */
 export interface Match {
   id: string;
@@ -95,29 +120,18 @@ export interface Match {
   groupId: string;
   group: GroupContext;
   source: MatchSource;
-  mode: string;
   durationSeconds: number;
-  durationFormatted: string;
+  /** ISO-8601. El formato lo decide la presentación (`shared/date-format.ts`), nunca el DTO. */
   decidedAt: string;
-  dateFormatted: string;
   winningTeam: TeamSide;
   blueTeam: TeamSummary;
   redTeam: TeamSummary;
   mvpParticipantId?: string;
+  milestones?: MatchMilestones;
 
   /** Metadatos resueltos para el usuario logueado en la sesión actual */
   userParticipant?: MatchParticipant;
   userOutcome?: MatchResultOutcome;
-}
-
-/** Estado de filtrado de partidas */
-export interface MatchFilterState {
-  groupId: string | 'all';
-  role: Lane | 'all';
-  championId: number | 'all';
-  outcome: 'all' | 'win' | 'loss';
-  searchQuery?: string;
-  sortBy: 'date-desc' | 'date-asc' | 'duration-desc' | 'kills-desc';
 }
 
 /** Resumen analítico del historial de un usuario */

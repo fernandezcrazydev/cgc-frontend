@@ -87,9 +87,20 @@ export const routes: Routes = [
           import('./features/shell/views/grupo-historial').then((m) => m.GrupoHistorial),
       },
       {
+        path: 'campeones',
+        title: 'Campeones · Sale Custom',
+        loadComponent: () => import('./features/shell/views/campeones').then((m) => m.Campeones),
+      },
+      {
         path: 'perfil',
         title: 'Perfil · Sale Custom',
         loadComponent: () => import('./features/shell/views/perfil').then((m) => m.Perfil),
+      },
+      {
+        path: 'perfil/:id',
+        title: 'Perfil de jugador · Sale Custom',
+        loadComponent: () =>
+          import('./features/shell/views/perfil-miembro').then((m) => m.PerfilMiembro),
       },
       {
         path: 'ajustes',

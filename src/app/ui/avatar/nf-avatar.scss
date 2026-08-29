@@ -10,7 +10,7 @@ nf-avatar {
   border: 1px solid var(--nf-border);
   /* `--nf-avatar-size` lo fija el input `size` (inline, gana siempre). El hueco
      `--nf-avatar-size-override` es a propósito para que una vista pueda recuperar
-     el salto de tamaño en una media query (p. ej. `.mh-champ__icon` a 52px en
+     el salto de tamaño en una media query (p. ej. `.m-card__champ-icon` a 52px en
      móvil) sin pelearse con el inline: nadie más escribe `--nf-avatar-size`, así
      que no hay disputa de cascada, solo de qué variable existe en cada breakpoint. */
   width: var(--nf-avatar-size-override, var(--nf-avatar-size));

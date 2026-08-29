@@ -42,8 +42,8 @@ export interface CreateGroupInput {
 export class GroupsStore {
   private readonly api = inject(GroupsApi);
 
-  private readonly _groups = signal<GroupView[]>(MOCK_GROUP_VIEWS);
-  private readonly _status = signal<GroupsStatus>('ready');
+  private readonly _groups = signal<GroupView[]>([]);
+  private readonly _status = signal<GroupsStatus>('idle');
   /** La carga en vuelo, para que N llamadas concurrentes compartan una petición. */
   private inFlight: Promise<GroupView[]> | null = null;
 
@@ -75,7 +75,7 @@ export class GroupsStore {
 
   /** La lista de grupos del usuario, cargándola si hace falta. Idempotente; nunca lanza. */
   ensureLoaded(): Promise<GroupView[]> {
-    if (this._status() === 'ready' && this._groups().length > 0) return Promise.resolve(this._groups());
+    if (this._status() === 'ready') return Promise.resolve(this._groups());
     return (this.inFlight ??= this.load());
   }
 
@@ -89,14 +89,14 @@ export class GroupsStore {
     this._status.set('loading');
     try {
       const memberships = await firstValueFrom(this.api.myGroups());
-      const groups = memberships && memberships.length > 0 ? memberships.map(groupView) : MOCK_GROUP_VIEWS;
+      const groups = memberships.map(groupView);
       this._groups.set(groups);
       this._status.set('ready');
       return groups;
     } catch {
-      this._groups.set(MOCK_GROUP_VIEWS);
-      this._status.set('ready');
-      return MOCK_GROUP_VIEWS;
+      this._groups.set([]);
+      this._status.set('error');
+      return [];
     } finally {
       this.inFlight = null;
     }

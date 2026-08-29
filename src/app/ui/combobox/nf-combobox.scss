@@ -1,0 +1,148 @@
+/* Combobox (global, ViewEncapsulation.None) */
+
+.nf-combobox {
+  position: relative;
+  display: block;
+  width: 100%;
+}
+
+.nf-combobox__field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-right: 6px;
+  background: var(--nf-inset);
+  border: var(--bw-1) solid var(--nf-border);
+  border-radius: var(--nf-radius);
+  transition: border-color 0.16s, box-shadow 0.16s;
+}
+.nf-combobox__field:hover {
+  border-color: var(--nf-border-strong);
+}
+.nf-combobox__field:focus-within {
+  border-color: var(--nf-secondary);
+}
+/* Abierta, la caja se une visualmente a la lista que cuelga debajo. */
+.nf-combobox__field--open {
+  border-color: var(--nf-secondary);
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.nf-combobox__icon {
+  flex: none;
+  margin-left: 8px;
+  border-radius: var(--nf-radius-sm);
+}
+
+.nf-combobox__input {
+  flex: 1;
+  min-width: 0;
+  height: 34px;
+  padding: 0 0 0 12px;
+  border: none;
+  background: transparent;
+  font-family: var(--nf-font);
+  font-size: 13px;
+  color: var(--nf-text);
+  outline: none;
+}
+/* Con icono a la izquierda el texto ya respira: el padding lo pone el gap. */
+.nf-combobox__icon + .nf-combobox__input {
+  padding-left: 0;
+}
+.nf-combobox__input::placeholder {
+  color: var(--nf-text-dim);
+}
+
+.nf-combobox__caret {
+  flex: none;
+  padding: 0 6px;
+  font-size: 12px;
+  color: var(--nf-secondary);
+  pointer-events: none;
+}
+
+.nf-combobox__clear {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: var(--nf-radius-sm);
+  background: transparent;
+  color: var(--nf-text-dim);
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.14s, color 0.14s;
+}
+.nf-combobox__clear:hover {
+  background: var(--nf-surface-2);
+  color: var(--nf-text);
+}
+
+.nf-combobox__list {
+  position: absolute;
+  z-index: var(--z-overlay);
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  max-height: 264px;
+  overflow-y: auto;
+  background: var(--nf-elevated);
+  border: var(--bw-1) solid var(--nf-secondary);
+  border-top: none;
+  border-radius: 0 0 var(--nf-radius) var(--nf-radius);
+  box-shadow: var(--nf-shadow-pop);
+}
+
+.nf-combobox__option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border-radius: var(--nf-radius-sm);
+  font-size: 13px;
+  color: var(--nf-text-mid);
+  cursor: pointer;
+}
+/* Un solo resaltado para ratón y teclado: el componente mueve `--active` con el
+   puntero y con las flechas, así que nunca se ven dos filas marcadas a la vez. */
+.nf-combobox__option--active {
+  background: var(--nf-surface-2);
+  color: var(--nf-text);
+}
+.nf-combobox__option--on {
+  color: var(--nf-text);
+  font-weight: var(--fw-bold);
+}
+.nf-combobox__option--on::after {
+  content: '✓';
+  margin-left: auto;
+  color: var(--nf-secondary);
+}
+
+.nf-combobox__option-icon {
+  flex: none;
+  border-radius: var(--nf-radius-sm);
+}
+
+.nf-combobox__option-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nf-combobox__empty {
+  padding: 12px 8px;
+  font-size: 12px;
+  color: var(--nf-text-dim);
+  text-align: center;
+}

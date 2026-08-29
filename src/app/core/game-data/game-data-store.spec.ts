@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { Observable, throwError } from 'rxjs';
-import { ChampionSummary, GameDataManifest } from './models';
+import { ChampionSummary, GameDataManifest, SummonerSpell } from './models';
 import { GameDataApi } from './game-data-api';
 import { GameDataStore } from './game-data-store';
 
@@ -12,9 +12,11 @@ import { GameDataStore } from './game-data-store';
 class ApiStub {
   manifestCalls = 0;
   championsCalls = 0;
+  summonerSpellsCalls = 0;
 
   private resolveManifest!: (m: GameDataManifest) => void;
   private resolveChampions!: (c: ChampionSummary[]) => void;
+  private resolveSpells!: (s: SummonerSpell[]) => void;
   failManifest = false;
   failChampions = false;
 
@@ -40,10 +42,25 @@ class ApiStub {
     });
   }
 
+  summonerSpells(): Observable<SummonerSpell[]> {
+    this.summonerSpellsCalls++;
+    return new Observable((sub) => {
+      this.resolveSpells = (spells) => {
+        sub.next(spells);
+        sub.complete();
+      };
+    });
+  }
+
   /** Deja que el microtask de `firstValueFrom` corra tras emitir. */
-  async settle(manifest: GameDataManifest, champions: ChampionSummary[]): Promise<void> {
+  async settle(
+    manifest: GameDataManifest,
+    champions: ChampionSummary[],
+    spells: SummonerSpell[] = [FLASH],
+  ): Promise<void> {
     this.resolveManifest(manifest);
     this.resolveChampions(champions);
+    this.resolveSpells(spells);
     await Promise.resolve();
     await Promise.resolve();
   }
@@ -57,6 +74,13 @@ const AHRI: ChampionSummary = {
   tags: ['Mage', 'Assassin'],
   iconUrl: '.../Ahri.png',
   loadingUrl: '.../Ahri_0.jpg',
+};
+const FLASH: SummonerSpell = {
+  id: 4,
+  slug: 'SummonerFlash',
+  name: 'Destello',
+  iconUrl: '.../SummonerFlash.png',
+  modes: ['CLASSIC'],
 };
 const MANIFEST: GameDataManifest = { version: '16.14.1', updatedAt: '2026-07-26T04:17:03Z' };
 

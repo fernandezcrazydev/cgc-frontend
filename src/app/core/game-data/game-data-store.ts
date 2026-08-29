@@ -1,6 +1,6 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
-import { ChampionSummary, GameDataManifest } from './models';
+import { ChampionSummary, GameDataManifest, SummonerSpell } from './models';
 import { GameDataApi } from './game-data-api';
 
 export type GameDataStatus = 'idle' | 'loading' | 'ready' | 'error';
@@ -14,11 +14,13 @@ const EMPTY_MANIFEST: GameDataManifest = { version: null, updatedAt: null };
  * (`core/auth/session.ts`): `status` explícito y `ensureLoaded()` idempotente
  * con deduplicación de la petición en vuelo.
  *
- * Carga manifest + campeones a la vez. Los objetos NO entran aquí: son una
- * colección paginada que solo usa el buscador del selector (`GameDataApi.items`
- * suelto). Un `version: null` (nunca se ha importado) no es un error: el
- * backend responde 200 con catálogo vacío, así que el store queda `ready`
- * con una lista vacía, no `error`.
+ * Carga manifest + campeones + hechizos de invocador a la vez. Los hechizos son
+ * una lista fija y cortísima (una docena) que el marcador de una partida necesita
+ * para resolver `spellId → icono`, así que cabe en la misma carga; los objetos NO
+ * entran aquí porque son una colección paginada que solo usa el buscador del
+ * selector (`GameDataApi.items` suelto). Un `version: null` (nunca se ha
+ * importado) no es un error: el backend responde 200 con catálogo vacío, así que
+ * el store queda `ready` con una lista vacía, no `error`.
  */
 @Injectable({ providedIn: 'root' })
 export class GameDataStore {
@@ -26,6 +28,7 @@ export class GameDataStore {
 
   private readonly _manifest = signal<GameDataManifest>(EMPTY_MANIFEST);
   private readonly _champions = signal<ChampionSummary[]>([]);
+  private readonly _summonerSpells = signal<SummonerSpell[]>([]);
   private readonly _status = signal<GameDataStatus>('idle');
 
   /** La carga en vuelo, para que N llamadas concurrentes compartan una petición. */
@@ -33,6 +36,7 @@ export class GameDataStore {
 
   readonly status = this._status.asReadonly();
   readonly champions = this._champions.asReadonly();
+  readonly summonerSpells = this._summonerSpells.asReadonly();
 
   /** `null` si el backend nunca ha importado el catálogo. */
   readonly version = computed(() => this._manifest().version);
@@ -41,6 +45,11 @@ export class GameDataStore {
   /** Índice por id para que las vistas resuelvan `championId → ChampionSummary` en O(1). */
   readonly championById = computed<Map<number, ChampionSummary>>(
     () => new Map(this._champions().map((c) => [c.id, c])),
+  );
+
+  /** Índice por id para resolver los dos hechizos de un participante (`stats.spells`). */
+  readonly summonerSpellById = computed<Map<number, SummonerSpell>>(
+    () => new Map(this._summonerSpells().map((s) => [s.id, s])),
   );
 
   /**
@@ -65,22 +74,26 @@ export class GameDataStore {
     this.inFlight = null;
     this._manifest.set(EMPTY_MANIFEST);
     this._champions.set([]);
+    this._summonerSpells.set([]);
     this._status.set('idle');
   }
 
   private async load(): Promise<void> {
     this._status.set('loading');
     try {
-      const [manifest, champions] = await Promise.all([
+      const [manifest, champions, spells] = await Promise.all([
         firstValueFrom(this.api.manifest()),
         firstValueFrom(this.api.champions()),
+        firstValueFrom(this.api.summonerSpells()),
       ]);
       this._manifest.set(manifest);
       this._champions.set(champions);
+      this._summonerSpells.set(spells);
       this._status.set('ready');
     } catch {
       this._manifest.set(EMPTY_MANIFEST);
       this._champions.set([]);
+      this._summonerSpells.set([]);
       this._status.set('error');
     } finally {
       // Se libera SIEMPRE: si no, un fallo dejaría cacheada la promesa

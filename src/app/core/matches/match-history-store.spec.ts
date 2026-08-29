@@ -1,96 +1,157 @@
 import { describe, expect, it, beforeEach } from 'vitest';
+import { provideHttpClient } from '@angular/common/http';
+import { TestBed } from '@angular/core/testing';
 import { MatchHistoryStore } from './match-history-store';
+import { Match, MatchParticipant } from './models';
 
+/**
+ * Los tests afirman sobre INVARIANTES, no sobre la semilla.
+ *
+ * La versión anterior comprobaba que el campeón 103 era Ahri y que existía la partida
+ * `lan-2895`: datos de categoría desechable, que se borran el día que haya endpoint y que
+ * habrían dejado el spec en rojo sin que nada estuviese roto. Lo que sí sobrevive —y por
+ * tanto lo que merece test— son las derivaciones del store.
+ */
 describe('MatchHistoryStore', () => {
   let store: MatchHistoryStore;
 
+  /**
+   * Por TestBed y no con `new`: el store lee las ligas del usuario, su identidad y el roster de
+   * cada grupo de otros cuatro stores. Ninguno pide nada aqui —todos cargan bajo demanda— asi
+   * que basta con que `HttpClient` exista para que se puedan construir.
+   */
   beforeEach(() => {
-    store = new MatchHistoryStore();
-    store.resetFilters();
+    TestBed.configureTestingModule({ providers: [provideHttpClient()] });
+    store = TestBed.inject(MatchHistoryStore);
   });
 
-  it('inicializa con partidas cargadas para el usuario actual', () => {
-    const personalMatches = store.allPersonalMatches();
-    expect(personalMatches.length).toBeGreaterThan(0);
+  const participants = (m: Match): MatchParticipant[] => [
+    ...m.blueTeam.participants,
+    ...m.redTeam.participants,
+  ];
 
-    const first = personalMatches[0];
-    expect(first.userParticipant).toBeDefined();
-    expect(first.userParticipant?.riotId.toLowerCase()).toBe('n1ghtfang#lan');
-    expect(first.userParticipant?.lpDelta).toBeDefined();
+  it('el historial personal solo trae partidas con participante resuelto y su desenlace', () => {
+    const personal = store.allPersonalMatches();
+    expect(personal.length).toBeGreaterThan(0);
+
+    for (const m of personal) {
+      expect(m.userParticipant).toBeDefined();
+      // El desenlace tiene que concordar con el bando: es lo único que la vista pinta.
+      const expected = m.userParticipant!.team === m.winningTeam ? 'win' : 'loss';
+      expect(m.userOutcome).toBe(expected);
+    }
   });
 
-  it('calcula métricas agregadas personales (winrate, KDA, etc.)', () => {
+  it('el resumen personal cuadra con las partidas de las que sale', () => {
+    const personal = store.allPersonalMatches();
     const summary = store.personalSummary();
-    expect(summary.totalMatches).toBeGreaterThan(0);
+
+    expect(summary.totalMatches).toBe(personal.length);
+    expect(summary.wins + summary.losses).toBe(summary.totalMatches);
     expect(summary.winrate).toBeGreaterThanOrEqual(0);
     expect(summary.winrate).toBeLessThanOrEqual(100);
-    expect(summary.avgKills).toBeGreaterThan(0);
-    expect(summary.avgDeaths).toBeGreaterThan(0);
-    expect(summary.avgAssists).toBeGreaterThan(0);
+    expect(summary.wins).toBe(personal.filter((m) => m.userOutcome === 'win').length);
   });
 
-  it('filtra correctamente por grupo', () => {
-    store.updateFilters({ groupId: 'lan-challenger' });
-    const filtered = store.filteredPersonalMatches();
-    expect(filtered.length).toBeGreaterThan(0);
-    expect(filtered.every((m) => m.groupId === 'lan-challenger')).toBe(true);
+  it('matchesByGroup devuelve exclusivamente partidas de ese grupo', () => {
+    const groupId = store.allMatches()[0].groupId;
+    const matches = store.matchesByGroup(groupId);
+
+    expect(matches.length).toBeGreaterThan(0);
+    expect(matches.every((m) => m.groupId === groupId)).toBe(true);
   });
 
-  it('filtra correctamente por rol/posición', () => {
-    store.updateFilters({ role: 'MID' });
-    const filtered = store.filteredPersonalMatches();
-    expect(filtered.length).toBeGreaterThan(0);
-    expect(filtered.every((m) => m.userParticipant?.role === 'MID')).toBe(true);
+  it('el resumen de grupo reparte todas las partidas entre los dos bandos', () => {
+    const groupId = store.allMatches()[0].groupId;
+    const stats = store.groupSummary(groupId);
+
+    expect(stats.totalMatches).toBe(store.matchesByGroup(groupId).length);
+    expect(stats.blueSideWins + stats.redSideWins).toBe(stats.totalMatches);
   });
 
-  it('filtra correctamente por resultado (win / loss)', () => {
-    store.updateFilters({ outcome: 'win' });
-    const wins = store.filteredPersonalMatches();
-    expect(wins.length).toBeGreaterThan(0);
-    expect(wins.every((m) => m.userOutcome === 'win')).toBe(true);
+  it('un grupo sin partidas da un resumen vacío, no un NaN', () => {
+    const stats = store.groupSummary('grupo-que-no-existe');
 
-    store.updateFilters({ outcome: 'loss' });
-    const losses = store.filteredPersonalMatches();
-    expect(losses.length).toBeGreaterThan(0);
-    expect(losses.every((m) => m.userOutcome === 'loss')).toBe(true);
+    expect(stats.totalMatches).toBe(0);
+    expect(stats.blueWinrate).toBe(0);
+    expect(stats.avgDurationMinutes).toBe(0);
+    expect(stats.topMvpName).toBeNull();
   });
 
-  it('devuelve exclusivamente los campeones jugados en el historial personal y de grupo', () => {
-    const personalChamps = store.playedChampionIdsInPersonal();
-    expect(personalChamps.length).toBeGreaterThan(0);
-    // Ahri (103), Lee Sin (64), Yasuo (157), Lux (99), Jinx (222)
-    expect(personalChamps).toContain(103);
-    expect(personalChamps).toContain(64);
+  it('los campeones ofrecidos al filtro son los que de verdad se han jugado', () => {
+    const personalIds = store.playedChampionIdsInPersonal();
+    const played = new Set(store.allPersonalMatches().map((m) => m.userParticipant!.championId));
 
-    const groupChamps = store.playedChampionIdsInGroup('lan-challenger');
-    expect(groupChamps.length).toBeGreaterThan(0);
-    expect(groupChamps).toContain(103); // Ahri
-    expect(groupChamps).toContain(86);  // Garen
+    expect(new Set(personalIds)).toEqual(played);
+
+    const groupId = store.allMatches()[0].groupId;
+    const groupIds = store.playedChampionIdsInGroup(groupId);
+    const inGroup = new Set(store.matchesByGroup(groupId).flatMap((m) => participants(m).map((p) => p.championId)));
+
+    expect(new Set(groupIds)).toEqual(inGroup);
   });
 
-  it('permite expandir y colapsar el acordeón de una partida', () => {
-    expect(store.expandedMatchId()).toBeNull();
+  it('las medias por campeón salen solo de las partidas con ese campeón', () => {
+    const championId = store.allPersonalMatches()[0].userParticipant!.championId;
+    const averages = store.championAverages(championId);
 
-    store.toggleExpand('lan-2895');
-    expect(store.expandedMatchId()).toBe('lan-2895');
+    const expectedGames = store
+      .allPersonalMatches()
+      .filter((m) => m.userParticipant!.championId === championId).length;
 
-    store.toggleExpand('lan-2895');
-    expect(store.expandedMatchId()).toBeNull();
+    expect(averages).not.toBeNull();
+    expect(averages!.games).toBe(expectedGames);
+    expect(averages!.wins).toBeLessThanOrEqual(averages!.games);
   });
 
-  it('calcula resumen de métricas para un grupo específico', () => {
-    const groupStats = store.groupSummary('lan-challenger');
-    expect(groupStats.totalMatches).toBeGreaterThan(0);
-    expect(groupStats.blueSideWins + groupStats.redSideWins).toBe(groupStats.totalMatches);
+  it('un campeón que el usuario nunca ha jugado no tiene medias', () => {
+    expect(store.championAverages(-1)).toBeNull();
   });
 
-  it('restablece filtros a su valor por defecto', () => {
-    store.updateFilters({ role: 'ADC', outcome: 'win', groupId: 'arcane-five' });
-    expect(store.filters().role).toBe('ADC');
+  it('el head to head solo cuenta enfrentamientos, no partidas como compañeros', () => {
+    const match = store.allPersonalMatches()[0];
+    const me = match.userParticipant!;
+    const rival = participants(match).find((p) => p.team !== me.team)!;
+    const ally = participants(match).find((p) => p.team === me.team && p.id !== me.id)!;
 
-    store.resetFilters();
-    expect(store.filters().role).toBe('all');
-    expect(store.filters().outcome).toBe('all');
-    expect(store.filters().groupId).toBe('all');
+    // Cuántas partidas del historial personal enfrentan de verdad al usuario con alguien. Se
+    // re-deriva aquí en vez de fijar un número: con las mismas personas repartidas por varias
+    // ligas, un compañero de una partida puede ser rival en otra, y eso es correcto.
+    const duels = (who: MatchParticipant): number =>
+      store.allPersonalMatches().filter((m) => {
+        const mine = m.userParticipant!;
+        const them = participants(m).find(
+          (p) => (p.userId ?? p.riotId.toLowerCase()) === (who.userId ?? who.riotId.toLowerCase()),
+        );
+        return !!them && them.team !== mine.team;
+      }).length;
+
+    const versus = store.headToHead(rival);
+    expect(versus.games).toBe(duels(rival));
+    expect(versus.games).toBeGreaterThan(0);
+    expect(versus.wins + versus.losses).toBe(versus.games);
+    expect(versus.laneGames).toBeLessThanOrEqual(versus.games);
+
+    // Compartir equipo no es una rivalidad: esa partida en concreto no puede sumar.
+    expect(store.headToHead(ally).games).toBe(duels(ally));
+  });
+
+  it('las partidas vecinas van en orden cronológico y los extremos no tienen una de las dos', () => {
+    const ordered = [...store.allPersonalMatches()].sort(
+      (a, b) => new Date(b.decidedAt).getTime() - new Date(a.decidedAt).getTime(),
+    );
+
+    expect(store.neighboursOf(ordered[0].id).prev).toBeNull();
+    expect(store.neighboursOf(ordered[ordered.length - 1].id).next).toBeNull();
+
+    if (ordered.length > 1) {
+      expect(store.neighboursOf(ordered[0].id).next?.id).toBe(ordered[1].id);
+      expect(store.neighboursOf(ordered[1].id).prev?.id).toBe(ordered[0].id);
+    }
+  });
+
+  it('una partida que no existe no rompe la navegación', () => {
+    expect(store.matchById('no-existe')).toBeUndefined();
+    expect(store.neighboursOf('no-existe')).toEqual({ prev: null, next: null });
   });
 });

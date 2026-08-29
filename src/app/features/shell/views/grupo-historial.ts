@@ -1,21 +1,33 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, computed, effect, inject, viewChild } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
-import { NfButton } from '../../../ui';
+import { NfButton, NfPagination, NfSkeleton } from '../../../ui';
 import { GroupStore } from '../../../core/group-store';
 import { GroupBridge, GroupsStore } from '../../../core/groups';
 import { MatchHistoryStore } from '../../../core/matches/match-history-store';
+import { filterGroupMatches, sortMatches } from '../../../core/matches/match-filtering';
 import { MatchStore } from '../../../core/match-store';
 import { GameDataStore } from '../../../core/game-data';
-import { MatchCardComponent } from './match-history/match-card.component';
+import { Viewport } from '../../../shared/viewport';
+import { GroupMatchCardComponent } from './match-history/group-match-card.component';
 import { MatchFiltersComponent } from './match-history/match-filters.component';
+import { MatchHistoryUiState } from './match-history/match-history-ui';
 
 @Component({
   selector: 'app-grupo-historial',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, NfButton, MatchCardComponent, MatchFiltersComponent],
+  // Instancia propia: los filtros del historial personal no deben venirse puestos aquí.
+  providers: [MatchHistoryUiState],
+  imports: [
+    RouterLink,
+    NfButton,
+    NfPagination,
+    NfSkeleton,
+    GroupMatchCardComponent,
+    MatchFiltersComponent,
+  ],
   template: `
     <div class="view">
       @if (group(); as g) {
@@ -28,7 +40,6 @@ import { MatchFiltersComponent } from './match-history/match-filters.component';
         <div class="view__head">
           <div class="view__eyebrow nf-mono">Historial de Liga / Grupo</div>
           <h1 class="view__title">{{ g.name }}</h1>
-          <p class="view__lead">Registro oficial de enfrentamientos 5v5 disputados por los miembros de este grupo. Pulsa sobre cualquier partida para ver el desglose completo.</p>
         </div>
 
         <!-- BANNER DE PARTIDA EN DIRECTO (SI EXISTE) -->
@@ -36,11 +47,11 @@ import { MatchFiltersComponent } from './match-history/match-filters.component';
           <div class="live-match-banner">
             <span class="live-match-banner__pulse"></span>
             <div class="live-match-banner__meta">
-              <strong>🔴 EN DIRECTO:</strong>
+              <strong class="live-match-banner__tag">En directo</strong>
               <span>Sala #{{ room.code }} · 5v5 en curso en la Grieta</span>
             </div>
             <a class="live-match-banner__link nf-mono" [routerLink]="['/app', 'grupos', g.id, 'sala']">
-              Ver sala en vivo →
+              Ver sala en vivo
             </a>
           </div>
         }
@@ -50,7 +61,7 @@ import { MatchFiltersComponent } from './match-history/match-filters.component';
           <div class="m-summary">
             <!-- Bloque 1: Partidas y Lado Ganador -->
             <div class="m-summary__stat-card">
-              <div class="m-summary__title nf-mono">Balance de Bandos</div>
+              <div class="m-summary__title nf-mono">Winrate por lado</div>
               <div class="m-summary__wr-row">
                 <div class="m-summary__wr-val" style="color: var(--nf-team-blue);">
                   {{ groupStats().blueWinrate }}%
@@ -81,8 +92,8 @@ import { MatchFiltersComponent } from './match-history/match-filters.component';
             @if (groupStats().topMvpName; as mvp) {
               <div class="m-summary__stat-card">
                 <div class="m-summary__title nf-mono">Líder de MVPs del Grupo</div>
-                <div class="m-summary__kda-line" style="color: var(--nf-warning);">
-                  <strong>★ {{ mvp }}</strong>
+                <div class="m-summary__kda-line m-summary__kda-line--mvp">
+                  <strong>{{ mvp }}</strong>
                 </div>
                 <div class="m-summary__ratio nf-mono">
                   {{ groupStats().topMvpCount }} distinciones MVP en esta temporada
@@ -92,18 +103,29 @@ import { MatchFiltersComponent } from './match-history/match-filters.component';
           </div>
 
           <!-- BARRA DE FILTROS DEL GRUPO (Solo campeones jugados en este grupo) -->
-          <app-match-filters [showGroupFilter]="false" [contextGroupId]="g.id" />
+          <app-match-filters
+            mode="group"
+            [contextGroupId]="g.id"
+            [resultCount]="filteredMatches().length"
+            [totalCount]="allGroupMatches().length"
+          />
 
           <!-- LISTA DE PARTIDAS DEL GRUPO -->
-          @if (filteredMatches().length > 0) {
-            <div class="mh-list">
-              @for (m of filteredMatches(); track m.id) {
-                <app-match-card [match]="m" mode="group" />
+          @if (pageItems().length > 0) {
+            <div class="mh-list" #list>
+              @for (m of pageItems(); track m.id) {
+                <app-group-match-card [match]="m" />
               }
             </div>
+
+            <nf-pagination
+              [total]="filteredMatches().length"
+              [pageSize]="pageSize"
+              [page]="ui.page()"
+              (pageChange)="onPageChange($event)"
+            />
           } @else {
             <div class="empty-state">
-              <span class="empty-state__icon">🔍</span>
               <p class="empty-state__text nf-mono">No se encontraron partidas</p>
               <p class="empty-state__hint">No hay partidas que coincidan con los filtros seleccionados para este grupo.</p>
               <button nfButton variant="secondary" size="md" (click)="resetFilters()">
@@ -114,7 +136,6 @@ import { MatchFiltersComponent } from './match-history/match-filters.component';
         } @else {
           <!-- EMPTY STATE: SIN PARTIDAS EN ESTE GRUPO -->
           <div class="empty-state">
-            <span class="empty-state__icon">🎮</span>
             <p class="empty-state__text nf-mono">Sin partidas todavía</p>
             <p class="empty-state__hint">Este grupo aún no ha disputado ninguna partida. ¡Crea una sala 5v5 para comenzar la competición!</p>
             <button nfButton variant="primary" size="md" [routerLink]="['/app', 'grupos', g.id, 'crear-partida']">
@@ -123,10 +144,45 @@ import { MatchFiltersComponent } from './match-history/match-filters.component';
           </div>
         }
       } @else if (loading()) {
-        <!-- SKELETON MIENTRAS CARGA EL GRUPO -->
-        <div class="view" aria-busy="true">
+        <!--
+          SKELETON MIENTRAS CARGA EL GRUPO
+          Con la forma final —cabecera, tres tarjetas de resumen y cuatro filas— para que al
+          llegar el dato no salte nada de sitio. Antes aquí solo había un eyebrow suelto
+          dentro de un .view anidado en otro .view: en móvil eso es una pantalla vacía.
+        -->
+        <div aria-busy="true">
           <div class="view__head">
-            <div class="view__eyebrow nf-mono">Cargando grupo...</div>
+            <div class="view__eyebrow nf-mono">Historial de Liga / Grupo</div>
+            <nf-skeleton width="min(280px, 70%)" height="clamp(24px, 5vw, 32px)" />
+          </div>
+
+          <div class="m-summary">
+            @for (i of skeletonCards; track i) {
+              <div class="m-summary__stat-card">
+                <nf-skeleton width="120px" height="12px" />
+                <nf-skeleton width="90px" height="26px" />
+                <nf-skeleton width="150px" height="12px" />
+              </div>
+            }
+          </div>
+
+          <div class="mh-list">
+            @for (i of skeletonRows; track i) {
+              <div class="m-card m-card--skeleton">
+                <div class="m-card__skeleton-left">
+                  <nf-skeleton width="46px" height="46px" radius="6px" />
+                  <div class="m-card__skeleton-stack">
+                    <nf-skeleton width="130px" height="16px" />
+                    <nf-skeleton width="90px" height="12px" />
+                  </div>
+                </div>
+                <div class="m-card__skeleton-right">
+                  <nf-skeleton width="100px" height="18px" />
+                  <nf-skeleton width="140px" height="24px" />
+                  <nf-skeleton width="80px" height="14px" />
+                </div>
+              </div>
+            }
           </div>
         </div>
       } @else {
@@ -149,7 +205,15 @@ export class GrupoHistorial {
   private readonly groupsStore = inject(GroupsStore);
   private readonly bridge = inject(GroupBridge);
   private readonly matchHistoryStore = inject(MatchHistoryStore);
+  protected readonly ui = inject(MatchHistoryUiState);
+
+  /** El mismo tamaño de página que el historial personal: son la misma lista con otro filtro. */
+  protected readonly pageSize = 6;
+  protected readonly skeletonCards = [1, 2, 3];
+  protected readonly skeletonRows = [1, 2, 3, 4];
   private readonly matchStore = inject(MatchStore);
+  private readonly viewport = inject(Viewport);
+  private readonly list = viewChild<ElementRef<HTMLElement>>('list');
   protected readonly gameData = inject(GameDataStore);
 
   protected readonly champsLoading = computed(() => this.gameData.status() === 'loading');
@@ -180,8 +244,13 @@ export class GrupoHistorial {
   });
 
   readonly filteredMatches = computed(() => {
-    const id = this.id();
-    return id ? this.matchHistoryStore.filteredGroupMatches(id) : [];
+    const f = this.ui.filters();
+    return sortMatches(filterGroupMatches(this.allGroupMatches(), f), f.sortBy);
+  });
+
+  readonly pageItems = computed(() => {
+    const start = (this.ui.page() - 1) * this.pageSize;
+    return this.filteredMatches().slice(start, start + this.pageSize);
   });
 
   readonly groupStats = computed(() => {
@@ -199,6 +268,7 @@ export class GrupoHistorial {
 
   constructor() {
     this.gameData.ensureLoaded();
+    this.groupsStore.ensureLoaded();
     effect(() => {
       const id = this.id();
       if (id) {
@@ -207,7 +277,20 @@ export class GrupoHistorial {
     });
   }
 
+  /**
+   * Al cambiar de página, en móvil se vuelve al principio de la LISTA y no del documento:
+   * por encima están el resumen y los filtros, que ahí son casi dos pantallas de scroll
+   * para llegar otra vez a las partidas que se acaban de pedir. En escritorio ese trecho
+   * es corto y el comportamiento no cambia.
+   */
+  onPageChange(page: number): void {
+    this.ui.setPage(page);
+    const list = this.viewport.isMobile() ? this.list()?.nativeElement : null;
+    if (list) list.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    else window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
   resetFilters(): void {
-    this.matchHistoryStore.resetFilters();
+    this.ui.reset();
   }
 }

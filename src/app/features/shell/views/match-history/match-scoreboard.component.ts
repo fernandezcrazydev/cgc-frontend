@@ -1,43 +1,79 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { Match, MatchParticipant, TeamSide } from '../../../../core/matches/models';
+import { Match, MatchParticipant, TeamSummary } from '../../../../core/matches/models';
+import {
+  damagePerGold,
+  damageShare,
+  formatKda,
+  itemBg,
+  laneLabel,
+} from '../../../../core/matches/match-view';
 import { GameDataStore } from '../../../../core/game-data';
+import { formatCompact, formatNumber } from '../../../../shared/date-format';
 import { ToastService } from '../../../../core/toast';
-import { hash } from '../../../../core/group-ranking';
-import { NfAvatar, NfLaneIcon } from '../../../../ui';
+import { NfAvatar, NfLaneIcon, NfSegmentOption, NfSegmented } from '../../../../ui';
+import { Viewport } from '../../../../shared/viewport';
 
 @Component({
   selector: 'app-match-scoreboard',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, NfAvatar, NfLaneIcon],
+  imports: [RouterLink, NfAvatar, NfLaneIcon, NfSegmented],
   template: `
     <div class="m-scoreboard">
       <!-- Tabs de visualización -->
       <div class="m-scoreboard__tabs">
+        <div class="m-scoreboard__tabs-group">
+          <button
+            type="button"
+            class="m-scoreboard__tab nf-mono"
+            [class.is-active]="activeTab() === 'overview'"
+            (click)="activeTab.set('overview')"
+          >
+            {{ tabLabels().overview }}
+          </button>
+          <button
+            type="button"
+            class="m-scoreboard__tab nf-mono"
+            [class.is-active]="activeTab() === 'charts'"
+            (click)="activeTab.set('charts')"
+          >
+            {{ tabLabels().charts }}
+          </button>
+          <button
+            type="button"
+            class="m-scoreboard__tab nf-mono"
+            [class.is-active]="activeTab() === 'lanes'"
+            (click)="activeTab.set('lanes')"
+          >
+            {{ tabLabels().lanes }}
+          </button>
+        </div>
+
         <button
           type="button"
-          class="m-scoreboard__tab nf-mono"
-          [class.is-active]="activeTab() === 'overview'"
-          (click)="activeTab.set('overview')"
+          class="m-scoreboard__share-btn"
+          (click)="copyMatchLink()"
+          title="Copiar enlace de la partida"
+          aria-label="Copiar enlace de la partida"
         >
-          Marcador 5v5
-        </button>
-        <button
-          type="button"
-          class="m-scoreboard__tab nf-mono"
-          [class.is-active]="activeTab() === 'charts'"
-          (click)="activeTab.set('charts')"
-        >
-          Gráficos de Daño & Oro
-        </button>
-        <button
-          type="button"
-          class="m-scoreboard__tab nf-mono"
-          [class.is-active]="activeTab() === 'lanes'"
-          (click)="activeTab.set('lanes')"
-        >
-          Duelos en Línea (14m)
+          <svg
+            viewBox="0 0 24 24"
+            width="15"
+            height="15"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <circle cx="18" cy="5" r="3" />
+            <circle cx="6" cy="12" r="3" />
+            <circle cx="18" cy="19" r="3" />
+            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+          </svg>
         </button>
       </div>
 
@@ -55,11 +91,11 @@ import { NfAvatar, NfLaneIcon } from '../../../../ui';
                 </span>
               </div>
               <div class="m-team-table__objectives nf-mono">
-                <span>⚔️ {{ match().blueTeam.totalKills }} Kills</span>
-                <span>⬣ {{ formatGold(match().blueTeam.totalGold) }} Oro</span>
-                <span>🐉 {{ match().blueTeam.dragons }}</span>
-                <span>👾 {{ match().blueTeam.barons }}</span>
-                <span>🏰 {{ match().blueTeam.towers }}</span>
+                <span>{{ match().blueTeam.totalKills }} bajas</span>
+                <span>{{ formatGold(match().blueTeam.totalGold) }} de oro</span>
+                <span>{{ plural(match().blueTeam.dragons, 'dragón', 'dragones') }}</span>
+                <span>{{ plural(match().blueTeam.barons, 'barón', 'barones') }}</span>
+                <span>{{ plural(match().blueTeam.towers, 'torre', 'torres') }}</span>
               </div>
             </div>
 
@@ -76,38 +112,56 @@ import { NfAvatar, NfLaneIcon } from '../../../../ui';
               @for (p of match().blueTeam.participants; track p.id) {
                 <div
                   class="m-player-row"
-                  [class.is-current-user]="isCurrentUser(p.riotId)"
+                  [class.is-current-user]="isCurrentUser(p.id)"
                   [class.is-mvp]="p.stats.isMvp"
                 >
                   <!-- Campeón & Nombre -->
                   <div class="m-player-row__identity">
                     <div class="m-player-row__champ-wrap">
-                      <nf-avatar
-                        [src]="champion(p.championId)?.iconUrl ?? null"
-                        [fallback]="p.championName"
-                        [tint]="p.championId"
-                        [size]="38"
-                        shape="square"
-                      />
+                      <a
+                        [routerLink]="['/app', 'campeones']"
+                        [title]="'Ver estadísticas de ' + championName(p.championId)"
+                      >
+                        <nf-avatar
+                          [src]="champion(p.championId)?.iconUrl ?? null"
+                          [fallback]="p.championName"
+                          [tint]="p.championId"
+                          [size]="38"
+                          shape="square"
+                        />
+                      </a>
                       <span class="m-player-row__lvl nf-mono">{{ p.championLevel }}</span>
                     </div>
                     <div class="m-player-row__meta">
                       <div class="m-player-row__name-wrap">
                         <nf-lane-icon class="m-player-row__role-ico" [lane]="p.role" mode="original" />
-                        <span class="m-player-row__name" [title]="p.riotId">{{ p.riotId }}</span>
+                        <a
+                          class="m-player-row__name"
+                          [routerLink]="isCurrentUser(p.id) ? ['/app', 'perfil'] : ['/app', 'perfil', p.userId]"
+                          [title]="p.riotId"
+                        >
+                          {{ p.riotId }}
+                        </a>
                         @if (p.stats.isMvp) {
                           <span class="m-mvp-badge nf-mono">MVP</span>
                         }
-                        @if (isCurrentUser(p.riotId)) {
-                          <span class="m-you-badge nf-mono">TÚ</span>
+                        @if (isCurrentUser(p.id)) {
+                          <span class="m-you-badge nf-mono">Tú</span>
                         }
                       </div>
-                      <span class="m-player-row__champ-name nf-mono">{{ championName(p.championId) }}</span>
+                      <a
+                        class="m-player-row__champ-name nf-mono"
+                        [routerLink]="['/app', 'campeones']"
+                        [title]="'Ver estadísticas de ' + championName(p.championId)"
+                      >
+                        {{ championName(p.championId) }}
+                      </a>
                     </div>
                   </div>
 
                   <!-- KDA -->
                   <div class="m-player-row__kda">
+                    <span class="m-player-row__label nf-mono">KDA</span>
                     <div class="m-player-row__kda-nums">
                       <strong>{{ p.stats.kills }}</strong> /
                       <strong class="m-deaths">{{ p.stats.deaths }}</strong> /
@@ -118,9 +172,10 @@ import { NfAvatar, NfLaneIcon } from '../../../../ui';
 
                   <!-- Daño con barra -->
                   <div class="m-player-row__damage">
+                    <span class="m-player-row__label nf-mono">Daño</span>
                     <div class="m-damage-val nf-mono">
-                      <span>{{ p.stats.totalDamageToChampions.toLocaleString('es-ES') }}</span>
-                      <span class="m-damage-pct">({{ p.stats.damageSharePercentage }}%)</span>
+                      <span>{{ formatNumber(p.stats.totalDamageToChampions) }}</span>
+                      <span class="m-damage-pct">({{ damagePct(p, match().blueTeam) }}%)</span>
                     </div>
                     <div class="m-damage-bar-track">
                       <div
@@ -132,20 +187,27 @@ import { NfAvatar, NfLaneIcon } from '../../../../ui';
 
                   <!-- CS & Oro -->
                   <div class="m-player-row__cs">
+                    <span class="m-player-row__label nf-mono">CS y oro</span>
                     <span class="m-cs-text nf-mono">{{ p.stats.cs }} CS ({{ p.stats.csPerMin }}/m)</span>
-                    <span class="m-gold-text nf-mono">⬣ {{ formatGold(p.stats.gold) }}</span>
+                    <span class="m-gold-text nf-mono">{{ formatGold(p.stats.gold) }} de oro</span>
                   </div>
 
                   <!-- Items & Spells -->
                   <div class="m-player-row__items">
+                    <span class="m-player-row__label nf-mono">Objetos</span>
                     <div class="m-items-grid">
                       @for (it of p.stats.items; track $index) {
                         @if (it) {
-                          <span
+                          <nf-avatar
                             class="m-item-slot"
+                            [src]="it.iconUrl ?? null"
+                            [fallback]="it.name"
+                            [tint]="0"
+                            [size]="20"
+                            shape="square"
                             [style.background]="itemBg(it.name)"
                             [title]="it.name"
-                          ></span>
+                          />
                         } @else {
                           <span class="m-item-slot m-item-slot--empty"></span>
                         }
@@ -175,11 +237,11 @@ import { NfAvatar, NfLaneIcon } from '../../../../ui';
                 </span>
               </div>
               <div class="m-team-table__objectives nf-mono">
-                <span>⚔️ {{ match().redTeam.totalKills }} Kills</span>
-                <span>⬣ {{ formatGold(match().redTeam.totalGold) }} Oro</span>
-                <span>🐉 {{ match().redTeam.dragons }}</span>
-                <span>👾 {{ match().redTeam.barons }}</span>
-                <span>🏰 {{ match().redTeam.towers }}</span>
+                <span>{{ match().redTeam.totalKills }} bajas</span>
+                <span>{{ formatGold(match().redTeam.totalGold) }} de oro</span>
+                <span>{{ plural(match().redTeam.dragons, 'dragón', 'dragones') }}</span>
+                <span>{{ plural(match().redTeam.barons, 'barón', 'barones') }}</span>
+                <span>{{ plural(match().redTeam.towers, 'torre', 'torres') }}</span>
               </div>
             </div>
 
@@ -196,38 +258,56 @@ import { NfAvatar, NfLaneIcon } from '../../../../ui';
               @for (p of match().redTeam.participants; track p.id) {
                 <div
                   class="m-player-row"
-                  [class.is-current-user]="isCurrentUser(p.riotId)"
+                  [class.is-current-user]="isCurrentUser(p.id)"
                   [class.is-mvp]="p.stats.isMvp"
                 >
                   <!-- Campeón & Nombre -->
                   <div class="m-player-row__identity">
                     <div class="m-player-row__champ-wrap">
-                      <nf-avatar
-                        [src]="champion(p.championId)?.iconUrl ?? null"
-                        [fallback]="p.championName"
-                        [tint]="p.championId"
-                        [size]="38"
-                        shape="square"
-                      />
+                      <a
+                        [routerLink]="['/app', 'campeones']"
+                        [title]="'Ver estadísticas de ' + championName(p.championId)"
+                      >
+                        <nf-avatar
+                          [src]="champion(p.championId)?.iconUrl ?? null"
+                          [fallback]="p.championName"
+                          [tint]="p.championId"
+                          [size]="38"
+                          shape="square"
+                        />
+                      </a>
                       <span class="m-player-row__lvl nf-mono">{{ p.championLevel }}</span>
                     </div>
                     <div class="m-player-row__meta">
                       <div class="m-player-row__name-wrap">
                         <nf-lane-icon class="m-player-row__role-ico" [lane]="p.role" mode="original" />
-                        <span class="m-player-row__name" [title]="p.riotId">{{ p.riotId }}</span>
+                        <a
+                          class="m-player-row__name"
+                          [routerLink]="isCurrentUser(p.id) ? ['/app', 'perfil'] : ['/app', 'perfil', p.userId]"
+                          [title]="p.riotId"
+                        >
+                          {{ p.riotId }}
+                        </a>
                         @if (p.stats.isMvp) {
                           <span class="m-mvp-badge nf-mono">MVP</span>
                         }
-                        @if (isCurrentUser(p.riotId)) {
-                          <span class="m-you-badge nf-mono">TÚ</span>
+                        @if (isCurrentUser(p.id)) {
+                          <span class="m-you-badge nf-mono">Tú</span>
                         }
                       </div>
-                      <span class="m-player-row__champ-name nf-mono">{{ championName(p.championId) }}</span>
+                      <a
+                        class="m-player-row__champ-name nf-mono"
+                        [routerLink]="['/app', 'campeones']"
+                        [title]="'Ver estadísticas de ' + championName(p.championId)"
+                      >
+                        {{ championName(p.championId) }}
+                      </a>
                     </div>
                   </div>
 
                   <!-- KDA -->
                   <div class="m-player-row__kda">
+                    <span class="m-player-row__label nf-mono">KDA</span>
                     <div class="m-player-row__kda-nums">
                       <strong>{{ p.stats.kills }}</strong> /
                       <strong class="m-deaths">{{ p.stats.deaths }}</strong> /
@@ -238,9 +318,10 @@ import { NfAvatar, NfLaneIcon } from '../../../../ui';
 
                   <!-- Daño con barra -->
                   <div class="m-player-row__damage">
+                    <span class="m-player-row__label nf-mono">Daño</span>
                     <div class="m-damage-val nf-mono">
-                      <span>{{ p.stats.totalDamageToChampions.toLocaleString('es-ES') }}</span>
-                      <span class="m-damage-pct">({{ p.stats.damageSharePercentage }}%)</span>
+                      <span>{{ formatNumber(p.stats.totalDamageToChampions) }}</span>
+                      <span class="m-damage-pct">({{ damagePct(p, match().redTeam) }}%)</span>
                     </div>
                     <div class="m-damage-bar-track">
                       <div
@@ -252,20 +333,27 @@ import { NfAvatar, NfLaneIcon } from '../../../../ui';
 
                   <!-- CS & Oro -->
                   <div class="m-player-row__cs">
+                    <span class="m-player-row__label nf-mono">CS y oro</span>
                     <span class="m-cs-text nf-mono">{{ p.stats.cs }} CS ({{ p.stats.csPerMin }}/m)</span>
-                    <span class="m-gold-text nf-mono">⬣ {{ formatGold(p.stats.gold) }}</span>
+                    <span class="m-gold-text nf-mono">{{ formatGold(p.stats.gold) }} de oro</span>
                   </div>
 
                   <!-- Items & Spells -->
                   <div class="m-player-row__items">
+                    <span class="m-player-row__label nf-mono">Objetos</span>
                     <div class="m-items-grid">
                       @for (it of p.stats.items; track $index) {
                         @if (it) {
-                          <span
+                          <nf-avatar
                             class="m-item-slot"
+                            [src]="it.iconUrl ?? null"
+                            [fallback]="it.name"
+                            [tint]="0"
+                            [size]="20"
+                            shape="square"
                             [style.background]="itemBg(it.name)"
                             [title]="it.name"
-                          ></span>
+                          />
                         } @else {
                           <span class="m-item-slot m-item-slot--empty"></span>
                         }
@@ -286,56 +374,76 @@ import { NfAvatar, NfLaneIcon } from '../../../../ui';
         </div>
       }
 
-      <!-- TAB 2: GRÁFICOS DE DAÑO & ORO -->
+      <!-- TAB 2: RANKING DE LA PARTIDA -->
       @if (activeTab() === 'charts') {
-        <div class="m-scoreboard__tab-content m-charts-tab">
-          <div class="m-charts-grid">
-            <!-- Gráfico de daño 10 jugadores -->
-            <div class="m-chart-card">
-              <h3 class="m-chart-card__title nf-mono">Comparativa de daño a campeones</h3>
-              <div class="m-chart-bars">
-                @for (p of allPlayers(); track p.id) {
-                  <div class="m-chart-bar-row">
-                    <div class="m-chart-bar-label">
-                      <nf-lane-icon class="m-chart-bar-role" [lane]="p.role" mode="original" />
-                      <span class="m-chart-bar-name" [title]="p.riotId">{{ p.riotId }}</span>
-                    </div>
-                    <div class="m-chart-bar-track">
-                      <div
-                        class="m-chart-bar-value"
-                        [class.is-blue]="p.team === 'blue'"
-                        [class.is-red]="p.team === 'red'"
-                        [style.width.%]="(p.stats.totalDamageToChampions / maxDamage()) * 100"
-                      ></div>
-                    </div>
-                    <span class="m-chart-bar-num nf-mono">{{ (p.stats.totalDamageToChampions / 1000).toFixed(1) }}k</span>
-                  </div>
-                }
-              </div>
-            </div>
-
-            <!-- Gráfico de oro acumulado -->
-            <div class="m-chart-card">
-              <h3 class="m-chart-card__title nf-mono">Distribución de oro total</h3>
-              <div class="m-chart-bars">
-                @for (p of allPlayers(); track p.id) {
-                  <div class="m-chart-bar-row">
-                    <div class="m-chart-bar-label">
-                      <nf-lane-icon class="m-chart-bar-role" [lane]="p.role" mode="original" />
-                      <span class="m-chart-bar-name" [title]="p.riotId">{{ p.riotId }}</span>
-                    </div>
-                    <div class="m-chart-bar-track">
-                      <div
-                        class="m-chart-bar-value m-chart-bar-value--gold"
-                        [style.width.%]="(p.stats.gold / maxGold()) * 100"
-                      ></div>
-                    </div>
-                    <span class="m-chart-bar-num nf-mono">{{ (p.stats.gold / 1000).toFixed(1) }}k</span>
-                  </div>
-                }
-              </div>
-            </div>
+        <div class="m-scoreboard__tab-content m-rank-tab">
+          <div class="m-rank-head">
+            <p class="m-rank-lead">
+              Los diez, ordenados de mayor a menor. En orden de equipo estas barras no respondían
+              a ninguna pregunta: para saber qué bando pegó más están los totales de la cabecera,
+              y para saber quién pegó más hay que poder leerlo de un vistazo.
+            </p>
+            <nf-segmented
+              [options]="metricOptions"
+              [value]="metric()"
+              (valueChange)="setMetric($event)"
+              ariaLabel="Ordenar el ranking por"
+            />
           </div>
+
+          <ol class="m-rank-list">
+            @for (row of ranking(); track row.player.id; let i = $index) {
+              <li class="m-rank-row" [class.is-first]="i === 0" [class.is-you]="isCurrentUser(row.player.id)">
+                <span class="m-rank-pos nf-mono">{{ i + 1 }}</span>
+
+                <div class="m-rank-who">
+                  <nf-lane-icon class="m-rank-lane" [lane]="row.player.role" mode="original" />
+                  <a
+                    class="m-rank-name"
+                    [routerLink]="isCurrentUser(row.player.id) ? ['/app', 'perfil'] : ['/app', 'perfil', row.player.userId]"
+                    [title]="row.player.riotId"
+                  >
+                    {{ row.player.riotId }}
+                  </a>
+                  <a
+                    class="m-rank-champ nf-mono"
+                    [routerLink]="['/app', 'campeones']"
+                    [title]="'Ver estadísticas de ' + championName(row.player.championId)"
+                  >
+                    {{ championName(row.player.championId) }}
+                  </a>
+                </div>
+
+                <!--
+                  Barra doble: daño arriba, oro abajo, cada una en su propia escala. Ver mucho
+                  oro con poco daño identifica a quien farmeó sin aparecer, que es la
+                  conversación interesante en un grupo de amigos.
+                -->
+                <div class="m-rank-bars">
+                  <div class="m-rank-bar">
+                    <div
+                      class="m-rank-bar__fill m-rank-bar__fill--damage"
+                      [class.is-blue]="row.player.team === 'blue'"
+                      [class.is-red]="row.player.team === 'red'"
+                      [style.width.%]="row.damagePct"
+                    ></div>
+                  </div>
+                  <div class="m-rank-bar m-rank-bar--thin">
+                    <div class="m-rank-bar__fill m-rank-bar__fill--gold" [style.width.%]="row.goldPct"></div>
+                  </div>
+                </div>
+
+                <div class="m-rank-values nf-mono">
+                  <span class="m-rank-value">{{ row.primary }}</span>
+                  <span class="m-rank-value m-rank-value--sub">{{ row.secondary }}</span>
+                </div>
+              </li>
+            }
+          </ol>
+
+          <p class="m-rank-legend nf-mono">
+            Barra ancha: daño a campeones, con el color del bando. Barra fina: oro.
+          </p>
         </div>
       }
 
@@ -347,21 +455,38 @@ import { NfAvatar, NfLaneIcon } from '../../../../ui';
               <div class="m-lane-card">
                 <div class="m-lane-card__role">
                   <nf-lane-icon [lane]="lane.role" mode="original" />
-                  <span class="nf-mono">{{ lane.role }}</span>
+                  <span class="nf-mono">{{ laneLabel(lane.role) }}</span>
                 </div>
 
                 <!-- Jugador Azul -->
                 <div class="m-lane-card__side m-lane-card__side--blue" [class.is-winner]="lane.blue.stats.wonLane">
-                  <nf-avatar
-                    [src]="champion(lane.blue.championId)?.iconUrl ?? null"
-                    [fallback]="lane.blue.championName"
-                    [tint]="lane.blue.championId"
-                    [size]="36"
-                    shape="square"
-                  />
+                  <a
+                    [routerLink]="['/app', 'campeones']"
+                    [title]="'Ver estadísticas de ' + championName(lane.blue.championId)"
+                  >
+                    <nf-avatar
+                      [src]="champion(lane.blue.championId)?.iconUrl ?? null"
+                      [fallback]="lane.blue.championName"
+                      [tint]="lane.blue.championId"
+                      [size]="36"
+                      shape="square"
+                    />
+                  </a>
                   <div class="m-lane-card__meta">
-                    <span class="m-lane-card__player">{{ lane.blue.riotId }}</span>
-                    <span class="m-lane-card__champ nf-mono">{{ championName(lane.blue.championId) }}</span>
+                    <a
+                      class="m-lane-card__player"
+                      [routerLink]="isCurrentUser(lane.blue.id) ? ['/app', 'perfil'] : ['/app', 'perfil', lane.blue.userId]"
+                      [title]="lane.blue.riotId"
+                    >
+                      {{ lane.blue.riotId }}
+                    </a>
+                    <a
+                      class="m-lane-card__champ nf-mono"
+                      [routerLink]="['/app', 'campeones']"
+                      [title]="'Ver estadísticas de ' + championName(lane.blue.championId)"
+                    >
+                      {{ championName(lane.blue.championId) }}
+                    </a>
                     <span class="m-lane-card__stats nf-mono">
                       {{ lane.blue.stats.csAt14 ?? 0 }} CS @14m · {{ formatGold(lane.blue.stats.goldAt14 ?? 0) }} Oro
                     </span>
@@ -375,16 +500,33 @@ import { NfAvatar, NfLaneIcon } from '../../../../ui';
 
                 <!-- Jugador Rojo -->
                 <div class="m-lane-card__side m-lane-card__side--red" [class.is-winner]="lane.red.stats.wonLane">
-                  <nf-avatar
-                    [src]="champion(lane.red.championId)?.iconUrl ?? null"
-                    [fallback]="lane.red.championName"
-                    [tint]="lane.red.championId"
-                    [size]="36"
-                    shape="square"
-                  />
+                  <a
+                    [routerLink]="['/app', 'campeones']"
+                    [title]="'Ver estadísticas de ' + championName(lane.red.championId)"
+                  >
+                    <nf-avatar
+                      [src]="champion(lane.red.championId)?.iconUrl ?? null"
+                      [fallback]="lane.red.championName"
+                      [tint]="lane.red.championId"
+                      [size]="36"
+                      shape="square"
+                    />
+                  </a>
                   <div class="m-lane-card__meta">
-                    <span class="m-lane-card__player">{{ lane.red.riotId }}</span>
-                    <span class="m-lane-card__champ nf-mono">{{ championName(lane.red.championId) }}</span>
+                    <a
+                      class="m-lane-card__player"
+                      [routerLink]="isCurrentUser(lane.red.id) ? ['/app', 'perfil'] : ['/app', 'perfil', lane.red.userId]"
+                      [title]="lane.red.riotId"
+                    >
+                      {{ lane.red.riotId }}
+                    </a>
+                    <a
+                      class="m-lane-card__champ nf-mono"
+                      [routerLink]="['/app', 'campeones']"
+                      [title]="'Ver estadísticas de ' + championName(lane.red.championId)"
+                    >
+                      {{ championName(lane.red.championId) }}
+                    </a>
                     <span class="m-lane-card__stats nf-mono">
                       {{ lane.red.stats.csAt14 ?? 0 }} CS @14m · {{ formatGold(lane.red.stats.goldAt14 ?? 0) }} Oro
                     </span>
@@ -398,65 +540,92 @@ import { NfAvatar, NfLaneIcon } from '../../../../ui';
           </div>
         </div>
       }
-
-      <!-- Footer de acciones del acordeón -->
-      <div class="m-scoreboard__footer">
-        <button
-          type="button"
-          class="m-foot-btn nf-mono"
-          (click)="copyMatchLink()"
-        >
-          🔗 Copiar enlace
-        </button>
-
-        @if (showDetailedPageLink()) {
-          <a
-            class="m-foot-btn m-foot-btn--primary nf-mono"
-            [routerLink]="['/app', 'historial', match().id]"
-          >
-            Ver análisis completo →
-          </a>
-        }
-      </div>
     </div>
   `,
 })
 export class MatchScoreboardComponent {
   readonly match = input.required<Match>();
-  readonly showDetailedPageLink = input(true);
 
   private readonly gameData = inject(GameDataStore);
   private readonly toasts = inject(ToastService);
+  private readonly viewport = inject(Viewport);
 
   readonly activeTab = signal<'overview' | 'charts' | 'lanes'>('overview');
+
+  /**
+   * Las tres etiquetas largas suman ~455px: en un móvil se repartían en tres filas y
+   * dejaban el botón de compartir descolgado al final. Acortarlas cabe en una sola fila
+   * sin perder de qué va cada pestaña, porque el contexto (la partida) ya está arriba.
+   */
+  readonly tabLabels = computed(() =>
+    this.viewport.isMobile()
+      ? { overview: 'Marcador', charts: 'Ranking', lanes: 'Líneas' }
+      : {
+          overview: 'Marcador 5v5',
+          charts: 'Ranking de la partida',
+          lanes: 'Duelos de línea (14 min)',
+        },
+  );
 
   readonly allPlayers = computed(() => {
     return [...this.match().blueTeam.participants, ...this.match().redTeam.participants];
   });
 
-  readonly maxDamage = computed(() => {
-    const damages = this.allPlayers().map((p) => p.stats.totalDamageToChampions);
-    return Math.max(...damages, 1);
-  });
+  readonly maxDamage = computed(() =>
+    Math.max(...this.allPlayers().map((p) => p.stats.totalDamageToChampions), 1),
+  );
 
-  readonly maxGold = computed(() => {
-    const golds = this.allPlayers().map((p) => p.stats.gold);
-    return Math.max(...golds, 1);
+  readonly maxGold = computed(() => Math.max(...this.allPlayers().map((p) => p.stats.gold), 1));
+
+  /** Por qué se ordena el ranking. */
+  readonly metric = signal<RankMetric>('damage');
+
+  readonly metricOptions: readonly NfSegmentOption[] = [
+    { value: 'damage', label: 'Daño' },
+    { value: 'gold', label: 'Oro' },
+    { value: 'efficiency', label: 'Daño por oro' },
+  ];
+
+  /**
+   * Los diez ordenados por la métrica activa.
+   *
+   * «Daño por oro» está aquí porque es la única de las tres que no premia automáticamente al
+   * tirador: el daño en bruto lo gana casi siempre quien más oro recibe, y esta separa «hizo
+   * mucho daño» de «hizo mucho daño con lo que tenía».
+   */
+  readonly ranking = computed<RankRow[]>(() => {
+    const metric = this.metric();
+    const maxDamage = this.maxDamage();
+    const maxGold = this.maxGold();
+
+    return this.allPlayers()
+      .map((player) => {
+        const efficiency = damagePerGold(player.stats);
+        return {
+          player,
+          damagePct: (player.stats.totalDamageToChampions / maxDamage) * 100,
+          goldPct: (player.stats.gold / maxGold) * 100,
+          primary: primaryLabel(metric, player, efficiency),
+          secondary: secondaryLabel(metric, player, efficiency),
+          score: scoreOf(metric, player, efficiency),
+        };
+      })
+      .sort((a, b) => b.score - a.score);
   });
 
   readonly laneMatchups = computed(() => {
     const m = this.match();
     const roles: MatchParticipant['role'][] = ['TOP', 'JUNGLA', 'MID', 'ADC', 'SUPPORT'];
-    return roles.map((role) => {
-      const blueP = m.blueTeam.participants.find((p) => p.role === role) ?? m.blueTeam.participants[0];
-      const redP = m.redTeam.participants.find((p) => p.role === role) ?? m.redTeam.participants[0];
-      return {
-        role,
-        blue: blueP,
-        red: redP,
-      };
-    });
+    return roles.map((role) => ({
+      role,
+      blue: m.blueTeam.participants.find((p) => p.role === role) ?? m.blueTeam.participants[0],
+      red: m.redTeam.participants.find((p) => p.role === role) ?? m.redTeam.participants[0],
+    }));
   });
+
+  setMetric(metric: string): void {
+    this.metric.set(metric as RankMetric);
+  }
 
   champion(id: number) {
     return this.gameData.championById().get(id);
@@ -466,22 +635,42 @@ export class MatchScoreboardComponent {
     return this.champion(id)?.name ?? 'Campeón';
   }
 
-  isCurrentUser(riotId: string): boolean {
-    return riotId.toLowerCase() === 'n1ghtfang#lan';
+  /**
+   * El reparto de daño se DERIVA de los cinco del equipo, no se lee de
+   * `stats.damageSharePercentage`. Ver `damageShare()`: el campo almacenado y el cálculo
+   * eran el mismo concepto con dos valores distintos.
+   */
+  damagePct(p: MatchParticipant, team: TeamSummary): number {
+    return damageShare(p, team);
+  }
+
+  laneLabel(lane: MatchParticipant['role']): string {
+    return laneLabel(lane);
+  }
+
+  /** Por id de participante: la vista no conoce ni compara identidades. */
+  isCurrentUser(participantId: string): boolean {
+    return participantId === this.match().userParticipant?.id;
   }
 
   kdaRatio(stats: MatchParticipant['stats']): string {
-    const ratio = stats.deaths === 0 ? stats.kills + stats.assists : (stats.kills + stats.assists) / stats.deaths;
-    return ratio.toFixed(2);
+    return formatKda(stats);
   }
 
   formatGold(gold: number): string {
-    return (gold / 1000).toFixed(1) + 'k';
+    return formatCompact(gold);
+  }
+
+  formatNumber(value: number): string {
+    return formatNumber(value);
   }
 
   itemBg(name: string): string {
-    const h = hash(name) % 360;
-    return `linear-gradient(135deg, hsl(${h},70%,46%), hsl(${h},60%,24%))`;
+    return itemBg(name);
+  }
+
+  plural(count: number, one: string, many: string): string {
+    return `${count} ${count === 1 ? one : many}`;
   }
 
   copyMatchLink(): void {
@@ -489,4 +678,36 @@ export class MatchScoreboardComponent {
     navigator.clipboard?.writeText(url);
     this.toasts.info('Enlace de la partida copiado al portapapeles');
   }
+}
+
+type RankMetric = 'damage' | 'gold' | 'efficiency';
+
+interface RankRow {
+  player: MatchParticipant;
+  damagePct: number;
+  goldPct: number;
+  primary: string;
+  secondary: string;
+  score: number;
+}
+
+function scoreOf(metric: RankMetric, p: MatchParticipant, efficiency: number): number {
+  if (metric === 'gold') return p.stats.gold;
+  if (metric === 'efficiency') return efficiency;
+  return p.stats.totalDamageToChampions;
+}
+
+/** La cifra grande es siempre la que ordena: si no, el orden parece arbitrario. */
+function primaryLabel(metric: RankMetric, p: MatchParticipant, efficiency: number): string {
+  if (metric === 'gold') return `${formatCompact(p.stats.gold)} de oro`;
+  if (metric === 'efficiency') return `${Math.round(efficiency)} por 1.000`;
+  return `${formatCompact(p.stats.totalDamageToChampions)} de daño`;
+}
+
+function secondaryLabel(metric: RankMetric, p: MatchParticipant, efficiency: number): string {
+  if (metric === 'gold') return `${formatCompact(p.stats.totalDamageToChampions)} de daño`;
+  if (metric === 'efficiency') {
+    return `${formatCompact(p.stats.totalDamageToChampions)} con ${formatCompact(p.stats.gold)}`;
+  }
+  return `${formatCompact(p.stats.gold)} de oro`;
 }

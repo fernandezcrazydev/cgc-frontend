@@ -142,6 +142,9 @@ const ROLE_LABEL: Record<GroupMemberResponse['role'], string> = {
 function toMockMember(m: GroupMemberResponse): Member {
   const name = m.discordUsername || m.riotId || m.userId.slice(0, 8);
   return {
+    // El id estable del backend. Hoy solo lo usa el historial mock, para que al pulsar el
+    // nombre de un companero se llegue a `/app/perfil/<su uuid>` y no a un tag inventado.
+    userId: m.userId,
     name,
     tag: m.riotId || name,
     initials: name.slice(0, 2).toUpperCase(),

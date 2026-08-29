@@ -7,6 +7,17 @@
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
 
+/* ---- Enlaces ----
+   Ningún enlace de la app va subrayado: la afordancia es el color, que cambia
+   al pasar el ratón y al recibir el foco. Sin este reset cada clase tenía que
+   acordarse de declarar su propio `text-decoration: none`, y las que no lo
+   hacían salían con el subrayado del navegador —en el historial eso son diez
+   nombres de jugador y diez de campeón rayados por fila—.
+
+   Las dos pantallas que sí quieren subrayado (el pie legal del login y la 404)
+   lo declaran explícitamente en su propio CSS, así que este reset no las toca. */
+a { text-decoration: none; }
+
 /* ---- Anillo de foco ----
    La app no tenía ninguno: `nf-btn`, los enlaces de navegación y la mayoría
    de controles heredaban el outline del navegador, que sobre fondo oscuro es
