@@ -50,7 +50,12 @@ export interface RankEntry {
   hue: number;
   avatar?: string;
   rating: number;
-  /** LP en crudo. `formattedLp` lleva separador de millares y no se puede ordenar. */
+  /**
+   * LP en crudo (`formattedLp` lleva separador de millares y no se puede comparar).
+   * La vista ya no ordena por LP —la columna Pos ES ese orden—, pero el valor se
+   * conserva porque el backend lo mandará igualmente y lo necesitan las
+   * comparaciones de la clasificación.
+   */
   lpValue: number;
   formattedLp: string;
   peak: number;
@@ -67,7 +72,10 @@ export interface RankEntry {
   sparkPath: string;
   /** Overall direction of the spark, for the line color. */
   trend: 'up' | 'down';
-  /** LoL lane role. */
+  /**
+   * Rol principal del jugador. Ver `mainLaneFor`: hoy es un placeholder sembrado,
+   * no un dato calculado sobre el historial de picks.
+   */
   lane: NfLane;
   /** LoL highest rank (SoloQ or Flex). */
   lolRank: LolRankInfo;
@@ -131,6 +139,41 @@ function tierForRating(rating: number): LolRankInfo {
   return { tier: step.tier, queue: step.queue, label: step.label, color: step.color };
 }
 
+/** Rol que se enseña cuando no hay historial suficiente para deducir un main. */
+const FALLBACK_MAIN_LANE: NfLane = 'MID';
+
+/**
+ * Rol principal ("Main Role") del jugador, el que pinta la columna "Rol".
+ *
+ * TODO: [AUTH/DATA] Implementar cálculo real del Main Role según historial de picks
+ *
+ * Hoy NO viene de ninguna fuente de datos: sale de la misma semilla determinista
+ * que el resto de la fila, así que es un valor inventado que el usuario lee como
+ * real. El cálculo bueno es "la línea más jugada en las últimas N clasificatorias",
+ * y necesita un historial de partidas por jugador que ni la API de Riot ni nuestro
+ * backend están sirviendo todavía.
+ *
+ * BACKEND NOTE: cuando `GET /groups/{id}/ranking` devuelva `mainLane` ya resuelta,
+ * este helper y su fallback se borran y el campo se lee del DTO. El fallback
+ * tipado se queda documentado aquí mientras tanto para que el día que el backend
+ * mande `null` (jugador sin partidas) la vista tenga una respuesta definida en vez
+ * de pintar un hueco.
+ */
+function mainLaneFor(rnd: () => number): NfLane {
+  return LANES[Math.floor(rnd() * LANES.length)] ?? FALLBACK_MAIN_LANE;
+}
+
+/**
+ * Campeón más jugado, para el icono de la columna "Main".
+ *
+ * TODO: [AUTH/DATA] Implementar cálculo real del Main Role según historial de picks
+ * — misma deuda que `mainLaneFor`: el campeón principal se deduce del mismo
+ * historial de picks y llegará en la misma respuesta (`mainChampionId`).
+ */
+function mainChampionFor(rnd: () => number): number {
+  return REAL_CHAMPION_IDS[Math.floor(rnd() * REAL_CHAMPION_IDS.length)];
+}
+
 /** Build a leaderboard of `count` members for a group, ranked by rating desc. */
 export function rankingFor(groupId: string, count: number): RankEntry[] {
   const rnd = seeded(hash(groupId));
@@ -152,8 +195,8 @@ export function rankingFor(groupId: string, count: number): RankEntry[] {
     }
     spark[spark.length - 1] = rating;
 
-    const lane = LANES[Math.floor(rnd() * LANES.length)];
-    const champId = REAL_CHAMPION_IDS[Math.floor(rnd() * REAL_CHAMPION_IDS.length)];
+    const lane = mainLaneFor(rnd);
+    const champId = mainChampionFor(rnd);
     const avgGain = 18 + Math.floor(rnd() * 9);
     const avgLoss = 14 + Math.floor(rnd() * 8);
 

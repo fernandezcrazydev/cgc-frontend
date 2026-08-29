@@ -24,8 +24,14 @@ import {
   rankMatchesFor,
 } from '../../../core/ranking-matches';
 
-/** Columnas por las que se puede ordenar la clasificación. */
-type SortKey = 'rank' | 'lane' | 'lp' | 'wr';
+/**
+ * Columnas por las que se puede ordenar la clasificación.
+ *
+ * No hay `'lp'`: la clasificación se construye por LP descendente, así que
+ * "Pos" y "LP" ordenaban exactamente igual y tener los dos controles dejaba al
+ * usuario sin saber cuál mandaba.
+ */
+type SortKey = 'rank' | 'lane' | 'wr';
 type SortDir = 'asc' | 'desc';
 
 /** A partir de aquí la lista se pagina (requisito: 15 registros por página). */
@@ -56,7 +62,12 @@ const PAGE_SIZE = 15;
         @if (top3().length) {
           <div class="rk-top3-grid">
             @for (e of top3(); track e.playerId) {
-              <div class="rk-top-card">
+              <div
+                class="rk-top-card"
+                [class.rk-top-card--1st]="e.rank === 1"
+                [class.rk-top-card--2nd]="e.rank === 2"
+                [class.rk-top-card--3rd]="e.rank === 3"
+              >
                 <div class="rk-top-card__head">
                   <div class="rk-top-card__pos nf-mono">#{{ e.rank }}</div>
 
@@ -122,6 +133,12 @@ const PAGE_SIZE = 15;
              heredaría el scroll horizontal del contenedor y se saldría de
              pantalla al desplazar las columnas). -->
         <div class="rk-list">
+          <!-- Cabeceras centradas salvo "Jugador": todas las demás celdas pintan
+               un dato centrado en su columna, así que un título alineado a la
+               izquierda quedaba desplazado respecto a su propio contenido.
+               No hay orden por LP: la columna Pos YA es el orden por LP
+               descendente, y dos controles para el mismo criterio solo
+               confunden sobre cuál manda. -->
           <div class="rk-list__head nf-mono">
             <button
               type="button"
@@ -130,7 +147,7 @@ const PAGE_SIZE = 15;
               (click)="sortBy('rank')"
             >Pos <span class="rk-th__arrow" aria-hidden="true">{{ arrow('rank') }}</span></button>
 
-            <span class="rk-th">Jugador</span>
+            <span class="rk-th rk-th--start">Jugador</span>
 
             <button
               type="button"
@@ -139,12 +156,7 @@ const PAGE_SIZE = 15;
               (click)="sortBy('lane')"
             >Rol <span class="rk-th__arrow" aria-hidden="true">{{ arrow('lane') }}</span></button>
 
-            <button
-              type="button"
-              class="rk-th rk-th--btn"
-              [attr.aria-sort]="ariaSort('lp')"
-              (click)="sortBy('lp')"
-            >LP <span class="rk-th__arrow" aria-hidden="true">{{ arrow('lp') }}</span></button>
+            <span class="rk-th">LP</span>
 
             <button
               type="button"
@@ -155,27 +167,31 @@ const PAGE_SIZE = 15;
 
             <span class="rk-th">Tendencia</span>
             <span class="rk-th">LP prom.</span>
-            <span class="rk-th rk-th--center">Main</span>
+            <span class="rk-th">Main</span>
             <span class="rk-th" aria-hidden="true"></span>
           </div>
 
           @for (e of pageRows(); track e.playerId) {
             <div class="rk-row" [class.is-open]="openId() === e.playerId" [class.is-banned]="e.banned">
-              <button
-                #summary
-                type="button"
-                class="rk-row__summary"
-                [attr.aria-expanded]="openId() === e.playerId"
-                [attr.aria-controls]="'rkd-' + e.playerId"
-                (click)="toggle(e.playerId)"
-              >
+              <!-- La fila NO es un <button>: el nombre del jugador es un enlace a
+                   OP.GG y un enlace dentro de un botón es markup inválido. El
+                   objetivo de clic del acordeón lo estira el propio botón del
+                   chevrón con un ::after a toda la fila (mismo patrón que
+                   .cp-rigid__toggle), y el enlace se pinta por encima. -->
+              <div class="rk-row__summary">
                 <span class="rk-cell rk-cell--pos nf-mono">{{ e.rank }}</span>
 
                 <span class="rk-cell rk-cell--user">
                   <nf-avatar [src]="e.avatar ?? null" [fallback]="e.name" [tint]="e.hue" [size]="40" />
                   <span class="rk-user-meta">
                     <span class="rk-user-meta__top">
-                      <span class="rk-user-name">{{ e.name }}</span>
+                      <a
+                        class="rk-user-name"
+                        [href]="e.opggUrl"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        [title]="'Abrir ' + e.name + '#' + e.tag + ' en OP.GG'"
+                      >{{ e.name }}</a>
                       @if (e.banned) {
                         <span class="rk-ban" [title]="e.banReason">
                           <span class="rk-ban__ico" aria-hidden="true">🔒</span>
@@ -188,8 +204,7 @@ const PAGE_SIZE = 15;
                 </span>
 
                 <span class="rk-cell rk-cell--lane">
-                  <nf-lane-icon [lane]="e.lane" mode="original" />
-                  <span class="nf-mono">{{ e.lane }}</span>
+                  <nf-lane-icon [lane]="e.lane" mode="original" [title]="'Rol: ' + e.lane" />
                 </span>
 
                 <span class="rk-cell rk-cell--lp nf-mono">{{ e.formattedLp }}</span>
@@ -231,8 +246,18 @@ const PAGE_SIZE = 15;
                   />
                 </span>
 
-                <span class="rk-cell rk-cell--chev" aria-hidden="true">▾</span>
-              </button>
+                <button
+                  #summary
+                  type="button"
+                  class="rk-row__toggle"
+                  [attr.aria-expanded]="openId() === e.playerId"
+                  [attr.aria-controls]="'rkd-' + e.playerId"
+                  [attr.aria-label]="'Puesto ' + e.rank + ', ' + e.name + ': ver historial'"
+                  (click)="toggle(e.playerId)"
+                >
+                  <span class="rk-row__chev" aria-hidden="true">▾</span>
+                </button>
+              </div>
 
               @if (openId() === e.playerId) {
                 <div
@@ -244,13 +269,9 @@ const PAGE_SIZE = 15;
                 >
                   <div class="rk-drawer__head">
                     <span class="rk-drawer__tab is-active nf-mono">Historial</span>
+                    <!-- Sin enlace explícito a OP.GG: lo lleva el nombre del
+                         jugador de la fila. -->
                     <span class="rk-drawer__actions">
-                      <a
-                        class="rk-drawer__link nf-mono"
-                        [href]="e.opggUrl"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >Abrir en OP.GG</a>
                       <a
                         class="rk-drawer__btn nf-mono"
                         [routerLink]="['/app', 'grupos', g.id, 'estadisticas']"
@@ -276,7 +297,11 @@ const PAGE_SIZE = 15;
 
                             <nf-lane-icon class="rk-match__lane" [lane]="m.lane" mode="original" [title]="'Rol: ' + m.lane" />
 
-                            <span class="rk-match__side">
+                            <!-- Espejo respecto al VS: el mismo template se pinta
+                                 al revés a la izquierda (row-reverse), de modo
+                                 que el orden leído desde el centro hacia fuera es
+                                 el mismo en los dos lados. -->
+                            <span class="rk-match__side rk-match__side--mine">
                               <ng-container *ngTemplateOutlet="loadout; context: { $implicit: m.player }" />
                             </span>
 
@@ -352,7 +377,11 @@ const PAGE_SIZE = 15;
       }
     </div>
 
-    <!-- Campeón + hechizos + runas de un lado del enfrentamiento. -->
+    <!-- Campeón + hechizos + runas de un lado del enfrentamiento.
+         Se emite SIEMPRE en el orden [campeón][hechizos][runas]; el lado del
+         jugador lo invierte con row-reverse (.rk-match__side--mine) para que el
+         bloque quede en espejo. Invertirlo por CSS y no con un segundo template
+         evita duplicar el markup de los dos lados. -->
     <ng-template #loadout let-side>
       <nf-avatar
         class="rk-match__champ"
@@ -428,7 +457,6 @@ export class GrupoRanking {
       if (a.banned !== b.banned) return a.banned ? 1 : -1;
       switch (key) {
         case 'lane': return dir * (a.lane.localeCompare(b.lane) || a.rank - b.rank);
-        case 'lp': return dir * (a.lpValue - b.lpValue || b.rank - a.rank);
         case 'wr': return dir * (a.wr - b.wr || b.rank - a.rank);
         default: return dir * (a.rank - b.rank);
       }
@@ -440,8 +468,8 @@ export class GrupoRanking {
       this.sortDir.update((d) => (d === 'asc' ? 'desc' : 'asc'));
     } else {
       this.sortKey.set(key);
-      // Pos y Rol se leen mejor ascendentes; LP y winrate, de mayor a menor.
-      this.sortDir.set(key === 'rank' || key === 'lane' ? 'asc' : 'desc');
+      // Pos y Rol se leen mejor ascendentes; el winrate, de mayor a menor.
+      this.sortDir.set(key === 'wr' ? 'desc' : 'asc');
     }
     this.page.set(1);
     this.openId.set(null);

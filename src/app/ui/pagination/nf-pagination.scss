@@ -9,11 +9,28 @@
   margin-top: 22px;
 }
 
+/* Píldora: el resumen "1–15 de 28" era texto suelto flotando junto a unos
+   botones con caja, y no se leía como parte del paginador. Con la misma
+   superficie hundida y el mismo radio que los botones queda claro que es el
+   mismo control; el acento del borde lo separa del fondo de la vista. */
 .nf-pager__summary {
-  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 34px;
+  padding: 0 14px;
+  border: var(--bw-2) solid color-mix(in srgb, var(--nf-secondary) 34%, var(--nf-border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--nf-secondary) 9%, var(--nf-inset));
+  box-shadow: var(--nf-edge-light);
+  font-size: 12.5px;
+  font-weight: var(--fw-bold);
+  letter-spacing: 0.3px;
   color: var(--nf-text);
+  white-space: nowrap;
 }
 .nf-pager__of {
+  font-weight: var(--fw-semibold);
   color: var(--nf-text-dim);
 }
 
