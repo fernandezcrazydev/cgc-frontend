@@ -6,7 +6,6 @@ import { map } from 'rxjs';
 import {
   NfAvatar,
   NfButton,
-  NfGameIcon,
   NfLaneIcon,
   NfPagination,
   NfRankEmblem,
@@ -16,13 +15,7 @@ import { GameDataStore } from '../../../core/game-data';
 import { hash, rankingFor, RankEntry } from '../../../core/group-ranking';
 import { kdaRatio } from '../../../core/match-history';
 import { timeAgo } from '../../../core/notifications';
-import {
-  KEYSTONES,
-  PERK_TREES,
-  RankMatch,
-  SUMMONER_SPELLS,
-  rankMatchesFor,
-} from '../../../core/ranking-matches';
+import { RankMatch, rankMatchesFor } from '../../../core/ranking-matches';
 
 /**
  * Columnas por las que se puede ordenar la clasificación.
@@ -48,7 +41,6 @@ const PAGE_SIZE = 15;
     NfAvatar,
     NfLaneIcon,
     NfRankEmblem,
-    NfGameIcon,
     NfPagination,
   ],
   template: `
@@ -426,12 +418,36 @@ const PAGE_SIZE = 15;
       />
       <span class="rk-match__spells">
         @for (sp of side.spellIds; track sp) {
-          <nf-game-icon set="spell" [id]="sp" [label]="spellName(sp)" [size]="17" />
+          <nf-avatar
+            [loading]="champsLoading()"
+            [src]="spell(sp)?.iconUrl ?? null"
+            [fallback]="spellName(sp)"
+            [tint]="sp"
+            [size]="17"
+            shape="square"
+            [alt]="spellName(sp)"
+          />
         }
       </span>
       <span class="rk-match__perks">
-        <nf-game-icon set="perk" [id]="side.perkIds[0]" [label]="keystoneName(side.perkIds[0])" [size]="17" />
-        <nf-game-icon set="perk" [id]="side.perkIds[1]" [label]="treeName(side.perkIds[1])" [size]="15" />
+        <nf-avatar
+          [loading]="champsLoading()"
+          [src]="perk(side.perkIds[0])?.iconUrl ?? null"
+          [fallback]="perkName(side.perkIds[0])"
+          [tint]="side.perkIds[0]"
+          [size]="17"
+          shape="square"
+          [alt]="perkName(side.perkIds[0])"
+        />
+        <nf-avatar
+          [loading]="champsLoading()"
+          [src]="perk(side.perkIds[1])?.iconUrl ?? null"
+          [fallback]="perkName(side.perkIds[1])"
+          [tint]="side.perkIds[1]"
+          [size]="15"
+          shape="square"
+          [alt]="perkName(side.perkIds[1])"
+        />
       </span>
     </ng-template>
   `,
@@ -576,16 +592,25 @@ export class GrupoRanking {
     return this.champion(id)?.name ?? 'Campeón';
   }
 
+  spell(id: number) {
+    return this.gameData.spellById().get(id);
+  }
+
   spellName(id: number): string {
-    return SUMMONER_SPELLS[id] ?? 'Hechizo';
+    return this.spell(id)?.name ?? 'Hechizo';
   }
 
-  keystoneName(id: number): string {
-    return KEYSTONES[id] ?? 'Runa';
+  perk(id: number) {
+    return this.gameData.perkById().get(id);
   }
 
-  treeName(id: number): string {
-    return PERK_TREES[id] ?? 'Árbol de runas';
+  /**
+   * Un mismo método para la runa clave y para el árbol: el catálogo del backend los
+   * devuelve en la misma lista y el `style` ya distingue cuál es, así que dos funciones
+   * separadas solo repetirían la misma búsqueda con distinto texto de reserva.
+   */
+  perkName(id: number): string {
+    return this.perk(id)?.name ?? 'Runa';
   }
 
   /**

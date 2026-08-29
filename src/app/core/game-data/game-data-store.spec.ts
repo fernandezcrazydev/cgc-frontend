@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { Observable, throwError } from 'rxjs';
-import { ChampionSummary, GameDataManifest } from './models';
+import { ChampionSummary, GameDataManifest, Perk, SummonerSpell } from './models';
 import { GameDataApi } from './game-data-api';
 import { GameDataStore } from './game-data-store';
 
@@ -12,11 +12,16 @@ import { GameDataStore } from './game-data-store';
 class ApiStub {
   manifestCalls = 0;
   championsCalls = 0;
+  spellsCalls = 0;
+  perksCalls = 0;
 
   private resolveManifest!: (m: GameDataManifest) => void;
   private resolveChampions!: (c: ChampionSummary[]) => void;
+  private resolveSpells!: (s: SummonerSpell[]) => void;
+  private resolvePerks!: (p: Perk[]) => void;
   failManifest = false;
   failChampions = false;
+  failPerks = false;
 
   manifest(): Observable<GameDataManifest> {
     this.manifestCalls++;
@@ -40,10 +45,38 @@ class ApiStub {
     });
   }
 
+  summonerSpells(): Observable<SummonerSpell[]> {
+    this.spellsCalls++;
+    return new Observable((sub) => {
+      this.resolveSpells = (s) => {
+        sub.next(s);
+        sub.complete();
+      };
+    });
+  }
+
+  perks(): Observable<Perk[]> {
+    this.perksCalls++;
+    if (this.failPerks) return throwError(() => new Error('boom'));
+    return new Observable((sub) => {
+      this.resolvePerks = (p) => {
+        sub.next(p);
+        sub.complete();
+      };
+    });
+  }
+
   /** Deja que el microtask de `firstValueFrom` corra tras emitir. */
-  async settle(manifest: GameDataManifest, champions: ChampionSummary[]): Promise<void> {
+  async settle(
+    manifest: GameDataManifest,
+    champions: ChampionSummary[],
+    spells: SummonerSpell[] = [FLASH],
+    perks: Perk[] = [ELECTROCUTE],
+  ): Promise<void> {
     this.resolveManifest(manifest);
     this.resolveChampions(champions);
+    this.resolveSpells(spells);
+    if (!this.failPerks) this.resolvePerks(perks);
     await Promise.resolve();
     await Promise.resolve();
   }
@@ -57,6 +90,24 @@ const AHRI: ChampionSummary = {
   tags: ['Mage', 'Assassin'],
   iconUrl: '.../Ahri.png',
   loadingUrl: '.../Ahri_0.jpg',
+};
+const FLASH: SummonerSpell = {
+  id: 4,
+  slug: 'SummonerFlash',
+  name: 'Destello',
+  iconUrl: '.../SummonerFlash.png',
+  modes: ['CLASSIC'],
+};
+/**
+ * Runa clave. Ojo al `iconUrl`: apunta a CommunityDragon y no a ddragon, porque Riot
+ * retiró las runas de Data Dragon. Para el store es una URL absoluta más — que el
+ * origen sea otro es cosa del backend.
+ */
+const ELECTROCUTE: Perk = {
+  id: 8112,
+  name: 'Electrocutar',
+  iconUrl: '.../perk-images/styles/domination/electrocute/electrocute.png',
+  style: false,
 };
 const MANIFEST: GameDataManifest = { version: '16.14.1', updatedAt: '2026-07-26T04:17:03Z' };
 
@@ -72,11 +123,15 @@ describe('GameDataStore', () => {
     store = TestBed.inject(GameDataStore);
   });
 
-  it('arranca idle, sin campeones y sin versión', () => {
+  it('arranca idle, sin catálogo y sin versión', () => {
     expect(store.status()).toBe('idle');
     expect(store.champions()).toEqual([]);
+    expect(store.summonerSpells()).toEqual([]);
+    expect(store.perks()).toEqual([]);
     expect(store.version()).toBeNull();
     expect(store.championById().size).toBe(0);
+    expect(store.spellById().size).toBe(0);
+    expect(store.perkById().size).toBe(0);
   });
 
   it('ensureLoaded pasa por loading y deja el catálogo en ready', async () => {
@@ -90,6 +145,8 @@ describe('GameDataStore', () => {
     expect(store.version()).toBe('16.14.1');
     expect(store.champions()).toEqual([AHRI]);
     expect(store.championById().get(103)).toEqual(AHRI);
+    expect(store.spellById().get(4)).toEqual(FLASH);
+    expect(store.perkById().get(8112)).toEqual(ELECTROCUTE);
   });
 
   it('deduplica llamadas concurrentes a ensureLoaded en una sola petición', async () => {
@@ -100,6 +157,8 @@ describe('GameDataStore', () => {
 
     expect(api.manifestCalls).toBe(1);
     expect(api.championsCalls).toBe(1);
+    expect(api.spellsCalls).toBe(1);
+    expect(api.perksCalls).toBe(1);
   });
 
   it('no vuelve a pedir una vez cargado, y reload sí fuerza el refetch', async () => {
@@ -115,6 +174,22 @@ describe('GameDataStore', () => {
     await api.settle(MANIFEST, [AHRI]);
     await again;
     expect(api.manifestCalls).toBe(2);
+  });
+
+  /**
+   * Las cuatro peticiones van en el mismo `Promise.all`, así que si cae una cae la carga
+   * entera: un catálogo a medias dejaría la vista pintando unos iconos sí y otros no sin
+   * que `status` lo delatara. Se prueba con las runas porque son la que viene de otro
+   * host (CommunityDragon) y por tanto la que más probablemente falle sola.
+   */
+  it('un fallo solo de las runas deja el catálogo entero en error, no a medias', async () => {
+    api.failPerks = true;
+    await store.ensureLoaded();
+
+    expect(store.status()).toBe('error');
+    expect(store.champions()).toEqual([]);
+    expect(store.summonerSpells()).toEqual([]);
+    expect(store.perks()).toEqual([]);
   });
 
   it('un fallo de carga deja status error y permite reintentar con reload', async () => {
@@ -157,6 +232,8 @@ describe('GameDataStore', () => {
 
     expect(store.status()).toBe('idle');
     expect(store.champions()).toEqual([]);
+    expect(store.summonerSpells()).toEqual([]);
+    expect(store.perks()).toEqual([]);
     expect(store.version()).toBeNull();
   });
 });

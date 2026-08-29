@@ -96,6 +96,31 @@ describe('GameDataApi', () => {
     ]);
   });
 
+  /**
+   * Las runas son el único recurso del catálogo cuyo `iconUrl` NO apunta a ddragon: Riot las
+   * retiró de ahí y el backend las importa de CommunityDragon. El front no se entera —recibe
+   * una URL absoluta como las demás—, y este test lo deja fijado por si alguien intenta
+   * "arreglar" el host algún día desde el cliente.
+   */
+  it('perks hace GET /game-data/perks y acepta el iconUrl de CommunityDragon', async () => {
+    const perks = [
+      { id: 8100, name: 'Dominación', iconUrl: '.../v1/perk-images/styles/7200_domination.png', style: true },
+      {
+        id: 8112,
+        name: 'Electrocutar',
+        iconUrl: '.../v1/perk-images/styles/domination/electrocute/electrocute.png',
+        style: false,
+      },
+    ];
+    const result = firstValueFrom(api.perks());
+
+    const req = http.expectOne(`${API}/game-data/perks`);
+    expect(req.request.method).toBe('GET');
+    req.flush(perks);
+
+    expect(await result).toEqual(perks);
+  });
+
   it('items manda page y size, y omite q cuando no se pasa', async () => {
     api.items(0, 50).subscribe();
 

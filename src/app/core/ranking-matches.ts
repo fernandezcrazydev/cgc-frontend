@@ -10,57 +10,34 @@
  * endpoint real de historial devolverá esto embebido —con las `iconUrl` ya
  * montadas por el servidor, como hace `game-data`— y este fichero se borra
  * entero. Nada de aquí debe sobrevivir a la migración.
+ *
+ * De campeones, hechizos y runas ya solo quedan los ids: nombres e iconos los sirve
+ * `core/game-data` contra el backend, y la vista los resuelve por id. Lo que sobrevive
+ * aquí es únicamente el sorteo determinista, que es lo que sustituirá el endpoint.
  */
 import { NfLane } from '../ui/lane-icon/nf-lane-icon';
 import { MatchRecord } from './match-history';
 import { RankEntry, hash, seeded } from './group-ranking';
 
 /**
- * Hechizos de invocador. La clave es el id REAL de ddragon, que es también el
- * nombre del fichero vendorizado en `public/assets/spells/{id}.png`.
+ * Ids reales de ddragon de los hechizos de invocador que sortea el generador.
  *
- * BACKEND NOTE: `GET /game-data/summoner-spells` ya existe
- * (`GameDataApi.summonerSpells()`) y devuelve la `iconUrl` absoluta. El día que
- * haya store de hechizos, esta tabla se borra y el icono sale del store; el
- * modelo no cambia porque ya viaja el id, no la ruta.
+ * Solo los ids: el NOMBRE lo sirve el backend (`GET /game-data/summoner-spells`), igual que
+ * el icono, y la vista lo resuelve por `GameDataStore.spellById()`. Aquí había una tabla
+ * `id -> nombre` escrita a mano que ya no pinta nada.
  */
-export const SUMMONER_SPELLS: Record<number, string> = {
-  1: 'Purificación',
-  3: 'Agotar',
-  4: 'Destello',
-  7: 'Curar',
-  11: 'Castigar',
-  12: 'Teletransporte',
-  14: 'Prender',
-  21: 'Barrera',
-};
+const SPELL_IDS = [1, 3, 4, 7, 11, 12, 14, 21];
 
-/** Runas clave, por id real de ddragon → `public/assets/perks/{id}.png`. */
-export const KEYSTONES: Record<number, string> = {
-  8005: 'Ataque Certero',
-  8010: 'Conquistador',
-  8021: 'Paso Ligero',
-  8112: 'Electrocutar',
-  8128: 'Cosecha Oscura',
-  8214: 'Invocar a Aery',
-  8229: 'Cometa Arcano',
-  8351: 'Aumento Glacial',
-  8369: 'Primer Golpe',
-  8437: 'Agarre del Inmortal',
-};
-
-/** Árboles secundarios, por id real de ddragon → `public/assets/perks/{id}.png`. */
-export const PERK_TREES: Record<number, string> = {
-  8000: 'Precisión',
-  8100: 'Dominación',
-  8200: 'Brujería',
-  8300: 'Inspiración',
-  8400: 'Valor',
-};
-
-const SPELL_IDS = Object.keys(SUMMONER_SPELLS).map(Number);
-const KEYSTONE_IDS = Object.keys(KEYSTONES).map(Number);
-const TREE_IDS = Object.keys(PERK_TREES).map(Number);
+/**
+ * Ids reales de las runas clave y de los cinco árboles secundarios.
+ *
+ * Mismo criterio que los hechizos, con una vuelta de tuerca: las runas ya NO están en Data
+ * Dragon (Riot las retiró, `runesReactive.json` responde 403), así que el backend las importa
+ * de CommunityDragon y las sirve por `GET /game-data/perks`. Para el front eso es invisible:
+ * sigue siendo un id que se resuelve por `GameDataStore.perkById()`.
+ */
+const KEYSTONE_IDS = [8005, 8010, 8021, 8112, 8128, 8214, 8229, 8351, 8369, 8437];
+const TREE_IDS = [8000, 8100, 8200, 8300, 8400];
 
 /**
  * Objetos con su id real de ddragon. Se tipa el id desde ya aunque hoy no se

@@ -242,7 +242,7 @@ export function rankingFor(groupId: string, count: number): RankEntry[] {
   return sorted.map((e, i) => {
     const rank = i + 1;
     // El trofeo es del podio activo: un sancionado nunca lo luce.
-    const trophyImg = rank <= 3 && !e.banned ? '/assets/trofeos/Trofeo' + rank + '.png' : undefined;
+    const trophyImg = rank <= 3 && !e.banned ? '/assets/trofeos/Trofeo' + rank + '.webp' : undefined;
 
     return {
       ...e,
