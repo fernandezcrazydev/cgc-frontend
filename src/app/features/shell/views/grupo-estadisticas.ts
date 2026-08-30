@@ -1,9 +1,10 @@
-import { Component, computed, inject, linkedSignal, signal } from '@angular/core';
+import { Component, computed, effect, inject, linkedSignal, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
 import { NfAvatar, NfBadge, NfButton, NfSkeleton, NfWindow } from '../../../ui';
 import { GroupStore } from '../../../core/group-store';
+import { GroupBridge, GroupsStore } from '../../../core/groups';
 import { Member } from '../../../core/lobby';
 import { sparkPoints } from '../../../core/group-ranking';
 import { GameDataStore } from '../../../core/game-data';
@@ -26,7 +27,28 @@ type StatTab = 'resumen' | 'jugadores' | 'premios';
   imports: [RouterLink, NfBadge, NfButton, NfWindow, NfAvatar, NfSkeleton],
   template: `
     <div class="view">
-      @if (group(); as g) {
+      @if (loadingGroup()) {
+        <div aria-busy="true">
+          <div class="view-back nf-mono">
+            <nf-skeleton width="140px" height="14px" />
+          </div>
+          <div class="view__head">
+            <div class="view__eyebrow nf-mono">Estadísticas del grupo</div>
+            <nf-skeleton width="240px" height="28px" />
+          </div>
+          <div class="hl-grid">
+            <div class="hl" data-accent="primary">
+              <nf-skeleton width="100%" height="140px" radius="10px" />
+            </div>
+            <div class="hl" data-accent="secondary">
+              <nf-skeleton width="100%" height="140px" radius="10px" />
+            </div>
+            <div class="hl" data-accent="warning">
+              <nf-skeleton width="100%" height="140px" radius="10px" />
+            </div>
+          </div>
+        </div>
+      } @else if (group(); as g) {
         <a class="view-back nf-mono" [routerLink]="['/app', 'grupos', g.id]">
           <span class="view-back__arrow" aria-hidden="true">←</span> {{ g.name }}
         </a>
@@ -275,7 +297,9 @@ type StatTab = 'resumen' | 'jugadores' | 'premios';
 })
 export class GrupoEstadisticas {
   private readonly route = inject(ActivatedRoute);
-  readonly groups = inject(GroupStore);
+  private readonly groupStore = inject(GroupStore);
+  private readonly groupsStore = inject(GroupsStore);
+  readonly bridge = inject(GroupBridge);
 
   protected readonly gameData = inject(GameDataStore);
   protected readonly champsLoading = computed(() => this.gameData.status() === 'loading');
@@ -290,6 +314,13 @@ export class GrupoEstadisticas {
 
   constructor() {
     this.gameData.ensureLoaded();
+    this.groupsStore.ensureLoaded();
+    effect(() => {
+      const id = this.id();
+      if (id) {
+        void this.bridge.ensure(id);
+      }
+    });
   }
 
   readonly scopeOptions = SCOPE_OPTIONS;
@@ -301,17 +332,6 @@ export class GrupoEstadisticas {
 
   readonly scope = signal<StatScope>('temporada');
 
-  /**
-   * `?jugador=<nombre>` abre la vista directamente en la ficha de ese jugador.
-   * Lo usa el botón "Ver perfil" del acordeón del ranking, que necesitaba un
-   * destino real: `/app/perfil` es el del usuario logueado y enseñarlo bajo el
-   * nombre de otro sería un bug, no un placeholder.
-   *
-   * Va por NOMBRE y no por `tag` a propósito: el `tag` del roster es
-   * `Nombre#<región del grupo>` (aquí todos "#LAN") mientras que el del ranking
-   * es una región de sabor por jugador, así que no casan. El nombre sí es único
-   * dentro del grupo (ver la invariante de `MOCK_NAMES` en `lobby.ts`).
-   */
   private readonly focusedName = toSignal(
     this.route.queryParamMap.pipe(map((p) => p.get('jugador'))),
     { initialValue: this.route.snapshot.queryParamMap.get('jugador') },
@@ -332,15 +352,20 @@ export class GrupoEstadisticas {
     { initialValue: this.route.snapshot.paramMap.get('id') },
   );
 
+  readonly loadingGroup = computed(
+    () => this.bridge.status() === 'loading' || this.bridge.status() === 'idle',
+  );
+
   readonly group = computed(() => {
     const id = this.id();
-    return id ? this.groups.byId(id) ?? null : null;
+    if (!id) return null;
+    return this.groupStore.byId(id) ?? this.groupsStore.byId(id) ?? null;
   });
 
   /** Base per-member stats for the active group + scope. */
   private readonly stats = computed(() => {
     const g = this.group();
-    return g ? statsFor(g.id, this.groups.rosterOf(g.id), this.scope()) : [];
+    return g ? statsFor(g.id, this.groupStore.rosterOf(g.id), this.scope()) : [];
   });
 
   readonly summary = computed(() => summaryFor(this.stats(), this.scope()));

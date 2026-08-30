@@ -76,6 +76,7 @@ export class GroupBridge {
         {
           id: view.id,
           name: view.name,
+          leagueName: view.leagueName ?? undefined,
           tag: view.region ?? 'LAN',
           initials: view.initials,
           role: view.role === 'OWNER' ? 'Capitán' : 'Miembro',

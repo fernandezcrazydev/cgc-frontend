@@ -79,6 +79,8 @@ export interface GroupResponse {
   /** El preset elegido al crear. El backend NO manda el algoritmo que lo sirve: es interno. */
   matchmakingPreset: MatchmakingPreset;
   avatarUrl: string | null;
+  /** Nombre opcional de la liga activa si el backend lo proporciona */
+  leagueName?: string | null;
 }
 
 /** Un elemento de `GET /api/v1/me/groups`: el grupo más el rol del llamante. */

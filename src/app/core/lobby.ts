@@ -26,6 +26,8 @@ export interface Group {
   /** Stable slug used in the URL (`/app/grupos/:id`). */
   id: string;
   name: string;
+  /** Nombre propio de la liga asociada al grupo, desacoplado del nombre de grupo. */
+  leagueName?: string;
   /** Short mono subtitle, e.g. "LAN · COMPETITIVO". */
   tag: string;
   initials: string;
@@ -80,10 +82,10 @@ export const NAV: NavItem[] = [
 ];
 
 export const GROUPS: Group[] = [
-  { id: 'lan-challenger', name: 'LAN Challenger S14', tag: 'LAN', initials: 'LC', role: 'Capitán',   members: 28,  c1: 'hsl(320,90%,64%)', c2: 'hsl(280,78%,34%)' },
-  { id: 'scrim-squad',    name: 'Scrim Squad',        tag: 'EUW', initials: 'SS', role: 'Miembro', members: 12, c1: 'hsl(190,90%,62%)', c2: 'hsl(205,78%,32%)' },
-  { id: 'night-owls',     name: 'Night Owls',         tag: 'NA',  initials: 'NO', role: 'Capitán',   members: 5,  c1: 'hsl(150,90%,60%)', c2: 'hsl(160,78%,30%)' },
-  { id: 'arcane-five',    name: 'Arcane Five',         tag: 'KR',  initials: 'A5', role: 'Miembro', members: 9,  c1: 'hsl(48,95%,62%)',  c2: 'hsl(38,80%,32%)'  },
+  { id: 'lan-challenger', name: 'LAN Challenger S14', leagueName: 'Liga Challenger Clausura', tag: 'LAN', initials: 'LC', role: 'Capitán',   members: 28,  c1: 'hsl(320,90%,64%)', c2: 'hsl(280,78%,34%)' },
+  { id: 'scrim-squad',    name: 'Scrim Squad',        leagueName: 'Liga Premier Scrims',        tag: 'EUW', initials: 'SS', role: 'Miembro', members: 12, c1: 'hsl(190,90%,62%)', c2: 'hsl(205,78%,32%)' },
+  { id: 'night-owls',     name: 'Night Owls',         leagueName: 'Circuito Nocturno',         tag: 'NA',  initials: 'NO', role: 'Capitán',   members: 5,  c1: 'hsl(150,90%,60%)', c2: 'hsl(160,78%,30%)' },
+  { id: 'arcane-five',    name: 'Arcane Five',        leagueName: 'Torneo Arcane Open',        tag: 'KR',  initials: 'A5', role: 'Miembro', members: 9,  c1: 'hsl(48,95%,62%)',  c2: 'hsl(38,80%,32%)'  },
 ];
 
 export const MATCHES: MatchItem[] = [

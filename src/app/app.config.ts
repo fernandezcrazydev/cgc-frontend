@@ -10,7 +10,7 @@ import {
 } from 'angular-auth-oidc-client';
 
 import { routes } from './app.routes';
-import { sessionRecoveryInterceptor } from './core/http';
+import { serverClockInterceptor, sessionRecoveryInterceptor } from './core/http';
 import { environment } from '../environments/environment';
 
 export const appConfig: ApplicationConfig = {
@@ -24,7 +24,7 @@ export const appConfig: ApplicationConfig = {
     // Bearer nuevo. Ver core/http/session-recovery.ts.
     provideHttpClient(
       withFetch(),
-      withInterceptors([sessionRecoveryInterceptor, authInterceptor()]),
+      withInterceptors([serverClockInterceptor, sessionRecoveryInterceptor, authInterceptor()]),
     ),
     provideAuth({
       config: {

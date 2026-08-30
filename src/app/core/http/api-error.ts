@@ -90,7 +90,11 @@ const MESSAGES_BY_CODE: Record<string, string> = {
     'Eso no es una dirección IP. Escribe una dirección (88.98.97.149) o un rango (88.98.97.0/24).',
   INVALID_METRICS_WINDOW:
     'Ese periodo no es válido. Solo guardamos las llamadas a Riot de los últimos 7 días.',
+  INVALID_LEAGUE_DATES: 'Una temporada no puede acabar antes de empezar. Revisa las fechas.',
   INVALID_RIOT_ID: 'Ese Riot ID no es válido. Debe ser «Nombre#TAG», tal y como aparece en el cliente.',
+  LEAGUE_ALREADY_OPEN:
+    'Este grupo ya tiene una temporada en marcha. Para abrir otra, espera a que termine la actual.',
+  LEAGUE_NOT_FOUND: 'Esa temporada ya no existe.',
   INVITATION_NOT_FOUND: 'Esa invitación ya no existe.',
   INVITATION_NOT_PENDING: 'Esa invitación ya no está pendiente: se aceptó, se rechazó o se canceló.',
   INVITEE_NOT_FOUND: 'No se ha encontrado ese usuario.',

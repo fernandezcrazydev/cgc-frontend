@@ -10,6 +10,8 @@ import { GroupMembershipResponse, GroupResponse, GroupRole } from './models';
 export interface GroupView {
   id: string;
   name: string;
+  /** Nombre opcional de la liga vinculada al grupo */
+  leagueName?: string | null;
   /** Región de juego como subtítulo mono; null si el grupo no tiene. */
   region: string | null;
   role: GroupRole;
@@ -32,6 +34,7 @@ export function groupViewFrom(group: GroupResponse, role: GroupRole): GroupView 
   return {
     id: group.groupId,
     name: group.name,
+    leagueName: group.leagueName ?? null,
     region: group.region,
     role,
     avatarUrl: group.avatarUrl,
