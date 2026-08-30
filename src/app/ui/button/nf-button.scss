@@ -39,6 +39,7 @@
 }
 
 /* ---- tamaños ---- */
+.nf-btn--xs { padding: 3px 8px; font-size: 11px; border-radius: 5px; gap: 5px; }
 .nf-btn--sm { padding: 7px 14px; font-size: 12px; }
 .nf-btn--md { padding: 11px 20px; font-size: 13px; }
 .nf-btn--lg { padding: 15px 26px; font-size: 14px; }
@@ -108,4 +109,52 @@
    genérico sobre un botón rojo se lee como otro control. */
 .nf-btn--danger:focus-visible {
   outline-color: color-mix(in srgb, var(--nf-danger) 70%, #fff);
+}
+
+/* ---- riot · marca de un tercero ----
+   El rojo oficial de Riot Games, no el `danger` de la app: un botón de
+   autenticación federada solo se reconoce si lleva el color del proveedor. Por
+   eso es la única variante que no consume la paleta semántica, y sus tokens
+   viven en el bloque de marca de `tokens/colors.css`.
+
+   La microinteracción no va por `filter: brightness` como el resto: sobre un
+   rojo tan saturado el brillo lo lava y deja de ser el color de la marca. En su
+   lugar se cambia al tono `hover` oficial y crece el halo, que mantiene el
+   matiz exacto. */
+.nf-btn--riot {
+  background: var(--nf-brand-riot);
+  color: var(--nf-brand-riot-fg);
+  border-color: var(--nf-brand-riot);
+  box-shadow:
+    var(--nf-edge-light),
+    0 1px 2px hsl(var(--nf-shadow-color) / 0.4),
+    0 4px 14px color-mix(in srgb, var(--nf-brand-riot) 30%, transparent);
+}
+.nf-btn--riot:hover:not(:disabled) {
+  filter: none;
+  background: var(--nf-brand-riot-hover);
+  border-color: var(--nf-brand-riot-hover);
+  box-shadow:
+    var(--nf-edge-light),
+    0 2px 4px hsl(var(--nf-shadow-color) / 0.45),
+    0 6px 20px color-mix(in srgb, var(--nf-brand-riot) 42%, transparent);
+}
+.nf-btn--riot:active:not(:disabled) {
+  filter: none;
+  background: var(--nf-brand-riot);
+  box-shadow: none;
+}
+/* Igual que en `danger`: el anillo azul genérico sobre un botón rojo se lee
+   como otro control encima. */
+.nf-btn--riot:focus-visible {
+  outline-color: color-mix(in srgb, var(--nf-brand-riot) 60%, #fff);
+}
+
+/* El logo de Riot dentro del botón: tamaño ligado al texto para que escale con
+   la variante de tamaño, y `currentColor` para que herede el color de la marca. */
+.nf-btn__riot-mark {
+  flex: none;
+  width: 1.15em;
+  height: 1.15em;
+  object-fit: contain;
 }

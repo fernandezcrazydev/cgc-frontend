@@ -1,0 +1,73 @@
+/* Icon button (global, ViewEncapsulation.None) */
+
+.nf-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  padding: 0;
+  border: var(--bw-1) solid transparent;
+  border-radius: var(--nf-radius-sm);
+  background: transparent;
+  color: var(--nf-text-dim);
+  cursor: pointer;
+  transition: background 0.14s ease, color 0.14s ease, border-color 0.14s ease,
+    transform 0.14s ease;
+}
+
+/* El SVG proyectado no trae medidas: las pone el botón, así que un mismo icono
+   sirve en cualquier tamaño sin editar su markup. */
+.nf-icon-btn > svg {
+  width: 1em;
+  height: 1em;
+  display: block;
+}
+
+.nf-icon-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Un empujón de 1px hacia arriba: suficiente para que el icono responda sin
+   moverse tanto que haya que reencontrarlo con el cursor. */
+.nf-icon-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+.nf-icon-btn:active:not(:disabled) {
+  transform: none;
+}
+
+/* ---- tamaños ----
+   El área táctil manda sobre el tamaño del dibujo: 30/34px de caja para un
+   icono de 15/17px, que es lo mínimo para acertarle con el dedo. */
+.nf-icon-btn--sm { width: 30px; height: 30px; font-size: 15px; }
+.nf-icon-btn--md { width: 34px; height: 34px; font-size: 17px; }
+
+/* ---- ghost · el discreto de cabecera de tarjeta ---- */
+.nf-icon-btn--ghost:hover:not(:disabled) {
+  background: var(--nf-surface-2);
+  color: var(--nf-text);
+}
+
+/* ---- subtle · con caja permanente, para cuando el icono va suelto sobre
+   una superficie y necesita leerse como control aunque nadie lo señale ---- */
+.nf-icon-btn--subtle {
+  background: var(--nf-inset);
+  border-color: var(--nf-border);
+  color: var(--nf-text-mid);
+}
+.nf-icon-btn--subtle:hover:not(:disabled) {
+  border-color: var(--nf-border-strong);
+  color: var(--nf-text);
+}
+
+/* ---- accent · la acción destacada de un bloque ---- */
+.nf-icon-btn--accent {
+  color: var(--nf-secondary);
+  border-color: color-mix(in srgb, var(--nf-secondary) 30%, transparent);
+}
+.nf-icon-btn--accent:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--nf-secondary) 14%, transparent);
+  border-color: var(--nf-secondary);
+  color: var(--nf-text);
+}

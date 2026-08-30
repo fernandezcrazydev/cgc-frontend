@@ -47,10 +47,10 @@ const STATUS_ORDER: Record<RoomStatus, number> = { live: 0, waiting: 1, drafting
         <button nfButton variant="primary" size="md" (click)="crearPartida()">Crear partida</button>
       </div>
 
-      <!-- ▸ RETOMAR — active rooms across all your groups (real match state) -->
+      <!-- RETOMAR — active rooms across all your groups (real match state) -->
       @if (resume(); as items) {
         @if (items.length) {
-          <div class="view__label nf-mono">▸ Retomar</div>
+          <div class="view__label nf-mono">Retomar</div>
 
           <!-- the most relevant room (live > waiting > draft) gets the hero -->
           @if (items[0]; as top) {
@@ -103,11 +103,11 @@ const STATUS_ORDER: Record<RoomStatus, number> = { live: 0, waiting: 1, drafting
         }
       }
 
-      <!-- ▸ REQUIERE TU ATENCIÓN — actionable notifications (shared with the bell) -->
+      <!-- REQUIERE TU ATENCIÓN — actionable notifications (shared with the bell) -->
       @if (attention(); as items) {
         @if (items.length) {
           <div class="view__label-row attn-head">
-            <div class="view__label nf-mono">▸ Requiere tu atención</div>
+            <div class="view__label nf-mono">Requiere tu atención</div>
             <span class="attn-count nf-mono">{{ items.length }}</span>
           </div>
 

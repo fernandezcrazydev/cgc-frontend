@@ -368,8 +368,8 @@ export class Shell {
         let title = item?.title ?? (this.groups.byId(seg) ? 'Grupos' : 'Inicio');
         if (cleanUrl.includes('/perfil')) {
           title = 'Perfil';
-        } else if (cleanUrl.includes('/campeones')) {
-          title = 'Campeones';
+        } else if (cleanUrl.includes('/tierlist')) {
+          title = 'Tierlist';
         } else if (cleanUrl.includes('/historial')) {
           title = 'Historial';
         }

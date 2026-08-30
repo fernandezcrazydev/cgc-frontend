@@ -7,6 +7,13 @@ import {
   UserMatchHistorySummary,
 } from './models';
 import { kdaRatio } from './match-view';
+import {
+  CrossMatch,
+  CrossPartner,
+  buildCrossMatches,
+  buildCrossPartners,
+  participantKey,
+} from './cross-history';
 
 /** Rendimiento del usuario con un campeón concreto, para comparar contra una partida suelta. */
 export interface ChampionAverages {
@@ -32,13 +39,11 @@ export interface HeadToHead {
   laneWins: number;
 }
 
-/**
- * Identidad estable de un participante. `userId` cuando existe (invitados no tienen), y si no
- * el `riotId` normalizado. Nunca se compara por nombre a secas: `Nombre#REGION` es la clave
- * completa, y el mock la escribe con mayúsculas inconsistentes.
- */
-function participantKey(p: MatchParticipant): string {
-  return p.userId ?? p.riotId.toLowerCase();
+/** El cruce contra otro jugador, ya repartido por relación. */
+export interface CrossWith {
+  all: CrossMatch[];
+  allies: CrossMatch[];
+  enemies: CrossMatch[];
 }
 
 /**
@@ -49,6 +54,9 @@ function participantKey(p: MatchParticipant): string {
  */
 @Injectable({ providedIn: 'root' })
 export class MatchHistoryStore {
+  /** Estado de carga del store de historial de partidas. */
+  readonly status = signal<'loading' | 'ready'>('ready');
+
   /**
    * Todas las partidas del sistema (0 partidas por defecto hasta conexión con backend real).
    */
@@ -56,6 +64,15 @@ export class MatchHistoryStore {
 
   /** Partidas en las que participó el usuario actual. */
   readonly allPersonalMatches = computed(() => this.allMatches().filter((m) => !!m.userParticipant));
+
+  /**
+   * Todos los jugadores con los que has coincidido, con sus dos listas. Es de donde salen el
+   * mejor aliado y la némesis del perfil: antes cada uno se sembraba por su cuenta, así que la
+   * tarjeta de «mejor aliado» podía anunciar un winrate que su propia página desmentía.
+   */
+  readonly crossPartners = computed<CrossPartner[]>(() =>
+    buildCrossPartners(this.allPersonalMatches()),
+  );
 
   /** Resumen analítico de las partidas del usuario actual. */
   readonly personalSummary = computed<UserMatchHistorySummary>(() => {
@@ -247,6 +264,22 @@ export class MatchHistoryStore {
     }
 
     return { riotId: opponent.riotId, games, wins, losses: games - wins, laneGames, laneWins };
+  }
+
+  /**
+   * Todas las partidas que el usuario ha compartido con otro jugador, separadas por relación.
+   *
+   * Es la ÚNICA fuente del historial cruzado, de las medias en contra, de las medias juntos y
+   * del detalle de una partida cruzada. Antes cada superficie contaba lo suyo —una desde una
+   * semilla y otra desde estas partidas— y las cifras no coincidían entre pantallas contiguas.
+   */
+  crossWith(playerKey: string): CrossWith {
+    const all = buildCrossMatches(this.allPersonalMatches(), playerKey);
+    return {
+      all,
+      allies: all.filter((c) => c.relation === 'ally'),
+      enemies: all.filter((c) => c.relation === 'enemy'),
+    };
   }
 }
 

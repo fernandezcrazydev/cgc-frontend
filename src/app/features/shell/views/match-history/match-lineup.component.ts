@@ -42,7 +42,7 @@ import { NfAvatar, NfLaneIcon } from '../../../../ui';
                 <nf-lane-icon class="m-lineup__lane" [lane]="p.role" mode="original" />
                 <a
                   class="m-lineup__champ-link"
-                  [routerLink]="['/app', 'campeones']"
+                  [routerLink]="['/app', 'tierlist']"
                   [title]="'Ver estadísticas de ' + championName(p)"
                   (click)="$event.stopPropagation()"
                 >
@@ -67,7 +67,7 @@ import { NfAvatar, NfLaneIcon } from '../../../../ui';
                   </a>
                   <a
                     class="m-lineup__champ-name nf-mono"
-                    [routerLink]="['/app', 'campeones']"
+                    [routerLink]="['/app', 'tierlist']"
                     [title]="'Ver estadísticas de ' + championName(p)"
                     (click)="$event.stopPropagation()"
                   >
@@ -92,13 +92,15 @@ import { NfAvatar, NfLaneIcon } from '../../../../ui';
         }
       </div>
 
-      <a
-        class="m-lineup__more nf-mono"
-        [routerLink]="['/app', 'historial', match().id]"
-        [queryParams]="queryParams()"
-      >
-        Análisis completo
-      </a>
+      <div class="m-lineup__actions">
+        <a
+          class="m-lineup__more nf-mono"
+          [routerLink]="['/app', 'historial', match().id]"
+          [queryParams]="queryParams()"
+        >
+          Análisis completo
+        </a>
+      </div>
     </div>
   `,
 })

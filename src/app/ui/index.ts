@@ -1,5 +1,6 @@
 /* Primitivas del design system (componentes standalone de Angular). */
 export * from './button/nf-button';
+export * from './icon-button/nf-icon-button';
 export * from './window/nf-window';
 export * from './modal/nf-modal';
 export * from './sheet/nf-sheet';

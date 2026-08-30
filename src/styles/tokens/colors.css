@@ -44,6 +44,16 @@
   --nf-team-blue: #0a84ff;
   --nf-team-red: #ff453a;
 
+  /* ---- Marca de terceros (misma excepción que los bandos) ----
+     El rojo oficial de Riot Games. Va aquí y no en la paleta semántica por el
+     mismo motivo que los bandos: no es "el color de peligro de la app", es la
+     identidad de un tercero, y un botón de autenticación solo se reconoce si
+     lleva SU color. Por tanto nunca sigue a `--nf-danger` ni a `--nf-primary`,
+     y solo lo usa el control de vinculación de cuenta de Riot. */
+  --nf-brand-riot: #d80027;
+  --nf-brand-riot-hover: #eb0029;
+  --nf-brand-riot-fg: #fff;
+
   /* ---- Texto ----
      Las opacidades están fijadas por contraste (auditoría WCAG 2 + APCA): las
      tres capas pasan AA (>=4.5:1) sobre void/surface/surface-2, manteniendo la

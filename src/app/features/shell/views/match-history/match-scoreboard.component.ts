@@ -119,7 +119,7 @@ import { Viewport } from '../../../../shared/viewport';
                   <div class="m-player-row__identity">
                     <div class="m-player-row__champ-wrap">
                       <a
-                        [routerLink]="['/app', 'campeones']"
+                        [routerLink]="['/app', 'tierlist']"
                         [title]="'Ver estadísticas de ' + championName(p.championId)"
                       >
                         <nf-avatar
@@ -151,7 +151,7 @@ import { Viewport } from '../../../../shared/viewport';
                       </div>
                       <a
                         class="m-player-row__champ-name nf-mono"
-                        [routerLink]="['/app', 'campeones']"
+                        [routerLink]="['/app', 'tierlist']"
                         [title]="'Ver estadísticas de ' + championName(p.championId)"
                       >
                         {{ championName(p.championId) }}
@@ -265,7 +265,7 @@ import { Viewport } from '../../../../shared/viewport';
                   <div class="m-player-row__identity">
                     <div class="m-player-row__champ-wrap">
                       <a
-                        [routerLink]="['/app', 'campeones']"
+                        [routerLink]="['/app', 'tierlist']"
                         [title]="'Ver estadísticas de ' + championName(p.championId)"
                       >
                         <nf-avatar
@@ -297,7 +297,7 @@ import { Viewport } from '../../../../shared/viewport';
                       </div>
                       <a
                         class="m-player-row__champ-name nf-mono"
-                        [routerLink]="['/app', 'campeones']"
+                        [routerLink]="['/app', 'tierlist']"
                         [title]="'Ver estadísticas de ' + championName(p.championId)"
                       >
                         {{ championName(p.championId) }}
@@ -407,7 +407,7 @@ import { Viewport } from '../../../../shared/viewport';
                   </a>
                   <a
                     class="m-rank-champ nf-mono"
-                    [routerLink]="['/app', 'campeones']"
+                    [routerLink]="['/app', 'tierlist']"
                     [title]="'Ver estadísticas de ' + championName(row.player.championId)"
                   >
                     {{ championName(row.player.championId) }}
@@ -461,7 +461,7 @@ import { Viewport } from '../../../../shared/viewport';
                 <!-- Jugador Azul -->
                 <div class="m-lane-card__side m-lane-card__side--blue" [class.is-winner]="lane.blue.stats.wonLane">
                   <a
-                    [routerLink]="['/app', 'campeones']"
+                    [routerLink]="['/app', 'tierlist']"
                     [title]="'Ver estadísticas de ' + championName(lane.blue.championId)"
                   >
                     <nf-avatar
@@ -482,7 +482,7 @@ import { Viewport } from '../../../../shared/viewport';
                     </a>
                     <a
                       class="m-lane-card__champ nf-mono"
-                      [routerLink]="['/app', 'campeones']"
+                      [routerLink]="['/app', 'tierlist']"
                       [title]="'Ver estadísticas de ' + championName(lane.blue.championId)"
                     >
                       {{ championName(lane.blue.championId) }}
@@ -501,7 +501,7 @@ import { Viewport } from '../../../../shared/viewport';
                 <!-- Jugador Rojo -->
                 <div class="m-lane-card__side m-lane-card__side--red" [class.is-winner]="lane.red.stats.wonLane">
                   <a
-                    [routerLink]="['/app', 'campeones']"
+                    [routerLink]="['/app', 'tierlist']"
                     [title]="'Ver estadísticas de ' + championName(lane.red.championId)"
                   >
                     <nf-avatar
@@ -522,7 +522,7 @@ import { Viewport } from '../../../../shared/viewport';
                     </a>
                     <a
                       class="m-lane-card__champ nf-mono"
-                      [routerLink]="['/app', 'campeones']"
+                      [routerLink]="['/app', 'tierlist']"
                       [title]="'Ver estadísticas de ' + championName(lane.red.championId)"
                     >
                       {{ championName(lane.red.championId) }}

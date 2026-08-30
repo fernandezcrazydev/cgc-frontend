@@ -152,3 +152,4 @@ describe('MatchHistoryStore', () => {
     expect(store.playedChampionIdsInPersonal()).toEqual([24]);
   });
 });
+
