@@ -154,4 +154,69 @@ describe('MatchHistoryStore', () => {
     expect(store.matchById('no-existe')).toBeUndefined();
     expect(store.neighboursOf('no-existe')).toEqual({ prev: null, next: null });
   });
+
+  /*
+   * Las copias de la semilla se repartían el resultado invirtiendo el ganador, y eso dejaba los
+   * totales de equipo, el MVP y los LP describiendo al ganador original: cuatro de cada diez
+   * partidas se pintaban con el bando perdedor por delante en oro, en bajas y en objetivos.
+   * Ahora la copia solo decide en qué ranura entra quien mira, así que la partida tiene que
+   * seguir siendo coherente consigo misma pase lo que pase. Estos cuatro tests son la red.
+   */
+  describe('cada copia de la semilla es coherente consigo misma', () => {
+    it('el equipo que gana no va por detrás en bajas, oro ni objetivos', () => {
+      for (const m of store.allMatches()) {
+        const winner = m.winningTeam === 'blue' ? m.blueTeam : m.redTeam;
+        const loser = m.winningTeam === 'blue' ? m.redTeam : m.blueTeam;
+
+        expect(winner.totalKills).toBeGreaterThanOrEqual(loser.totalKills);
+        expect(winner.totalGold).toBeGreaterThanOrEqual(loser.totalGold);
+        expect(winner.towers).toBeGreaterThanOrEqual(loser.towers);
+      }
+    });
+
+    it('el MVP está en el equipo que ganó', () => {
+      for (const m of store.allMatches()) {
+        if (!m.mvpParticipantId) continue;
+        const mvp = participants(m).find((p) => p.id === m.mvpParticipantId);
+        expect(mvp, `${m.id} declara un MVP que no está en la partida`).toBeDefined();
+        expect(mvp!.team, `el MVP de ${m.id} está en el equipo perdedor`).toBe(m.winningTeam);
+      }
+    });
+
+    it('los LP de cada participante van en el sentido del resultado de su equipo', () => {
+      for (const m of store.allMatches()) {
+        for (const p of participants(m)) {
+          if (p.lpDelta === 0) continue;
+          const won = p.team === m.winningTeam;
+          expect(
+            won ? p.lpDelta > 0 : p.lpDelta < 0,
+            `${m.id}: ${p.riotId} ${won ? 'gana' : 'pierde'} con lpDelta ${p.lpDelta}`,
+          ).toBe(true);
+        }
+      }
+    });
+
+    it('el Riot ID de la ranura ancla nunca se cuela como si fuera otro jugador', () => {
+      // `N1ghtfang#LAN` es la ranura que la semilla reserva a quien mira. Si el usuario no la
+      // ocupa —porque no juega esa partida, o porque la copia le sienta enfrente— tiene que
+      // haberla sustituido alguien, nunca quedarse a la vista con el nombre de la semilla.
+      for (const m of store.allMatches()) {
+        for (const p of participants(m)) {
+          expect(p.riotId, `${m.id} enseña el Riot ID de la semilla`).not.toBe('N1ghtfang#LAN');
+        }
+      }
+    });
+  });
+
+  it('el usuario ni gana ni pierde siempre: el registro está repartido', () => {
+    // La ranura ancla de la semilla cae del lado ganador en seis de las siete partidas. Sin el
+    // cambio de bando, el usuario ganaba el 85% en TODAS las ligas y ni la racha, ni el filtro
+    // de resultado, ni el concepto de «némesis» tenían nada que enseñar.
+    const summary = store.personalSummary();
+
+    expect(summary.wins).toBeGreaterThan(0);
+    expect(summary.losses).toBeGreaterThan(0);
+    expect(summary.winrate).toBeGreaterThan(25);
+    expect(summary.winrate).toBeLessThan(75);
+  });
 });

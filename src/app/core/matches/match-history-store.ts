@@ -7,6 +7,13 @@ import {
   UserMatchHistorySummary,
 } from './models';
 import { kdaRatio } from './match-view';
+import {
+  CrossMatch,
+  CrossPartner,
+  buildCrossMatches,
+  buildCrossPartners,
+  participantKey,
+} from './cross-history';
 import { MockHistoryGroup, buildMockHistory } from './match-history-seed';
 import { Session } from '../auth';
 import { GroupsStore, MOCK_GROUP_VIEWS } from '../groups';
@@ -37,13 +44,11 @@ export interface HeadToHead {
   laneWins: number;
 }
 
-/**
- * Identidad estable de un participante. `userId` cuando existe (invitados no tienen), y si no
- * el `riotId` normalizado. Nunca se compara por nombre a secas: `Nombre#REGION` es la clave
- * completa, y el mock la escribe con mayúsculas inconsistentes.
- */
-function participantKey(p: MatchParticipant): string {
-  return p.userId ?? p.riotId.toLowerCase();
+/** El cruce contra otro jugador, ya repartido por relación. */
+export interface CrossWith {
+  all: CrossMatch[];
+  allies: CrossMatch[];
+  enemies: CrossMatch[];
 }
 
 /**
@@ -65,6 +70,35 @@ export class MatchHistoryStore {
   private readonly groupsStore = inject(GroupsStore);
   private readonly groupStore = inject(GroupStore);
   private readonly riotAccount = inject(RiotAccountStore);
+
+  /**
+   * Si lo que se pinta ya es definitivo.
+   *
+   * El historial se PROYECTA sobre tres cosas que llegan por red —las ligas del usuario, su
+   * identidad y su cuenta de Riot— y la semilla se reparte con `hash(groupId)` y con quién
+   * mira. Mientras alguna de las tres viaja, la proyección se hace sobre valores de relleno
+   * (`MOCK_GROUP_VIEWS`, `mock:viewer`), así que al resolverse cambian las partidas, los
+   * resultados, los LP, la racha y todos los agregados del cruce. Sin este `status()` esas
+   * cifras se pintaban primero y se movían solas después, que es justo lo que prohíbe
+   * `CLAUDE.md` («ningún dato de red aparece de golpe», «nunca rellenar el hueco con un valor
+   * de mentira»): las vistas lo consultan para enseñar esqueleto hasta que hay algo firme.
+   *
+   * No hay `'error'` propio: si las ligas fallan, el historial no falla —se queda sin ligas
+   * sobre las que repartirse—, y eso es un estado vacío, no un error de esta pantalla.
+   *
+   * BACKEND NOTE: cuando exista `GET /matches`, esto pasa a ser el `status` de verdad del
+   * patrón `Session` (idle/loading/ready/error) y deja de derivarse de otros tres stores.
+   */
+  readonly status = computed<'loading' | 'ready'>(() => {
+    const cargando =
+      this.session.status() === 'idle' ||
+      this.session.status() === 'loading' ||
+      this.groupsStore.status() === 'idle' ||
+      this.groupsStore.status() === 'loading' ||
+      this.riotAccount.status() === 'idle' ||
+      this.riotAccount.status() === 'loading';
+    return cargando ? 'loading' : 'ready';
+  });
 
   /**
    * Todas las partidas del sistema.
@@ -111,6 +145,15 @@ export class MatchHistoryStore {
 
   /** Partidas en las que participó el usuario actual. */
   readonly allPersonalMatches = computed(() => this.allMatches().filter((m) => !!m.userParticipant));
+
+  /**
+   * Todos los jugadores con los que has coincidido, con sus dos listas. Es de donde salen el
+   * mejor aliado y la némesis del perfil: antes cada uno se sembraba por su cuenta, así que la
+   * tarjeta de «mejor aliado» podía anunciar un winrate que su propia página desmentía.
+   */
+  readonly crossPartners = computed<CrossPartner[]>(() =>
+    buildCrossPartners(this.allPersonalMatches()),
+  );
 
   /** Resumen analítico de las partidas del usuario actual. */
   readonly personalSummary = computed<UserMatchHistorySummary>(() => {
@@ -302,6 +345,22 @@ export class MatchHistoryStore {
     }
 
     return { riotId: opponent.riotId, games, wins, losses: games - wins, laneGames, laneWins };
+  }
+
+  /**
+   * Todas las partidas que el usuario ha compartido con otro jugador, separadas por relación.
+   *
+   * Es la ÚNICA fuente del historial cruzado, de las medias en contra, de las medias juntos y
+   * del detalle de una partida cruzada. Antes cada superficie contaba lo suyo —una desde una
+   * semilla y otra desde estas partidas— y las cifras no coincidían entre pantallas contiguas.
+   */
+  crossWith(playerKey: string): CrossWith {
+    const all = buildCrossMatches(this.allPersonalMatches(), playerKey);
+    return {
+      all,
+      allies: all.filter((c) => c.relation === 'ally'),
+      enemies: all.filter((c) => c.relation === 'enemy'),
+    };
   }
 }
 

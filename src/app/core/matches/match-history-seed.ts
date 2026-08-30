@@ -1,4 +1,4 @@
-import { Match, MatchMilestones, MatchParticipant, TeamSummary } from './models';
+import { Match, MatchMilestones, MatchParticipant, TeamSide, TeamSummary } from './models';
 import { GROUPS } from '../lobby';
 import { hash } from '../group-ranking';
 
@@ -1903,6 +1903,13 @@ const VIEWER_SLOT_RIOT_ID = 'N1ghtfang#LAN';
  */
 const VIEWER_PLAY_RATE = 7;
 
+/**
+ * De cada diez copias, cinco sientan al usuario en el bando contrario al que le reserva la
+ * semilla. Cinco y no otro número porque la ranura ancla gana seis de las siete partidas: a la
+ * mitad de las copias, el registro queda repartido casi en tanto por ciento. Ver `project()`.
+ */
+const VIEWER_SWAP_RATE = 5;
+
 /** Nombres de relleno para las ranuras que ni el usuario ni el roster real llegan a ocupar. */
 const FILLER_RIOT_IDS = [
   'Vexil#LAN', 'Orbyn#EUW', 'Kaltra#NA', 'Sombra#LAS', 'Wren#KR',
@@ -1970,8 +1977,60 @@ function project(
   const ranks = RANKS_BY_MATCH[seed.id];
 
   const slots = [...seed.blueTeam.participants, ...seed.redTeam.participants];
-  const viewerSlot = slots.findIndex((p) => p.riotId === VIEWER_SLOT_RIOT_ID);
-  const viewerPlays = viewerSlot >= 0 && hash(`${id}:juega`) % 10 < VIEWER_PLAY_RATE;
+  // La ranura que la semilla reserva al usuario. En seis de las siete partidas cae del lado que
+  // gana, así que NO es donde se sienta siempre: ver `viewerSlot`.
+  const anchorSlot = slots.findIndex((p) => p.riotId === VIEWER_SLOT_RIOT_ID);
+  const viewerPlays = anchorSlot >= 0 && hash(`${id}:juega`) % 10 < VIEWER_PLAY_RATE;
+
+  /*
+   * Parte de las copias sientan al usuario en el bando CONTRARIO, en su misma línea, en vez de
+   * en la ranura ancla. Las siete partidas de la semilla tienen un resultado fijo y la ranura
+   * ancla cae seis veces del lado ganador, así que sin esto las cuatro ligas repetían el mismo
+   * marcador y el usuario ganaba seis de cada siete EN TODAS: un winrate del 85%, una racha que
+   * no se rompía nunca y una «némesis» a la que en realidad se le ganaba casi siempre.
+   *
+   * Cambiarle de bando —y no invertir el ganador, que es lo que se hacía antes— es lo que
+   * mantiene la partida coherente consigo misma. Al volcar el resultado, los totales de equipo
+   * (`totalKills`, `totalGold`, `totalDamage`, dragones, barones, torres) y el MVP se quedaban
+   * describiendo al ganador original: cuatro de cada diez partidas se pintaban con el bando
+   * perdedor por delante en oro, en bajas y en objetivos, y con el MVP en el equipo derrotado.
+   * Moviendo al usuario, en cambio, no se toca ni una cifra de la semilla: cada participante
+   * conserva sus LP, su puesto en la clasificación y su `wonLane`, que ya eran coherentes con el
+   * resultado de SU equipo. Lo único que cambia es de qué lado los mira quien entra.
+   */
+  const oppositeSlot =
+    anchorSlot >= 0
+      ? slots.findIndex(
+          (p, i) =>
+            i !== anchorSlot &&
+            p.role === slots[anchorSlot].role &&
+            p.team !== slots[anchorSlot].team,
+        )
+      : -1;
+  const swapped = oppositeSlot >= 0 && hash(`${id}:bando`) % 10 < VIEWER_SWAP_RATE;
+  const viewerSlot = swapped ? oppositeSlot : anchorSlot;
+
+  const winningTeam: TeamSide = seed.winningTeam;
+
+  // Cada liga tiene un rival de línea fijo: el mismo compañero enfrente, en tu misma posición,
+  // en la mayoría de las partidas que juegas. Sin esto, coincidir de línea con alguien salía por
+  // azar de la rotación de abajo y casi nunca pasaba de una partida suelta, así que el duelo
+  // directo —el récord por línea, el «% de líneas ganadas», el desglose «Duelo de línea»— no
+  // llegaba a tener histórico que enseñar. Que sea por liga y no por partida es lo que convierte
+  // una coincidencia en una rivalidad.
+  const laneRival = roster.length > 0 ? roster[hash(`${group.id}:rival`) % Math.min(3, roster.length)] : null;
+  const mirrorSlot =
+    viewerPlays && laneRival
+      ? slots.findIndex(
+          (p, i) =>
+            i !== viewerSlot &&
+            p.role === slots[viewerSlot].role &&
+            p.team !== slots[viewerSlot].team,
+        )
+      : -1;
+  // No en todas: alguna partida cae del mismo lado, y así el mismo jugador aparece también como
+  // compañero. Un rival que jamás te ha tocado en tu equipo no existe en una liga de amigos.
+  const duel = mirrorSlot >= 0 && hash(`${id}:duelo`) % 3 !== 0;
 
   // El roster real entra por una ranura distinta en cada partida, para que la misma persona no
   // salga siempre de jungla azul. Cada compañero ocupa como mucho una: repetirlos para llenar
@@ -1981,10 +2040,13 @@ function project(
   for (let k = 0; k < slots.length; k++) {
     const index = (offset + k) % slots.length;
     if (viewerPlays && index === viewerSlot) continue;
+    if (duel && index === mirrorSlot) continue;
     free.push(index);
   }
   const bySlot = new Map<number, MockHistoryMember>();
-  roster.slice(0, free.length).forEach((member, j) => bySlot.set(free[j], member));
+  const pool = duel ? roster.filter((m) => m !== laneRival) : roster;
+  pool.slice(0, free.length).forEach((member, j) => bySlot.set(free[j], member));
+  if (duel && laneRival) bySlot.set(mirrorSlot, laneRival);
 
   const rebuilt = slots.map((p, index) => {
     const withRank = applyRank(p, ranks);
@@ -2002,8 +2064,9 @@ function project(
         avatarUrl: member.avatar,
       };
     }
-    // La ranura del usuario cuando no juega: dejarle su Riot ID puesto haría creer que jugó.
-    if (index === viewerSlot) {
+    // La ranura ancla cuando no la ocupa el usuario —porque no juega, o porque esta copia le
+    // sienta enfrente—: dejarle el Riot ID de la semilla puesto haría creer que jugó.
+    if (index === anchorSlot) {
       const filler = FILLER_RIOT_IDS[hash(`${id}:relleno`) % FILLER_RIOT_IDS.length];
       return { ...withRank, userId: `mock:${filler}`, riotId: filler, isGuest: true };
     }
@@ -2011,8 +2074,16 @@ function project(
   });
 
   const split = seed.blueTeam.participants.length;
-  const blueTeam: TeamSummary = { ...seed.blueTeam, participants: rebuilt.slice(0, split) };
-  const redTeam: TeamSummary = { ...seed.redTeam, participants: rebuilt.slice(split) };
+  const blueTeam: TeamSummary = {
+    ...seed.blueTeam,
+    won: winningTeam === 'blue',
+    participants: rebuilt.slice(0, split),
+  };
+  const redTeam: TeamSummary = {
+    ...seed.redTeam,
+    won: winningTeam === 'red',
+    participants: rebuilt.slice(split),
+  };
 
   const userParticipant = viewerPlays ? rebuilt[viewerSlot] : undefined;
 
@@ -2033,12 +2104,16 @@ function project(
     // grupos caerían en el mismo instante y el orden por fecha del historial personal sería un
     // empate de N grupos.
     decidedAt: shiftDays(seed.decidedAt, -(hash(group.id) % 21)),
+    winningTeam,
     blueTeam,
     redTeam,
+    // Los hitos, como el resto de la partida, salen intactos de la semilla: la copia solo decide
+    // en qué ranura entra quien mira, nunca quién ganó. La semilla ya trae una remontada escrita
+    // a mano (`owl-119`), que es abrir con la primera sangre y la primera torre y aun así perder.
     milestones: MILESTONES_BY_MATCH[seed.id],
     userParticipant,
     userOutcome: userParticipant
-      ? userParticipant.team === seed.winningTeam
+      ? userParticipant.team === winningTeam
         ? 'win'
         : 'loss'
       : undefined,

@@ -27,18 +27,60 @@ export interface ProfileGroupRecord {
   seasonName: string;
 }
 
-/** A head-to-head highlight against another real player (user's perspective). */
-export interface ProfileMatchup {
-  name: string;
-  tag: string;
-  initials: string;
-  /** Hue (0-360) for the avatar gradient. */
-  hue: number;
+/** Récord agregado del jugador sumando todas sus ligas. */
+export interface ProfileGlobalRecord {
   games: number;
   wins: number;
   losses: number;
-  /** Win-rate percentage from the user's perspective, rounded. */
+  /** Porcentaje de victorias, redondeado. */
   wr: number;
+}
+
+/**
+ * Récord global = la suma real de TODOS los registros por grupo, no una cifra
+ * aparte. Importa que sea una suma y no un valor propio: el jugador juega en
+ * varias ligas a la vez y el winrate del encabezado tiene que cuadrar con lo que
+ * enseña el desglose de "Tus Grupos"; si se generase por su cuenta, ambas cifras
+ * discreparían y ninguna de las dos sería creíble.
+ *
+ * `games === 0` (usuario sin grupos todavía) devuelve 0, no `NaN`: un perfil
+ * recién creado es un caso normal, no un error de datos.
+ *
+ * BACKEND NOTE: este agregado lo servirá el endpoint de estadísticas del jugador
+ * ya calculado (el servidor es el dueño de la regla). Cuando exista, se borran
+ * los generadores semilla de arriba y esta función se queda —o desaparece— según
+ * si el DTO trae el total ya sumado.
+ */
+export function globalRecord(records: readonly ProfileGroupRecord[]): ProfileGlobalRecord {
+  const games = records.reduce((sum, r) => sum + r.games, 0);
+  const wins = records.reduce((sum, r) => sum + r.wins, 0);
+  const losses = Math.max(0, games - wins);
+  return { games, wins, losses, wr: games ? Math.round((wins / games) * 100) : 0 };
+}
+
+/** Resultado de una partida tal y como lo modela el dominio. */
+export type StreakType = 'W' | 'L';
+
+/**
+ * Etiqueta en español de un resultado. `streakType` es un enum del dominio y
+ * viaja en inglés ('W' | 'L') porque así es el dato; lo que ve el usuario, no.
+ * Pintarlo crudo es lo que producía el famoso "1L" en la tarjeta de racha —una
+ * D con acento inglés en una interfaz en español—, y por eso toda impresión de
+ * este enum pasa por aquí (mismo patrón que `groupRoleLabel()` en
+ * `core/groups/group-view.ts`).
+ */
+export function streakLabel(type: StreakType): 'V' | 'D' {
+  return type === 'W' ? 'V' : 'D';
+}
+
+/**
+ * Racha en palabras: "3 victorias seguidas", "1 derrota". El singular importa
+ * porque una racha de 1 es el caso más frecuente y "1 derrotas" canta.
+ */
+export function streakSentence(count: number, type: StreakType): string {
+  const noun = type === 'W' ? 'victoria' : 'derrota';
+  if (count <= 1) return `1 ${noun}`;
+  return `${count} ${noun}s seguidas`;
 }
 
 /** Telemetría de fase de líneas / Early Game */
@@ -94,7 +136,6 @@ export interface PlayerDna {
 export interface PlayerArchetype {
   title: string;
   subtitle: string;
-  icon: string;
   highlightMetric: string;
 }
 
@@ -104,8 +145,29 @@ export interface PlayerRoleStat {
   games: number;
   wins: number;
   losses: number;
-  wr: number;
-  wonLaneRate: number;
+  /**
+   * `null` cuando no hay ninguna partida en esa posición. No es lo mismo que `0`: un cero es un
+   * jugador que perdió todas, y pintarlo donde no hay nada que medir es inventarse el dato.
+   */
+  wr: number | null;
+  /** Partidas de esa posición que traen el dato `wonLane`; el resto no puede medirlo. */
+  wonLaneGames: number;
+  /** `null` cuando `wonLaneGames` es 0, por el mismo motivo que `wr`. */
+  wonLaneRate: number | null;
+}
+
+/**
+ * Una partida vista desde la posición que jugó alguien. Es lo mínimo que hace falta para medir
+ * el desglose por rol, y lo aporta quien llama porque el historial vive en `MatchHistoryStore`.
+ *
+ * BACKEND NOTE: cuando exista el endpoint de estadísticas del jugador, el desglose por rol vendrá
+ * ya agregado del servidor y esto se borra junto con `buildRoleStats`.
+ */
+export interface RoleSample {
+  role: LaneRole;
+  won: boolean;
+  /** `undefined` en las partidas que no registran quién ganó la línea. */
+  wonLane?: boolean;
 }
 
 /** Partida reciente en formato ligero para tooltips e interacciones */
@@ -163,7 +225,8 @@ export interface PlayerProfile {
   kda: number;
   hoursPlayed: number;
   pentas: number;
-  mainRole: string;
+  /** La posición más jugada, o `null` si todavía no hay ninguna partida que la determine. */
+  mainRole: LaneRole | null;
 
   // ── Arquetipo & ADN ─────────────────────────────────────────────
   archetype: PlayerArchetype;
@@ -172,20 +235,12 @@ export interface PlayerProfile {
 
   // ── Streaks + recent form ───────────────────────────────────────
   currentStreak: number;
-  streakType: 'W' | 'L';
+  streakType: StreakType;
   bestStreak: number;
   /** Last ~12 results, oldest → newest. */
-  recentForm: ('W' | 'L')[];
+  recentForm: StreakType[];
   recentLpTrend: number;
   recentMatches: PlayerRecentMatch[];
-
-  // ── Head-to-head highlights ─────────────────────────────────────
-  /** Teammate you win the most alongside ("con la que más ganas"). */
-  bestAlly: ProfileMatchup | null;
-  /** Opponent who beats you the most ("contra la que más pierdes"). */
-  nemesis: ProfileMatchup | null;
-  /** Opponent you beat the most ("a la que más ganas"). */
-  favoriteVictim: ProfileMatchup | null;
 
   // ── Breakdowns ──────────────────────────────────────────────────
   topChampions: ProfileChampion[];
@@ -193,40 +248,18 @@ export interface PlayerProfile {
   groups: ProfileGroupRecord[];
 }
 
-/** Comparativa mutua directa entre el usuario actual y el miembro ("Tú vs Él") */
-export interface MutualH2hSummary {
-  targetName: string;
-  targetTag: string;
-  targetInitials: string;
-  targetHue: number;
-  gamesTogether: number;
-  winsTogether: number;
-  lossesTogether: number;
-  wrTogether: number;
-  gamesVersus: number;
-  winsVersus: number;
-  lossesVersus: number;
-  wrVersus: number;
-  h2hDiff: number; // >0: el usuario va ganando; <0: el rival va ganando
-  statsComparison: {
-    kdaUser: number;
-    kdaTarget: number;
-    wonLaneUser: number;
-    wonLaneTarget: number;
-    csPerMinUser: number;
-    csPerMinTarget: number;
-    damageShareUser: number;
-    damageShareTarget: number;
-    visionAvgUser: number;
-    visionAvgTarget: number;
-  };
-}
-
 /** Perfil completo de un miembro para la vista de terceros `/app/perfil/:id` */
 export interface MemberProfile extends PlayerProfile {
   targetUserId: string;
-  mutualH2h: MutualH2hSummary;
 }
+
+/*
+ * NOTA: aquí vivía `mutualH2h`, un resumen del cruce entre el usuario y este miembro generado
+ * con su propia semilla. Se ha borrado porque describía lo mismo que el historial cruzado y no
+ * coincidía con él: la ficha del perfil decía «12 partidas juntos» y la lista de esas partidas,
+ * a un clic, enseñaba siete. El cruce se deriva ahora de las partidas reales, en
+ * `core/matches/cross-history.ts`, y lo sirve `MatchHistoryStore.crossWith()`.
+ */
 
 const MONTHS = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
 
@@ -245,32 +278,12 @@ function pickDistinct<T>(rnd: () => number, arr: readonly T[], n: number): T[] {
   return out;
 }
 
-/** Build a head-to-head record vs `foe`, seeded so it's stable per opponent. */
-function matchup(userTag: string, foe: Member, facet: 'ally' | 'enemy'): ProfileMatchup {
-  const rnd = seeded(hash(userTag + '::' + facet + '::' + foe.tag));
-  const games = 6 + Math.floor(rnd() * 19); // 6–24 customs shared
-  const wr = rnd();
-  const wins = Math.round(games * wr);
-  const losses = Math.max(0, games - wins);
-  return {
-    name: foe.name,
-    tag: foe.tag,
-    initials: foe.initials,
-    hue: foe.hue,
-    games,
-    wins,
-    losses,
-    wr: games ? Math.round((wins / games) * 100) : 0,
-  };
-}
-
 /** Determina el arquetipo honorífico basado en las métricas de ADN */
 function determineArchetype(dna: PlayerDna, wr: number, pentas: number): PlayerArchetype {
   if (pentas >= 3) {
     return {
       title: 'Cazador de Pentas',
       subtitle: 'Ejecutor implacable en peleas de equipo',
-      icon: '🩸',
       highlightMetric: `${pentas} pentakills históricas`,
     };
   }
@@ -278,7 +291,6 @@ function determineArchetype(dna: PlayerDna, wr: number, pentas: number): PlayerA
     return {
       title: 'Dominador de Línea',
       subtitle: 'Generador sistemático de ventaja temprana',
-      icon: '⚔️',
       highlightMetric: `${dna.lane.wonLanePercentage}% líneas ganadas`,
     };
   }
@@ -286,7 +298,6 @@ function determineArchetype(dna: PlayerDna, wr: number, pentas: number): PlayerA
     return {
       title: 'Motor de Daño',
       subtitle: 'Principal fuente de daño del equipo',
-      icon: '💥',
       highlightMetric: `${dna.combat.damageSharePercentage}% del daño total`,
     };
   }
@@ -294,7 +305,6 @@ function determineArchetype(dna: PlayerDna, wr: number, pentas: number): PlayerA
     return {
       title: 'Centinela del Mapa',
       subtitle: 'Control de objetivos y control de visión impecable',
-      icon: '👁️',
       highlightMetric: `${dna.vision.visionScoreAvg} pts visión / part`,
     };
   }
@@ -302,7 +312,6 @@ function determineArchetype(dna: PlayerDna, wr: number, pentas: number): PlayerA
     return {
       title: 'Maestro del Farmeo',
       subtitle: 'Escalado económico perfecto y consistencia en CS',
-      icon: '🌾',
       highlightMetric: `${dna.economy.csPerMinAvg} CS / min`,
     };
   }
@@ -310,14 +319,12 @@ function determineArchetype(dna: PlayerDna, wr: number, pentas: number): PlayerA
     return {
       title: 'Jugador Decisivo',
       subtitle: 'Factor diferencial en momentos clave',
-      icon: '👑',
       highlightMetric: `${dna.clutch.mvpRate}% tasa de MVP`,
     };
   }
   return {
     title: 'Pilar de Equipo',
     subtitle: 'Jugador versátil con gran consistencia',
-    icon: '🛡️',
     highlightMetric: `${wr}% tasa de victoria`,
   };
 }
@@ -332,12 +339,20 @@ const CORE_ITEM_POOLS: Record<LaneRole, number[][]> = {
 };
 
 /**
+ * El nombre de temporada que llevan los registros por grupo. Una sola constante porque el
+ * literal estaba repetido y, cuando el backend sirva las temporadas de verdad, este es el único
+ * sitio que hay que borrar.
+ */
+const SEASON_NAME = 'Temporada 2026-Q3';
+
+/**
  * Aggregate the current user's career across every group they belong to.
  */
 export function buildPlayerProfile(
   user: { name: string; tag: string; initials: string; region: string },
   groups: readonly Group[],
   rosterOf: (id: string) => readonly Member[],
+  roleSamples: readonly RoleSample[] = [],
 ): PlayerProfile {
   const rnd = seeded(hash(user.tag + '::profile'));
 
@@ -363,14 +378,11 @@ export function buildPlayerProfile(
       wr: games ? Math.round((wins / games) * 100) : 0,
       rankPosition,
       lp,
-      seasonName: 'Temporada 2026-Q3',
+      seasonName: SEASON_NAME,
     };
   });
 
-  const games = groupRecords.reduce((s, r) => s + r.games, 0);
-  const wins = groupRecords.reduce((s, r) => s + r.wins, 0);
-  const losses = Math.max(0, games - wins);
-  const wr = games ? Math.round((wins / games) * 100) : 0;
+  const { games, wins, losses, wr } = globalRecord(groupRecords);
 
   // Global KDA / career counters.
   const kills = +(4 + rnd() * 6).toFixed(1);
@@ -434,31 +446,18 @@ export function buildPlayerProfile(
   const archetype = determineArchetype(dna, wr, pentas);
 
   // ── Desglose por rol ─────────────────────────────────────────────
-  const roleStats: Record<LaneRole, PlayerRoleStat> = {} as any;
-  let remainingGames = games;
-  LANE_ROLES.forEach((role, idx) => {
-    const isLast = idx === LANE_ROLES.length - 1;
-    const rGames = isLast ? remainingGames : Math.max(2, Math.floor(remainingGames * (0.15 + rnd() * 0.25)));
-    remainingGames = Math.max(0, remainingGames - rGames);
-    const rWr = Math.round(40 + rnd() * 30);
-    const rWins = Math.round((rGames * rWr) / 100);
-    const rLosses = Math.max(0, rGames - rWins);
-    const rWonLane = Math.round(42 + rnd() * 35);
-    roleStats[role] = {
-      role,
-      games: rGames,
-      wins: rWins,
-      losses: rLosses,
-      wr: rWr,
-      wonLaneRate: rWonLane,
-    };
-  });
+  const roleStats = buildRoleStats(roleSamples);
 
-  const bestRoleEntry = Object.values(roleStats).sort((a, b) => b.games - a.games)[0];
-  const mainRole = bestRoleEntry ? bestRoleEntry.role : 'MID';
+  // La posición principal es la más jugada, y solo si de verdad se ha jugado alguna. Con el
+  // desglose vacío no hay «rol principal» que declarar: antes se caía a MID, que es exactamente
+  // el tipo de valor plausible que el usuario lee como si fuese suyo.
+  const bestRoleEntry = Object.values(roleStats)
+    .filter((r) => r.games > 0)
+    .sort((a, b) => b.games - a.games)[0];
+  const mainRole = bestRoleEntry ? bestRoleEntry.role : null;
 
   // ── Recent form & matches preview ────────────────────────────────
-  const recentForm: ('W' | 'L')[] = [];
+  const recentForm: StreakType[] = [];
   const recentMatches: PlayerRecentMatch[] = [];
   let recentLpTrend = 0;
 
@@ -503,30 +502,6 @@ export function buildPlayerProfile(
   const bestStreak = Math.max(currentStreak, 3 + Math.floor(rnd() * 7));
 
   const memberSince = `${MONTHS[Math.floor(rnd() * 12)]} ${2023 + Math.floor(rnd() * 3)}`;
-
-  // ── Real teammates / rivals (head-to-head) ────────────────────────
-  const seen = new Set<string>();
-  const others: Member[] = [];
-  for (const g of groups) {
-    for (const m of rosterOf(g.id)) {
-      if (m.tag === user.tag || seen.has(m.tag)) continue;
-      seen.add(m.tag);
-      others.push(m);
-    }
-  }
-
-  const allyRecords = others.map((m) => matchup(user.tag, m, 'ally'));
-  const enemyRecords = others.map((m) => matchup(user.tag, m, 'enemy'));
-
-  const bestAlly = allyRecords.length
-    ? [...allyRecords].sort((a, b) => b.wr - a.wr || b.games - a.games)[0]
-    : null;
-  const nemesis = enemyRecords.length
-    ? [...enemyRecords].sort((a, b) => a.wr - b.wr || b.games - a.games)[0]
-    : null;
-  const favoriteVictim = enemyRecords.length
-    ? [...enemyRecords].sort((a, b) => b.wr - a.wr || b.games - a.games)[0]
-    : null;
 
   // ── Enriched Top Champions ────────────────────────────────────────
   const champs = pickDistinct(rnd, REAL_CHAMPION_IDS, 6);
@@ -590,9 +565,6 @@ export function buildPlayerProfile(
     recentForm,
     recentLpTrend,
     recentMatches,
-    bestAlly,
-    nemesis,
-    favoriteVictim,
     topChampions,
     groupCount: groups.length,
     groups: groupRecords,
@@ -600,97 +572,158 @@ export function buildPlayerProfile(
 }
 
 /**
- * Build a member's profile for third-party view (`/app/perfil/:id`) with mutual H2H.
+ * La carrera de otro jugador, para la vista de terceros (`/app/perfil/:id`).
+ *
+ * Ya no recibe al usuario de la sesión: lo pedía solo para sembrar el cruce entre los dos, y
+ * ese cruce se deriva ahora de las partidas reales (`MatchHistoryStore.crossWith()`). Un perfil
+ * ajeno describe a ese jugador, y quién lo mira no debería cambiar sus cifras.
  */
 export function buildMemberProfile(
   targetTag: string,
-  currentUser: { name: string; tag: string; initials: string; region: string },
   groups: readonly Group[],
   rosterOf: (id: string) => readonly Member[],
+  roleSamples: readonly RoleSample[] = [],
+  knownFromMatches = false,
 ): MemberProfile | null {
-  // Find member in any roster
+  // Solo por identidad: el tag completo (`Nombre#REGION`) o el id estable del backend cuando el
+  // miembro viene de él. Nunca por `name`, que es lo que hacía antes: dos jugadores cuyo nombre
+  // coincidiese se habrían mezclado los perfiles, y la regla del proyecto es explícita.
   let targetMember: Member | null = null;
   for (const g of groups) {
-    const found = rosterOf(g.id).find((m) => m.tag === targetTag || m.name.toLowerCase() === targetTag.toLowerCase());
+    const found = rosterOf(g.id).find((m) => m.tag === targetTag || m.userId === targetTag);
     if (found) {
       targetMember = found;
       break;
     }
   }
 
-  // Fallback if not found in active rosters
-  const safeTarget = targetMember ?? {
-    id: targetTag,
-    name: targetTag.split('#')[0] || targetTag,
-    tag: targetTag.includes('#') ? targetTag : `${targetTag}#EUW`,
-    role: 'Miembro' as GroupRole,
-    initials: targetTag.slice(0, 2).toUpperCase(),
-    hue: Math.abs(hash(targetTag)) % 360,
-    rating: 1200,
-    peakRating: 1250,
-    rank: 1,
-    tier: 'Gold',
-    perks: [],
-  };
+  /*
+   * Que no aparezca es una respuesta, no un hueco que rellenar.
+   *
+   * Antes se fabricaba aquí un miembro entero —`rating: 1200`, `tier: 'Gold'`, un winrate
+   * sembrado con el propio texto de la URL— así que `/app/perfil/loquesea` pintaba un perfil
+   * completo y creíble de alguien que no existe, mientras `/app/versus/loquesea` respondía 404.
+   * Dos vistas dando respuestas opuestas a la misma entrada. Ahora devuelve `null` y la vista
+   * pinta su 404, igual que las tres del cruce.
+   *
+   * `knownFromMatches` es la excepción justa: alguien que ya no está en ninguno de tus grupos
+   * pero con quien sí has jugado existe, y sus partidas lo demuestran.
+   */
+  if (!targetMember && !knownFromMatches) return null;
+
+  const tag = targetMember?.tag ?? targetTag;
+  const name = targetMember?.name ?? nameFromTag(targetTag);
 
   const baseProfile = buildPlayerProfile(
     {
-      name: safeTarget.name,
-      tag: safeTarget.tag,
-      initials: safeTarget.initials,
-      region: regionFromTag(safeTarget.tag),
+      name,
+      tag,
+      initials: targetMember?.initials ?? name.slice(0, 2).toUpperCase(),
+      region: regionFromTag(tag),
     },
     groups,
     rosterOf,
+    roleSamples,
   );
 
-  // Generar comparación mutua "Tú vs Él"
-  const mrnd = seeded(hash(currentUser.tag + '::mutual::' + safeTarget.tag));
-  const gamesTogether = 4 + Math.floor(mrnd() * 16);
-  const wrTogether = Math.round(35 + mrnd() * 45);
-  const winsTogether = Math.round((gamesTogether * wrTogether) / 100);
-  const lossesTogether = Math.max(0, gamesTogether - winsTogether);
-
-  const gamesVersus = 5 + Math.floor(mrnd() * 18);
-  const wrVersus = Math.round(30 + mrnd() * 50); // WR del usuario actual contra este miembro
-  const winsVersus = Math.round((gamesVersus * wrVersus) / 100);
-  const lossesVersus = Math.max(0, gamesVersus - winsVersus);
-  const h2hDiff = winsVersus - lossesVersus;
-
-  const currentUserProfile = buildPlayerProfile(currentUser, groups, rosterOf);
-
-  const mutualH2h: MutualH2hSummary = {
-    targetName: safeTarget.name,
-    targetTag: safeTarget.tag,
-    targetInitials: safeTarget.initials,
-    targetHue: safeTarget.hue,
-    gamesTogether,
-    winsTogether,
-    lossesTogether,
-    wrTogether,
-    gamesVersus,
-    winsVersus,
-    lossesVersus,
-    wrVersus,
-    h2hDiff,
-    statsComparison: {
-      kdaUser: currentUserProfile.kda,
-      kdaTarget: baseProfile.kda,
-      wonLaneUser: currentUserProfile.dna.lane.wonLanePercentage,
-      wonLaneTarget: baseProfile.dna.lane.wonLanePercentage,
-      csPerMinUser: currentUserProfile.dna.economy.csPerMinAvg,
-      csPerMinTarget: baseProfile.dna.economy.csPerMinAvg,
-      damageShareUser: currentUserProfile.dna.combat.damageSharePercentage,
-      damageShareTarget: baseProfile.dna.combat.damageSharePercentage,
-      visionAvgUser: currentUserProfile.dna.vision.visionScoreAvg,
-      visionAvgTarget: baseProfile.dna.vision.visionScoreAvg,
-    },
-  };
+  const combinedGroups = [...baseProfile.groups, ...externalGroupsFor(tag)];
 
   return {
     ...baseProfile,
-    targetUserId: safeTarget.tag,
-    mutualH2h,
+    groups: combinedGroups,
+    groupCount: combinedGroups.length,
+    targetUserId: targetMember?.userId ?? tag,
   };
 }
 
+/** `Pix3lQueen#LAN` → `Pix3lQueen`. La región se pinta aparte. */
+function nameFromTag(tag: string): string {
+  return tag.split('#')[0] || tag;
+}
+
+/** El pool del que salen los grupos de comunidad. Nombres, no datos: las cifras se siembran. */
+const EXTERNAL_GROUP_POOL = [
+  { id: 'valquirias-lan', name: 'Valquirias LAN', initials: 'VL', hue: 340 },
+  { id: 'kr-bootcamp', name: 'KR Bootcamp Masters', initials: 'KB', hue: 215 },
+  { id: 'esports-elite', name: 'Esports Elite Cup', initials: 'EE', hue: 45 },
+  { id: 'twilight-vanguard', name: 'Twilight Vanguard', initials: 'TV', hue: 268 },
+  { id: 'silent-rift', name: 'Silent Rift', initials: 'SR', hue: 190 },
+  { id: 'hexdrive', name: 'Hexdrive', initials: 'HX', hue: 128 },
+  { id: 'ashen-wolves', name: 'Ashen Wolves', initials: 'AW', hue: 22 },
+  { id: 'meridian-cup', name: 'Meridian Cup', initials: 'MC', hue: 302 },
+];
+
+/**
+ * Grupos de la comunidad en los que está ese jugador y tú no. Existen para que «Solicitar
+ * unirme» tenga dónde pulsarse: sin ninguno, la mitad de la tarjeta de grupos no se puede
+ * enseñar.
+ *
+ * Se siembran por el tag del jugador, no escritos a mano. Antes eran tres constantes literales
+ * añadidas a TODO perfil ajeno, así que dos jugadores distintos salían con los mismos tres
+ * grupos y las mismas cifras al LP: abrir dos perfiles seguidos delataba que el dato era falso.
+ *
+ * BACKEND NOTE: placeholder desechable. Cuando exista el flujo de solicitud de entrada —hoy los
+ * grupos son solo por invitación, no hay endpoint ni diseño para pedir sitio— esto se sustituye
+ * por la lectura real de los grupos públicos del jugador y este bloque se borra entero.
+ */
+function externalGroupsFor(tag: string): ProfileGroupRecord[] {
+  const rnd = seeded(hash(tag + '::externos'));
+  const count = 2 + Math.floor(rnd() * 2);
+  const offset = Math.abs(hash(tag + '::pool')) % EXTERNAL_GROUP_POOL.length;
+
+  return Array.from({ length: count }, (_, i) => {
+    const base = EXTERNAL_GROUP_POOL[(offset + i) % EXTERNAL_GROUP_POOL.length];
+    const games = 18 + Math.floor(rnd() * 40);
+    const wins = Math.round(games * (0.38 + rnd() * 0.34));
+
+    return {
+      id: base.id,
+      name: base.name,
+      initials: base.initials,
+      c1: `hsl(${base.hue},90%,62%)`,
+      c2: `hsl(${(base.hue + 30) % 360},75%,35%)`,
+      role: 'Miembro' as GroupRole,
+      games,
+      wins,
+      losses: games - wins,
+      // El winrate se calcula, no se sortea: es el mismo error que tenía el desglose por rol.
+      wr: Math.round((wins / games) * 100),
+      rankPosition: 1 + Math.floor(rnd() * 8),
+      lp: 40 + Math.floor(rnd() * 280),
+      seasonName: SEASON_NAME,
+    };
+  });
+}
+
+
+/**
+ * El desglose por posición, contado sobre las partidas de verdad.
+ *
+ * Antes esto se sorteaba: se elegía un winrate al azar entre 40 y 70 y de ahí se derivaban las
+ * victorias, que es exactamente al revés de como se calcula un winrate. La tabla llegaba a
+ * pintar «58 % · 0 partidas», un porcentaje sobre nada. Ahora las cinco posiciones salen
+ * siempre —para que la tabla no cambie de alto según lo que hayas jugado— pero las que no
+ * tienen partidas dicen que no las tienen, en vez de rellenar el hueco.
+ */
+function buildRoleStats(samples: readonly RoleSample[]): Record<LaneRole, PlayerRoleStat> {
+  const out = {} as Record<LaneRole, PlayerRoleStat>;
+
+  for (const role of LANE_ROLES) {
+    const mine = samples.filter((s) => s.role === role);
+    const wins = mine.filter((s) => s.won).length;
+    const lane = mine.filter((s) => s.wonLane !== undefined);
+    const laneWins = lane.filter((s) => s.wonLane).length;
+
+    out[role] = {
+      role,
+      games: mine.length,
+      wins,
+      losses: mine.length - wins,
+      wr: mine.length > 0 ? Math.round((wins / mine.length) * 100) : null,
+      wonLaneGames: lane.length,
+      wonLaneRate: lane.length > 0 ? Math.round((laneWins / lane.length) * 100) : null,
+    };
+  }
+
+  return out;
+}

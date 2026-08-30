@@ -6003,8 +6003,12 @@ $touch: 44px;
 .pf-hero-compact__ring {
   --wr: 50;
   --ring: var(--nf-success);
-  width: 54px;
-  height: 54px;
+  /* El anillo creció de 54 a 64px por una razón concreta: su etiqueta estaba a
+     8px, por debajo del suelo de legibilidad del proyecto, y para subirla a 11px
+     hacía falta sitio. Es además la cifra titular del perfil, así que ganar
+     tamaño aquí es lo contrario de un problema. */
+  width: 64px;
+  height: 64px;
   border-radius: 50%;
   display: grid;
   place-items: center;
@@ -6013,8 +6017,8 @@ $touch: 44px;
 }
 .pf-hero-compact__ring--lo { --ring: var(--nf-danger); }
 .pf-hero-compact__ring-inner {
-  width: 42px;
-  height: 42px;
+  width: 50px;
+  height: 50px;
   border-radius: 50%;
   display: flex;
   flex-direction: column;
@@ -6024,13 +6028,13 @@ $touch: 44px;
   border: 1px solid var(--nf-border);
 }
 .pf-hero-compact__ring-val {
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 800;
   color: var(--nf-text);
   line-height: 1;
 }
 .pf-hero-compact__ring-lbl {
-  font-size: 8px;
+  font-size: 11px;
   color: var(--nf-text-dim);
 }
 
@@ -6110,12 +6114,15 @@ $touch: 44px;
   gap: 8px;
 }
 
+/* Sin `text-transform: uppercase`: la regla del proyecto es que lo que se
+   escribe es lo que se pinta, y una tarjeta cuyo título llega en frase normal no
+   puede devolverlo en mayúsculas. El peso, el color apagado y el espaciado ya
+   lo separan del cuerpo sin gritarlo. */
 .pf-card__title {
   font-size: 12px;
   font-weight: 700;
   color: var(--nf-text-mid);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
 }
 
 .pf-link-btn {
@@ -6153,7 +6160,7 @@ $touch: 44px;
   border-color: var(--nf-border-strong);
 }
 .pf-kpi-tile__lbl {
-  font-size: 10.5px;
+  font-size: 11px;
   color: var(--nf-text-dim);
 }
 .pf-kpi-tile__val {
@@ -6163,7 +6170,7 @@ $touch: 44px;
   line-height: 1.1;
 }
 .pf-kpi-tile__sub {
-  font-size: 10px;
+  font-size: 11px;
   color: var(--nf-text-mid);
 }
 
@@ -6192,7 +6199,7 @@ $touch: 44px;
   border-color: color-mix(in srgb, var(--nf-danger) 35%, transparent);
 }
 .pf-streak-badge__label {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 500;
   color: var(--nf-text-mid);
 }
@@ -6208,6 +6215,7 @@ $touch: 44px;
   position: relative;
   width: 28px;
   height: 28px;
+  padding: 0;
   border-radius: 6px;
   display: flex;
   align-items: center;
@@ -6215,11 +6223,18 @@ $touch: 44px;
   font-size: 12px;
   font-weight: 800;
   cursor: pointer;
-  transition: transform 0.12s, box-shadow 0.12s;
+  transition: transform 0.12s, box-shadow 0.12s, outline-color 0.12s;
 }
 .pf-match-node:hover {
   transform: translateY(-2px) scale(1.1);
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+/* La partida elegida se marca con un aro exterior en vez de con más brillo: el
+   color del nodo ya significa victoria o derrota, y teñirlo para indicar
+   selección haría que dos cosas distintas compitieran por el mismo canal. */
+.pf-match-node--on {
+  outline: var(--bw-2) solid var(--nf-text);
+  outline-offset: 2px;
 }
 .pf-match-node--win {
   color: var(--nf-success);
@@ -6235,6 +6250,10 @@ $touch: 44px;
   border-color: var(--nf-warning) !important;
   box-shadow: 0 0 6px color-mix(in srgb, var(--nf-warning) 40%, transparent);
 }
+/* Excepción consciente al suelo de 11px: no es copy, es un adorno. La estrella
+   marca el MVP y va `aria-hidden`; lo que comunica el dato es el nombre
+   accesible del nodo, que sí dice "MVP" con todas las letras. Agrandarla la
+   sacaría del nodo de 28px sin añadir ninguna información. */
 .pf-match-node__crown {
   position: absolute;
   top: -4px;
@@ -6243,34 +6262,44 @@ $touch: 44px;
   color: var(--nf-warning);
 }
 
-.pf-form-tooltip {
-  padding: 8px 12px;
+/* Desglose de la partida seleccionada. Antes era un tooltip flotante que se
+   montaba y desmontaba con el ratón; ahora es un bloque fijo de la tarjeta que
+   solo cambia de contenido, así que no lleva animación de entrada: lo que se
+   anima al elegir otra partida es el texto, y hacerlo aparecer de nuevo cada vez
+   parpadearía. */
+.pf-streak-summary {
+  padding: 9px 12px;
   border-radius: 7px;
-  border: 1px solid var(--nf-border-strong);
-  background: var(--nf-surface);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+  border: var(--bw-1) solid var(--nf-border);
+  background: var(--nf-inset);
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 4px;
   font-size: 11px;
-  animation: pfPop 0.14s ease-out;
 }
-.pf-form-tooltip__row {
+.pf-streak-summary--clickable {
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color 0.14s ease, background 0.14s ease, transform 0.14s ease;
+}
+.pf-streak-summary--clickable:hover {
+  border-color: var(--nf-border-strong);
+  background: var(--nf-surface-2);
+  transform: translateY(-1px);
+}
+.pf-streak-summary__row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  flex-wrap: wrap;
 }
-.pf-form-tooltip__time {
+.pf-streak-summary__time {
   color: var(--nf-text-dim);
 }
-.pf-form-tooltip__row--sub {
+.pf-streak-summary__row--sub {
   color: var(--nf-text-mid);
-}
-
-@keyframes pfPop {
-  from { opacity: 0; transform: translateY(3px); }
-  to { opacity: 1; transform: translateY(0); }
 }
 
 /* ── Top 3 Campeones Insignia ──────────────────────────────────────── */
@@ -6288,6 +6317,16 @@ $touch: 44px;
   border-radius: 8px;
   border: 1px solid var(--nf-border);
   background: var(--nf-surface);
+  /* Ahora es un <a> a la tierlist: hereda el color del texto para no pintarse de
+     azul de enlace —la ficha entera es el destino, no una palabra dentro— y se
+     ilumina al pasar para que se note que lleva a algún sitio. */
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 0.14s, background 0.14s;
+}
+.pf-mini-champ:hover {
+  border-color: var(--nf-border-strong);
+  background: var(--nf-surface-2);
 }
 
 .pf-mini-champ__avatar {
@@ -6315,7 +6354,7 @@ $touch: 44px;
 }
 
 .pf-mini-champ__role {
-  font-size: 10px;
+  font-size: 11px;
   color: var(--nf-text-dim);
   padding: 1px 5px;
   border-radius: 3px;
@@ -6351,7 +6390,7 @@ $touch: 44px;
 }
 
 .pf-mini-champ__games {
-  font-size: 10.5px;
+  font-size: 11px;
   color: var(--nf-text-dim);
   margin-top: 2px;
   display: block;
@@ -6364,6 +6403,14 @@ $touch: 44px;
   gap: 10px;
 }
 
+/* La cabecera de la ficha lleva ahora el botón que abre la vista dedicada, así
+   que la parte derecha deja de ser un dato suelto y pasa a ser dato + acción. */
+.pf-vs-tile__head-end {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .pf-h2h-compact {
   padding: 10px 14px;
   border-radius: 8px;
@@ -6372,6 +6419,15 @@ $touch: 44px;
   display: flex;
   flex-direction: column;
   gap: 6px;
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform 0.14s ease, border-color 0.14s ease, background 0.14s ease;
+}
+.pf-h2h-compact:hover {
+  transform: translateY(-1px);
+  border-color: var(--nf-border-strong);
+  background: var(--nf-surface-2);
 }
 .pf-h2h-compact--ally {
   border-left: 3px solid var(--nf-secondary);
@@ -6395,18 +6451,15 @@ $touch: 44px;
   gap: 10px;
 }
 
+.pf-h2h-compact__info {
+  flex: 1;
+  min-width: 0;
+}
+
+/* El avatar lo pinta ahora `nf-avatar`, que se mide sola con `--nf-avatar-size`: aquí solo
+   queda impedir que la caja se encoja dentro del flex. */
 .pf-h2h-compact__avatar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
   flex: none;
-  border-radius: 7px;
-  font-family: var(--nf-mono);
-  font-weight: 700;
-  font-size: 12px;
-  color: #fff;
 }
 
 .pf-h2h-compact__name {
@@ -6420,24 +6473,123 @@ $touch: 44px;
   color: var(--nf-text-dim);
 }
 
-/* ── Tus Grupos (Lista Compacta) ───────────────────────────────────── */
+.pf-h2h-empty {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px dashed var(--nf-border-strong);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--nf-text-dim);
+}
+
+/* ── Tus grupos (lista compacta paginada) ──────────────────────────────
+   La altura se reserva a mano en vez de dejarla al contenido: es lo único que
+   garantiza que la tarjeta mida igual con 1 grupo que con 10 y no descuadre la
+   columna del Bento. Los dos números salen del marcado (fila de 48px, hueco de
+   8px), así que si cambia el tamaño de la fila hay que tocarlos aquí. */
+.pf-group-card {
+  --pf-group-row: 48px;
+  --pf-group-gap: 8px;
+}
+.pf-group-viewport {
+  overflow: hidden;
+  height: calc(var(--pf-group-row, 48px) * 4 + var(--pf-group-gap, 8px) * 3);
+}
+.pf-group-track {
+  display: flex;
+  height: 100%;
+  transition: transform 0.28s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .pf-group-track { transition: none; }
+}
+.pf-group-pager {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.pf-group-pager__count {
+  font-size: 11px;
+  color: var(--nf-text-dim);
+  min-width: 30px;
+  text-align: center;
+}
+
 .pf-group-list {
+  flex: 0 0 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--pf-group-gap, 8px);
+  /* La página que no toca no debe poder recibir el foco al tabular. */
+  align-content: flex-start;
+}
+.pf-group-list[aria-hidden='true'] {
+  visibility: hidden;
 }
 
 .pf-group-item {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 12px;
+  /* Altura fijada, no derivada del contenido: el viewport de arriba reserva
+     4 × esta medida, y un nombre largo que envolviera a dos líneas rompería
+     la cuenta. */
+  height: var(--pf-group-row, 48px);
+  flex: none;
+  padding: 0 12px;
   border-radius: 8px;
   border: 1px solid var(--nf-border);
   background: var(--nf-surface);
-  transition: border-color 0.14s;
+  transition: border-color 0.14s, background 0.14s;
 }
 .pf-group-item:hover { border-color: var(--nf-border-strong); }
+
+.pf-group-item--member {
+  padding: 0;
+}
+
+.pf-group-item__link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  height: 100%;
+  padding: 0 12px;
+  color: inherit;
+  text-decoration: none;
+  border-radius: 8px;
+  transition: background 0.14s ease;
+}
+.pf-group-item__link:hover {
+  background: var(--nf-surface-2);
+}
+
+.pf-group-item__content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.pf-group-item__action {
+  flex: none;
+}
+
+.pf-group-item__arrow {
+  font-size: 16px;
+  color: var(--nf-text-dim);
+  margin-left: 4px;
+  transition: transform 0.14s ease, color 0.14s ease;
+}
+.pf-group-item__link:hover .pf-group-item__arrow {
+  color: var(--nf-text);
+  transform: translateX(2px);
+}
 
 .pf-group-item__avatar {
   display: flex;
@@ -6478,7 +6630,7 @@ $touch: 44px;
 }
 
 .pf-group-item__rank {
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--nf-text-mid);
 }
@@ -6569,7 +6721,6 @@ $touch: 44px;
   font-weight: 700;
   font-size: 11px;
   color: var(--nf-text-dim);
-  text-transform: uppercase;
 }
 
 .pf-role-table__lane {
@@ -6580,8 +6731,50 @@ $touch: 44px;
   color: var(--nf-text);
 }
 
+/* Un hueco sin dato, escrito. Nunca un `—` suelto ni un cero: el usuario lee un cero como
+   un resultado real y un guion sin explicación como un fallo de la pantalla. */
+/* El esqueleto del perfil entero, con la misma forma que lo que viene detrás: cabecera con
+   avatar, nombre y anillo, la tira de indicadores y el primer bloque de contenido. */
+/* Fila de comparación cuya métrica no la trae ninguna partida: se atenúa para que el 50/50
+   no se lea como un empate real. */
+.cx-metric--nodata {
+  opacity: 0.55;
+}
+
+.cx-metric__nodata {
+  margin-left: 6px;
+  color: var(--nf-text-dim);
+  font-size: 11px;
+  cursor: help;
+}
+
+.pf-boot {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.pf-boot__hero {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.pf-boot__stack {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pf-nodata {
+  color: var(--nf-text-dim);
+  font-size: 11.5px;
+  cursor: help;
+}
+
 .pf-role-table__tag {
-  font-size: 10.5px;
+  font-size: 11px;
   color: var(--nf-text-dim);
 }
 
@@ -6592,6 +6785,22 @@ $touch: 44px;
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 12px;
+}
+/* El buscador va pegado al filtro de posición, no al otro extremo de la barra:
+   los dos acotan QUÉ se ve, mientras que el orden solo cambia CÓMO se ve. */
+.pf-champ-toolbar-compact__filters {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  min-width: 0;
+}
+/* Ancho acotado: el combobox nace a `width: 100%` y sin techo se comería la
+   barra entera dejando el selector de orden fuera de pantalla. */
+.pf-champ-search {
+  flex: 1 1 190px;
+  min-width: 170px;
+  max-width: 260px;
 }
 
 .pf-champ-grid {
@@ -6608,6 +6817,9 @@ $touch: 44px;
   display: flex;
   flex-direction: column;
   gap: 10px;
+  /* Enlace a la tierlist: mismo criterio que `.pf-mini-champ`. */
+  color: inherit;
+  text-decoration: none;
   transition: transform 0.12s, border-color 0.12s;
 }
 .pf-champ-tile:hover {
@@ -6646,7 +6858,7 @@ $touch: 44px;
 }
 
 .pf-champ-tile__role {
-  font-size: 10px;
+  font-size: 11px;
   color: var(--nf-text-dim);
   padding: 1px 5px;
   border-radius: 3px;
@@ -6672,7 +6884,7 @@ $touch: 44px;
 }
 
 .pf-champ-tile__games {
-  font-size: 10.5px;
+  font-size: 11px;
   color: var(--nf-text-dim);
   display: block;
 }
@@ -6715,6 +6927,8 @@ $touch: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
+  /* Misma excepción que la estrella del MVP: el glifo es un punto, no texto.
+     El objeto se identifica por el color de la casilla y por su `title`. */
   font-size: 6px;
   color: rgba(255, 255, 255, 0.7);
   border: 1px solid rgba(255, 255, 255, 0.15);
@@ -6952,6 +7166,19 @@ $touch: 44px;
   border-left: 2px solid var(--nf-primary);
 }
 
+.pf-vs-tile--interactive {
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: transform 0.14s ease, border-color 0.14s ease, background 0.14s ease;
+}
+.pf-vs-tile--interactive:hover {
+  transform: translateY(-1px);
+  border-color: var(--nf-border-strong);
+  background: var(--nf-surface-2);
+}
 .pf-vs-tile__head {
   display: flex;
   align-items: center;
@@ -6971,6 +7198,9 @@ $touch: 44px;
 .pf-vs-tile__sub {
   font-size: 11px;
   color: var(--nf-text-mid);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .pf-compare-compact {
@@ -7022,6 +7252,15 @@ $touch: 44px;
   font-weight: 700;
 }
 
+/* ── Acciones de Desglose / Lineup ─────────────────────────────────── */
+.m-lineup__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
 @media (max-width: 600px) {
   .pf-vs-grid {
     grid-template-columns: 1fr;
@@ -7421,4 +7660,678 @@ $touch: 44px;
   /* La hora se lleva la primera fila entera, así que en la segunda el contador se queda
      a la izquierda y el botón se va al borde derecho, igual que en escritorio. */
   .lb-slot__cta { margin-left: auto; }
+}
+
+/* ============================================================
+   CRUZADO — cara a cara entre dos jugadores
+   Prefijo `.cx-`, siguiendo la convención por superficie del
+   proyecto (`.m-` historial, `.md-` detalle de partida, `.pf-`
+   perfil). Todo lo que es una fila de partida reutiliza `.m-card`:
+   aquí solo está lo que esta vista añade.
+   ============================================================ */
+
+.cx-view {
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+/* Los dos lados del cruce tienen un color fijo en toda la sección: el tuyo es
+   el acento de la app y el suyo el índigo terciario. Se nombran por su papel
+   —`me` / `them`—, nunca por el color que salga hoy. */
+.cx-view,
+.cx-detail__head,
+.cx-breakdown {
+  --cx-me: var(--nf-primary);
+  --cx-them: var(--nf-tertiary);
+}
+
+.cx-pos { color: var(--nf-success); }
+.cx-neg { color: var(--nf-danger); }
+
+/* ── Cabecera compartida por las tres vistas ──────────────────────── */
+.cx-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 18px;
+  margin-bottom: 16px;
+  padding: 16px 20px;
+  border-radius: var(--nf-radius);
+  border: 1px solid var(--nf-border);
+  border-top: 2px solid var(--nf-border-accent);
+  background:
+    radial-gradient(120% 140% at 0% 0%, color-mix(in srgb, var(--cx-me) 8%, transparent), transparent 60%),
+    var(--nf-surface-2);
+}
+
+.cx-hero__who {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+
+.cx-hero__avatar { flex: none; }
+
+.cx-hero__id { min-width: 0; }
+
+.cx-hero__eyebrow {
+  font-size: var(--fs-label);
+  color: var(--nf-secondary);
+  margin-bottom: 4px;
+}
+
+.cx-hero__title {
+  margin: 0;
+  font-size: var(--fs-h2);
+  font-weight: var(--fw-black);
+  letter-spacing: var(--ls-tight);
+  color: var(--nf-text);
+  line-height: var(--lh-tight);
+}
+
+.cx-hero__tag {
+  margin-top: 4px;
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+}
+
+.cx-kpis {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  margin: 0;
+  flex-wrap: wrap;
+}
+
+.cx-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 118px;
+  padding: 10px 14px;
+  border-radius: var(--nf-radius-sm);
+  border: 1px solid var(--nf-border);
+  border-left: 3px solid var(--nf-border-strong);
+  background: var(--nf-surface);
+}
+
+.cx-kpi--ally { border-left-color: var(--nf-secondary); }
+.cx-kpi--enemy { border-left-color: var(--cx-me); }
+
+.cx-kpi__label {
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+}
+
+.cx-kpi__value {
+  margin: 0;
+  font-size: var(--fs-h3);
+  font-weight: var(--fw-black);
+  color: var(--nf-text);
+  min-height: 24px;
+}
+
+.cx-kpi__sub {
+  margin: 0;
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+}
+
+.cx-tabs { margin-bottom: 18px; }
+
+/* Arranque: el hueco exacto de la cabecera, para que al llegar el dato no salte. */
+.cx-boot {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.cx-boot__hero {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  border-radius: var(--nf-radius);
+  border: 1px solid var(--nf-border);
+  background: var(--nf-surface-2);
+}
+
+.cx-boot__stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ── Fila del historial cruzado ───────────────────────────────────── */
+/* Dos mitades simétricas con la relación en medio: la pregunta de esta vista
+   es cómo os fue a los dos, así que ninguno de los dos lados manda. */
+.m-card__main--cross {
+  display: grid;
+  grid-template-columns: 104px minmax(0, 1fr) auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+}
+
+.cx-card__side {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.cx-card__side--them {
+  justify-content: flex-end;
+  text-align: right;
+}
+
+.cx-card__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cx-card__meta--end { align-items: flex-end; }
+
+.cx-card__who {
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 160px;
+}
+
+.cx-card__champ {
+  font-size: 13.5px;
+  font-weight: var(--fw-bold);
+  color: var(--nf-text);
+}
+
+.cx-card__kda {
+  font-size: 12px;
+  color: var(--nf-text-mid);
+}
+
+.cx-card__ratio {
+  margin-left: 6px;
+  color: var(--nf-text-dim);
+}
+
+.cx-card__relation {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+}
+
+.cx-card__relation-tag {
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: var(--fs-label);
+  font-weight: var(--fw-bold);
+  color: var(--cx-me);
+  border: 1px solid color-mix(in srgb, var(--cx-me) 35%, transparent);
+  background: color-mix(in srgb, var(--cx-me) 10%, transparent);
+}
+
+.cx-card__relation-tag--ally {
+  color: var(--nf-secondary);
+  border-color: color-mix(in srgb, var(--nf-secondary) 35%, transparent);
+  background: color-mix(in srgb, var(--nf-secondary) 10%, transparent);
+}
+
+.cx-card__relation-lane {
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+}
+
+/* ── Desglose: la comparativa cara a cara ─────────────────────────── */
+.cx-breakdown { padding: 14px 18px 12px; }
+
+.cx-breakdown__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-bottom: 8px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--nf-border);
+}
+
+.cx-breakdown__relation {
+  font-size: 12px;
+  font-weight: var(--fw-bold);
+  color: var(--cx-me);
+}
+
+.cx-breakdown__relation--ally { color: var(--nf-secondary); }
+
+.cx-breakdown__meta,
+.cx-breakdown__note {
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+}
+
+.cx-breakdown__note { margin: 10px 0 0; }
+
+.cx-compare {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cx-compare__players {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.cx-compare__player {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.cx-compare__player--them {
+  justify-content: flex-end;
+  text-align: right;
+}
+
+.cx-compare__champ { flex: none; }
+.cx-compare__lane { flex: none; }
+
+.cx-compare__who {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cx-compare__player--them .cx-compare__who { align-items: flex-end; }
+
+.cx-compare__name {
+  font-size: 13px;
+  font-weight: var(--fw-bold);
+  color: var(--nf-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cx-compare__champ-name {
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+}
+
+.cx-compare__vs {
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+  flex: none;
+}
+
+.cx-compare__legend {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: var(--fs-label);
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--nf-border);
+  margin-bottom: 4px;
+}
+
+.cx-compare__legend-me { color: var(--cx-me); font-weight: var(--fw-bold); }
+.cx-compare__legend-them { color: var(--cx-them); font-weight: var(--fw-bold); }
+
+.cx-metric {
+  display: grid;
+  grid-template-columns: minmax(72px, 1fr) minmax(0, 1.6fr) minmax(72px, 1fr);
+  align-items: center;
+  gap: 12px;
+}
+
+.cx-metric__val {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  color: var(--nf-text-mid);
+}
+
+.cx-metric__val--them { align-items: flex-end; text-align: right; }
+
+/* El ganador de la métrica no se marca solo con color: sube de peso, para que
+   se lea igual sin distinguirlo (misma decisión que `.m-card__result-label`). */
+.cx-metric__val.is-best .cx-metric__num {
+  color: var(--nf-text);
+  font-weight: var(--fw-black);
+}
+
+.cx-metric__num {
+  font-size: 13px;
+  font-weight: var(--fw-medium);
+}
+
+.cx-metric__sub {
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+}
+
+.cx-metric__center {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+  min-width: 0;
+}
+
+.cx-metric__label {
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+  text-align: center;
+}
+
+.cx-metric__bar {
+  display: flex;
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--nf-inset);
+}
+
+.cx-metric__fill { display: block; height: 100%; }
+.cx-metric__fill--me { background: var(--cx-me); }
+.cx-metric__fill--them { background: var(--cx-them); }
+
+.cx-more {
+  color: var(--cx-me);
+  border-color: color-mix(in srgb, var(--cx-me) 35%, transparent);
+}
+
+.cx-more:hover {
+  border-color: var(--cx-me);
+  background: color-mix(in srgb, var(--cx-me) 10%, transparent);
+}
+
+/* ── Medias globales (versus / synergy) ───────────────────────────── */
+.cx-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.cx-panel {
+  padding: 18px 20px;
+  border-radius: var(--nf-radius);
+  border: 1px solid var(--nf-border);
+  background: var(--nf-surface);
+}
+
+.cx-panel__title {
+  margin: 0 0 12px;
+  font-size: 12px;
+  font-weight: var(--fw-bold);
+  color: var(--nf-text-mid);
+}
+
+.cx-panel__lead {
+  margin: 0 0 14px;
+  font-size: 13px;
+  line-height: var(--lh-body);
+  color: var(--nf-text-mid);
+  max-width: var(--measure);
+}
+
+.cx-panel__note {
+  margin: 12px 0 0;
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+}
+
+.cx-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 10px;
+}
+
+.cx-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 12px 14px;
+  border-radius: var(--nf-radius-sm);
+  border: 1px solid var(--nf-border);
+  background: var(--nf-surface-2);
+}
+
+.cx-tile__value {
+  font-size: var(--fs-h2);
+  font-weight: var(--fw-black);
+  line-height: var(--lh-tight);
+  color: var(--nf-text);
+}
+
+.cx-tile__label {
+  font-size: var(--fs-label);
+  color: var(--nf-text-mid);
+}
+
+.cx-tile__sub {
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+}
+
+.cx-matchups,
+.cx-roles {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cx-matchup {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: var(--nf-radius-sm);
+  border: 1px solid var(--nf-border);
+  background: var(--nf-surface-2);
+}
+
+.cx-matchup__champ { flex: none; }
+
+.cx-matchup__name {
+  font-size: 12.5px;
+  color: var(--nf-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cx-matchup__name--end { text-align: right; }
+
+.cx-matchup__vs {
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+}
+
+.cx-matchup__record,
+.cx-role__record {
+  font-size: 12px;
+  font-weight: var(--fw-bold);
+  color: var(--nf-text-mid);
+  white-space: nowrap;
+}
+
+.cx-role {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: var(--nf-radius-sm);
+  border: 1px solid var(--nf-border);
+  background: var(--nf-surface-2);
+}
+
+.cx-role__pair {
+  font-size: 12.5px;
+  color: var(--nf-text);
+}
+
+.cx-stats__foot {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* ── Detalle de una partida cruzada ───────────────────────────────── */
+.cx-detail__head {
+  margin-bottom: 18px;
+  padding: 16px 20px;
+  border-radius: var(--nf-radius);
+  border: 1px solid var(--nf-border);
+  border-left: 5px solid var(--nf-border-strong);
+  background: var(--nf-surface-2);
+}
+
+.cx-detail__head.is-win { border-left-color: var(--nf-success); }
+.cx-detail__head.is-loss { border-left-color: var(--nf-danger); }
+
+.cx-detail__eyebrow {
+  font-size: var(--fs-label);
+  color: var(--nf-secondary);
+  margin-bottom: 6px;
+}
+
+.cx-detail__title {
+  margin: 0;
+  font-size: var(--fs-h2);
+  font-weight: var(--fw-black);
+  letter-spacing: var(--ls-tight);
+  color: var(--nf-text);
+}
+
+.cx-detail__meta {
+  margin: 6px 0 0;
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+}
+
+.cx-builds {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+.cx-build {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: var(--nf-radius-sm);
+  border: 1px solid var(--nf-border);
+  border-top: 2px solid var(--cx-me);
+  background: var(--nf-surface-2);
+}
+
+.cx-build--them { border-top-color: var(--cx-them); }
+
+.cx-build__who {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cx-build__id {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cx-build__name {
+  font-size: 13px;
+  font-weight: var(--fw-bold);
+  color: var(--nf-text);
+}
+
+.cx-build__champ {
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+}
+
+.cx-build__items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.cx-detail__nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+/* ── Reflujo ──────────────────────────────────────────────────────── */
+/* Por rejillas con nombre, como el resto de `.m-card__main`: las reglas del
+   bloque compacto de arriba ya colocan `.m-card__result` y `.m-card__end` en
+   las áreas `result` y `end`, así que basta con declararlas también aquí para
+   que caigan donde toca en vez de irse a colocación automática. */
+@media (max-width: $bp-compact) {
+  .m-card__main--cross {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    grid-template-areas:
+      'result   result    result'
+      'me       relation  them'
+      'end      end       end';
+    gap: 12px 14px;
+    padding: 14px 16px;
+  }
+
+  /* En una línea propia el resultado se lee mejor en horizontal; alineado a la
+     derecha, como lo deja la fila personal, quedaría suelto en mitad del hueco. */
+  .m-card__main--cross .m-card__result {
+    grid-area: result;
+    flex-direction: row;
+    align-items: baseline;
+    justify-content: flex-start;
+    text-align: left;
+    gap: 10px;
+  }
+
+  .cx-card__side--me { grid-area: me; }
+  .cx-card__relation { grid-area: relation; }
+  .cx-card__side--them { grid-area: them; }
+  .m-card__main--cross .m-card__end { grid-area: end; }
+
+  .cx-hero { align-items: flex-start; }
+}
+
+@media (max-width: $bp-mobile) {
+  .cx-card__who { max-width: 110px; }
+  .cx-metric {
+    grid-template-columns: minmax(60px, 1fr) minmax(0, 1.2fr) minmax(60px, 1fr);
+    gap: 8px;
+  }
+  .cx-matchup {
+    grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 1fr) auto;
+    row-gap: 6px;
+  }
+  .cx-matchup__record { grid-column: 1 / -1; text-align: right; }
+  .cx-kpis { width: 100%; }
+  .cx-kpi { flex: 1 1 130px; }
+  .cx-compare__players { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); }
 }

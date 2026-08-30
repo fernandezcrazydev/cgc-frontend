@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
+import { CrossRelation } from '../../../../core/matches/cross-history';
 import { MatchHistoryStore } from '../../../../core/matches/match-history-store';
 import {
   MatchParticipation,
@@ -91,7 +92,7 @@ interface SearchSuggestion {
                   @if (opt.iconUrl) {
                     <nf-avatar [src]="opt.iconUrl" [fallback]="opt.label" [tint]="opt.tint ?? 0" [size]="22" shape="square" />
                   } @else {
-                    <span class="m-filters__suggest-tag nf-mono">{{ opt.tag ?? '◎' }}</span>
+                    <span class="m-filters__suggest-tag nf-mono">{{ opt.tag }}</span>
                   }
                   <div class="m-filters__suggest-info">
                     <span class="m-filters__suggest-label">{{ opt.label }}</span>
@@ -172,7 +173,19 @@ interface SearchSuggestion {
         5v5 completo siempre cubre las cinco posiciones: el control se pintaba, ponía su chip
         de filtro activo y no descartaba ni una partida.
       -->
-      @if (mode() === 'personal') {
+      @if (isCross()) {
+        <div class="m-field">
+          <span class="m-field__label nf-mono">Relación</span>
+          <nf-segmented
+            [options]="relationOptions"
+            [value]="filters().relation"
+            (valueChange)="setRelation($event)"
+            ariaLabel="Filtrar por cómo coincidisteis"
+          />
+        </div>
+      }
+
+      @if (measuresMe()) {
         <div class="m-field">
           <span class="m-field__label nf-mono" id="mf-role">Posición</span>
           <div class="m-role-pills" role="radiogroup" aria-labelledby="mf-role">
@@ -240,7 +253,7 @@ interface SearchSuggestion {
         />
       </div>
 
-      @if (mode() === 'personal') {
+      @if (measuresMe()) {
         <div class="m-field m-field--group">
           <span class="m-field__label nf-mono">Grupo</span>
           <nf-select
@@ -260,7 +273,13 @@ interface SearchSuggestion {
 })
 export class MatchFiltersComponent {
   /** Qué pregunta responde la vista: cambia qué filtros tienen sentido. */
-  readonly mode = input<'personal' | 'group'>('personal');
+  readonly mode = input<'personal' | 'group' | 'cross'>('personal');
+  /**
+   * Los campeones que puede ofrecer el desplegable, cuando la vista ya sabe cuáles son. Lo
+   * necesita el historial cruzado: su lista está acotada a las partidas compartidas, y ofrecer
+   * ahí todos los campeones que has jugado alguna vez lleva a elegir uno y vaciar la lista.
+   */
+  readonly championIds = input<readonly number[] | null>(null);
   /** El grupo del contexto en la vista de grupo; acota la lista de campeones ofrecidos. */
   readonly contextGroupId = input<string | null>(null);
   /** Cuántas partidas quedan tras filtrar y cuántas hay en total, para el contador. */
@@ -274,6 +293,16 @@ export class MatchFiltersComponent {
   private readonly viewport = inject(Viewport);
 
   readonly filters = this.ui.filters;
+
+  /**
+   * Si la vista se mide contra TU participación (personal y cruzada) o contra los diez
+   * participantes (grupo). Es lo que decide qué controles tienen sentido, y por eso se
+   * pregunta esto y no el modo concreto: añadir una vista nueva no debe obligar a repasar
+   * ocho condiciones sueltas.
+   */
+  protected readonly measuresMe = computed(() => this.mode() !== 'group');
+
+  protected readonly isCross = computed(() => this.mode() === 'cross');
 
   /**
    * Con el dedo, los cinco controles a ancho completo se comían media pantalla antes de
@@ -313,6 +342,16 @@ export class MatchFiltersComponent {
     { value: 'others', label: 'Otras' },
   ];
 
+  /**
+   * La dimensión propia del cruce. No se llama «Resultado» ni se mezcla con él: `outcome` dice
+   * cómo TE fue y esto dice de qué lado estabais, que son preguntas distintas y combinables.
+   */
+  protected readonly relationOptions: readonly NfSegmentOption[] = [
+    { value: 'all', label: 'Todas' },
+    { value: 'enemy', label: 'En contra' },
+    { value: 'ally', label: 'Juntos' },
+  ];
+
   protected readonly sideOptions: readonly NfSegmentOption[] = [
     { value: 'all', label: 'Todos' },
     { value: 'blue', label: 'Azul' },
@@ -345,8 +384,10 @@ export class MatchFiltersComponent {
     const ctxId = this.contextGroupId();
     const filterGroupId = this.filters().groupId;
 
-    let playedIds: number[];
-    if (ctxId) playedIds = this.store.playedChampionIdsInGroup(ctxId);
+    let playedIds: readonly number[];
+    const given = this.championIds();
+    if (given) playedIds = given;
+    else if (ctxId) playedIds = this.store.playedChampionIdsInGroup(ctxId);
     else if (filterGroupId !== 'all') playedIds = this.store.playedChampionIdsInGroup(filterGroupId);
     else playedIds = this.store.playedChampionIdsInPersonal();
 
@@ -377,8 +418,16 @@ export class MatchFiltersComponent {
 
   protected readonly chips = computed<ActiveChip[]>(() => {
     const f = this.filters();
-    const isPersonal = this.mode() === 'personal';
+    const isPersonal = this.measuresMe();
     const chips: ActiveChip[] = [];
+
+    if (this.isCross() && f.relation !== 'all') {
+      chips.push({
+        key: 'relation',
+        label: f.relation === 'ally' ? 'Juntos' : 'En contra',
+        clear: () => this.ui.update({ relation: 'all' }),
+      });
+    }
 
     if (f.searchQuery.trim()) {
       chips.push({
@@ -418,14 +467,14 @@ export class MatchFiltersComponent {
         clear: () => this.ui.update({ groupId: 'all' }),
       });
     }
-    if (!isPersonal && f.winningSide !== 'all') {
+    if (this.mode() === 'group' && f.winningSide !== 'all') {
       chips.push({
         key: 'side',
         label: f.winningSide === 'blue' ? 'Ganó el azul' : 'Ganó el rojo',
         clear: () => this.ui.update({ winningSide: 'all' }),
       });
     }
-    if (!isPersonal && f.participation !== 'all') {
+    if (this.mode() === 'group' && f.participation !== 'all') {
       chips.push({
         key: 'participation',
         label: f.participation === 'mine' ? 'Mis partidas' : 'Otras partidas',
@@ -439,9 +488,7 @@ export class MatchFiltersComponent {
   protected readonly searchActiveIndex = signal(0);
 
   protected readonly searchPlaceholder = computed(() =>
-    this.mode() === 'personal'
-      ? 'Buscar jugador, campeón o grupo…'
-      : 'Buscar jugador o campeón…',
+    this.measuresMe() ? 'Buscar jugador, campeón o grupo…' : 'Buscar jugador o campeón…',
   );
 
   private readonly playerRiotIds = computed(() => {
@@ -464,7 +511,7 @@ export class MatchFiltersComponent {
     if (!q) return [];
 
     const results: SearchSuggestion[] = [];
-    const isPersonal = this.mode() === 'personal';
+    const isPersonal = this.measuresMe();
 
     // 1. Campeones
     for (const c of this.champions()) {
@@ -491,7 +538,7 @@ export class MatchFiltersComponent {
           type: 'player',
           label: riotId,
           sub: 'Jugador',
-          tag: '👤',
+          tag: initialsOf(riotId),
           priority: n.startsWith(q) ? 1 : 2,
         });
       }
@@ -588,6 +635,10 @@ export class MatchFiltersComponent {
     this.ui.update({ participation: participation as MatchParticipation });
   }
 
+  protected setRelation(relation: string): void {
+    this.ui.update({ relation: relation as CrossRelation | 'all' });
+  }
+
   protected setChampion(value: string): void {
     this.ui.update({ championId: value === '' ? 'all' : Number(value) });
   }
@@ -611,3 +662,9 @@ export class MatchFiltersComponent {
  * no encontraba nada.
  */
 const normalize = normalizeForSearch;
+
+/** `Pix3lQueen#LAN` → `PI`. Marca al jugador en la sugerencia con su propio dato. */
+function initialsOf(riotId: string): string {
+  const name = riotId.split('#')[0] ?? riotId;
+  return name.slice(0, 2).toUpperCase();
+}

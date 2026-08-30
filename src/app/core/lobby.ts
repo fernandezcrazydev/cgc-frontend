@@ -74,7 +74,7 @@ export const CURRENT_USER = {
 export const NAV: NavItem[] = [
   { id: 'inicio',    glyph: '◈', label: 'Inicio',    short: 'Inicio',    title: 'Inicio',    path: 'inicio'    },
   { id: 'historial', glyph: '▣', label: 'Historial', short: 'Historial', title: 'Historial', path: 'historial' },
-  { id: 'campeones', glyph: '⚔', label: 'Campeones', short: 'Campeones', title: 'Campeones', path: 'campeones' },
+  { id: 'tierlist',  glyph: '⚔', label: 'Tierlist',  short: 'Tierlist',  title: 'Tierlist',  path: 'tierlist'  },
   { id: 'grupos',    glyph: '◆', label: 'Grupos',    short: 'Grupos',    title: 'Grupos',    path: 'grupos'    },
   { id: 'ajustes',   glyph: '▦', label: 'Ajustes',   short: 'Ajustes',   title: 'Ajustes',   path: 'ajustes'   },
 ];

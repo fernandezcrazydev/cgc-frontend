@@ -1,6 +1,10 @@
 import { Component, DestroyRef, computed, inject, linkedSignal, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import {
   NfButton,
+  NfCombobox,
+  NfComboboxOption,
+  NfIconButton,
   NfSelect,
   NfModal,
   NfToggle,
@@ -11,20 +15,39 @@ import {
   NfSegmentOption,
 } from '../../../ui';
 import { Session } from '../../../core/auth';
-import { CURRENT_USER } from '../../../core/lobby';
 import { GroupStore } from '../../../core/group-store';
 import { opggUrl } from '../../../core/member-detail';
 import { NotificationsStore } from '../../../core/notifications';
-import { PlayerRecentMatch, buildPlayerProfile } from '../../../core/player-profile';
+import { RoleSample, buildPlayerProfile } from '../../../core/player-profile';
 import { LANE_ROLES, LaneRole, PreferencesStore, RolePreferences } from '../../../core/preferences';
 import { PairingCode, RIOT_REGIONS, RiotAccount, RiotAccountStore, RiotRegion } from '../../../core/riot';
 import { errorMessage } from '../../../core/http';
 import { ToastService } from '../../../core/toast';
 import { GameDataStore } from '../../../core/game-data';
-import { itemBg } from '../../../core/matches/match-view';
+import {
+  CROSS_MIN_SAMPLE,
+  CrossPartner,
+  MatchHistoryStore,
+  aggregateCross,
+  bestAllyOf,
+  itemBg,
+  nemesisOf,
+} from '../../../core/matches';
+import { nameOf } from './cross/cross-player';
+import { hash } from '../../../core/group-ranking';
 import { wireConnectModalOnRiotEvent } from './perfil-connect-modal';
+import { ProfileGroupsCard } from './profile/profile-groups-card.component';
+import { ProfileStreakCard } from './profile/profile-streak-card.component';
 
 const MEMBER_SINCE_FMT = new Intl.DateTimeFormat('es-ES', { month: 'short', year: 'numeric' });
+
+/**
+ * Las pestañas del perfil, en un solo sitio: la lista es a la vez el tipo y el validador de lo
+ * que llega del segmentado. Antes el tipo estaba escrito en la signal y la lista repetida en un
+ * `if`, y el hueco entre los dos se tapaba con un `as any`.
+ */
+const PERFIL_TABS = ['resumen', 'dna', 'campeones', 'ajustes'] as const;
+type PerfilTab = (typeof PERFIL_TABS)[number];
 
 interface RoleTile {
   role: LaneRole;
@@ -44,7 +67,10 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
   selector: 'app-perfil',
   standalone: true,
   imports: [
+    RouterLink,
     NfButton,
+    NfCombobox,
+    NfIconButton,
     NfSelect,
     NfModal,
     NfToggle,
@@ -52,17 +78,37 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
     NfAvatar,
     NfLaneIcon,
     NfSegmented,
+    ProfileStreakCard,
+    ProfileGroupsCard,
   ],
   template: `
     <div class="view pf-view">
-      @if (profile(); as p) {
+      <!--
+        Nada del perfil se pinta antes de saber quién eres. El perfil se siembra con la identidad
+        de la sesión y se cuenta sobre tu historial, así que pintarlo mientras esas dos viajan
+        significaba enseñar cifras de un usuario vacío y cambiarlas un instante después: KPIs,
+        ADN, campeones y tabla de roles se movían solos delante del usuario. Antes solo el
+        nombre y el avatar esperaban; el resto no.
+      -->
+      @if (profileLoading()) {
+        <div class="pf-boot" aria-busy="true">
+          <div class="pf-boot__hero">
+            <nf-skeleton width="72px" height="72px" radius="10px" />
+            <div class="pf-boot__stack">
+              <nf-skeleton width="180px" height="24px" />
+              <nf-skeleton width="240px" height="12px" />
+            </div>
+            <nf-skeleton width="96px" height="96px" radius="50%" />
+          </div>
+          <nf-skeleton width="100%" height="72px" radius="10px" />
+          <nf-skeleton width="100%" height="220px" radius="10px" />
+        </div>
+      } @else if (profile(); as p) {
         <!-- ════════ HERO UNIFICADO COMPACTO (~100px) ════════ -->
-        <header class="pf-hero-compact" [attr.aria-busy]="identityLoading() ? 'true' : null">
+        <header class="pf-hero-compact">
           <div class="pf-hero-compact__left">
             <span class="pf-hero-compact__avatar" [style.background]="grad(p.hue)">
-              @if (identityLoading()) {
-                <nf-skeleton width="100%" height="100%" radius="0" />
-              } @else if (showAvatarImage()) {
+              @if (showAvatarImage()) {
                 <img
                   class="pf-hero-compact__avatar-img"
                   [src]="session.avatarUrl()"
@@ -77,16 +123,11 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
 
             <div class="pf-hero-compact__info">
               <div class="pf-hero-compact__name-row">
-                @if (identityLoading()) {
-                  <nf-skeleton width="180px" height="24px" />
-                } @else {
-                  <h1 class="pf-hero-compact__name">{{ heroName() }}</h1>
-                  <!-- Badge Arquetipo -->
-                  <div class="pf-badge-archetype nf-mono" [title]="p.archetype.subtitle">
-                    <span class="pf-badge-archetype__icon">{{ p.archetype.icon }}</span>
-                    <span class="pf-badge-archetype__title">{{ p.archetype.title }}</span>
-                  </div>
-                }
+                <h1 class="pf-hero-compact__name">{{ heroName() }}</h1>
+                <!-- Badge Arquetipo -->
+                <div class="pf-badge-archetype nf-mono" [title]="p.archetype.subtitle">
+                  <span class="pf-badge-archetype__title">{{ p.archetype.title }}</span>
+                </div>
               </div>
 
               <div class="pf-hero-compact__meta-row nf-mono">
@@ -114,18 +155,27 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
                   }
                 } @else {
                   <button
-                    type="button"
-                    class="pf-meta-chip pf-meta-chip--action"
+                    nfButton
+                    variant="riot"
+                    size="xs"
+                    class="pf-hero-compact__riot"
                     (click)="activeTab.set('ajustes')"
                   >
-                    ＋ Vincular Riot ID
+                    <img class="nf-btn__riot-mark" src="/riot/riotgames_logo.webp" alt="" aria-hidden="true" />
+                    Vincular Riot ID
                   </button>
                 }
               </div>
             </div>
           </div>
 
-          <!-- Resumen de Desempeño Rápido (Winrate Ring + LP) -->
+          <!--
+            Resumen de desempeño: solo el winrate global y el récord. Aquí había
+            además una tendencia de LP, y se ha quitado: el usuario juega en
+            varias ligas a la vez, así que un LP suelto junto al nombre no dice
+            de cuál habla. El LP se enseña por grupo, en "Tus grupos", que es
+            donde tiene contexto.
+          -->
           <div class="pf-hero-compact__right">
             <div class="pf-hero-compact__kpi-group">
               <div class="pf-hero-compact__ring" [style.--wr]="p.wr" [class.pf-hero-compact__ring--lo]="p.wr < 50">
@@ -139,13 +189,6 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
                   <span class="pf-pos">{{ p.wins }}V</span>
                   <span class="pf-sep">-</span>
                   <span class="pf-neg">{{ p.losses }}D</span>
-                </div>
-                <div
-                  class="pf-hero-compact__lp nf-mono"
-                  [class.pf-pos]="p.recentLpTrend >= 0"
-                  [class.pf-neg]="p.recentLpTrend < 0"
-                >
-                  {{ p.recentLpTrend >= 0 ? '▲ +' + p.recentLpTrend : '▼ ' + p.recentLpTrend }} LP
                 </div>
               </div>
             </div>
@@ -201,71 +244,40 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
                 </div>
               </section>
 
-              <!-- Forma Reciente (12 partidas compactas + Tooltips) -->
-              <section class="pf-card pf-form-card">
-                <div class="pf-card__header">
-                  <span class="pf-card__title nf-mono">▸ Forma Reciente & Racha</span>
-                  <div class="pf-streak-badge nf-mono" [class.pf-streak-badge--lose]="p.streakType === 'L'">
-                    {{ p.currentStreak }}{{ p.streakType }}
-                    <span class="pf-streak-badge__label">{{ p.streakType === 'W' ? 'Victorias seguidas' : 'Derrotas' }}</span>
-                  </div>
-                </div>
-
-                <div class="pf-form-chain">
-                  @for (m of p.recentMatches; track m.id) {
-                    <div
-                      class="pf-match-node"
-                      (mouseenter)="hoveredMatch.set(m)"
-                      (mouseleave)="hoveredMatch.set(null)"
-                      [class.pf-match-node--win]="m.won"
-                      [class.pf-match-node--loss]="!m.won"
-                      [class.pf-match-node--mvp]="m.isMvp"
-                    >
-                      <span class="pf-match-node__text nf-mono">{{ m.won ? 'V' : 'D' }}</span>
-                      @if (m.isMvp) {
-                        <span class="pf-match-node__crown" title="MVP">★</span>
-                      }
-                    </div>
-                  }
-                </div>
-
-                <!-- Tooltip flotante interactivo -->
-                @if (hoveredMatch(); as hm) {
-                  <div class="pf-form-tooltip nf-mono" role="tooltip">
-                    <div class="pf-form-tooltip__row">
-                      <span [class.pf-pos]="hm.won" [class.pf-neg]="!hm.won">
-                        {{ hm.won ? 'Victoria' : 'Derrota' }}
-                        @if (hm.isMvp) { · 👑 MVP }
-                      </span>
-                      <span class="pf-form-tooltip__time">{{ hm.dateFormatted }} · {{ hm.durationFormatted }}</span>
-                    </div>
-                    <div class="pf-form-tooltip__row pf-form-tooltip__row--sub">
-                      <span>{{ championName(hm.championId) }} ({{ hm.role }})</span>
-                      <span>KDA {{ hm.kda }}</span>
-                      <span [class.pf-pos]="hm.lpDelta >= 0" [class.pf-neg]="hm.lpDelta < 0">
-                        {{ hm.lpDelta >= 0 ? '+' : '' }}{{ hm.lpDelta }} LP
-                      </span>
-                    </div>
-                  </div>
-                }
-              </section>
+              <app-profile-streak-card
+                [matches]="p.recentMatches"
+                [currentStreak]="p.currentStreak"
+                [streakType]="p.streakType"
+              />
 
               <!-- Top Campeones Insignia -->
               <section class="pf-card">
                 <div class="pf-card__header">
-                  <span class="pf-card__title nf-mono">▸ Campeones Insignia</span>
+                  <span class="pf-card__title nf-mono">Campeones insignia</span>
                   <button
-                    type="button"
-                    class="pf-link-btn nf-mono"
+                    nfIconButton
+                    size="sm"
+                    label="Ver el catálogo completo de campeones"
                     (click)="activeTab.set('campeones')"
                   >
-                    Ver catálogo completo →
+                    <!-- Grid: cuatro celdas, la forma habitual de "ver todo el catálogo". -->
+                    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                      <rect x="2" y="2" width="5" height="5" rx="1.2" stroke="currentColor" stroke-width="1.4" />
+                      <rect x="9" y="2" width="5" height="5" rx="1.2" stroke="currentColor" stroke-width="1.4" />
+                      <rect x="2" y="9" width="5" height="5" rx="1.2" stroke="currentColor" stroke-width="1.4" />
+                      <rect x="9" y="9" width="5" height="5" rx="1.2" stroke="currentColor" stroke-width="1.4" />
+                    </svg>
                   </button>
                 </div>
 
                 <div class="pf-mini-champs" [attr.aria-busy]="champsLoading() ? 'true' : null">
                   @for (c of topSignatureChampions(); track c.championId) {
-                    <div class="pf-mini-champ">
+                    <!--
+                      BACKEND NOTE: no hay vista de detalle por campeón (winrate, KDA, emparejamientos, runas) porque no hay endpoint que la alimente
+                      Hasta que exista, el campeón lleva a la tierlist, que es el
+                      sitio donde hoy vive todo lo que sabemos de un campeón.
+                    -->
+                    <a class="pf-mini-champ" [routerLink]="['/app', 'tierlist']">
                       <nf-avatar
                         class="pf-mini-champ__avatar"
                         [loading]="champsLoading()"
@@ -292,7 +304,7 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
                         <span class="pf-mini-champ__wr" [class.pf-neg]="c.wr < 50">{{ c.wr }}%</span>
                         <span class="pf-mini-champ__games">{{ c.games }}p · {{ c.kda }} KDA</span>
                       </div>
-                    </div>
+                    </a>
                   }
                 </div>
               </section>
@@ -303,74 +315,80 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
               <!-- Cara a cara (Aliado & Némesis) -->
               <section class="pf-card">
                 <div class="pf-card__header">
-                  <span class="pf-card__title nf-mono">▸ Rivalidades & Sinergias</span>
+                  <span class="pf-card__title nf-mono">Rivalidades y sinergias</span>
                 </div>
 
                 <div class="pf-h2h-stack">
-                  @if (p.bestAlly; as a) {
-                    <div class="pf-h2h-compact pf-h2h-compact--ally">
+                  @if (bestAlly(); as a) {
+                    <a
+                      class="pf-h2h-compact pf-h2h-compact--ally"
+                      [routerLink]="['/app', 'synergy', a.tag]"
+                      [attr.aria-label]="'Ver las estadísticas de dúo con ' + a.name"
+                      [title]="'Ver las estadísticas de dúo con ' + a.name"
+                    >
                       <div class="pf-h2h-compact__head nf-mono">
-                        <span>🤝 Mejor Aliado</span>
+                        <span>Mejor aliado</span>
                         <span class="pf-pos">{{ a.wr }}% WR juntos</span>
                       </div>
                       <div class="pf-h2h-compact__body">
-                        <span class="pf-h2h-compact__avatar" [style.background]="grad(a.hue)">{{ a.initials }}</span>
+                        <nf-avatar
+                          class="pf-h2h-compact__avatar"
+                          [src]="a.avatarUrl"
+                          [fallback]="a.name"
+                          [tint]="a.hue"
+                          [size]="32"
+                          shape="square"
+                        />
                         <div class="pf-h2h-compact__info">
                           <div class="pf-h2h-compact__name">{{ a.name }}</div>
-                          <div class="pf-h2h-compact__sub nf-mono">{{ a.wins }}V - {{ a.losses }}D juntos</div>
+                          <div class="pf-h2h-compact__sub nf-mono">
+                            {{ a.wins }}V - {{ a.losses }}D juntos
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    </a>
                   }
 
-                  @if (p.nemesis; as n) {
-                    <div class="pf-h2h-compact pf-h2h-compact--nemesis">
+                  @if (nemesis(); as n) {
+                    <a
+                      class="pf-h2h-compact pf-h2h-compact--nemesis"
+                      [routerLink]="['/app', 'versus', n.tag]"
+                      [attr.aria-label]="'Ver el cara a cara contra ' + n.name"
+                      [title]="'Ver el cara a cara contra ' + n.name"
+                    >
                       <div class="pf-h2h-compact__head nf-mono">
-                        <span>💀 Némesis</span>
-                        <span class="pf-neg">{{ n.wr }}% WR contra él</span>
+                        <span>Némesis</span>
+                        <span class="pf-neg">{{ n.wr }}% WR en duelo</span>
                       </div>
                       <div class="pf-h2h-compact__body">
-                        <span class="pf-h2h-compact__avatar" [style.background]="grad(n.hue)">{{ n.initials }}</span>
+                        <nf-avatar
+                          class="pf-h2h-compact__avatar"
+                          [src]="n.avatarUrl"
+                          [fallback]="n.name"
+                          [tint]="n.hue"
+                          [size]="32"
+                          shape="square"
+                        />
                         <div class="pf-h2h-compact__info">
                           <div class="pf-h2h-compact__name">{{ n.name }}</div>
-                          <div class="pf-h2h-compact__sub nf-mono">{{ n.wins }}V - {{ n.losses }}D rivales</div>
+                          <div class="pf-h2h-compact__sub nf-mono">
+                            {{ n.wins }}V - {{ n.losses }}D rivales
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    </a>
+                  }
+
+                  @if (!bestAlly() && !nemesis()) {
+                    <p class="pf-h2h-empty">
+                      Aún no hay suficientes partidas con nadie para nombrar un aliado o una
+                      némesis. Hacen falta al menos {{ minSample }} con la misma persona.
+                    </p>
                   }
                 </div>
               </section>
 
-              <!-- Tus Grupos Activos -->
-              <section class="pf-card">
-                <div class="pf-card__header">
-                  <span class="pf-card__title nf-mono">▸ Tus Grupos</span>
-                </div>
-
-                <div class="pf-group-list">
-                  @for (g of p.groups; track g.id) {
-                    <div class="pf-group-item">
-                      <span class="pf-group-item__avatar" [style.background]="'linear-gradient(135deg,' + g.c1 + ',' + g.c2 + ')'">
-                        {{ g.initials }}
-                      </span>
-                      <div class="pf-group-item__info">
-                        <div class="pf-group-item__name-row">
-                          <span class="pf-group-item__name">{{ g.name }}</span>
-                          <span class="pf-group-item__rank nf-mono">#{{ g.rankPosition }} · {{ g.lp }} LP</span>
-                        </div>
-                        <div class="pf-group-item__sub nf-mono">
-                          {{ g.wins }}V {{ g.losses }}D ({{ g.wr }}%) · {{ g.role }}
-                        </div>
-                      </div>
-                    </div>
-                  } @empty {
-                    <div class="empty-state empty-state--compact">
-                      <span class="empty-state__icon">◎</span>
-                      <span class="empty-state__text nf-mono">Sin grupos todavía</span>
-                    </div>
-                  }
-                </div>
-              </section>
+              <app-profile-groups-card [groups]="p.groups" title="Tus grupos" />
             </div>
           </div>
         }
@@ -382,7 +400,7 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
               <!-- Tarjeta 1: Fase de Líneas -->
               <div class="pf-dna-card">
                 <div class="pf-dna-card__head nf-mono">
-                  <span class="pf-dna-card__icon">⚔️</span> Fase de líneas (@14)
+                  Fase de líneas (@14)
                 </div>
                 <div class="pf-dna-card__big nf-mono" [class.pf-pos]="p.dna.lane.wonLanePercentage >= 50">
                   {{ p.dna.lane.wonLanePercentage }}%
@@ -401,7 +419,7 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
               <!-- Tarjeta 2: Combate & Daño -->
               <div class="pf-dna-card">
                 <div class="pf-dna-card__head nf-mono">
-                  <span class="pf-dna-card__icon">💥</span> Combate & Daño
+                  Combate & Daño
                 </div>
                 <div class="pf-dna-card__big nf-mono">{{ p.dna.combat.damageSharePercentage }}%</div>
                 <div class="pf-dna-card__sub nf-mono">Cuota de daño del equipo</div>
@@ -414,7 +432,7 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
               <!-- Tarjeta 3: Visión & Mapa -->
               <div class="pf-dna-card">
                 <div class="pf-dna-card__head nf-mono">
-                  <span class="pf-dna-card__icon">👁️</span> Visión & Mapa
+                  Visión & Mapa
                 </div>
                 <div class="pf-dna-card__big nf-mono">{{ p.dna.vision.visionScoreAvg }}</div>
                 <div class="pf-dna-card__sub nf-mono">Puntos de visión / partida</div>
@@ -427,7 +445,7 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
               <!-- Tarjeta 4: Economía & Farm -->
               <div class="pf-dna-card">
                 <div class="pf-dna-card__head nf-mono">
-                  <span class="pf-dna-card__icon">🌾</span> Economía & Farm
+                  Economía & Farm
                 </div>
                 <div class="pf-dna-card__big nf-mono">{{ p.dna.economy.csPerMinAvg }}</div>
                 <div class="pf-dna-card__sub nf-mono">CS por minuto medio</div>
@@ -440,7 +458,7 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
               <!-- Tarjeta 5: Factor Decisivo -->
               <div class="pf-dna-card">
                 <div class="pf-dna-card__head nf-mono">
-                  <span class="pf-dna-card__icon">👑</span> Factor Decisivo
+                  Factor Decisivo
                 </div>
                 <div class="pf-dna-card__big nf-mono pf-pos">{{ p.dna.clutch.mvpRate }}%</div>
                 <div class="pf-dna-card__sub nf-mono">Tasa de MVP</div>
@@ -454,7 +472,7 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
             <!-- Tabla Detallada por Rol -->
             <section class="pf-card" style="margin-top: 16px;">
               <div class="pf-card__header">
-                <span class="pf-card__title nf-mono">▸ Rendimiento Detallado por Posición</span>
+                <span class="pf-card__title nf-mono">Rendimiento detallado por posición</span>
               </div>
               <div class="pf-role-table">
                 <div class="pf-role-table__row pf-role-table__row--head nf-mono">
@@ -472,8 +490,26 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
                         <span class="pf-role-table__lane-name">{{ t.name }}</span>
                       </div>
                       <span>{{ rs.games }} partidas</span>
-                      <span [class.pf-pos]="rs.wr >= 50" [class.pf-neg]="rs.wr < 50">{{ rs.wr }}%</span>
-                      <span>{{ rs.wonLaneRate }}%</span>
+                      <!--
+                        Una posición sin partidas no tiene winrate: no es 0 %, es que no hay nada
+                        que medir. Por eso se escribe, con su tooltip, en vez de pintar una cifra.
+                      -->
+                      @if (rs.wr !== null) {
+                        <span [class.pf-pos]="rs.wr >= 50" [class.pf-neg]="rs.wr < 50">
+                          {{ rs.wr }}%
+                        </span>
+                      } @else {
+                        <span class="pf-nodata" title="Todavía no has jugado ninguna partida en esta posición">
+                          Sin datos
+                        </span>
+                      }
+                      @if (rs.wonLaneRate !== null) {
+                        <span>{{ rs.wonLaneRate }}%</span>
+                      } @else {
+                        <span class="pf-nodata" title="Ninguna de tus partidas en esta posición registra quién ganó la línea">
+                          Sin datos
+                        </span>
+                      }
                       <span class="pf-role-table__tag">
                         {{ isPrimary(t.role) ? '★ Principal' : isSelected(t.role) ? 'Activo' : 'Inactivo' }}
                       </span>
@@ -489,12 +525,30 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
         @if (activeTab() === 'campeones') {
           <div class="pf-tab-content">
             <div class="pf-champ-toolbar-compact">
-              <nf-segmented
-                [options]="champRoleFilterOptions"
-                [value]="champRoleFilter()"
-                (valueChange)="champRoleFilter.set($event)"
-                ariaLabel="Filtrar campeones por línea"
-              />
+              <div class="pf-champ-toolbar-compact__filters">
+                <nf-segmented
+                  [options]="champRoleFilterOptions"
+                  [value]="champRoleFilter()"
+                  (valueChange)="champRoleFilter.set($event)"
+                  ariaLabel="Filtrar campeones por línea"
+                />
+                <!--
+                  Cuatro sugerencias como mucho: aquí el buscador es una ayuda de
+                  escritura, no un menú. Con la lista corta se lee de un vistazo y
+                  a lo demás se llega escribiendo una letra más.
+                -->
+                <div class="pf-champ-search">
+                  <nf-combobox
+                    [options]="championOptions()"
+                    [value]="champQuery()"
+                    (valueChange)="champQuery.set($event)"
+                    [maxVisible]="4"
+                    placeholder="Buscar campeón"
+                    ariaLabel="Buscar un campeón"
+                    emptyText="Ningún campeón coincide"
+                  />
+                </div>
+              </div>
               <nf-select
                 [options]="champSortOptions"
                 [value]="champSortBy()"
@@ -504,7 +558,12 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
 
             <div class="pf-champ-grid">
               @for (c of filteredChampions(); track c.championId) {
-                <div class="pf-champ-tile">
+                <!--
+                  BACKEND NOTE: no hay vista de detalle por campeón (winrate, KDA, emparejamientos, runas) porque no hay endpoint que la alimente.
+                  Hasta que exista, el campeón lleva a la tierlist, que es el sitio donde hoy
+                  vive todo lo que sabemos de un campeón.
+                -->
+                <a class="pf-champ-tile" [routerLink]="['/app', 'tierlist']">
                   <div class="pf-champ-tile__head">
                     <nf-avatar
                       class="pf-champ-tile__avatar"
@@ -550,11 +609,11 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
                       }
                     </div>
                   </div>
-                </div>
+                </a>
               } @empty {
                 <div class="empty-state">
                   <div class="empty-state__icon">◎</div>
-                  <div class="empty-state__text nf-mono">No hay campeones para este filtro</div>
+                  <div class="empty-state__text nf-mono">Ningún campeón coincide con el filtro</div>
                 </div>
               }
             </div>
@@ -568,11 +627,17 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
             <section class="pf-card pf-roles-section">
               <div class="pf-card__header">
                 <div class="pf-card__title-row">
-                  <span class="pf-card__title nf-mono">▸ Roles Preferidos (Preferencia Global)</span>
+                  <span class="pf-card__title nf-mono">Roles preferidos (preferencia global)</span>
+                  <!--
+                    El nombre accesible va en su propio atributo: sin él, el nombre de este
+                    botón es el glifo, y un lector de pantalla anuncia «interrogación».
+                  -->
                   <button
                     type="button"
                     class="pf-help-toggle"
                     [class.pf-help-toggle--on]="rolesHelp()"
+                    [attr.aria-expanded]="rolesHelp()"
+                    aria-label="Qué son los roles preferidos"
                     (click)="rolesHelp.set(!rolesHelp())"
                     title="Qué son los roles preferidos"
                   >
@@ -626,6 +691,11 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
                         type="button"
                         class="pf-role-pill__star"
                         [attr.aria-pressed]="isPrimary(t.role)"
+                        [attr.aria-label]="
+                          isPrimary(t.role)
+                            ? t.name + ' es tu rol principal'
+                            : 'Marcar ' + t.name + ' como rol principal'
+                        "
                         [title]="isPrimary(t.role) ? 'Rol principal' : 'Marcar como principal'"
                         (click)="setPrimaryRole(t.role)"
                       >
@@ -657,7 +727,7 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
             <!-- Gestión de Cuenta Riot -->
             <section class="pf-card pf-riot-section">
               <div class="pf-card__header">
-                <span class="pf-card__title nf-mono">▸ Vinculación de Cuenta Riot</span>
+                <span class="pf-card__title nf-mono">Vinculación de cuenta de Riot</span>
               </div>
 
               @switch (riot.status()) {
@@ -701,8 +771,24 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
                         </div>
                       </div>
                       <div class="pf-riot-box__actions">
-                        <a class="pf-link-btn nf-mono" [href]="opgg(account.riotId)" target="_blank" rel="noopener">
-                          OP.GG ↗
+                        <a
+                          class="nf-icon-btn nf-icon-btn--ghost nf-icon-btn--sm"
+                          [href]="opgg(account.riotId)"
+                          target="_blank"
+                          rel="noopener"
+                          aria-label="Abrir esta cuenta en OP.GG (se abre en otra pestaña)"
+                          title="Abrir esta cuenta en OP.GG"
+                        >
+                          <!-- ArrowUpRight: la convención de "esto sale de la app". -->
+                          <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                            <path
+                              d="M5.5 10.5 10.5 5.5M6 5.5h4.5V10"
+                              stroke="currentColor"
+                              stroke-width="1.5"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                            />
+                          </svg>
                         </a>
                         <button nfButton variant="ghost" size="sm" [disabled]="riot.saving()" (click)="askUnlink()">
                           Desvincular
@@ -715,7 +801,8 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
                         <div class="pf-riot-verify-banner__text">
                           <strong>¿Quieres verificar la titularidad?</strong> Abre la app de escritorio para comprobar tu cuenta mediante cambio de icono.
                         </div>
-                        <button nfButton variant="accent" size="sm" (click)="openConnect()">
+                        <button nfButton variant="riot" size="sm" (click)="openConnect()">
+                          <img class="nf-btn__riot-mark" src="/riot/riotgames_logo.webp" alt="" aria-hidden="true" />
                           Verificar con la app
                         </button>
                       </div>
@@ -732,11 +819,12 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
                         </p>
                       </div>
                       <div class="pf-riot-box__cta-btns">
-                        <button nfButton variant="accent" size="sm" (click)="openConnect()">
-                          Conectar app
+                        <button nfButton variant="riot" size="sm" (click)="openConnect()">
+                          <img class="nf-btn__riot-mark" src="/riot/riotgames_logo.webp" alt="" aria-hidden="true" />
+                          Conectar la app
                         </button>
                         <button nfButton variant="ghost" size="sm" [disabled]="riot.saving()" (click)="startLinking()">
-                          ＋ Riot ID manual
+                          Escribir mi Riot ID
                         </button>
                       </div>
                     </div>
@@ -843,29 +931,75 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
 export class Perfil {
   private readonly groups = inject(GroupStore);
   protected readonly session = inject(Session);
-  private readonly user = CURRENT_USER;
 
-  readonly profile = computed(() =>
-    buildPlayerProfile(this.user, this.groups.groups(), (id) => this.groups.rosterOf(id)),
+  /**
+   * Quién mira, tomado de la sesión real y no del mock legacy `CURRENT_USER`, que la regla de
+   * oro 1 prohíbe en código nuevo. No era cosmético: la semilla del perfil se construye con el
+   * tag, y `CURRENT_USER.tag` es siempre `N1ghtfang#LAN`, así que TODOS los usuarios veían las
+   * mismas cifras —mismo winrate, mismos campeones, misma racha— bajo su propio nombre y su
+   * propia foto.
+   *
+   * Es la misma resolución que ya hace `MatchHistoryStore.viewer()`: el Riot ID vinculado si lo
+   * hay, y si no el nombre de Discord antes que un hueco.
+   */
+  private readonly user = computed(() => {
+    const account = this.riot.account();
+    const tag = account?.riotId ?? this.session.displayName();
+    return {
+      name: account?.gameName ?? this.session.displayName(),
+      tag,
+      initials: this.session.initials(),
+      region: account?.region ?? '',
+    };
+  });
+
+  private readonly matchHistory = inject(MatchHistoryStore);
+
+  /**
+   * El desglose por posición sale de las partidas que el usuario ha jugado de verdad, no de una
+   * semilla aparte: es la misma fuente que ya alimentan la sinergia y la némesis de más abajo,
+   * así que la tabla de roles y el historial no pueden contar cosas distintas.
+   */
+  private readonly roleSamples = computed<RoleSample[]>(() =>
+    this.matchHistory.allPersonalMatches().map((m) => ({
+      role: m.userParticipant!.role,
+      won: m.userOutcome === 'win',
+      wonLane: m.userParticipant!.stats.wonLane,
+    })),
   );
 
+  readonly profile = computed(() =>
+    buildPlayerProfile(
+      this.user(),
+      this.groups.groups(),
+      (id) => this.groups.rosterOf(id),
+      this.roleSamples(),
+    ),
+  );
+
+  // ── Rivalidades y sinergias ───────────────────────────────────────
+  // Salen de las partidas del historial, no de una semilla por pareja. Antes eran dos fuentes
+  // distintas para el mismo hecho: la tarjeta anunciaba un winrate y la página que abría —que
+  // ya lee las partidas reales— enseñaba otro.
+  protected readonly minSample = CROSS_MIN_SAMPLE;
+
+  private readonly partners = this.matchHistory.crossPartners;
+
+  readonly bestAlly = computed(() => cardFor(bestAllyOf(this.partners()), 'ally'));
+  readonly nemesis = computed(() => cardFor(nemesisOf(this.partners()), 'enemy'));
+
   // ── Navegación Modular por Pestañas ───────────────────────────────
-  readonly activeTab = signal<'resumen' | 'dna' | 'campeones' | 'ajustes'>('resumen');
+  readonly activeTab = signal<PerfilTab>('resumen');
   readonly tabOptions: readonly NfSegmentOption[] = [
     { value: 'resumen', label: 'Resumen' },
-    { value: 'dna', label: 'ADN & Stats' },
+    { value: 'dna', label: 'ADN y stats' },
     { value: 'campeones', label: 'Campeones' },
-    { value: 'ajustes', label: 'Roles & Cuenta' },
+    { value: 'ajustes', label: 'Roles y cuenta' },
   ];
 
   setTab(val: string): void {
-    if (['resumen', 'dna', 'campeones', 'ajustes'].includes(val)) {
-      this.activeTab.set(val as any);
-    }
+    if (PERFIL_TABS.includes(val as PerfilTab)) this.activeTab.set(val as PerfilTab);
   }
-
-  // ── Tooltip interactivo de partidas recientes ─────────────────────
-  readonly hoveredMatch = signal<PlayerRecentMatch | null>(null);
 
   // ── Top Signature Champions (Top 3 para el resumen) ───────────────
   readonly topSignatureChampions = computed(() => {
@@ -887,10 +1021,36 @@ export class Perfil {
     { value: 'SUPPORT', label: 'SUP' },
   ];
 
+  /**
+   * Campeón elegido en el buscador. Cadena vacía = sin filtrar, la convención del
+   * resto de filtros de la app. Es estado de UI, así que vive en el componente.
+   */
+  readonly champQuery = signal<string>('');
+
+  /**
+   * Lo que ofrece el buscador son los campeones que el jugador ha jugado de
+   * verdad, no el catálogo entero: sugerir uno que no aparece en la rejilla sería
+   * ofrecer un filtro que deja la pantalla vacía. Los nombres e iconos salen del
+   * catálogo real (`GameDataStore`); los ids, del perfil.
+   */
+  readonly championOptions = computed<NfComboboxOption[]>(() => {
+    const p = this.profile();
+    if (!p) return [];
+    const byId = this.gameData.championById();
+    return p.topChampions
+      .map((c) => ({
+        value: String(c.championId),
+        label: byId.get(c.championId)?.name ?? 'Campeón',
+        iconUrl: byId.get(c.championId)?.iconUrl ?? null,
+        tint: c.championId,
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label, 'es'));
+  });
+
   readonly champSortBy = signal<string>('games');
   readonly champSortOptions = [
     { value: 'games', label: 'Más jugados' },
-    { value: 'wr', label: 'Mayor Win rate' },
+    { value: 'wr', label: 'Mayor winrate' },
     { value: 'kda', label: 'Mejor KDA' },
   ];
 
@@ -901,6 +1061,10 @@ export class Perfil {
     const role = this.champRoleFilter();
     if (role !== 'TODOS') {
       list = list.filter((c) => c.role === role);
+    }
+    const query = this.champQuery();
+    if (query) {
+      list = list.filter((c) => String(c.championId) === query);
     }
     const sort = this.champSortBy();
     if (sort === 'wr') {
@@ -1024,8 +1188,18 @@ export class Perfil {
 
   readonly heroName = computed(() => this.session.displayName() || this.profile()?.name || '');
 
-  readonly identityLoading = computed(
-    () => this.session.status() === 'idle' || this.session.status() === 'loading',
+  /**
+   * Si todavía no hay perfil firme que enseñar.
+   *
+   * Son las dos fuentes de las que sale: quién eres (la sesión, que además es la semilla de
+   * todas las cifras) y tu historial (que se reproyecta al llegar tus ligas). Mientras
+   * cualquiera de las dos viaje, lo que se pintaría sería el perfil de un usuario vacío.
+   */
+  readonly profileLoading = computed(
+    () =>
+      this.session.status() === 'idle' ||
+      this.session.status() === 'loading' ||
+      this.matchHistory.status() === 'loading',
   );
 
   readonly memberSince = computed(() => {
@@ -1033,7 +1207,9 @@ export class Perfil {
     if (!iso) return null;
     const date = new Date(iso);
     if (Number.isNaN(date.getTime())) return null;
-    return MEMBER_SINCE_FMT.format(date).replace('.', '').toUpperCase();
+    // Sin `toUpperCase()`: la regla del proyecto es que lo que se escribe es lo que se pinta,
+    // y ningún componente transforma el texto que recibe. Pintaba «AGO 2025».
+    return MEMBER_SINCE_FMT.format(date).replace('.', '');
   });
 
   readonly avatarBroken = linkedSignal({
@@ -1192,3 +1368,35 @@ export class Perfil {
   }
 }
 
+/** Lo que necesita pintar una tarjeta de rivalidad o de sinergia. */
+interface CrossCard {
+  tag: string;
+  name: string;
+  hue: number;
+  avatarUrl: string | null;
+  wr: number;
+  wins: number;
+  losses: number;
+}
+
+/**
+ * Resume un compañero o rival para su tarjeta. El `tag` es el mismo que viaja en la ruta del
+ * cruce, así que la tarjeta y la página que abre hablan del mismo jugador y de las mismas
+ * partidas.
+ */
+function cardFor(partner: CrossPartner | null, side: 'ally' | 'enemy'): CrossCard | null {
+  if (!partner) return null;
+  const list = side === 'ally' ? partner.allies : partner.enemies;
+  const agg = aggregateCross(list);
+  const them = list[0].them;
+
+  return {
+    tag: them.riotId,
+    name: nameOf(them.riotId),
+    hue: hash(them.riotId) % 360,
+    avatarUrl: them.avatarUrl ?? null,
+    wr: agg.winrate,
+    wins: agg.wins,
+    losses: agg.losses,
+  };
+}

@@ -124,7 +124,7 @@ type StatTab = 'resumen' | 'jugadores' | 'premios';
                 </div>
               </div>
 
-              <div class="view__label nf-mono">▸ Clasificaciones</div>
+              <div class="view__label nf-mono">Clasificaciones</div>
               <div class="sc-grid">
                 @for (lb of leaderboards(); track lb.id) {
                   <div class="sc" [attr.data-accent]="lb.accent">
@@ -245,7 +245,7 @@ type StatTab = 'resumen' | 'jugadores' | 'premios';
           }
 
           @case ('premios') {
-            <div class="view__label nf-mono">▸ Muro de trofeos · {{ scopeLabel() }}</div>
+            <div class="view__label nf-mono">Muro de trofeos · {{ scopeLabel() }}</div>
             <div class="trophy-grid">
               @for (a of awards(); track a.id) {
                 <div class="trophy" [attr.data-color]="a.color">

@@ -47,6 +47,10 @@ let nextId = 0;
  * encuentra `Bel'Veth`: nadie debería tener que acertar la puntuación de un nombre
  * propio para filtrar por él. Prioriza además los que *empiezan* por lo escrito, que
  * es casi siempre lo que se busca.
+ *
+ * `maxVisible` recorta la lista a las N mejores coincidencias cuando se quiere que
+ * el control se comporte como un autocompletado (sugerir) y no como un menú
+ * (enumerar).
  */
 @Component({
   selector: 'nf-combobox',
@@ -152,6 +156,15 @@ export class NfCombobox {
   readonly emptyText = input('Sin resultados');
   /** Ofrece el botón de limpiar cuando hay algo elegido. */
   readonly clearable = input(true);
+  /**
+   * Tope de sugerencias visibles. `null` (por defecto) las enseña todas y deja
+   * que la lista haga scroll, que es lo correcto cuando el combobox ES el
+   * selector. Con un tope, en cambio, la lista deja de ser un menú y pasa a ser
+   * una ayuda de escritura: se recorta DESPUÉS de ordenar, así que lo que
+   * sobrevive es siempre lo mejor emparejado, y se llega al resto escribiendo
+   * más, no arrastrando el ratón.
+   */
+  readonly maxVisible = input<number | null>(null);
 
   protected readonly inputId = `nf-cb-${++nextId}`;
   protected readonly listId = `nf-cb-${nextId}-list`;
@@ -176,7 +189,7 @@ export class NfCombobox {
   protected readonly visibleOptions = computed(() => {
     const q = normalize(this.query());
     const all = this.options();
-    if (!q) return [...all];
+    if (!q) return this.cap([...all]);
 
     const starts: NfComboboxOption[] = [];
     const contains: NfComboboxOption[] = [];
@@ -185,8 +198,14 @@ export class NfCombobox {
       if (label.startsWith(q)) starts.push(opt);
       else if (label.includes(q)) contains.push(opt);
     }
-    return [...starts, ...contains];
+    return this.cap([...starts, ...contains]);
   });
+
+  /** Recorta al tope pedido. Se aplica al final, nunca antes de ordenar. */
+  private cap(list: NfComboboxOption[]): NfComboboxOption[] {
+    const max = this.maxVisible();
+    return max !== null && max >= 0 && list.length > max ? list.slice(0, max) : list;
+  }
 
   protected readonly activeOption = computed(() => this.visibleOptions()[this.activeIndex()] ?? null);
 

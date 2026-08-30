@@ -1,15 +1,19 @@
 import { Component, Input, ViewEncapsulation } from '@angular/core';
 
-export type NfButtonVariant = 'primary' | 'secondary' | 'ghost' | 'accent' | 'danger';
-export type NfButtonSize = 'sm' | 'md' | 'lg';
+export type NfButtonVariant = 'primary' | 'secondary' | 'ghost' | 'accent' | 'danger' | 'riot';
+export type NfButtonSize = 'xs' | 'sm' | 'md' | 'lg';
 
 /**
  * Button.
  * Attribute-selector component so it stays a real <button>:
  *   <button nfButton variant="primary" size="md">Crear</button>
  *
- * 5 variantes (primary · secondary · ghost · accent · danger), 3 tamaños (sm/md/lg).
+ * 6 variantes (primary · secondary · ghost · accent · danger · riot), 4 tamaños (xs/sm/md/lg).
  * El copy va en frase normal: el botón no transforma el texto.
+ *
+ * `riot` es la única variante de marca de un tercero: pinta el rojo oficial de Riot
+ * Games para que el control de vinculación se reconozca como tal (el patrón estándar
+ * de "iniciar sesión con…"). No usarla para nada que no sea la cuenta de Riot.
  */
 @Component({
   selector: 'button[nfButton]',
