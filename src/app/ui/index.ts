@@ -17,3 +17,4 @@ export * from './meter/nf-meter';
 export * from './avatar/nf-avatar';
 export * from './lane-icon/nf-lane-icon';
 export * from './rank-emblem/nf-rank-emblem';
+export * from './typeahead/nf-typeahead';

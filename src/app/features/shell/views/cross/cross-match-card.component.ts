@@ -9,18 +9,10 @@ import {
 import { formatDuration } from '../../../../shared/date-format';
 import { NfAvatar, NfLaneIcon, NfSkeleton } from '../../../../ui';
 import { MatchCardShellComponent } from '../match-history/match-card-shell.component';
-import { CrossBreakdownComponent } from './cross-breakdown.component';
 import { nameOf } from './cross-player';
 
 /**
- * Fila del historial cruzado. Hermana de `<app-personal-match-card>` y `<app-group-match-card>`:
- * el mismo armazón, la misma caja y el mismo acento por resultado, con las columnas que contesta
- * esta vista.
- *
- * La fila personal responde «¿cómo me fue?» y la de grupo «¿quién ganó?»; esta responde «¿cómo
- * nos fue a los dos?», así que reparte la rejilla en dos mitades simétricas con la relación en
- * medio. El acento sigue siendo cómo TE fue, igual que en el historial personal: es tu registro,
- * visto a través de otro jugador.
+ * Fila del historial cruzado con desplegable idéntico al historial personal (alineación de 10 jugadores).
  */
 @Component({
   selector: 'app-cross-match-card',
@@ -31,15 +23,14 @@ import { nameOf } from './cross-player';
     NfLaneIcon,
     NfSkeleton,
     MatchCardShellComponent,
-    CrossBreakdownComponent,
   ],
   template: `
     <app-match-card-shell
       [match]="cross().match"
       [accent]="accent()"
       variant="cross"
-      panelNoun="comparativa"
       [returnTo]="returnTo()"
+      [crossContext]="{ playerId: playerId(), relation: cross().relation }"
     >
       <!-- Resultado -->
       <div class="m-card__result">
@@ -125,13 +116,6 @@ import { nameOf } from './cross-player';
           </div>
         </div>
       </div>
-
-      <app-cross-breakdown
-        matchAccordion
-        [cross]="cross()"
-        [playerId]="playerId()"
-        [returnTo]="returnTo()"
-      />
     </app-match-card-shell>
   `,
 })

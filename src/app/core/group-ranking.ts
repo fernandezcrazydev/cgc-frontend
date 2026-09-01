@@ -90,6 +90,11 @@ export interface RankEntry {
   lolRank: LolRankInfo | null;
   streakCount: number;
   streakType: 'WIN' | 'LOSS';
+  /**
+   * Rango del jugador EN EL GRUPO, tal cual lo manda el servidor (`OWNER` / `ADMIN` / `MEMBER`).
+   * Es lo que permite decidir a quién puede expulsar quien mira, sin cruzar con otra fuente.
+   */
+  groupRole: string | null;
   banned: boolean;
   /**
    * Motivo real de la sanción, del servidor. `null` si el jugador no está sancionado.
@@ -208,6 +213,7 @@ export function mapLeaderboardEntries(entries: readonly LeaderboardEntryResponse
       lolRank: lolRankOf(entry),
       streakCount: entry.streakCount,
       streakType: entry.streakType,
+      groupRole: entry.groupRole,
       banned: entry.isBanned,
       banReason: entry.banReason,
       bannedUntil: entry.bannedUntil,

@@ -24,6 +24,7 @@ export type GroupsStatus = 'idle' | 'loading' | 'ready' | 'error';
  */
 export interface CreateGroupInput {
   name: string;
+  tag?: string;
   region: Region;
   /** Se fija aquí para siempre: el backend no ofrece ninguna forma de cambiarlo. */
   matchmakingPreset: MatchmakingPreset;
@@ -127,6 +128,7 @@ export class GroupsStore {
         this.api.create(
           {
             name: input.name.trim(),
+            tag: input.tag?.trim(),
             region: input.region,
             matchmakingPreset: input.matchmakingPreset,
           },

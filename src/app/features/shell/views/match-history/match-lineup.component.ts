@@ -93,6 +93,24 @@ import { NfAvatar, NfLaneIcon } from '../../../../ui';
       </div>
 
       <div class="m-lineup__actions">
+        @if (crossContext(); as ctx) {
+          @if (ctx.relation === 'enemy') {
+            <a
+              class="m-lineup__more nf-mono"
+              [routerLink]="['/app', 'jugador', ctx.playerId, 'contra', match().id]"
+            >
+              Cara a Cara
+            </a>
+          } @else if (ctx.relation === 'ally') {
+            <a
+              class="m-lineup__more nf-mono"
+              [routerLink]="['/app', 'jugador', ctx.playerId, 'juntos', match().id]"
+            >
+              Sinergia
+            </a>
+          }
+        }
+
         <a
           class="m-lineup__more nf-mono"
           [routerLink]="['/app', 'historial', match().id]"
@@ -106,11 +124,8 @@ import { NfAvatar, NfLaneIcon } from '../../../../ui';
 })
 export class MatchLineupComponent {
   readonly match = input.required<Match>();
-  /**
-   * De dónde se abre la partida, para que la página de detalle sepa a dónde volver. La vista
-   * no puede deducirlo sola: una partida pertenece a un grupo Y sale en el historial personal.
-   */
   readonly returnTo = input<string | null>(null);
+  readonly crossContext = input<{ playerId: string; relation: 'ally' | 'enemy' } | null>(null);
 
   private readonly gameData = inject(GameDataStore);
 

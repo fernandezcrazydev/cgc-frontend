@@ -37,6 +37,9 @@ export class GroupsApi {
   create(body: CreateGroupRequest, avatar?: Blob | null, filename = 'avatar'): Observable<GroupResponse> {
     const form = new FormData();
     form.append('name', body.name);
+    if (body.tag) {
+      form.append('tag', body.tag);
+    }
     form.append('region', body.region);
     form.append('matchmakingPreset', body.matchmakingPreset);
     if (avatar) {

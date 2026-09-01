@@ -12,6 +12,7 @@ import { MatchHistoryStore, buildCrossMatches } from '../../../../core/matches';
 import { matchFixture, participantFixture } from '../../../../core/matches/match-fixtures';
 import { Match, MatchParticipant } from '../../../../core/matches/models';
 import { CrossMatchDetail } from './cross-match-detail';
+import { CrossViewState } from './cross-view-state';
 
 const RIVAL = 'Pix3lQueen#LAN';
 
@@ -47,6 +48,7 @@ describe('CrossMatchDetail · la relación de la ruta manda', () => {
       imports: [CrossMatchDetail],
       providers: [
         provideRouter([]),
+        CrossViewState,
         {
           provide: ActivatedRoute,
           useValue: {

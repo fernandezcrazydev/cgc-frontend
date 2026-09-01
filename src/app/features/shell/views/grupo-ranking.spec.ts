@@ -33,6 +33,7 @@ function board(overrides: Partial<LeaderboardResponse> = {}): LeaderboardRespons
     riotTier: 'BRONZE',
     riotRank: 'II',
     riotStrength: 'VERIFIED',
+    groupRole: 'MEMBER',
     lp: 240,
     wins: 10,
     losses: 5,

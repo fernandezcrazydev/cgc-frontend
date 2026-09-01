@@ -63,6 +63,7 @@ export const MATCHMAKING_PRESET_INFO: Record<MatchmakingPreset, { label: string;
  */
 export interface CreateGroupRequest {
   name: string;
+  tag?: string;
   region: Region;
   /** Inmutable una vez creado el grupo: no hay ningún otro request que lo lleve. */
   matchmakingPreset: MatchmakingPreset;
@@ -75,12 +76,47 @@ export interface CreateGroupRequest {
 export interface GroupResponse {
   groupId: string;
   name: string;
+  tag?: string | null;
   region: Region | null;
   /** El preset elegido al crear. El backend NO manda el algoritmo que lo sirve: es interno. */
   matchmakingPreset: MatchmakingPreset;
   avatarUrl: string | null;
   /** Nombre opcional de la liga activa si el backend lo proporciona */
   leagueName?: string | null;
+}
+
+/** Resultado de búsqueda pública de grupos (`GET /api/v1/groups/search`). */
+export interface GroupSearchResult {
+  id: string;
+  name: string;
+  tag: string;
+  region: Region | null;
+  avatarUrl: string | null;
+  memberCount: number;
+  isMember: boolean;
+  joinRequestStatus: 'NONE' | 'PENDING' | 'ACCEPTED' | 'DECLINED';
+}
+
+/** Estado de una solicitud de ingreso a un grupo. */
+export type JoinRequestStatus = 'PENDING' | 'ACCEPTED' | 'DECLINED';
+
+/**
+ * Solicitud de ingreso a un grupo (`JoinRequestResponse` del backend).
+ */
+export interface JoinRequestResponse {
+  id: string;
+  groupId: string;
+  groupName: string;
+  groupTag?: string | null;
+  groupRegion?: Region | null;
+  groupAvatarUrl?: string | null;
+  userId: string;
+  username: string;
+  userAvatarUrl?: string | null;
+  status: JoinRequestStatus;
+  createdAt: string;
+  resolvedAt?: string | null;
+  resolvedBy?: string | null;
 }
 
 /** Un elemento de `GET /api/v1/me/groups`: el grupo más el rol del llamante. */

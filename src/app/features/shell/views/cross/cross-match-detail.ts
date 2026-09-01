@@ -34,15 +34,9 @@ import { nameOf } from './cross-player';
   selector: 'app-cross-match-detail',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  providers: [CrossViewState],
   imports: [RouterLink, NfAvatar, NfButton, NfSkeleton],
   template: `
     <div class="view cx-view">
-      <!--
-        El orden lo fija CLAUDE.md: cargando, error, y solo entonces la entidad o su 404.
-        Estaba al revés —se preguntaba primero por la partida— y por eso un fallo de red se
-        leía como «ese cruce no existe».
-      -->
       @if (state.loading()) {
         <div class="cx-boot" aria-busy="true">
           <nf-skeleton width="180px" height="12px" />
@@ -50,10 +44,6 @@ import { nameOf } from './cross-player';
           <nf-skeleton width="100%" height="180px" radius="10px" />
         </div>
       } @else if (state.status() === 'error') {
-        <!--
-          Un fallo de red no es un 404. Antes los dos caían en la misma rama y el usuario leía
-          «ese cruce no existe» cuando lo que había fallado era el catálogo de campeones.
-        -->
         <div class="view__head">
           <div class="view__eyebrow nf-mono">Error de carga</div>
           <h1 class="view__title">No se ha podido cargar</h1>
@@ -63,9 +53,9 @@ import { nameOf } from './cross-player';
         </div>
         <button nfButton variant="primary" size="md" (click)="state.reload()">Reintentar</button>
       } @else if (cross(); as c) {
-        <a class="view-back nf-mono" [routerLink]="['/app', 'historial-cruzado', state.playerId()]">
+        <a class="view-back nf-mono" [routerLink]="['/app', 'jugador', state.playerId(), c.relation === 'enemy' ? 'contra' : 'juntos']">
           <span class="view-back__arrow" aria-hidden="true">←</span>
-          Volver al historial cruzado
+          Volver a {{ c.relation === 'enemy' ? 'Cara a cara' : 'Sinergia' }}
         </a>
 
         <header class="cx-detail__head" [class.is-win]="isWin()" [class.is-loss]="isLoss()">

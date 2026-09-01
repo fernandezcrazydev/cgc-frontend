@@ -1,0 +1,282 @@
+<div class="ini">
+  <!-- Hero Card: Grupo Protagonista con transición Slide & Fade Cinemático -->
+  <div class="ini-hero-container">
+    @if (activeGroup(); as grp) {
+      <section
+        class="ini-hero"
+        [class.is-sliding-left]="slideState() === 'sliding-left'"
+        [class.is-sliding-right]="slideState() === 'sliding-right'"
+        [style.--grp-c1]="grp.c1"
+        [style.--grp-c2]="grp.c2"
+      >
+        <!-- Barra superior de la tarjeta -->
+        <div class="ini-hero__top">
+          <div class="ini-hero__group-info">
+            <span class="ini-hero__avatar">{{ grp.initials }}</span>
+            <div>
+              <div class="ini-hero__name">{{ grp.name }}</div>
+              <div class="ini-hero__season nf-mono">{{ grp.region }} · Temporada Activa</div>
+            </div>
+          </div>
+
+          <!-- Controles de carrusel (solo si hay >1 grupo) -->
+          @if (hasMultipleGroups()) {
+            <div class="ini-hero__controls">
+              <button
+                type="button"
+                class="ini-hero__arrow"
+                aria-label="Grupo anterior"
+                [disabled]="slideState() !== 'idle'"
+                (click)="prevGroup()"
+              >‹</button>
+              <span class="ini-hero__pagination nf-mono">{{ (groupIndex() % groupsList().length + groupsList().length) % groupsList().length + 1 }} / {{ groupsList().length }}</span>
+              <button
+                type="button"
+                class="ini-hero__arrow"
+                aria-label="Grupo siguiente"
+                [disabled]="slideState() !== 'idle'"
+                (click)="nextGroup()"
+              >›</button>
+            </div>
+          }
+        </div>
+
+        <!-- Cuerpo dividido: Rival Directo + Convocatoria -->
+        <div class="ini-hero__body">
+          <!-- Columna Izquierda: Tu Rival Directo -->
+          <div class="ini-rival">
+            <div class="ini-block-title">
+              <span>⚔️ Tu Rival Directo</span>
+            </div>
+
+            @if (leaguesLoading()) {
+              <div class="ini-rival__list" aria-busy="true">
+                <nf-skeleton width="100%" height="36px" />
+                <nf-skeleton width="100%" height="36px" />
+                <nf-skeleton width="100%" height="36px" />
+              </div>
+            } @else {
+              <div class="ini-rival__list">
+                @for (row of rivalSummary().rows; track row.name) {
+                  <div class="ini-rival-row" [class.is-me]="row.isMe">
+                    <div class="ini-rival-row__player">
+                      <span class="ini-rival-row__rank nf-mono">{{ row.rank }}.º</span>
+                      <span class="ini-rival-row__name">{{ row.name }}</span>
+                    </div>
+                    <span class="ini-rival-row__lp nf-mono">{{ row.lp }} LP</span>
+                  </div>
+                }
+              </div>
+
+              <div class="ini-rival__gap-callout">
+                <span>{{ rivalSummary().calloutText }}</span>
+              </div>
+            }
+          </div>
+
+          <!-- Columna Derecha: Convocatoria en Directo -->
+          <div class="ini-lobby">
+            <div class="ini-lobby__header">
+              <div class="ini-block-title">
+                <span>⚡ Convocatoria en Directo</span>
+              </div>
+              @if (activeRoom()) {
+                <nf-badge color="success" [dot]="true">En vivo</nf-badge>
+              } @else {
+                <nf-badge color="secondary">Sin sala activa</nf-badge>
+              }
+            </div>
+
+            <div class="ini-lobby__state">
+              @if (activeRoom(); as room) {
+                <div class="ini-lobby__seats-count nf-mono">
+                  ● Sala abierta · {{ room.seats.length }}/{{ room.capacity }} jugadores
+                </div>
+                @if (missingSeats() > 0) {
+                  <div class="ini-lobby__status-msg has-pulse">
+                    ¡Faltan {{ missingSeats() }} para completar los 10 de hoy!
+                  </div>
+                } @else {
+                  <div class="ini-lobby__status-msg">
+                    Sala completa · Preparando fase de draft
+                  </div>
+                }
+
+                <!-- Barra de 10 slots -->
+                <div class="ini-lobby__slots">
+                  @for (slot of lobbySlots(); track $index) {
+                    <span
+                      class="ini-lobby__slot"
+                      [class.ini-lobby__slot--filled]="slot.filled"
+                      [class.ini-lobby__slot--empty]="!slot.filled"
+                    >
+                      {{ slot.initials }}
+                    </span>
+                  }
+                </div>
+
+                <div class="ini-lobby__actions">
+                  <button nfButton variant="primary" size="md" (click)="entrarSala(room.id)">
+                    ＋ Entrar a la sala ({{ room.seats.length }}/{{ room.capacity }})
+                  </button>
+                </div>
+              } @else {
+                <div class="ini-lobby__seats-count">
+                  No hay salas abiertas ahora
+                </div>
+                <div class="ini-lobby__status-msg">
+                  Crea una convocatoria 5v5 para jugar una custom equilibrada con tu grupo.
+                </div>
+                <div class="ini-lobby__actions">
+                  <button nfButton variant="primary" size="md" (click)="crearPartida()">
+                    ＋ Convocar Partida 5v5
+                  </button>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+      </section>
+    } @else {
+      <!-- Estado vacío si el usuario no tiene ningún grupo -->
+      <section class="ini-hero">
+        <div class="ini-hero__top">
+          <div class="ini-hero__group-info">
+            <div class="ini-hero__name">Bienvenido a Sale Custom</div>
+          </div>
+        </div>
+        <div style="padding: 28px 20px; text-align: center;">
+          <p style="margin-bottom: 16px; color: var(--nf-text-dim);">Aún no perteneces a ningún grupo. Crea uno o únete a uno existente para empezar.</p>
+          <button nfButton variant="primary" size="md" (click)="crearPartida()">Explorar grupos</button>
+        </div>
+      </section>
+    }
+  </div>
+
+  <!-- Rejilla de Módulos de Engagement (2x2) -->
+  <div class="ini-grid">
+    <!-- Módulo 1: MVP de la última custom -->
+    <div class="ini-card">
+      <div class="ini-card__head">
+        <span class="ini-block-title">👑 MVP & Qué Pasó Anoche</span>
+        <nf-badge color="warning">Destacado</nf-badge>
+      </div>
+      <div class="ini-card__body">
+        @if (lastMvp(); as mvp) {
+          <div class="ini-mvp-summary">
+            <div class="ini-mvp-avatar">{{ mvp.initials }}</div>
+            <div class="ini-mvp-meta">
+              <span class="ini-mvp-meta__name">{{ mvp.name }} · {{ mvp.champion }}</span>
+              <span class="ini-mvp-meta__kda nf-mono">{{ mvp.kda }}</span>
+            </div>
+          </div>
+          <div class="ini-mvp-quote">
+            "{{ mvp.quote }}"
+          </div>
+        } @else {
+          <p style="margin: 0; color: var(--nf-text-dim); font-size: 13px;">
+            Aún no hay partidas disputadas recientemente en este grupo.
+          </p>
+        }
+      </div>
+    </div>
+
+    <!-- Módulo 2: Highlights de la Semana -->
+    <div class="ini-card">
+      <div class="ini-card__head">
+        <span class="ini-block-title">⚡ Highlights de la Semana</span>
+        <nf-badge color="secondary">Estadísticas</nf-badge>
+      </div>
+      <div class="ini-card__body">
+        <div class="ini-highlights-list">
+          @for (h of highlights(); track h.label) {
+            <div class="ini-highlight-item">
+              <span class="ini-highlight-item__label">{{ h.label }}</span>
+              <span class="ini-highlight-item__val nf-mono">{{ h.value }}</span>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- Módulo 3: Tu Mayor Némesis (Pique Competitivo) -->
+    <div class="ini-card">
+      <div class="ini-card__head">
+        <span class="ini-block-title">💀 Tu Mayor Némesis</span>
+        <nf-badge color="danger">Rivalidad</nf-badge>
+      </div>
+      <div class="ini-card__body">
+        @if (nemesisHighlight(); as nemesis) {
+          <div class="ini-nemesis-summary">
+            <div class="ini-nemesis-avatar">{{ nemesis.initials }}</div>
+            <div class="ini-nemesis-meta">
+              <span class="ini-nemesis-meta__name">{{ nemesis.name }}</span>
+              <span class="ini-nemesis-meta__record nf-mono">{{ nemesis.record }}</span>
+            </div>
+          </div>
+          <div class="ini-nemesis-callout">
+            {{ nemesis.callout }}
+          </div>
+          <div style="margin-top: 4px;">
+            <button
+              nfButton
+              variant="secondary"
+              size="sm"
+              (click)="retarNemesis(nemesis.riotId)"
+            >⚔️ Retar en Versus</button>
+          </div>
+        } @else {
+          <p style="margin: 0; color: var(--nf-text-dim); font-size: 13px;">
+            Aún no tienes un rival con suficientes partidas en contra.
+          </p>
+        }
+      </div>
+    </div>
+
+    <!-- Módulo 4: Requiere tu Atención -->
+    <div class="ini-card">
+      <div class="ini-card__head">
+        <span class="ini-block-title">🔔 Requiere tu Atención</span>
+        @if (attention().length) {
+          <nf-badge color="danger">{{ attention().length }}</nf-badge>
+        } @else {
+          <nf-badge color="secondary">Al día</nf-badge>
+        }
+      </div>
+      <div class="ini-card__body">
+        @if (attention().length) {
+          <div class="ini-attn-list">
+            @for (n of attention(); track n.id) {
+              <div class="ini-attn-item" [style.--attn-accent]="n.accent">
+                <div class="ini-attn-item__text">
+                  <div class="ini-attn-item__title nf-mono">{{ n.title }}</div>
+                  <div class="ini-attn-item__sub">{{ n.message }}</div>
+                </div>
+                <div class="ini-attn-item__actions">
+                  <button
+                    nfButton
+                    variant="ghost"
+                    size="sm"
+                    [disabled]="responding(n)"
+                    (click)="respond(n, false)"
+                  >Rechazar</button>
+                  <button
+                    nfButton
+                    variant="primary"
+                    size="sm"
+                    [disabled]="responding(n)"
+                    (click)="respond(n, true)"
+                  >Unirme</button>
+                </div>
+              </div>
+            }
+          </div>
+        } @else {
+          <p style="margin: 0; color: var(--nf-text-dim); font-size: 13px;">
+            No tienes invitaciones ni avisos pendientes en este momento.
+          </p>
+        }
+      </div>
+    </div>
+  </div>
+</div>

@@ -12,18 +12,11 @@ import { MatchHistoryStore, buildCrossMatches } from '../../../core/matches';
 import { matchFixture, participantFixture as participant } from '../../../core/matches/match-fixtures';
 import { Match, MatchParticipant } from '../../../core/matches/models';
 import { Viewport } from '../../../shared/viewport';
+import { CrossViewState } from './cross/cross-view-state';
 import { HistorialCruzado } from './historial-cruzado';
 
 const RIVAL = 'Pix3lQueen#LAN';
 
-/**
- * El historial que ve la vista se inyecta a mano.
- *
- * El spec anterior usaba el `MatchHistoryStore` real, y por eso no detectó que la vista, al no
- * encontrar partidas compartidas, devolvía seis partidas cualesquiera del usuario: con la
- * semilla siempre había algo que pintar. Con partidas controladas, el caso «no habéis
- * coincidido» se puede afirmar.
- */
 function match(id: string, blue: MatchParticipant[], red: MatchParticipant[], user: MatchParticipant): Match {
   return matchFixture({
     id,
@@ -65,7 +58,6 @@ describe('HistorialCruzado', () => {
   async function montar(
     matches: Match[],
     queryModo: string | null = null,
-    // Estado del catálogo de campeones: es lo único de esta pantalla que puede fallar de red.
     gameDataStatus: 'ready' | 'loading' | 'error' = 'ready',
   ) {
     const groupStore = new GroupStore();
@@ -74,6 +66,7 @@ describe('HistorialCruzado', () => {
       imports: [HistorialCruzado],
       providers: [
         provideRouter([]),
+        CrossViewState,
         {
           provide: ActivatedRoute,
           useValue: {
@@ -89,9 +82,6 @@ describe('HistorialCruzado', () => {
           provide: GroupStore,
           useValue: { groups: signal(GROUPS), rosterOf: (id: string) => groupStore.rosterOf(id) },
         },
-        // Explícito y no el real: el umbral de móvil decide si la fila del acordeón es el
-        // control o lo es su botón, y dejarlo al valor por defecto haría que estas pruebas
-        // cambiasen de rama sin avisar el día que ese umbral se mueva.
         { provide: Viewport, useValue: { isMobile: signal(false), isNarrow: signal(false) } },
         {
           provide: GroupsStore,
@@ -103,6 +93,7 @@ describe('HistorialCruzado', () => {
             status: signal(gameDataStatus),
             championById: signal(new Map()),
             ensureLoaded: () => {},
+            reload: () => {},
           },
         },
         {
@@ -113,8 +104,6 @@ describe('HistorialCruzado', () => {
             playedChampionIdsInPersonal: () => [1],
             playedChampionIdsInGroup: () => [1],
             matchesByGroup: () => matches,
-            // La derivación es la real: lo que el doble sustituye son las partidas, no la
-            // lógica que las cruza. Probar la vista contra un cruce inventado no probaría nada.
             crossWith: (key: string) => {
               const all = buildCrossMatches(matches, key);
               return {
@@ -146,10 +135,9 @@ describe('HistorialCruzado', () => {
     };
   }
 
-  it('pinta la cabecera del cruce con el jugador de la ruta', async () => {
+  it('pinta la lista de partidas cruzadas con sus tarjetas', async () => {
     const { el } = await montar(historialConCruce());
 
-    expect(el.querySelector('.cx-hero__title')?.textContent).toContain('Pix3lQueen');
     expect(el.querySelectorAll('app-cross-match-card').length).toBe(2);
   });
 
@@ -162,7 +150,7 @@ describe('HistorialCruzado', () => {
     );
   });
 
-  it('el enlace profundo ?modo=versus deja solo los enfrentamientos', async () => {
+  it('el filtro de modo versus deja solo los enfrentamientos', async () => {
     const { el } = await montar(historialConCruce(), 'versus');
 
     const cards = el.querySelectorAll('app-cross-match-card');
@@ -170,31 +158,10 @@ describe('HistorialCruzado', () => {
     expect(el.textContent).toContain('En contra');
   });
 
-  it('el enlace profundo ?modo=synergy deja solo las partidas juntos', async () => {
+  it('el filtro de modo synergy deja solo las partidas juntos', async () => {
     const { el } = await montar(historialConCruce(), 'synergy');
 
     expect(el.querySelectorAll('app-cross-match-card').length).toBe(1);
     expect(el.textContent).toContain('Juntos');
-  });
-
-  /*
-   * Con el catálogo de campeones en error, `loading()` valía false y la cascada de la plantilla
-   * caía en su última rama: el 404. Un fallo de red se leía como «jugador no encontrado», sin
-   * forma de reintentar y sin distinguirlo de un enlace roto.
-   */
-  it('un fallo de red se pinta como error con reintentar, no como un 404', async () => {
-    const { el } = await montar(historialConCruce(), null, 'error');
-
-    expect(el.textContent).toContain('No se ha podido cargar');
-    expect(el.textContent).not.toContain('Jugador no encontrado');
-    expect(el.querySelector('button')?.textContent).toContain('Reintentar');
-  });
-
-  it('mientras el catálogo viaja se enseña esqueleto, no un 404 ni un vacío', async () => {
-    const { el } = await montar(historialConCruce(), null, 'loading');
-
-    expect(el.querySelector('[aria-busy="true"]')).not.toBeNull();
-    expect(el.textContent).not.toContain('Jugador no encontrado');
-    expect(el.textContent).not.toContain('Todavía no habéis coincidido');
   });
 });

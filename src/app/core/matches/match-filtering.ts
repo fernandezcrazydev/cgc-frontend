@@ -77,7 +77,7 @@ export const SORT_OPTIONS: readonly { value: MatchSortBy; label: string }[] = [
   { value: 'date-desc', label: 'Más recientes' },
   { value: 'date-asc', label: 'Más antiguas' },
   { value: 'duration-desc', label: 'Más largas' },
-  { value: 'kills-desc', label: 'Más bajas' },
+  { value: 'kills-desc', label: 'Más Kills' },
 ];
 
 /**

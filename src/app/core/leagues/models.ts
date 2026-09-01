@@ -72,6 +72,14 @@ export interface LeaderboardEntryResponse {
   /** División (`II`), o `null` en los tiers que no la tienen (Master y por encima). */
   riotRank: string | null;
   riotStrength: string | null;
+  /**
+   * Rango del jugador EN EL GRUPO (`OWNER` / `ADMIN` / `MEMBER`).
+   *
+   * Lo necesita la tabla para saber a quién puede expulsar quien mira. Antes no venía y había que
+   * cruzarlo con el roster del grupo por otra vía: dos fuentes para un dato que se sirve en la
+   * misma fila.
+   */
+  groupRole: string | null;
   lp: number;
   wins: number;
   losses: number;
@@ -133,4 +141,16 @@ export interface LeaderboardResponse {
    * "liga en marcha". Se calcula sobre la liga ENTERA en el servidor, no sobre esta página.
    */
   hasActivity: boolean;
+}
+
+/**
+ * Cuerpo de `PUT /groups/{groupId}/leaderboard/{userId}/sanction`.
+ *
+ * `until` nulo = sanción indefinida. Es `PUT` y no `POST` porque el backend la trata como
+ * idempotente: sancionar a quien ya lo está actualiza motivo y fecha, no acumula sanciones.
+ */
+export interface SanctionPlayerRequest {
+  reason: string;
+  /** ISO-8601, o `null` para una sanción sin fecha de fin. */
+  until: string | null;
 }

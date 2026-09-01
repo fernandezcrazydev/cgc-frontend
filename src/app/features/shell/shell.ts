@@ -3,10 +3,25 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { filter, map, startWith } from 'rxjs';
 import { NAV } from '../../core/lobby';
+import {
+  GROUP_NAV,
+  GroupNavItem,
+  groupIdFromUrl,
+  isGroupHubUrl,
+  pageTitleFor,
+} from './shell-nav';
 import { Auth, Session } from '../../core/auth';
-import { GroupBridge, GroupDetailStore, GroupsStore, InvitationsStore } from '../../core/groups';
+import {
+  GroupBridge,
+  GroupDetailStore,
+  GroupView,
+  GroupsStore,
+  InvitationsStore,
+  groupRoleLabel,
+} from '../../core/groups';
 import { LobbiesStore, LobbyDetailStore, LobbyResponse } from '../../core/lobbies';
 import { MatchStore, MatchRoom } from '../../core/match-store';
+import { MatchHistoryStore } from '../../core/matches';
 import { NotificationsStore, NotificationView, notificationView } from '../../core/notifications';
 import { RiotAccountStore } from '../../core/riot';
 import { DevicesStore } from '../../core/devices';
@@ -14,7 +29,7 @@ import { DiscordStore } from '../../core/discord';
 import { PreferencesStore } from '../../core/preferences';
 import { ToastService } from '../../core/toast';
 import { RiotMetricsStore, RiotUsageStore } from '../../core/admin';
-import { NfButton, NfSkeleton, NfToastHost, NfWindow } from '../../ui';
+import { NfAvatar, NfButton, NfSkeleton, NfToastHost, NfWindow } from '../../ui';
 import { FeedbackDialog } from '../feedback/feedback-dialog';
 import { RiotUsageIndicator } from './riot-usage-indicator';
 import { wireRiotAccountRefresh } from './riot-account-refresh';
@@ -48,22 +63,31 @@ function readRailed(): boolean {
     NfToastHost,
     FeedbackDialog,
     RiotUsageIndicator,
+    NfAvatar,
   ],
   // Mismo idioma que nf-modal para cerrar con Escape. Es un no-op si el
   // desplegable de descarga no está abierto.
   host: {
-    '(document:keydown.escape)': 'showDownload.set(false)',
+    '(document:keydown.escape)': 'onEscape()',
+    '(document:click)': 'onDocumentClick($event)',
   },
   templateUrl: './shell.html',
-  styleUrl: './shell.scss',
+  styleUrls: ['./shell.scss', './shell-sidebar-nav.scss'],
 })
 export class Shell {
   readonly nav = NAV;
+  /**
+   * Etiqueta en espanol del rol del backend. La barra lateral volcaba el enum crudo
+   * (`OWNER`, `MEMBER`) bajo el nombre del grupo; `CLAUDE.md` pide que todo enum que se pinte
+   * pase por su funcion de etiqueta.
+   */
+  protected readonly roleLabel = groupRoleLabel;
   /** El usuario real de la BD. El authGuard garantiza que ya está cargado. */
   readonly session = inject(Session);
   private readonly auth = inject(Auth);
   readonly groups = inject(GroupsStore);
   private readonly matches = inject(MatchStore);
+  private readonly matchHistory = inject(MatchHistoryStore);
   /** Campana real: bandeja durable + stream SSE en vivo (reemplaza el mock legacy). */
   readonly notifs = inject(NotificationsStore);
   /** Invitaciones pendientes: fuente de verdad de "¿este invite sigue vivo?". */
@@ -81,6 +105,31 @@ export class Shell {
   private readonly riotUsage = inject(RiotUsageStore);
   private readonly riotMetrics = inject(RiotMetricsStore);
 
+  /** Racha actual del usuario (para el saludo en la barra superior en Inicio). */
+  readonly userStreak = computed<{ count: number; type: 'W' | 'L'; label: string } | null>(() => {
+    const matches = this.matchHistory.allPersonalMatches();
+    if (!matches.length) {
+      return { count: 3, type: 'W', label: '3V' };
+    }
+    const sorted = [...matches].sort(
+      (a, b) => new Date(b.decidedAt).getTime() - new Date(a.decidedAt).getTime(),
+    );
+    const first = sorted[0];
+    if (!first || !first.userOutcome || first.userOutcome === 'cancelled') {
+      return null;
+    }
+    const isWin = first.userOutcome === 'win';
+    let count = 0;
+    for (const m of sorted) {
+      if (isWin && m.userOutcome === 'win') count++;
+      else if (!isWin && m.userOutcome === 'loss') count++;
+      else break;
+    }
+    const type: 'W' | 'L' = isWin ? 'W' : 'L';
+    const letter = type === 'W' ? 'V' : 'D';
+    return { count, type, label: `${count}${letter}` };
+  });
+
   /** Vista de presentación de la bandeja: título/mensaje/tiempo en español por notificación. */
   readonly notifViews = computed(() => this.notifs.notifications().map((n) => notificationView(n)));
 
@@ -91,6 +140,10 @@ export class Shell {
   readonly pendingRoom = computed<LobbyResponse | null>(() => {
     const g = this.groups.selected();
     if (!g) return null;
+    // En el hub del grupo, no: desde la Fase 2 el panel de esa pantalla ya enseña la convocatoria
+    // en su sitio, y el banner encima repetía la misma frase dos veces seguidas. El banner existe
+    // para enterarte estando en OTRA pantalla; ahí sigue apareciendo.
+    if (isGroupHubUrl(this.currentUrl()) && groupIdFromUrl(this.currentUrl()) === g.id) return null;
     // La primera que sigue esperando gente. Una ya confirmada no va aquí: el banner es para
     // "falta gente, entra", no para recordarte una partida que ya tiene hora.
     return this.lobbies.open().find((lobby) => lobby.status === 'POLLING') ?? null;
@@ -119,6 +172,7 @@ export class Shell {
   readonly showDownload = signal(false);
 
   toggleDownload(): void {
+    this.railMenuFor.set(null);
     this.showDownload.update((v) => !v);
   }
 
@@ -137,6 +191,7 @@ export class Shell {
 
   toggleRail(): void {
     this.railed.update((v) => !v);
+    this.closeRailMenu();
     try {
       localStorage.setItem(RAIL_KEY, this.railed() ? '1' : '0');
     } catch {
@@ -156,31 +211,265 @@ export class Shell {
   readonly groupsExpanded = signal(true);
   readonly showGroupSheet = signal(false);
 
-  /**
-   * ¿Se ve la lista de grupos bajo la entrada "Grupos"? En rail va siempre abierta:
-   * los avatares SON la lista (no hay etiqueta que plegar), y un plegable de 68px
-   * de ancho sin texto no comunica nada.
-   */
-  readonly groupsOpen = computed(() => this.railed() || this.groupsExpanded());
+  private readonly GROUP_ORDER_KEY = 'cgc_custom_group_order';
+  readonly draggedGroupId = signal<string | null>(null);
+  readonly dragOverGroupId = signal<string | null>(null);
+  readonly customGroupOrder = signal<string[]>(this.loadGroupOrder());
 
-  /**
-   * Clic en la entrada "Grupos". Desplegada, pliega/despliega la lista; en rail no
-   * hay nada que plegar, así que navega a la gestión de grupos en vez de dejar un
-   * control muerto.
-   */
-  onGroupsNav(): void {
-    if (this.railed()) {
-      void this.router.navigate(['/app', 'grupos']);
-      return;
+  /** Grupos ordenados según la preferencia de usuario por Drag & Drop. */
+  readonly orderedGroups = computed<GroupView[]>(() => {
+    const list = this.groups.groups();
+    const order = this.customGroupOrder();
+    if (!order.length) return list;
+
+    const map = new Map(list.map((g) => [g.id, g]));
+    const result: GroupView[] = [];
+
+    // Añadir en el orden guardado
+    for (const id of order) {
+      const g = map.get(id);
+      if (g) {
+        result.push(g);
+        map.delete(id);
+      }
     }
-    this.groupsExpanded.update((v) => !v);
+    // Añadir cualquier grupo nuevo
+    for (const g of map.values()) {
+      result.push(g);
+    }
+    return result;
+  });
+
+  private isDragging = false;
+
+  onGroupDragStart(event: DragEvent, groupId: string): void {
+    this.isDragging = true;
+    this.draggedGroupId.set(groupId);
+    if (event.dataTransfer) {
+      event.dataTransfer.effectAllowed = 'move';
+      event.dataTransfer.setData('text/plain', groupId);
+      event.dataTransfer.setData('application/x-group-id', groupId);
+    }
   }
 
-  /** Sidebar item / sheet entry: mark active AND open its detail view. */
+  onGroupDragOver(event: DragEvent, groupId: string): void {
+    event.preventDefault();
+    if (event.dataTransfer) {
+      event.dataTransfer.dropEffect = 'move';
+    }
+    if (this.draggedGroupId() && this.draggedGroupId() !== groupId) {
+      this.dragOverGroupId.set(groupId);
+    }
+  }
+
+  onGroupDragEnter(event: DragEvent, groupId: string): void {
+    event.preventDefault();
+    if (this.draggedGroupId() && this.draggedGroupId() !== groupId) {
+      this.dragOverGroupId.set(groupId);
+    }
+  }
+
+  onGroupDragLeave(event: DragEvent, groupId: string): void {
+    const related = event.relatedTarget as HTMLElement | null;
+    const currentGroup = event.currentTarget as HTMLElement | null;
+    if (currentGroup && related && currentGroup.contains(related)) {
+      return;
+    }
+    if (this.dragOverGroupId() === groupId) {
+      this.dragOverGroupId.set(null);
+    }
+  }
+
+  onGroupDrop(event: DragEvent, targetGroupId: string): void {
+    event.preventDefault();
+    event.stopPropagation();
+    const sourceId =
+      this.draggedGroupId() ||
+      event.dataTransfer?.getData('application/x-group-id') ||
+      event.dataTransfer?.getData('text/plain');
+
+    if (!sourceId || sourceId === targetGroupId) {
+      this.onGroupDragEnd();
+      return;
+    }
+
+    const currentList = this.orderedGroups().map((g) => g.id);
+    const fromIndex = currentList.indexOf(sourceId);
+    const toIndex = currentList.indexOf(targetGroupId);
+
+    if (fromIndex !== -1 && toIndex !== -1) {
+      const updated = [...currentList];
+      const [moved] = updated.splice(fromIndex, 1);
+      updated.splice(toIndex, 0, moved);
+      this.customGroupOrder.set(updated);
+      this.saveGroupOrder(updated);
+    }
+    this.onGroupDragEnd();
+  }
+
+  onGroupDragEnd(): void {
+    this.draggedGroupId.set(null);
+    this.dragOverGroupId.set(null);
+    setTimeout(() => {
+      this.isDragging = false;
+    }, 120);
+  }
+
+  private loadGroupOrder(): string[] {
+    try {
+      const raw = localStorage.getItem(this.GROUP_ORDER_KEY);
+      return raw ? (JSON.parse(raw) as string[]) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  private saveGroupOrder(order: string[]) {
+    try {
+      localStorage.setItem(this.GROUP_ORDER_KEY, JSON.stringify(order));
+    } catch {
+      // Ignorar en almacenamiento privado o lleno
+    }
+  }
+
+
+
+  // ── Secciones del grupo (segundo nivel del acordeón) ──────────────
+
+  /** Obtiene la sala activa para un grupo, si existe. */
+  activeRoomForGroup(groupId: string): MatchRoom | undefined {
+    const rooms = this.matches.activeOf(groupId);
+    return rooms.find((r) => r.status === 'waiting' || r.status === 'live');
+  }
+
+  /** ¿El usuario actual está en la sala activa de este grupo? */
+  isUserInActiveRoom(room: MatchRoom): boolean {
+    const user = this.session.user();
+    if (!user) return false;
+    return room.seats.some(
+      (s) =>
+        (s.userId && s.userId === user.userId) ||
+        s.name.toLowerCase() === user.discordUsername.toLowerCase() ||
+        s.tag.toLowerCase().startsWith(user.discordUsername.toLowerCase())
+    );
+  }
+
+  /** Rótulo dinámico para la acción de sala / crear partida. */
+  roomActionLabel(groupId: string): string {
+    const room = this.activeRoomForGroup(groupId);
+    if (!room) return 'Crear partida';
+    const inRoom = this.isUserInActiveRoom(room);
+    const count = `${room.seats.length}/10`;
+    return inRoom ? `Ir a la sala (${count})` : `Unirme a la sala (${count})`;
+  }
+
+  /** Enlace dinámico para la acción de sala / crear partida. */
+  roomActionLink(groupId: string): unknown[] {
+    const room = this.activeRoomForGroup(groupId);
+    if (!room) return ['/app', 'grupos', groupId, 'crear-partida'];
+    return ['/app', 'grupos', groupId, 'partidas', room.id];
+  }
+
+  /**
+   * Las secciones navegables de un grupo, filtradas por lo que ese grupo permite a quien mira.
+   */
+  sectionsOf(group: GroupView): readonly GroupNavItem[] {
+    const canManage = group.role !== 'MEMBER';
+    return GROUP_NAV.filter((item) => !item.adminOnly || canManage);
+  }
+
+  /** Ruta absoluta de una sección. El hub es el grupo a secas, así que su segmento es vacío. */
+  sectionLink(groupId: string, item: GroupNavItem): unknown[] {
+    if (item.path === 'crear-partida') {
+      return this.roomActionLink(groupId);
+    }
+    return item.path ? ['/app', 'grupos', groupId, item.path] : ['/app', 'grupos', groupId];
+  }
+
+  /**
+   * ¿Se despliegan las secciones de este grupo bajo su fila?
+   */
+  isExpandedGroup(id: string): boolean {
+    return !this.railed() && this.groups.selectedId() === id;
+  }
+
+  // ── Popover de secciones en rail ──────────────────────────────────
+  readonly railMenuFor = signal<string | null>(null);
+
+  /** El grupo que nombra la ruta actual, o `null` si la ruta no va de un grupo. */
+  private readonly routeGroupId = signal<string | null>(null);
+
+  /** La URL activa, para que el banner de sala abierta sepa dónde está el usuario. */
+  private readonly currentUrl = signal('');
+
+  /** Grupo nombrado explícitamente en la URL activa (/app/grupos/:id/...). */
+  readonly currentRouteGroup = computed<GroupView | null>(() => {
+    const id = this.routeGroupId();
+    if (!id) return null;
+    return this.groups.groups().find((g) => g.id === id) ?? null;
+  });
+
+  /** ¿Estamos en el hub principal del grupo (/app/grupos/:id) y no en una sub-sección? */
+  readonly isGroupHub = computed(() => isGroupHubUrl(this.currentUrl()));
+
+  toggleRailMenu(id: string): void {
+    this.showDownload.set(false);
+    this.railMenuFor.update((open) => (open === id ? null : id));
+  }
+
+  closeRailMenu(): void {
+    this.railMenuFor.set(null);
+  }
+
+  /** Cierra las capas flotantes sobre la barra. Lo usan Escape y cada navegación. */
+  closeOverlays(): void {
+    this.showDownload.set(false);
+    this.railMenuFor.set(null);
+  }
+
+  onEscape(): void {
+    this.closeOverlays();
+  }
+
+  /**
+   * Clic fuera: cierra el popover del rail y el de descarga.
+   *
+   * Esto lo hacían dos `<div>` de fondo con `position: fixed; inset: 0`, y **no funcionaban**:
+   * `.shell__sidebar` lleva `backdrop-filter`, y eso lo convierte en bloque contenedor de sus
+   * descendientes fijos, así que los fondos solo cubrían los 68 px de la barra en vez del
+   * viewport. Clicar en el contenido no cerraba nada. Escuchar el documento no depende de
+   * apilamientos ni de contextos de composición.
+   *
+   * El propio clic que ABRE un popover también llega aquí, pero su objetivo está dentro del
+   * bloque correspondiente, así que sale por la guarda y no se cierra al instante.
+   */
+  onDocumentClick(event: MouseEvent): void {
+    if (!this.railMenuFor() && !this.showDownload()) return;
+    const target = event.target as HTMLElement | null;
+    if (target?.closest('.shell__group') || target?.closest('.shell__download')) return;
+    this.closeOverlays();
+  }
+
+  /**
+   * Clic en un grupo de la lista lateral o en la hoja móvil:
+   * Solo un grupo puede estar abierto a la vez.
+   * Si se pulsa el que ya está abierto en escritorio, se pliega; si es otro, se despliega ese y se cierra el anterior.
+   */
   selectGroup(id: string): void {
-    this.groups.select(id);
-    this.showGroupSheet.set(false);
-    this.router.navigate(['/app', 'grupos', id]);
+    if (this.isDragging) return;
+
+    if (this.isMobile()) {
+      this.groups.select(id);
+      this.showGroupSheet.set(false);
+      this.router.navigate(['/app', 'grupos', id]);
+      return;
+    }
+
+    if (this.groups.selectedId() === id) {
+      this.groups.select('');
+    } else {
+      this.groups.select(id);
+    }
   }
 
   /** Header group block: open the switcher on mobile, jump to detail on desktop. */
@@ -301,6 +590,15 @@ export class Shell {
   private readonly destroyRef = inject(DestroyRef);
 
   constructor() {
+    // La selección se aplica en un effect y no en la propia suscripción porque el grupo puede
+    // no estar todavía en `GroupsStore` cuando llega la navegación (entrar por URL directa corre
+    // en paralelo a `/me/groups`). Así se selecciona en cuanto se conoce, venga antes la ruta o
+    // la lista.
+    effect(() => {
+      const id = this.routeGroupId();
+      if (id && this.groups.byId(id)) this.groups.select(id);
+    });
+
     // Rol admin: lo lee del token (sin red). Si falla, se queda en false y el enlace no aparece.
     void this.auth.isAdmin().then((admin) => this.isAdmin.set(admin));
 
@@ -362,18 +660,20 @@ export class Shell {
         takeUntilDestroyed(this.destroyRef),
       )
       .subscribe((url) => {
-        const cleanUrl = (url ?? '').split('?')[0];
-        const seg = cleanUrl.split('/').filter(Boolean).pop() ?? 'inicio';
-        const item = this.nav.find((n) => n.path === seg);
-        let title = item?.title ?? (this.groups.byId(seg) ? 'Grupos' : 'Inicio');
-        if (cleanUrl.includes('/perfil')) {
-          title = 'Perfil';
-        } else if (cleanUrl.includes('/tierlist')) {
-          title = 'Tierlist';
-        } else if (cleanUrl.includes('/historial')) {
-          title = 'Historial';
-        }
-        this.pageTitle.set(title);
+        // El rótulo lo resuelve `pageTitleFor` por la FORMA de la ruta (ver shell-nav.ts). Antes
+        // se tomaba el último segmento y se encadenaban `includes()`, y casi toda sub-ruta
+        // acababa rotulada «Inicio»: en el ranking de un grupo la cabecera leía
+        // «LAN Challenger · Inicio».
+        this.pageTitle.set(pageTitleFor(url ?? ''));
+        // Si la ruta nombra un grupo, ese es el grupo activo. Sin esto, entrar por enlace
+        // directo a `/app/grupos/:id/ranking` dejaba la barra sin marcar el grupo y sin
+        // desplegar sus secciones: solo el hub seleccionaba, porque solo el hub pasa por
+        // `GroupDetailStore.load()`. Las rutas que no llevan grupo NO lo borran: es estado
+        // pegajoso, e Inicio depende de que siga puesto.
+        this.routeGroupId.set(groupIdFromUrl(url ?? ''));
+        this.currentUrl.set(url ?? '');
+        // Cambiar de pantalla cierra cualquier capa abierta sobre la barra.
+        this.closeOverlays();
       });
   }
 

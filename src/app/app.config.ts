@@ -1,4 +1,10 @@
-import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
+import {
+  ApplicationConfig,
+  EnvironmentInjector,
+  inject,
+  provideBrowserGlobalErrorListeners,
+  provideEnvironmentInitializer,
+} from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/http';
 import {
@@ -59,5 +65,26 @@ export const appConfig: ApplicationConfig = {
     // volver a la app obligaba a pulsar "entrar con Discord" otra vez. Con localStorage
     // la sesión sobrevive al cierre del navegador y se renueva sola con el refresh token.
     { provide: AbstractSecurityStorage, useClass: DefaultLocalStorageService },
+    // ÚNICO punto de carga de la semilla de partidas (`core/matches/match-seed.ts`), que existe
+    // solo porque el backend todavía no tiene módulo `matches`: sin ella el historial, el cruce,
+    // el versus y la sinergia no tienen nada que pintar y no hay rediseño que validar.
+    //
+    // El guard envuelve la ENTRADA ENTERA del array, no el cuerpo del inicializador: en
+    // producción el proveedor directamente no se registra. El `import()` es dinámico para que
+    // el módulo de la semilla no cuelgue del bundle inicial; verificado tras `ng build`, no
+    // aparece en `dist/` ni como chunk ni como símbolo.
+    //
+    // BACKEND NOTE: al existir `GET /api/v1/matches` se borra este bloque entero, sus imports y
+    // el fichero que carga; el store pasará a traer las partidas por HTTP.
+    ...(environment.production
+      ? []
+      : [
+          provideEnvironmentInitializer(() => {
+            const injector = inject(EnvironmentInjector);
+            void import('./core/matches/match-seed').then(({ seedMatchHistory }) => {
+              seedMatchHistory(injector);
+            });
+          }),
+        ]),
   ],
 };

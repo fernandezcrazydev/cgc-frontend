@@ -1,0 +1,589 @@
+/* Dashboard de Inicio (Fase 3).
+   Hoja de componente dedicada para mantener el archivo views.scss limpio. */
+
+:host {
+  display: block;
+  width: 100%;
+}
+
+.ini {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 8px 0 32px;
+}
+
+/* ── Cabecera y Saludo ─────────────────────────────────────────────────────── */
+.ini-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.ini-head__welcome {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ini-head__title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--nf-text);
+}
+
+.ini-head__subtitle {
+  font-size: 13px;
+  color: var(--nf-text-dim);
+}
+
+.ini-head__streak {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  background: color-mix(in srgb, #ff6b35 12%, var(--nf-surface-2));
+  border: 1px solid color-mix(in srgb, #ff6b35 30%, transparent);
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #ff8b59;
+}
+
+/* ── Hero Card (Grupo Protagonista con Slide & Fade Cinemático - Opción A) ── */
+.ini-hero-container {
+  position: relative;
+  overflow: hidden;
+  border-radius: 16px;
+}
+
+.ini-hero {
+  position: relative;
+  border-radius: 16px;
+  background: var(--nf-surface-2);
+  border: 1px solid var(--nf-border);
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  transition: box-shadow 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ini-hero.is-sliding-left {
+  animation: iniSlideLeft 0.26s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.ini-hero.is-sliding-right {
+  animation: iniSlideRight 0.26s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes iniSlideLeft {
+  0% {
+    opacity: 0.3;
+    transform: translateX(42px) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes iniSlideRight {
+  0% {
+    opacity: 0.3;
+    transform: translateX(-42px) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+/* Barra superior de la tarjeta Hero */
+.ini-hero__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  background: var(--nf-surface-3);
+  border-bottom: 1px solid var(--nf-border);
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.ini-hero__group-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ini-hero__avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--grp-c1, var(--nf-primary)), var(--grp-c2, var(--nf-secondary)));
+  color: #fff;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.ini-hero__name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--nf-text);
+}
+
+.ini-hero__season {
+  font-size: 12px;
+  color: var(--nf-text-dim);
+}
+
+.ini-hero__controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ini-hero__arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  border: 1px solid var(--nf-border);
+  border-radius: 6px;
+  color: var(--nf-text-dim);
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.15s ease;
+}
+
+.ini-hero__arrow:hover:not(:disabled) {
+  background: var(--nf-surface-4);
+  color: var(--nf-text);
+  border-color: var(--nf-text-muted);
+}
+
+.ini-hero__arrow:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.ini-hero__pagination {
+  font-size: 12px;
+  color: var(--nf-text-dim);
+  padding: 0 4px;
+  user-select: none;
+}
+
+/* Cuerpo dividido de la tarjeta Hero */
+.ini-hero__body {
+  display: grid;
+  grid-template-columns: 1fr 1.25fr;
+  gap: 0;
+}
+
+@media (max-width: 860px) {
+  .ini-hero__body {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Panel Izquierdo: Tu Rival Directo ──────────────────────────────────────── */
+.ini-rival {
+  padding: 20px;
+  border-right: 1px solid var(--nf-border);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 16px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.015), transparent);
+}
+
+@media (max-width: 860px) {
+  .ini-rival {
+    border-right: none;
+    border-bottom: 1px solid var(--nf-border);
+  }
+}
+
+.ini-block-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--nf-text-dim);
+}
+
+.ini-rival__list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ini-rival-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--nf-surface-3);
+  font-size: 13px;
+  transition: background 0.15s ease;
+}
+
+.ini-rival-row.is-me {
+  background: color-mix(in srgb, var(--nf-primary) 15%, var(--nf-surface-3));
+  border: 1px solid color-mix(in srgb, var(--nf-primary) 40%, transparent);
+  font-weight: 600;
+}
+
+.ini-rival-row__player {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ini-rival-row__rank {
+  font-weight: 700;
+  color: var(--nf-text-dim);
+  width: 24px;
+}
+
+.ini-rival-row.is-me .ini-rival-row__rank {
+  color: var(--nf-primary);
+}
+
+.ini-rival-row__name {
+  color: var(--nf-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ini-rival-row__lp {
+  font-weight: 600;
+  color: var(--nf-text-muted);
+}
+
+.ini-rival-row.is-me .ini-rival-row__lp {
+  color: var(--nf-text);
+}
+
+.ini-rival__gap-callout {
+  padding: 10px 12px;
+  background: color-mix(in srgb, var(--nf-primary) 8%, transparent);
+  border-radius: 8px;
+  border-left: 3px solid var(--nf-primary);
+  font-size: 12px;
+  color: var(--nf-text-mid);
+}
+
+.ini-rival__gap-callout strong {
+  color: var(--nf-text);
+}
+
+/* ── Panel Derecho: Convocatoria en Directo ─────────────────────────────────── */
+.ini-lobby {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 16px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--nf-primary) 3%, transparent), transparent);
+}
+
+.ini-lobby__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ini-lobby__state {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ini-lobby__seats-count {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--nf-text);
+}
+
+.ini-lobby__status-msg {
+  font-size: 13px;
+  color: var(--nf-text-dim);
+}
+
+.ini-lobby__status-msg.has-pulse {
+  color: #52e396;
+  font-weight: 600;
+}
+
+.ini-lobby__slots {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 8px 0;
+}
+
+.ini-lobby__slot {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.ini-lobby__slot--filled {
+  background: var(--nf-surface-4);
+  border: 1px solid var(--nf-border-strong);
+  color: var(--nf-text);
+}
+
+.ini-lobby__slot--empty {
+  background: transparent;
+  border: 1.5px dashed var(--nf-border);
+  color: var(--nf-text-dim);
+  animation: pulseSlot 2s infinite ease-in-out;
+}
+
+@keyframes pulseSlot {
+  0%, 100% { border-color: var(--nf-border); opacity: 0.6; }
+  50% { border-color: var(--nf-primary); opacity: 1; }
+}
+
+.ini-lobby__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+/* ── Módulos de Engagement (2x2 Grid) ───────────────────────────────────────── */
+.ini-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 860px) {
+  .ini-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ini-card {
+  border-radius: 14px;
+  background: var(--nf-surface-2);
+  border: 1px solid var(--nf-border);
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.ini-card:hover {
+  border-color: var(--nf-border-strong);
+  transform: translateY(-1px);
+}
+
+.ini-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ini-card__body {
+  font-size: 13px;
+  color: var(--nf-text-mid);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* MVP Card */
+.ini-mvp-summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ini-mvp-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #ffd700, #ff8c00);
+  color: #121214;
+  font-size: 15px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.ini-mvp-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ini-mvp-meta__name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--nf-text);
+}
+
+.ini-mvp-meta__kda {
+  font-size: 12px;
+  color: var(--nf-text-muted);
+}
+
+.ini-mvp-quote {
+  font-style: italic;
+  font-size: 12px;
+  color: var(--nf-text-dim);
+  padding-left: 8px;
+  border-left: 2px solid var(--nf-border);
+}
+
+/* Highlights List */
+.ini-highlights-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ini-highlight-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: var(--nf-surface-3);
+  font-size: 12px;
+}
+
+.ini-highlight-item__label {
+  color: var(--nf-text-dim);
+}
+
+.ini-highlight-item__val {
+  font-weight: 600;
+  color: var(--nf-text);
+}
+
+/* Némesis Card */
+.ini-nemesis-summary {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.ini-nemesis-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #e63946, #7209b7);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 0 12px rgba(230, 57, 70, 0.35);
+}
+
+.ini-nemesis-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.ini-nemesis-meta__name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--nf-text);
+}
+
+.ini-nemesis-meta__record {
+  font-size: 12px;
+  color: #ff6b6b;
+  font-weight: 600;
+}
+
+.ini-nemesis-callout {
+  font-size: 12px;
+  color: var(--nf-text-dim);
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: var(--nf-surface-3);
+  border-left: 2px solid #e63946;
+}
+
+/* Requiere tu atención */
+.ini-attn-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ini-attn-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--nf-surface-3);
+  border-left: 3px solid var(--attn-accent, var(--nf-primary));
+}
+
+.ini-attn-item__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
+}
+
+.ini-attn-item__title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--nf-text);
+}
+
+.ini-attn-item__sub {
+  font-size: 11px;
+  color: var(--nf-text-dim);
+}
+
+.ini-attn-item__actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}

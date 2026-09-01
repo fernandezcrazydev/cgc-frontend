@@ -27,6 +27,7 @@ function row(rank: number, userId: string): LeaderboardEntryResponse {
     riotTier: null,
     riotRank: null,
     riotStrength: null,
+    groupRole: 'MEMBER',
     lp: 100 - rank,
     wins: 5,
     losses: 5,

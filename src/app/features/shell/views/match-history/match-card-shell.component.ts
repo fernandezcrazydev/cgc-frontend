@@ -135,7 +135,11 @@ let panelSeq = 0;
             aquí una vez y convertía dos vistas distintas en un solo componente disfrazado.
           -->
           <ng-content select="[matchAccordion]">
-            <app-match-lineup [match]="match()" [returnTo]="returnTo()" />
+            <app-match-lineup
+              [match]="match()"
+              [returnTo]="returnTo()"
+              [crossContext]="crossContext()"
+            />
           </ng-content>
         </div>
       }
@@ -145,19 +149,9 @@ let panelSeq = 0;
 export class MatchCardShellComponent {
   readonly match = input.required<Match>();
   readonly accent = input<'win' | 'loss' | 'neutral' | 'blue' | 'red'>('neutral');
-  /**
-   * Qué proyecta la fila. Cambia la rejilla: la personal reparte seis columnas medidas para
-   * sus datos y la de grupo cuatro bloques mucho más anchos, así que compartir una sola
-   * rejilla dejaba el bloque del MVP pegado a la tira de campeones.
-   */
   readonly variant = input<'personal' | 'group' | 'cross'>('personal');
-  /** Se propaga al enlace del desglose para que «volver» regrese al sitio correcto. */
   readonly returnTo = input<string | null>(null);
-  /**
-   * Cómo se llama lo que hay dentro del desplegable. Lo dicen el botón de móvil y las
-   * etiquetas accesibles, así que no puede quedarse fijo en «alineación» cuando la vista
-   * cruzada proyecta una comparativa: un lector de pantalla anunciaría algo que no está.
-   */
+  readonly crossContext = input<{ playerId: string; relation: 'ally' | 'enemy' } | null>(null);
   readonly panelNoun = input('alineación');
 
   private readonly ui = inject(MatchHistoryUiState);

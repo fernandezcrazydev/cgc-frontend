@@ -253,7 +253,7 @@ interface SearchSuggestion {
         />
       </div>
 
-      @if (measuresMe()) {
+      @if (showGroupFilter()) {
         <div class="m-field m-field--group">
           <span class="m-field__label nf-mono">Grupo</span>
           <nf-select
@@ -301,6 +301,8 @@ export class MatchFiltersComponent {
    * ocho condiciones sueltas.
    */
   protected readonly measuresMe = computed(() => this.mode() !== 'group');
+
+  protected readonly showGroupFilter = computed(() => this.mode() === 'personal');
 
   protected readonly isCross = computed(() => this.mode() === 'cross');
 
@@ -459,7 +461,7 @@ export class MatchFiltersComponent {
         clear: () => this.ui.update({ outcome: 'all' }),
       });
     }
-    if (isPersonal && f.groupId !== 'all') {
+    if (this.showGroupFilter() && f.groupId !== 'all') {
       const group = this.groupsStore.groups().find((g) => g.id === f.groupId);
       chips.push({
         key: 'group',
@@ -545,7 +547,7 @@ export class MatchFiltersComponent {
     }
 
     // 3. Grupos (solo en personal)
-    if (isPersonal) {
+    if (this.showGroupFilter()) {
       for (const g of this.groupsStore.groups()) {
         const n = normalize(g.name);
         if (n.startsWith(q) || n.includes(q)) {

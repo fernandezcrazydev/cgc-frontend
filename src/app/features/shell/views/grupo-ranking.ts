@@ -14,17 +14,23 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { NgTemplateOutlet } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Subject, debounceTime, distinctUntilChanged, map, switchMap } from 'rxjs';
 import {
   NfAvatar,
   NfButton,
   NfLaneIcon,
+  NfModal,
   NfPagination,
   NfRankEmblem,
+  NfCombobox,
+  NfComboboxOption,
   NfSkeleton,
+  NfTypeahead,
 } from '../../../ui';
-import { GroupBridge, GroupsStore } from '../../../core/groups';
+import { Session } from '../../../core/auth';
+import { GroupBridge, GroupDetailStore, GroupsStore } from '../../../core/groups';
 import { GroupStore } from '../../../core/group-store';
 import { mapLeaderboardEntries, RankEntry } from '../../../core/group-ranking';
 import { LeaderboardSearchSuggestion, LeaguesStore } from '../../../core/leagues';
@@ -81,8 +87,13 @@ const SEASON_LENGTH_DAYS = 14;
   selector: 'app-grupo-ranking',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: {
+    '(document:click)': 'onDocumentClick($event)',
+    '(document:keydown.escape)': 'closeMenu()',
+  },
   imports: [
     NgTemplateOutlet,
+    FormsModule,
     RouterLink,
     NfButton,
     NfAvatar,
@@ -90,6 +101,9 @@ const SEASON_LENGTH_DAYS = 14;
     NfRankEmblem,
     NfPagination,
     NfSkeleton,
+    NfModal,
+    NfCombobox,
+    NfTypeahead,
   ],
   template: `
     <div class="view rk-view">
@@ -171,6 +185,28 @@ const SEASON_LENGTH_DAYS = 14;
             <div class="rk-league-title-group">
               <span class="rk-league-eyebrow nf-mono">Clasificación oficial</span>
               <h1 class="rk-league-title">{{ leagueName() }}</h1>
+              <!-- Solo con más de una temporada: un selector con una sola opción no es una
+                   elección, es un adorno que sugiere que hay algo más donde no lo hay. -->
+              @if (seasonOptions().length > 1) {
+                <div class="rk-season">
+                  <span class="rk-season__label nf-mono">Temporada</span>
+                  <!-- Combobox y no el select nativo: aquel es legacy (Input/Output) y se
+                       quedaba desincronizado del store — la tabla cambiaba de temporada y el
+                       desplegable seguía rotulando la anterior. Este va con signals, así que
+                       refleja siempre lo que hay cargado. -->
+                  <nf-combobox
+                    class="rk-season__control"
+                    [options]="seasonOptions()"
+                    [value]="leagues.viewingLeagueId() ?? ''"
+                    (valueChange)="onSeasonChange($event)"
+                    [clearable]="false"
+                    ariaLabel="Temporada"
+                  />
+                  @if (leagues.viewingLeagueId()) {
+                    <span class="rk-season__past nf-mono">Temporada cerrada · solo lectura</span>
+                  }
+                </div>
+              }
             </div>
 
             @if (countdown(); as cd) {
@@ -367,6 +403,7 @@ const SEASON_LENGTH_DAYS = 14;
                 [id]="'rk-row-' + e.playerId"
                 [attr.data-player]="e.playerId"
                 [class.is-open]="openId() === e.playerId"
+                [class.has-menu]="menuFor() === e.playerId"
                 [class.is-banned]="e.banned"
                 [class.is-highlighted]="highlightedPlayerId() === e.playerId"
               >
@@ -456,6 +493,54 @@ const SEASON_LENGTH_DAYS = 14;
                     }
                   </span>
 
+                  <span class="rk-rowend">
+                  <!-- Gestión del jugador. Un menú de tres puntos y no botones sueltos por fila:
+                       en una tabla de quince filas, repetir acciones destructivas a la vista
+                       invita al accidente y se come ancho que aquí ya va justo. -->
+                  @if (canManageMembers()) {
+                    <span class="rk-actions">
+                      <button
+                        type="button"
+                        class="rk-actions__trigger"
+                        [class.is-open]="menuFor() === e.playerId"
+                        aria-haspopup="menu"
+                        [attr.aria-expanded]="menuFor() === e.playerId"
+                        [attr.aria-label]="'Gestionar a ' + e.name"
+                        [disabled]="leagues.isSanctioning(e.playerId)"
+                        (click)="toggleMenu(e.playerId, $event)"
+                      >⋯</button>
+
+                      @if (menuFor() === e.playerId) {
+                        <span class="rk-actions__menu" role="menu" [attr.aria-label]="'Acciones sobre ' + e.name">
+                          @if (e.banned) {
+                            <button
+                              type="button"
+                              class="rk-actions__item"
+                              role="menuitem"
+                              [disabled]="leagues.isSanctioning(e.playerId)"
+                              (click)="liftSanction(e)"
+                            >Levantar sanción</button>
+                          } @else {
+                            <button
+                              type="button"
+                              class="rk-actions__item"
+                              role="menuitem"
+                              (click)="openSanction(e)"
+                            >Sancionar</button>
+                          }
+                          @if (canKick(e)) {
+                            <button
+                              type="button"
+                              class="rk-actions__item rk-actions__item--danger"
+                              role="menuitem"
+                              (click)="askKick(e)"
+                            >Expulsar del grupo</button>
+                          }
+                        </span>
+                      }
+                    </span>
+                  }
+
                   <button
                     #summary
                     type="button"
@@ -467,6 +552,7 @@ const SEASON_LENGTH_DAYS = 14;
                   >
                     <span class="rk-row__chev" aria-hidden="true">▾</span>
                   </button>
+                  </span>
                 </div>
 
                 @if (openId() === e.playerId) {
@@ -622,50 +708,26 @@ const SEASON_LENGTH_DAYS = 14;
         <div class="rk-th rk-th--start rk-th--user-header">
           <span class="rk-th__title">Jugador</span>
           @if (interactive) {
-            <div class="rk-search-wrap" (focusout)="onSearchBlur($event)">
-              <input
-                type="search"
-                class="rk-search-input nf-mono"
+            <div class="rk-search-wrap">
+              <nf-typeahead
                 placeholder="Buscar jugador"
-                role="combobox"
-                aria-label="Buscar jugador en la clasificación"
-                aria-autocomplete="list"
-                aria-controls="rk-search-list"
-                [attr.aria-expanded]="searchOpen() && suggestions().length > 0"
-                [attr.aria-activedescendant]="activeSuggestionId()"
-                [value]="searchQuery()"
-                (input)="onSearchInput($event)"
-                (focus)="searchOpen.set(searchQuery().trim().length > 0)"
-                (keydown.arrowdown)="moveActive(1, $event)"
-                (keydown.arrowup)="moveActive(-1, $event)"
-                (keydown.enter)="chooseActive($event)"
-                (keydown.escape)="searchOpen.set(false)"
-              />
-              @if (searchOpen() && suggestions().length > 0) {
-                <ul class="rk-search-dropdown" id="rk-search-list" role="listbox">
-                  @for (s of suggestions(); track s.userId; let i = $index) {
-                    <li
-                      class="rk-search-item"
-                      [id]="'rk-sugg-' + s.userId"
-                      [class.is-active]="i === activeIndex()"
-                      role="option"
-                      [attr.aria-selected]="i === activeIndex()"
-                      (pointerdown)="$event.preventDefault()"
-                      (click)="selectPlayer(s)"
-                    >
-                      <div class="rk-search-info">
-                        <span class="rk-search-name">
-                          {{ s.discordUsername }}
-                          @if (s.riotId) {
-                            <span class="rk-search-tag nf-mono">{{ s.riotId }}</span>
-                          }
-                        </span>
-                        <span class="rk-search-meta nf-mono">#{{ s.rank }} · {{ s.lp }} LP</span>
-                      </div>
-                    </li>
-                  }
-                </ul>
-              }
+                ariaLabel="Buscar jugador en la clasificación"
+                [suggestions]="suggestions()"
+                (queryChange)="onSearchChange($event)"
+                (selectOption)="selectPlayer($event)"
+              >
+                <ng-template let-s>
+                  <div class="rk-search-info">
+                    <span class="rk-search-name">
+                      {{ s.discordUsername }}
+                      @if (s.riotId) {
+                        <span class="rk-search-tag nf-mono">{{ s.riotId }}</span>
+                      }
+                    </span>
+                    <span class="rk-search-meta nf-mono">#{{ s.rank }} · {{ s.lp }} LP</span>
+                  </div>
+                </ng-template>
+              </nf-typeahead>
             </div>
           }
         </div>
@@ -687,17 +749,88 @@ const SEASON_LENGTH_DAYS = 14;
         <span class="rk-th" aria-hidden="true"></span>
       </div>
     </ng-template>
+
+    @if (sanctionFor(); as target) {
+      <nf-modal title="Sancionar" width="460px" (closed)="closeSanction()">
+        <div class="rk-sanction">
+          <p class="rk-sanction__lead">
+            <strong>{{ target.name }}</strong> quedará fuera de la competición y caerá al final de
+            la clasificación bajo cualquier orden.
+          </p>
+
+          <label class="field__label nf-mono" for="rk-sanction-reason">Motivo</label>
+          <input
+            id="rk-sanction-reason"
+            class="field__input"
+            type="text"
+            maxlength="200"
+            autocomplete="off"
+            placeholder="Por qué se le aparta"
+            [ngModel]="sanctionReason()"
+            (ngModelChange)="sanctionReason.set($event)"
+          />
+          <!-- El motivo lo lee el resto del grupo en la tabla, así que no puede quedar vacío: una
+               sanción sin explicación es indistinguible de un error del administrador. -->
+          <p class="rk-sanction__hint nf-mono">Se muestra a todo el grupo junto al jugador.</p>
+
+          <label class="field__label nf-mono" for="rk-sanction-until">Hasta</label>
+          <input
+            id="rk-sanction-until"
+            class="field__input"
+            type="datetime-local"
+            [ngModel]="sanctionUntil()"
+            (ngModelChange)="sanctionUntil.set($event)"
+          />
+          <p class="rk-sanction__hint nf-mono">Déjalo vacío para una sanción indefinida.</p>
+
+          <div class="form-foot">
+            <button
+              nfButton
+              variant="ghost"
+              size="md"
+              [disabled]="leagues.isSanctioning(target.playerId)"
+              (click)="closeSanction()"
+            >Cancelar</button>
+            <button
+              nfButton
+              variant="danger"
+              size="md"
+              [disabled]="!sanctionReason().trim() || leagues.isSanctioning(target.playerId)"
+              (click)="confirmSanction()"
+            >{{ leagues.isSanctioning(target.playerId) ? 'Sancionando…' : 'Sancionar' }}</button>
+          </div>
+        </div>
+      </nf-modal>
+    }
+
+    @if (kickFor(); as target) {
+      <nf-modal title="Expulsar del grupo" width="440px" (closed)="kickFor.set(null)">
+        <div class="rk-sanction">
+          <p class="rk-sanction__lead">
+            ¿Expulsar a <strong>{{ target.name }}</strong> del grupo? Sale también de la
+            clasificación. Puede volver si alguien le invita de nuevo.
+          </p>
+          <div class="form-foot">
+            <button nfButton variant="ghost" size="md" (click)="kickFor.set(null)">Cancelar</button>
+            <button nfButton variant="danger" size="md" (click)="confirmKick()">Expulsar</button>
+          </div>
+        </div>
+      </nf-modal>
+    }
   `,
 })
 export class GrupoRanking {
   private readonly route = inject(ActivatedRoute);
   private readonly groupStore = inject(GroupStore);
+  private readonly session = inject(Session);
   private readonly groupsStore = inject(GroupsStore);
   private readonly destroyRef = inject(DestroyRef);
   private readonly toasts = inject(ToastService);
   private readonly clock = inject(ServerClock);
   readonly bridge = inject(GroupBridge);
   readonly leagues = inject(LeaguesStore);
+  /** Solo para expulsar: es quien tiene la acción y sabe si hay una escritura en vuelo. */
+  private readonly groupDetail = inject(GroupDetailStore);
   private readonly matchHistory = inject(MatchHistoryStore);
   private readonly gameData = inject(GameDataStore);
 
@@ -853,6 +986,153 @@ export class GrupoRanking {
     return `${reason} · hasta el ${until}`;
   }
 
+
+  // ── Selector de temporada ─────────────────────────────────────────────
+  /**
+   * Las temporadas del grupo, con la activa primero y sin valor para ella.
+   *
+   * La activa lleva `value: ''` a propósito: el contrato del backend trata `leagueId` como
+   * opcional y sin él sirve la activa, así que la cadena vacía es exactamente «la de siempre» y
+   * no un id que haya que mantener sincronizado.
+   */
+  readonly seasonOptions = computed<NfComboboxOption[]>(() => {
+    // La activa PRIMERA, y las cerradas de la más reciente a la más antigua. El orden importa
+    // más de lo que parece: el servidor las devuelve por fecha ascendente, y un `<select>` nativo
+    // se queda en su primera opción cuando el valor enlazado aún no existe entre las opciones
+    // renderizadas. Con la temporada vieja arriba, el desplegable decía «Temporada 1 (cerrada)»
+    // mientras la tabla mostraba la liga en curso.
+    const seasons = [...this.leagues.seasons()].sort((a, b) => {
+      if (a.status !== 'FINISHED' && b.status === 'FINISHED') return -1;
+      if (a.status === 'FINISHED' && b.status !== 'FINISHED') return 1;
+      return new Date(b.startsAt).getTime() - new Date(a.startsAt).getTime();
+    });
+    return seasons.map((season) => ({
+      value: season.status === 'FINISHED' ? season.id : '',
+      label: season.status === 'FINISHED' ? `${season.name} (cerrada)` : `${season.name} (en curso)`,
+    }));
+  });
+
+  onSeasonChange(value: string): void {
+    void this.leagues.selectSeason(value || null);
+  }
+
+  // ── Gestión de jugadores (sanciones y expulsión) ──────────────────────
+  // Todo cuelga de un menú de tres puntos por fila, visible solo para quien gestiona.
+
+  /** Fila cuyo menú está abierto, o `null`. Estado de UI. */
+  readonly menuFor = signal<string | null>(null);
+
+  /** ¿Puede este usuario gestionar jugadores? Lo dice el servidor en la propia clasificación. */
+  readonly canManageMembers = computed(() => this.leagues.canManageLeague());
+
+  toggleMenu(playerId: string, event: Event): void {
+    event.stopPropagation();
+    this.menuFor.update((open) => (open === playerId ? null : playerId));
+  }
+
+  closeMenu(): void {
+    this.menuFor.set(null);
+  }
+
+  onDocumentClick(event: MouseEvent): void {
+    if (!this.menuFor()) return;
+    const target = event.target as HTMLElement | null;
+    if (target?.closest('.rk-actions')) return;
+    this.closeMenu();
+  }
+
+  /**
+   * ¿Se puede expulsar a este jugador? Misma regla que el hub: hay que superarle en rango, y
+   * nadie expulsa al propietario ni a sí mismo.
+   *
+   * El rango del otro viene en su propia fila (`groupRole`). Antes no estaba en el DTO y había
+   * que cruzarlo con el roster que carga `GroupBridge`: dos fuentes para un dato que se sirve
+   * junto a los demás. El del que mira sale de `GroupsStore`, que es su propia pertenencia.
+   */
+  canKick(e: RankEntry): boolean {
+    const groupId = this.id();
+    if (!groupId) return false;
+    if (e.playerId === this.session.user()?.userId) return false;
+    if (e.groupRole === 'OWNER') return false;
+
+    const myRole = this.groupsStore.byId(groupId)?.role;
+    if (myRole === 'OWNER') return true;
+    return myRole === 'ADMIN' && e.groupRole === 'MEMBER';
+  }
+
+  // ── Sancionar ─────────────────────────────────────────────────────────
+  readonly sanctionFor = signal<RankEntry | null>(null);
+  readonly sanctionReason = signal('');
+  /** `''` = indefinida. El backend acepta `until` nulo. */
+  readonly sanctionUntil = signal('');
+
+  openSanction(e: RankEntry): void {
+    this.closeMenu();
+    this.sanctionReason.set('');
+    this.sanctionUntil.set('');
+    this.sanctionFor.set(e);
+  }
+
+  closeSanction(): void {
+    this.sanctionFor.set(null);
+  }
+
+  async confirmSanction(): Promise<void> {
+    const target = this.sanctionFor();
+    const groupId = this.id();
+    const reason = this.sanctionReason().trim();
+    if (!target || !groupId || !reason) return;
+    try {
+      await this.leagues.sanction(groupId, target.playerId, {
+        reason,
+        // `datetime-local` da hora local sin zona; se manda en ISO con la del navegador.
+        until: this.sanctionUntil() ? new Date(this.sanctionUntil()).toISOString() : null,
+      });
+      this.closeSanction();
+      this.toasts.success(`${target.name} queda fuera de la competición`);
+    } catch (e) {
+      this.toasts.error(errorMessage(e));
+    }
+  }
+
+  async liftSanction(e: RankEntry): Promise<void> {
+    this.closeMenu();
+    const groupId = this.id();
+    if (!groupId) return;
+    try {
+      await this.leagues.liftSanction(groupId, e.playerId);
+      this.toasts.success(`${e.name} vuelve a la competición`);
+    } catch (err) {
+      this.toasts.error(errorMessage(err));
+    }
+  }
+
+  // ── Expulsar ──────────────────────────────────────────────────────────
+  readonly kickFor = signal<RankEntry | null>(null);
+
+  askKick(e: RankEntry): void {
+    this.closeMenu();
+    this.kickFor.set(e);
+  }
+
+  async confirmKick(): Promise<void> {
+    const target = this.kickFor();
+    const groupId = this.id();
+    if (!target || !groupId) return;
+    try {
+      // El store de detalle es quien tiene la acción; `load` es idempotente por grupo.
+      await this.groupDetail.load(groupId);
+      await this.groupDetail.removeMember(target.playerId);
+      this.kickFor.set(null);
+      this.toasts.success(`${target.name} fue expulsado del grupo`);
+      // Sale de la clasificación: el dato derivado se refetch, no se recorta en cliente.
+      await this.leagues.reload();
+      void this.bridge.reload(groupId);
+    } catch (e) {
+      this.toasts.error(errorMessage(e));
+    }
+  }
+
   // ---- Buscador --------------------------------------------------------
 
   readonly searchQuery = signal('');
@@ -889,34 +1169,9 @@ export class GrupoRanking {
     return i >= 0 && i < list.length ? `rk-sugg-${list[i].userId}` : null;
   });
 
-  onSearchInput(event: Event): void {
-    const value = (event.target as HTMLInputElement).value;
+  onSearchChange(value: string): void {
     this.searchQuery.set(value);
-    this.searchOpen.set(value.trim().length > 0);
-    this.activeIndex.set(-1);
     this.typed.next(value);
-  }
-
-  onSearchBlur(event: FocusEvent): void {
-    const next = event.relatedTarget as HTMLElement | null;
-    if (!next?.closest('.rk-search-dropdown')) this.searchOpen.set(false);
-  }
-
-  moveActive(delta: number, event: Event): void {
-    const list = this.suggestions();
-    if (!list.length) return;
-    event.preventDefault();
-    this.searchOpen.set(true);
-    const next = this.activeIndex() + delta;
-    this.activeIndex.set(next < 0 ? list.length - 1 : next % list.length);
-  }
-
-  chooseActive(event: Event): void {
-    const list = this.suggestions();
-    const i = this.activeIndex();
-    if (i < 0 || i >= list.length) return;
-    event.preventDefault();
-    void this.selectPlayer(list[i]);
   }
 
   /**
@@ -927,8 +1182,6 @@ export class GrupoRanking {
    */
   async selectPlayer(s: LeaderboardSearchSuggestion): Promise<void> {
     this.searchQuery.set('');
-    this.searchOpen.set(false);
-    this.activeIndex.set(-1);
     this.typed.next('');
     this.openId.set(null);
 
@@ -1040,6 +1293,7 @@ export class GrupoRanking {
       // en bucle hasta agotar la memoria del proceso. La única dependencia aquí debe ser `id`.
       untracked(() => {
         void this.bridge.ensure(id);
+        void this.leagues.loadSeasons(id);
         // Al cambiar de grupo se empieza de cero: la clasificación del anterior no vale ni como
         // estado intermedio. El store descarta además la respuesta que llegue tarde.
         this.leagues.clear();

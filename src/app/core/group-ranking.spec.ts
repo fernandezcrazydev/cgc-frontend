@@ -12,6 +12,7 @@ function entry(overrides: Partial<LeaderboardEntryResponse> = {}): LeaderboardEn
     riotTier: 'DIAMOND',
     riotRank: 'II',
     riotStrength: 'VERIFIED',
+    groupRole: 'MEMBER',
     lp: 1250,
     wins: 15,
     losses: 5,

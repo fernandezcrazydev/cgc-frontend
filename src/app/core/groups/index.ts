@@ -17,6 +17,8 @@ export {
   bannerColors,
   type GroupView,
 } from './group-view';
+export { JoinRequestsStore } from './join-requests-store';
+export { GroupsSearchStore } from './groups-search-store';
 export {
   REGIONS,
   MATCHMAKING_PRESETS,
@@ -26,6 +28,9 @@ export {
   type GroupRole,
   type CreateGroupRequest,
   type GroupResponse,
+  type GroupSearchResult,
+  type JoinRequestResponse,
+  type JoinRequestStatus,
   type GroupMembershipResponse,
   type GroupMemberResponse,
   type InvitationResponse,

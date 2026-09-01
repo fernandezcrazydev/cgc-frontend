@@ -1,153 +1,155 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
-import { NfAvatar, NfSegmentOption, NfSegmented, NfSkeleton } from '../../../../ui';
+import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
+import { RouterLink } from '@angular/router';
+import { NfAvatar } from '../../../../ui';
+import { Session } from '../../../../core/auth';
+import { RiotAccountStore } from '../../../../core/riot';
 import { CrossViewState } from './cross-view-state';
 
-/** Cuál de las tres vistas del cruce está abierta. */
-export type CrossTab = 'historial' | 'enemigos' | 'aliados';
+export type CrossActiveTab = 'contra' | 'juntos' | 'historial';
 
-/**
- * La cabecera del cara a cara: quién contra quién, el balance del cruce y el conmutador que
- * lleva a las tres vistas.
- *
- * Es un componente y no tres cabeceras parecidas porque el balance tiene que decir lo mismo en
- * las tres pantallas. La versión anterior lo pintaba solo en el historial cruzado, con cifras
- * que salían de una semilla distinta a la de su propia lista.
- */
 @Component({
   selector: 'app-cross-header',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, NfAvatar, NfSegmented, NfSkeleton],
+  imports: [RouterLink, NfAvatar],
   template: `
     @if (state.player(); as p) {
-      <a class="view-back nf-mono" [routerLink]="['/app', 'perfil', p.tag]">
-        <span class="view-back__arrow" aria-hidden="true">←</span>
-        Volver al perfil de {{ p.name }}
-      </a>
-
-      <header class="cx-hero" [attr.aria-busy]="state.loading() ? 'true' : null">
-        <div class="cx-hero__who">
-          <nf-avatar
-            class="cx-hero__avatar"
-            [src]="p.avatarUrl"
-            [fallback]="p.name"
-            [tint]="p.hue"
-            [size]="58"
-            shape="round"
-            [alt]="'Avatar de ' + p.name"
-          />
-          <div class="cx-hero__id">
-            <div class="cx-hero__eyebrow nf-mono">Cara a cara</div>
-            <h1 class="cx-hero__title">Tú y {{ p.name }}</h1>
-            <div class="cx-hero__tag nf-mono">{{ p.tag }}</div>
-          </div>
+      <div class="cx-card-hero">
+        <!-- Topbar integrada con breadcrumbs y contexto -->
+        <div class="cx-topbar">
+          <a class="cx-topbar__back nf-mono" [routerLink]="['/app', 'perfil', p.tag]">
+            <span class="cx-topbar__arrow" aria-hidden="true">←</span>
+            Volver al perfil de {{ p.name }}
+          </a>
+          <span class="cx-topbar__context nf-mono">Historial Cruzado</span>
         </div>
 
-        <dl class="cx-kpis">
-          <div class="cx-kpi">
-            <dt class="cx-kpi__label nf-mono">Partidas cruzadas</dt>
-            <dd class="cx-kpi__value nf-mono">
-              @if (state.loading()) {
-                <nf-skeleton width="34px" height="22px" />
-              } @else {
-                {{ total().games }}
-              }
-            </dd>
+        <!-- Arena 1v1 Centrada y Simétrica -->
+        <div class="cx-arena">
+          <!-- Luchador 1: Tú -->
+          <div class="cx-fighter cx-fighter--me">
+            <a
+              class="cx-fighter__avatar-link"
+              [routerLink]="['/app', 'perfil']"
+              title="Ver mi perfil"
+            >
+              <nf-avatar
+                [src]="session.avatarUrl()"
+                [fallback]="session.displayName() || 'Tú'"
+                [size]="52"
+                shape="round"
+                alt="Tu avatar"
+              />
+            </a>
+            <div class="cx-fighter__info cx-fighter__info--me">
+              <a
+                class="cx-fighter__summoner"
+                [routerLink]="['/app', 'perfil']"
+                title="Ver mi perfil"
+              >
+                {{ mySummonerName() }}
+              </a>
+              <span class="cx-fighter__discord nf-mono">{{ myDiscordName() }}</span>
+            </div>
           </div>
 
-          <div class="cx-kpi cx-kpi--ally">
-            <dt class="cx-kpi__label nf-mono">Juntos</dt>
-            <dd class="cx-kpi__value nf-mono">
-              @if (state.loading()) {
-                <nf-skeleton width="52px" height="22px" />
-              } @else if (together().games > 0) {
-                {{ together().winrate }} %
-              } @else {
-                Ninguna
-              }
-            </dd>
-            @if (!state.loading() && together().games > 0) {
-              <dd class="cx-kpi__sub nf-mono">
-                {{ together().wins }}V - {{ together().losses }}D en {{ together().games }}
-                {{ together().games === 1 ? 'partida' : 'partidas' }}
-              </dd>
-            }
+          <!-- VS Badge Central -->
+          <div class="cx-vs-badge">
+            <span class="cx-vs-badge__emblem nf-mono">VS</span>
+            <span class="cx-vs-badge__count nf-mono">
+              {{ totalMatches() }} {{ totalMatches() === 1 ? 'partida' : 'partidas' }}
+            </span>
           </div>
 
-          <div class="cx-kpi cx-kpi--enemy">
-            <dt class="cx-kpi__label nf-mono">En contra</dt>
-            <dd class="cx-kpi__value nf-mono">
-              @if (state.loading()) {
-                <nf-skeleton width="52px" height="22px" />
-              } @else if (against().games > 0) {
-                {{ against().wins }} - {{ against().losses }}
-              } @else {
-                Ninguna
-              }
-            </dd>
-            @if (!state.loading() && against().games > 0) {
-              <dd class="cx-kpi__sub nf-mono" [class.cx-pos]="lead() > 0" [class.cx-neg]="lead() < 0">
-                {{ leadLabel() }}
-              </dd>
-            }
+          <!-- Luchador 2: Rival -->
+          <div class="cx-fighter cx-fighter--them">
+            <div class="cx-fighter__info cx-fighter__info--them">
+              <a
+                class="cx-fighter__summoner"
+                [routerLink]="['/app', 'perfil', p.tag]"
+                title="Ver perfil de {{ p.name }}"
+              >
+                {{ theirSummonerName() }}
+              </a>
+              <span class="cx-fighter__discord nf-mono">{{ theirDiscordName() }}</span>
+            </div>
+            <a
+              class="cx-fighter__avatar-link"
+              [routerLink]="['/app', 'perfil', p.tag]"
+              title="Ver perfil de {{ p.name }}"
+            >
+              <nf-avatar
+                [src]="p.avatarUrl"
+                [fallback]="p.name"
+                [tint]="p.hue"
+                [size]="52"
+                shape="round"
+                [alt]="'Avatar de ' + p.name"
+              />
+            </a>
           </div>
-        </dl>
-      </header>
+        </div>
+      </div>
 
-      <nav class="cx-tabs">
-        <nf-segmented
-          variant="tabs"
-          [options]="tabs()"
-          [value]="active()"
-          (valueChange)="go($event)"
-          ariaLabel="Secciones del cara a cara"
-        />
+      <!-- Pestañas de navegación instantánea full-width sin emojis -->
+      <nav class="cx-nav-tabs" role="tablist">
+        <button
+          type="button"
+          role="tab"
+          class="cx-nav-tab nf-mono"
+          [class.is-active]="activeTab() === 'contra'"
+          [attr.aria-selected]="activeTab() === 'contra'"
+          (click)="tabChange.emit('contra')"
+        >
+          <span>Cara a Cara</span>
+          <span class="cx-nav-tab__count">({{ enemyAgg().games }})</span>
+        </button>
+        <button
+          type="button"
+          role="tab"
+          class="cx-nav-tab nf-mono"
+          [class.is-active]="activeTab() === 'juntos'"
+          [attr.aria-selected]="activeTab() === 'juntos'"
+          (click)="tabChange.emit('juntos')"
+        >
+          <span>Sinergia</span>
+          <span class="cx-nav-tab__count">({{ allyAgg().games }})</span>
+        </button>
+        <button
+          type="button"
+          role="tab"
+          class="cx-nav-tab nf-mono"
+          [class.is-active]="activeTab() === 'historial'"
+          [attr.aria-selected]="activeTab() === 'historial'"
+          (click)="tabChange.emit('historial')"
+        >
+          <span>Historial Completo</span>
+          <span class="cx-nav-tab__count">({{ totalMatches() }})</span>
+        </button>
       </nav>
     }
   `,
+  styleUrl: './cross-header.component.scss',
 })
 export class CrossHeaderComponent {
-  readonly active = input.required<CrossTab>();
+  readonly activeTab = input<CrossActiveTab>('contra');
+  readonly tabChange = output<CrossActiveTab>();
 
-  protected readonly state = inject(CrossViewState);
-  private readonly router = inject(Router);
+  readonly state = inject(CrossViewState);
+  readonly session = inject(Session);
+  private readonly riot = inject(RiotAccountStore);
 
-  protected readonly total = this.state.aggregateAll;
-  protected readonly together = this.state.aggregateAllies;
-  protected readonly against = this.state.aggregateEnemies;
+  readonly totalMatches = computed(() => this.state.all().length);
+  readonly enemyAgg = computed(() => this.state.aggregateEnemies());
+  readonly allyAgg = computed(() => this.state.aggregateAllies());
 
-  /**
-   * Las etiquetas llevan el recuento porque es lo que decide si merece la pena entrar: una
-   * pestaña «Juntos» que resulta estar vacía es un clic tirado, y aquí ya se sabe.
-   */
-  protected readonly tabs = computed<NfSegmentOption[]>(() => [
-    { value: 'historial', label: 'Historial cruzado' },
-    { value: 'enemigos', label: `En contra (${this.against().games})` },
-    { value: 'aliados', label: `Juntos (${this.together().games})` },
-  ]);
+  readonly mySummonerName = computed(
+    () => this.riot.account()?.riotId || this.session.displayName() || 'Invocador',
+  );
+  readonly myDiscordName = computed(() => this.session.displayName() || 'Discord');
 
-  /** Positivo = vas ganando tú el marcador de los duelos. */
-  protected readonly lead = computed(() => this.against().wins - this.against().losses);
-
-  protected readonly leadLabel = computed(() => {
-    const lead = this.lead();
-    const name = this.state.player()?.name ?? 'el rival';
-    if (lead > 0) return `Vas ganando tú por ${lead}`;
-    if (lead < 0) return `Va ganando ${name} por ${-lead}`;
-    return 'Marcador empatado';
-  });
-
-  protected go(tab: string): void {
-    const id = this.state.playerId();
-    if (tab === this.active() || !id) return;
-    this.router.navigate([`/app/${SEGMENT[tab as CrossTab] ?? 'historial-cruzado'}`, id]);
-  }
+  readonly theirSummonerName = computed(
+    () => this.state.player()?.tag || this.state.player()?.name || 'Rival',
+  );
+  readonly theirDiscordName = computed(() => this.state.player()?.name || 'Discord');
 }
-
-/** Cada pestaña es una ruta propia: el conmutador navega, no oculta contenido. */
-const SEGMENT: Record<CrossTab, string> = {
-  historial: 'historial-cruzado',
-  enemigos: 'versus',
-  aliados: 'synergy',
-};

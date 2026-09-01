@@ -11,6 +11,10 @@ import { GROUPS } from '../../../core/lobby';
 import { MatchHistoryStore, buildCrossMatches } from '../../../core/matches';
 import { matchFixture, participantFixture } from '../../../core/matches/match-fixtures';
 import { Match, MatchParticipant } from '../../../core/matches/models';
+import { RiotAccountStore } from '../../../core/riot';
+import { CrossLayout } from './cross/cross-layout';
+import { CrossViewState } from './cross/cross-view-state';
+import { MatchHistoryUiState } from './match-history/match-history-ui';
 import { Synergy } from './synergy';
 import { Versus } from './versus';
 
@@ -30,10 +34,6 @@ function historial(): Match[] {
   ];
 }
 
-/**
- * `versus.ts` y `synergy.ts` no tenían ninguna prueba, y son las dos que responden 404 cuando
- * el jugador de la URL no existe. Lo que se afirma aquí son sus cuatro estados, no su aspecto.
- */
 function providers(
   matches: Match[],
   playerId: string,
@@ -43,6 +43,8 @@ function providers(
   const groupStore = new GroupStore();
   return [
     provideRouter([]),
+    CrossViewState,
+    MatchHistoryUiState,
     {
       provide: ActivatedRoute,
       useValue: {
@@ -84,7 +86,11 @@ function providers(
     },
     {
       provide: Session,
-      useValue: { displayName: signal('Yo'), status: signal('ready'), user: signal(null) },
+      useValue: { displayName: signal('Yo'), avatarUrl: signal(''), status: signal('ready'), user: signal(null) },
+    },
+    {
+      provide: RiotAccountStore,
+      useValue: { account: signal(null), status: signal('idle') },
     },
   ];
 }
@@ -113,69 +119,65 @@ async function montar<T>(
   return fixture.nativeElement as HTMLElement;
 }
 
-describe('Versus', () => {
-  it('enseña las medias contra ese jugador', async () => {
-    const el = await montar(Versus);
+describe('CrossLayout', () => {
+  it('renderiza la cabecera compartida cuando el jugador existe', async () => {
+    const el = await montar(CrossLayout);
 
     expect(el.querySelector('app-cross-header')).not.toBeNull();
     expect(el.textContent).not.toContain('Jugador no encontrado');
   });
 
-  it('un jugador que no existe es 404, con salida al perfil', async () => {
-    const el = await montar(Versus, { playerId: 'NoExiste#EUW', matches: [] });
+  it('un jugador que no existe es 404, con salida a grupos', async () => {
+    const el = await montar(CrossLayout, { playerId: 'NoExiste#EUW', matches: [] });
 
     expect(el.textContent).toContain('Jugador no encontrado');
-    expect(el.querySelector('app-cross-stats')).toBeNull();
+    expect(el.querySelector('app-cross-header')).toBeNull();
   });
 
-  /*
-   * Con el catálogo en error, `loading()` valía false y la cascada caía en el 404: un fallo de
-   * red se leía como «jugador no encontrado», sin forma de reintentar.
-   */
   it('un fallo de red es un error con reintentar, no un 404', async () => {
-    const el = await montar(Versus, { gameData: 'error' });
+    const el = await montar(CrossLayout, { gameData: 'error' });
 
     expect(el.textContent).toContain('No se ha podido cargar');
     expect(el.textContent).not.toContain('Jugador no encontrado');
     expect(el.querySelector('button')?.textContent).toContain('Reintentar');
   });
 
-  it('mientras el historial se reproyecta enseña esqueleto, no un 404 ni un vacío', async () => {
-    const el = await montar(Versus, { history: 'loading' });
+  it('mientras el historial se reproyecta enseña esqueleto, no un 404', async () => {
+    const el = await montar(CrossLayout, { history: 'loading' });
 
     expect(el.querySelector('[aria-busy="true"]')).not.toBeNull();
-    expect(el.textContent).not.toContain('Jugador no encontrado');
-    expect(el.textContent).not.toContain('Nunca os habéis enfrentado');
-  });
-
-  it('existir sin haberos enfrentado es un estado vacío, no un 404', async () => {
-    // Solo comparten la partida en la que jugaron juntos: en contra no hay ninguna.
-    const el = await montar(Versus, { matches: [historial()[1]] });
-
-    expect(el.textContent).toContain('Nunca os habéis enfrentado');
     expect(el.textContent).not.toContain('Jugador no encontrado');
   });
 });
 
+describe('Versus', () => {
+  it('enseña el panel de métricas Head-to-Head y el balance de duelos con anillo de winrate', async () => {
+    const el = await montar(Versus);
+
+    expect(el.textContent).toContain('Balance 1v1');
+    expect(el.querySelector('.vs-ring')).not.toBeNull();
+    expect(el.querySelector('.vs-panel')).not.toBeNull();
+  });
+
+  it('existir sin haberos enfrentado es un estado vacío', async () => {
+    const el = await montar(Versus, { matches: [historial()[1]] });
+
+    expect(el.textContent).toContain('Sin enfrentamientos directos');
+  });
+});
+
 describe('Synergy', () => {
-  it('mira el otro lado del cruce que Versus', async () => {
+  it('enseña la insignia de Tier de química y las partidas juntos', async () => {
     const el = await montar(Synergy);
 
-    expect(el.querySelector('app-cross-header')).not.toBeNull();
-    expect(el.textContent).not.toContain('Jugador no encontrado');
+    expect(el.textContent).toContain('Tier');
+    expect(el.querySelector('.syn-ring')).not.toBeNull();
+    expect(el.querySelector('.syn-panel')).not.toBeNull();
   });
 
-  it('un jugador que no existe también es 404 aquí', async () => {
-    const el = await montar(Synergy, { playerId: 'NoExiste#EUW', matches: [] });
-
-    expect(el.textContent).toContain('Jugador no encontrado');
-  });
-
-  it('existir sin haber jugado juntos es un estado vacío, no un 404', async () => {
-    // Solo comparten la partida en la que se enfrentaron: juntos no hay ninguna.
+  it('existir sin haber jugado juntos es un estado vacío', async () => {
     const el = await montar(Synergy, { matches: [historial()[0]] });
 
-    expect(el.textContent).toContain('Nunca habéis jugado juntos');
-    expect(el.textContent).not.toContain('Jugador no encontrado');
+    expect(el.textContent).toContain('Sin partidas juntos');
   });
 });

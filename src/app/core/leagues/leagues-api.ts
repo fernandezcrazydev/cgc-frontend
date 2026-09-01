@@ -8,6 +8,7 @@ import {
   LeaderboardSearchSuggestion,
   LeaderboardSort,
   LeagueResponse,
+  SanctionPlayerRequest,
   SortDirection,
 } from './models';
 
@@ -17,6 +18,8 @@ export interface LeaderboardQuery {
   size: number;
   sort: LeaderboardSort;
   dir: SortDirection;
+  /** Temporada a consultar. `null` = la activa, que es el caso de siempre. */
+  leagueId?: string | null;
 }
 
 /**
@@ -38,8 +41,17 @@ export class LeaguesApi {
    * Una página de la clasificación, más la liga y el podio (que son de la liga entera).
    */
   getLeaderboard(groupId: string, query: LeaderboardQuery): Observable<LeaderboardResponse> {
+    // `leagueId` solo viaja si lo hay: el backend lo trata como opcional y sin él sirve la
+    // temporada activa. Mandarlo vacío sería pedir una liga con id en blanco.
+    const params: Record<string, string | number> = {
+      page: query.page,
+      size: query.size,
+      sort: query.sort,
+      dir: query.dir,
+    };
+    if (query.leagueId) params['leagueId'] = query.leagueId;
     return this.http.get<LeaderboardResponse>(`${environment.apiUrl}/groups/${groupId}/leaderboard`, {
-      params: { page: query.page, size: query.size, sort: query.sort, dir: query.dir },
+      params,
     });
   }
 
@@ -56,10 +68,15 @@ export class LeaguesApi {
     pageSize: number,
     sort: LeaderboardSort,
     dir: SortDirection,
+    leagueId?: string | null,
   ): Observable<LeaderboardSearchSuggestion[]> {
+    // La MISMA temporada que la tabla: resolver la página contra la liga activa mientras se mira
+    // una pasada mandaría al usuario a una página donde ese jugador no está.
+    const params: Record<string, string | number> = { q: query, pageSize, sort, dir };
+    if (leagueId) params['leagueId'] = leagueId;
     return this.http.get<LeaderboardSearchSuggestion[]>(
       `${environment.apiUrl}/groups/${groupId}/leaderboard/search`,
-      { params: { q: query, pageSize, sort, dir } },
+      { params },
     );
   }
 
@@ -68,6 +85,24 @@ export class LeaguesApi {
    */
   listLeagues(groupId: string): Observable<LeagueResponse[]> {
     return this.http.get<LeagueResponse[]>(`${environment.apiUrl}/groups/${groupId}/leagues`);
+  }
+
+  /**
+   * Aparta a un jugador de la liga activa. Requiere OWNER o ADMIN del grupo; el backend lo
+   * revalida con `@groupSecurity.isAdmin`, así que esconder el control es solo comodidad.
+   */
+  sanction(groupId: string, userId: string, request: SanctionPlayerRequest): Observable<void> {
+    return this.http.put<void>(
+      `${environment.apiUrl}/groups/${groupId}/leaderboard/${userId}/sanction`,
+      request,
+    );
+  }
+
+  /** Devuelve al jugador a la competición. Idempotente: levantar lo ya levantado no es un error. */
+  liftSanction(groupId: string, userId: string): Observable<void> {
+    return this.http.delete<void>(
+      `${environment.apiUrl}/groups/${groupId}/leaderboard/${userId}/sanction`,
+    );
   }
 
   /**

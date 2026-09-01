@@ -39,5 +39,3 @@ montar **partidas personalizadas 5v5** estilo League of Legends dentro de **grup
 - **Estado:** todo en signals dentro de servicios `@Injectable({ providedIn: 'root' })`.
 - **Backend:** marcado en el código con `BACKEND NOTE:`. El front está diseñado para
   que solo cambie la fuente de datos (los métodos de los stores ya tienen la forma final).
-</content>
-</invoke>

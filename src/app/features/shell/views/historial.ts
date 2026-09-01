@@ -29,15 +29,6 @@ import { PersonalMatchCardComponent } from './match-history/personal-match-card.
   ],
   template: `
     <div class="view">
-      <div class="view__head">
-        <div class="view__eyebrow nf-mono">Registro competitivo</div>
-        <h1 class="view__title">Historial de partidas</h1>
-        <p class="view__lead">
-          Tus partidas en todas tus ligas y grupos. La etiqueta de cada fila dice dónde se
-          disputó; púlsala para ir al registro de esa liga, o pulsa la fila para ver quién jugaba.
-        </p>
-      </div>
-
       <app-match-summary-card />
 
       <app-match-filters

@@ -2789,14 +2789,19 @@ $touch: 44px;
   color: var(--nf-text-mid);
 }
 
-/* Boton de analisis. Antes era un enlace de texto con una flecha; ahora es un control con
-   cuerpo propio, porque es la unica salida del desplegable hacia la pagina de detalle. */
+.m-lineup__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+/* Botón de análisis y botón de duelo/sinergia */
 .m-lineup__more {
   display: inline-flex;
   align-items: center;
-  margin-top: 12px;
-  margin-left: auto;
-  align-self: flex-end;
   padding: 8px 18px;
   border: var(--bw-1) solid color-mix(in srgb, var(--nf-secondary) 40%, var(--nf-border));
   border-radius: 999px;
@@ -4515,7 +4520,7 @@ $touch: 44px;
 /* ---- Clasificación ---- */
 .rk-list {
   --rk-cols: 52px minmax(190px, 1.2fr) 96px 104px minmax(148px, 1.2fr) minmax(104px, 1fr) 96px 52px
-    32px;
+    62px;
   display: flex;
   flex-direction: column;
   border-radius: 12px;
@@ -5277,7 +5282,7 @@ $touch: 44px;
 @media (max-width: 1180px) {
   .rk-list {
     --rk-cols: 48px minmax(158px, 1fr) 88px 96px minmax(136px, 1.2fr) minmax(92px, 1fr) 88px 48px
-      26px;
+      56px;
   }
   .rk-match {
     grid-template-columns:
@@ -5317,7 +5322,7 @@ $touch: 44px;
   }
 
   .rk-list {
-    --rk-cols: 44px minmax(150px, 1fr) 88px 92px minmax(122px, 1.2fr) 76px 44px 24px;
+    --rk-cols: 44px minmax(150px, 1fr) 88px 92px minmax(122px, 1.2fr) 76px 44px 52px;
   }
   .rk-list__head .rk-th:nth-child(6),
   .rk-row__summary .rk-cell--trend {
@@ -12194,4 +12199,114 @@ $touch: 44px;
   .cx-kpis { width: 100%; }
   .cx-kpi { flex: 1 1 130px; }
   .cx-compare__players { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); }
+}
+
+/* ── Menú de gestión por fila del ranking (Fase 2, sanciones) ───────────────
+   Tres puntos y no botones sueltos: en una tabla de quince filas, repetir acciones
+   destructivas a la vista invita al accidente y se come ancho que aquí ya va justo. */
+/* Por encima de `.rk-row__toggle::after`, que es una capa invisible a `inset: 0` con la que la
+   fila entera despliega el cajón. Sin este z-index, pulsar los tres puntos abría el cajón en vez
+   del menú: el clic no llegaba al botón. */
+.rk-actions { position: relative; z-index: 2; display: inline-flex; align-items: center; }
+.rk-actions__trigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  color: var(--nf-text-dim);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.14s, color 0.14s, border-color 0.14s;
+}
+.rk-actions__trigger:hover,
+.rk-actions__trigger.is-open {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: var(--nf-border);
+  color: var(--nf-text);
+}
+.rk-actions__trigger:focus-visible { outline: 2px solid var(--nf-secondary); outline-offset: 2px; }
+.rk-actions__trigger:disabled { opacity: 0.45; cursor: not-allowed; }
+.rk-actions__menu {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 6px);
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  min-width: 190px;
+  padding: 6px;
+  border-radius: 10px;
+  background: var(--nf-surface-2, rgba(28, 28, 30, 0.98));
+  border: 1px solid var(--nf-border-strong);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+}
+.rk-actions__item {
+  padding: 9px 10px;
+  background: transparent;
+  border: none;
+  border-radius: 7px;
+  color: var(--nf-text-mid);
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.14s, color 0.14s;
+}
+.rk-actions__item:hover { background: rgba(255, 255, 255, 0.06); color: var(--nf-text); }
+.rk-actions__item:disabled { opacity: 0.5; cursor: not-allowed; }
+.rk-actions__item--danger {
+  margin-top: 4px;
+  border-top: 1px solid var(--nf-border);
+  border-radius: 0 0 7px 7px;
+  color: var(--nf-danger);
+}
+.rk-actions__item--danger:hover { background: color-mix(in srgb, var(--nf-danger) 14%, transparent); }
+
+.rk-sanction { display: flex; flex-direction: column; gap: 6px; }
+.rk-sanction__lead { margin: 0 0 8px; font-size: 13.5px; color: var(--nf-text-mid); line-height: 1.5; }
+.rk-sanction__hint { margin: 0 0 8px; font-size: 11px; color: var(--nf-text-dim); }
+
+/* Los dos controles de la fila (menú de gestión y desplegar) comparten la última celda de la
+   rejilla. Meter una columna nueva para el menú habría descolocado la cabecera, que usa el
+   mismo `--rk-cols`; ensanchar la celda existente no toca nada más. */
+.rk-rowend {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+}
+
+/* La fila con el menú abierto se eleva por encima de las demás.
+   Sin esto el menú quedaba tapado por la fila siguiente: `.rk-actions` lleva `z-index: 2` para
+   ganar a la capa invisible que hace pulsable la fila, y eso crea un CONTEXTO DE APILAMIENTO.
+   El `z-index: 30` del menú solo compite dentro de ese contexto, así que a fuera sigue valiendo
+   2 — y la fila de abajo, posterior en el DOM y también con 2, gana el empate y pinta encima. */
+.rk-row.has-menu {
+  position: relative;
+  z-index: 40;
+}
+
+/* Selector de temporada, bajo el nombre de la liga. */
+.rk-season {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+.rk-season__label { font-size: 11px; color: var(--nf-text-dim); }
+/* Mirar una temporada cerrada no es lo mismo que mirar la de ahora: si no se dice, los números
+   se leen como el estado actual del grupo. */
+.rk-season__past {
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--nf-warning) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--nf-warning) 38%, transparent);
+  font-size: 11px;
+  color: var(--nf-text-mid);
 }

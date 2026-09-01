@@ -288,3 +288,5 @@ Cuando se acuerde uno, documentarlo aquí y borrar la línea de pendientes.
   `provideZonelessChangeDetection` explícito. El objetivo es activarlos — no escribas código
   nuevo que lo impida.
 - `environment.prod.ts` tiene `apiBaseUrl` placeholder (`TODO`).
+- Advertencia de bundle budget en producción (`Initial total exceeded maximum budget: ~841 kB vs 500 kB`):
+  temporal por albergar generadores y semillas deterministas en frontend (Fase 0/1); se reducirá al migrar a endpoints reales y borrar los placeholders en la Fase 6.

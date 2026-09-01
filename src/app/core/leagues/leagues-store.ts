@@ -9,6 +9,7 @@ import {
   LeaderboardSort,
   LeagueResponse,
   SortDirection,
+  SanctionPlayerRequest,
 } from './models';
 
 export type LeaguesStatus = 'idle' | 'loading' | 'ready' | 'error';
@@ -115,11 +116,93 @@ export class LeaguesStore {
     return this.fetch(groupId, this._query());
   }
 
+  /**
+   * Aparta a un jugador de la competición, o lo devuelve a ella.
+   *
+   * Pesimista y no reentrante, como exige `CLAUDE.md` para toda escritura: mientras hay una en
+   * vuelo sobre ese jugador el control queda deshabilitado, se espera la confirmación del
+   * servidor y solo entonces se refresca. **El refetch no es opcional**: la sanción cambia el
+   * orden de la tabla (los sancionados caen al final bajo cualquier criterio), y recalcularlo en
+   * cliente sería inventarse el resultado de una regla que vive en el servidor.
+   *
+   * Deja que el error suba: quien llama decide el texto con `errorMessage()`.
+   */
+  async sanction(groupId: string, userId: string, request: SanctionPlayerRequest): Promise<void> {
+    if (this._sanctioning().has(userId)) return;
+    this.markSanctioning(userId, true);
+    try {
+      await firstValueFrom(this.api.sanction(groupId, userId, request));
+      await this.reload();
+    } finally {
+      this.markSanctioning(userId, false);
+    }
+  }
+
+  async liftSanction(groupId: string, userId: string): Promise<void> {
+    if (this._sanctioning().has(userId)) return;
+    this.markSanctioning(userId, true);
+    try {
+      await firstValueFrom(this.api.liftSanction(groupId, userId));
+      await this.reload();
+    } finally {
+      this.markSanctioning(userId, false);
+    }
+  }
+
+  /** Jugadores con una escritura de sanción en vuelo. Es lo que apaga sus controles. */
+  private readonly _sanctioning = signal<ReadonlySet<string>>(new Set());
+
+  isSanctioning(userId: string): boolean {
+    return this._sanctioning().has(userId);
+  }
+
+  private markSanctioning(userId: string, active: boolean): void {
+    this._sanctioning.update((current) => {
+      const next = new Set(current);
+      if (active) next.add(userId);
+      else next.delete(userId);
+      return next;
+    });
+  }
+
   /** Fuerza un refetch de lo que haya cargado (p. ej. al reentrar en la ruta). */
   reload(): Promise<void> {
     const groupId = this._groupId();
     if (!groupId) return Promise.resolve();
     return this.fetch(groupId, this._query());
+  }
+
+  // ── Temporadas ─────────────────────────────────────────────────────
+  /** Las ligas del grupo, de la más reciente a la más antigua. Vacío hasta pedirlas. */
+  private readonly _seasons = signal<LeagueResponse[]>([]);
+  readonly seasons = this._seasons.asReadonly();
+
+  /** Temporada que se está viendo, o `null` para la activa. */
+  readonly viewingLeagueId = computed(() => this._query().leagueId ?? null);
+
+  /**
+   * Trae la lista de temporadas del grupo. Idempotente por grupo.
+   *
+   * Falla en silencio a lista vacía: sin temporadas que ofrecer, el selector simplemente no
+   * aparece, y un toast de error por un desplegable secundario sería peor que su ausencia.
+   */
+  async loadSeasons(groupId: string): Promise<void> {
+    if (this.seasonsLoadedFor === groupId) return;
+    try {
+      const seasons = await firstValueFrom(this.api.listLeagues(groupId));
+      if (this._groupId() !== groupId && this.seasonsLoadedFor !== null) return;
+      this.seasonsLoadedFor = groupId;
+      this._seasons.set(seasons);
+    } catch {
+      this._seasons.set([]);
+    }
+  }
+
+  private seasonsLoadedFor: string | null = null;
+
+  /** Abre otra temporada. `null` vuelve a la activa. Reinicia a la primera página. */
+  selectSeason(leagueId: string | null): Promise<void> {
+    return this.applyQuery({ leagueId, page: 0 });
   }
 
   /** Cambia de página conservando el orden. `page` es 0-based. */
@@ -146,10 +229,10 @@ export class LeaguesStore {
   async search(groupId: string, query: string): Promise<LeaderboardSearchSuggestion[]> {
     const q = query.trim();
     if (!q) return [];
-    const { sort, dir } = this._query();
+    const { sort, dir, leagueId } = this._query();
     try {
       return await firstValueFrom(
-        this.api.searchLeaderboard(groupId, q, LEADERBOARD_PAGE_SIZE, sort, dir),
+        this.api.searchLeaderboard(groupId, q, LEADERBOARD_PAGE_SIZE, sort, dir, leagueId),
       );
     } catch {
       return [];
@@ -193,6 +276,8 @@ export class LeaguesStore {
     this._groupId.set(null);
     this._status.set('idle');
     this._error.set(null);
+    this._seasons.set([]);
+    this.seasonsLoadedFor = null;
     this._query.set({ page: 0, size: LEADERBOARD_PAGE_SIZE, sort: 'RANK', dir: 'ASC' });
   }
 
@@ -240,6 +325,8 @@ export class LeaguesStore {
   }
 
   private keyOf(groupId: string, q: LeaderboardQuery): string {
-    return `${groupId}|${q.page}|${q.size}|${q.sort}|${q.dir}`;
+    // La temporada entra en la clave: sin ella, cambiar de liga con la misma página y orden se
+    // consideraba "ya cargado" y se seguía enseñando la tabla anterior.
+    return `${groupId}|${q.leagueId ?? 'active'}|${q.page}|${q.size}|${q.sort}|${q.dir}`;
   }
 }
