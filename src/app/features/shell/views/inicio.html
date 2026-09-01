@@ -1,282 +1,550 @@
 <div class="ini">
-  <!-- Hero Card: Grupo Protagonista con transición Slide & Fade Cinemático -->
-  <div class="ini-hero-container">
-    @if (activeGroup(); as grp) {
-      <section
-        class="ini-hero"
-        [class.is-sliding-left]="slideState() === 'sliding-left'"
-        [class.is-sliding-right]="slideState() === 'sliding-right'"
-        [style.--grp-c1]="grp.c1"
-        [style.--grp-c2]="grp.c2"
-      >
-        <!-- Barra superior de la tarjeta -->
-        <div class="ini-hero__top">
-          <div class="ini-hero__group-info">
-            <span class="ini-hero__avatar">{{ grp.initials }}</span>
-            <div>
-              <div class="ini-hero__name">{{ grp.name }}</div>
-              <div class="ini-hero__season nf-mono">{{ grp.region }} · Temporada Activa</div>
-            </div>
+  <!-- Barra de Mando Superior del Grupo (Command Header Bar) -->
+  @if (activeGroup(); as grp) {
+    <header class="ini-topbar" [style.--grp-c1]="grp.c1" [style.--grp-c2]="grp.c2">
+      <div class="ini-topbar__group">
+        <span class="ini-topbar__avatar">{{ grp.initials }}</span>
+        <div class="ini-topbar__titles">
+          <div class="ini-topbar__name">{{ grp.name }}</div>
+          <div class="ini-topbar__meta nf-mono">
+            <span>{{ grp.region }}</span>
+            <span class="ini-topbar__bullet">·</span>
+            <span class="ini-topbar__season">Temporada Activa</span>
+            <span class="ini-topbar__bullet">·</span>
+            <span class="ini-topbar__role">{{ grp.role }}</span>
           </div>
-
-          <!-- Controles de carrusel (solo si hay >1 grupo) -->
-          @if (hasMultipleGroups()) {
-            <div class="ini-hero__controls">
-              <button
-                type="button"
-                class="ini-hero__arrow"
-                aria-label="Grupo anterior"
-                [disabled]="slideState() !== 'idle'"
-                (click)="prevGroup()"
-              >‹</button>
-              <span class="ini-hero__pagination nf-mono">{{ (groupIndex() % groupsList().length + groupsList().length) % groupsList().length + 1 }} / {{ groupsList().length }}</span>
-              <button
-                type="button"
-                class="ini-hero__arrow"
-                aria-label="Grupo siguiente"
-                [disabled]="slideState() !== 'idle'"
-                (click)="nextGroup()"
-              >›</button>
-            </div>
-          }
         </div>
+      </div>
 
-        <!-- Cuerpo dividido: Rival Directo + Convocatoria -->
-        <div class="ini-hero__body">
-          <!-- Columna Izquierda: Tu Rival Directo -->
-          <div class="ini-rival">
-            <div class="ini-block-title">
-              <span>⚔️ Tu Rival Directo</span>
-            </div>
-
-            @if (leaguesLoading()) {
-              <div class="ini-rival__list" aria-busy="true">
-                <nf-skeleton width="100%" height="36px" />
-                <nf-skeleton width="100%" height="36px" />
-                <nf-skeleton width="100%" height="36px" />
-              </div>
-            } @else {
-              <div class="ini-rival__list">
-                @for (row of rivalSummary().rows; track row.name) {
-                  <div class="ini-rival-row" [class.is-me]="row.isMe">
-                    <div class="ini-rival-row__player">
-                      <span class="ini-rival-row__rank nf-mono">{{ row.rank }}.º</span>
-                      <span class="ini-rival-row__name">{{ row.name }}</span>
-                    </div>
-                    <span class="ini-rival-row__lp nf-mono">{{ row.lp }} LP</span>
-                  </div>
-                }
-              </div>
-
-              <div class="ini-rival__gap-callout">
-                <span>{{ rivalSummary().calloutText }}</span>
-              </div>
-            }
+      <!-- Controles de Navegación de Grupos (Stepper) -->
+      <div class="ini-topbar__actions">
+        @if (hasMultipleGroups()) {
+          <div class="ini-stepper">
+            <button
+              type="button"
+              class="ini-stepper__btn"
+              aria-label="Grupo anterior"
+              [disabled]="slideState() !== 'idle'"
+              (click)="prevGroup()"
+            >
+              <svg class="ini-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="15 18 9 12 15 6" />
+              </svg>
+            </button>
+            <span class="ini-stepper__count nf-mono">
+              {{ (groupIndex() % groupsList().length + groupsList().length) % groupsList().length + 1 }} / {{ groupsList().length }}
+            </span>
+            <button
+              type="button"
+              class="ini-stepper__btn"
+              aria-label="Grupo siguiente"
+              [disabled]="slideState() !== 'idle'"
+              (click)="nextGroup()"
+            >
+              <svg class="ini-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </button>
           </div>
+        }
 
-          <!-- Columna Derecha: Convocatoria en Directo -->
-          <div class="ini-lobby">
-            <div class="ini-lobby__header">
-              <div class="ini-block-title">
-                <span>⚡ Convocatoria en Directo</span>
-              </div>
-              @if (activeRoom()) {
-                <nf-badge color="success" [dot]="true">En vivo</nf-badge>
-              } @else {
-                <nf-badge color="secondary">Sin sala activa</nf-badge>
-              }
-            </div>
+        <button nfButton variant="primary" size="sm" (click)="crearPartida()">
+          <svg class="ini-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
+          <span>Convocar 5v5</span>
+        </button>
+      </div>
+    </header>
+  } @else {
+    <!-- Estado vacío si el usuario no tiene ningún grupo -->
+    <header class="ini-topbar ini-topbar--empty">
+      <div class="ini-topbar__group">
+        <div class="ini-topbar__titles">
+          <div class="ini-topbar__name">Bienvenido a Sale Custom</div>
+          <div class="ini-topbar__meta">Únete o crea un grupo competitivo para comenzar.</div>
+        </div>
+      </div>
+      <button nfButton variant="primary" size="sm" (click)="crearPartida()">Explorar grupos</button>
+    </header>
+  }
 
-            <div class="ini-lobby__state">
-              @if (activeRoom(); as room) {
-                <div class="ini-lobby__seats-count nf-mono">
-                  ● Sala abierta · {{ room.seats.length }}/{{ room.capacity }} jugadores
+  <!-- Layout Asimétrico de 2 Columnas (Opción B: Esports Telemetry Feed) -->
+  <div class="ini-layout-2col" [class.is-pulsing]="slideState() !== 'idle'">
+    <!-- ── COLUMNA PRINCIPAL (65% Ancho) ────────────────────────────────── -->
+    <main class="ini-main-col">
+      <!-- Módulo 1: Gráfica de Evolución de LP estilo PolPredictor -->
+      <div class="ini-card ini-pol-card">
+        @if (leaguesLoading()) {
+          <div class="ini-skeleton-box" aria-busy="true">
+            <nf-skeleton width="100%" height="36px" />
+            <nf-skeleton width="100%" height="240px" />
+            <nf-skeleton width="100%" height="40px" />
+          </div>
+        } @else {
+          @if (lpEvolution(); as evo) {
+            <!-- Cabecera de la Gráfica: Título + Timeframes + Subtítulo con Valor Live -->
+            <div class="pol-head">
+              <div class="pol-title-row">
+                <div class="pol-title-group">
+                  <h3 class="pol-title">Evolución</h3>
                 </div>
-                @if (missingSeats() > 0) {
-                  <div class="ini-lobby__status-msg has-pulse">
-                    ¡Faltan {{ missingSeats() }} para completar los 10 de hoy!
-                  </div>
-                } @else {
-                  <div class="ini-lobby__status-msg">
-                    Sala completa · Preparando fase de draft
-                  </div>
-                }
 
-                <!-- Barra de 10 slots -->
-                <div class="ini-lobby__slots">
-                  @for (slot of lobbySlots(); track $index) {
-                    <span
-                      class="ini-lobby__slot"
-                      [class.ini-lobby__slot--filled]="slot.filled"
-                      [class.ini-lobby__slot--empty]="!slot.filled"
+                <div class="pol-time-selector">
+                  @for (opt of timeRangeOptions; track opt.value) {
+                    <button
+                      type="button"
+                      class="pol-time-btn"
+                      [class.is-active]="timeRange() === opt.value"
+                      (click)="timeRange.set(opt.value)"
                     >
-                      {{ slot.initials }}
+                      {{ opt.label }}
+                    </button>
+                  }
+                </div>
+              </div>
+
+              <div class="pol-meta-row">
+                <span class="pol-meta-date">{{ evo.activePoint.dateStr }}</span>
+                <div class="pol-meta-series">
+                  <span class="pol-meta-dot" [style.background]="activeGroup()?.c1 || 'var(--nf-primary, #3b82f6)'"></span>
+                  <span class="pol-meta-name">{{ activeGroup()?.name || 'Sale Custom' }}</span>
+                  <span class="pol-meta-val nf-mono">{{ evo.activePoint.val }} LP</span>
+                  @if (evo.activePoint.delta !== 0) {
+                    <span
+                      class="pol-meta-delta nf-mono"
+                      [class.is-up]="evo.activePoint.delta > 0"
+                      [class.is-down]="evo.activePoint.delta < 0"
+                    >
+                      {{ evo.activePoint.delta > 0 ? '+' : '' }}{{ evo.activePoint.delta }} LP
                     </span>
                   }
                 </div>
+              </div>
+            </div>
 
-                <div class="ini-lobby__actions">
-                  <button nfButton variant="primary" size="md" (click)="entrarSala(room.id)">
-                    ＋ Entrar a la sala ({{ room.seats.length }}/{{ room.capacity }})
-                  </button>
+            <!-- Contenedor del Gráfico Interactivo SVG -->
+            <div
+              class="pol-chart-container"
+              (mousemove)="onChartMouseMove($event)"
+              (mouseleave)="onChartMouseLeave()"
+            >
+              <!-- Tooltip flotante posicionado cerca del crosshair -->
+              <div
+                class="pol-tooltip"
+                [class.is-left]="evo.activePoint.percentX > 55"
+                [style.left.%]="evo.activePoint.percentX"
+                [style.top.%]="evo.activePoint.percentY"
+              >
+                <div class="pol-tooltip-date">{{ evo.activePoint.dateStr }}</div>
+                <div class="pol-tooltip-row">
+                  <span class="pol-tooltip-dot" [style.background]="activeGroup()?.c1 || 'var(--nf-primary, #3b82f6)'"></span>
+                  <span class="pol-tooltip-name">{{ activeGroup()?.name || 'Grupo Activo' }}</span>
+                  <span class="pol-tooltip-val nf-mono">{{ evo.activePoint.val }} LP</span>
                 </div>
-              } @else {
-                <div class="ini-lobby__seats-count">
-                  No hay salas abiertas ahora
+                @if (evo.activePoint.delta !== 0) {
+                  <div
+                    class="pol-tooltip-delta nf-mono"
+                    [class.is-up]="evo.activePoint.delta > 0"
+                    [class.is-down]="evo.activePoint.delta < 0"
+                  >
+                    Diferencial: {{ evo.activePoint.delta > 0 ? '+' : '' }}{{ evo.activePoint.delta }} LP
+                  </div>
+                }
+              </div>
+
+              <svg
+                class="pol-svg"
+                viewBox="0 0 1000 280"
+                preserveAspectRatio="none"
+              >
+                <defs>
+                  <linearGradient id="polAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="var(--grp-c1, var(--nf-primary, #3b82f6))" stop-opacity="0.12" />
+                    <stop offset="100%" stop-color="var(--grp-c1, var(--nf-primary, #3b82f6))" stop-opacity="0.0" />
+                  </linearGradient>
+                </defs>
+
+                <!-- Líneas Guía Horizontales y Etiquetas del Eje Y a la Derecha -->
+                @for (tick of evo.yTicks; track tick.val) {
+                  <line
+                    x1="12"
+                    [attr.y1]="tick.y"
+                    x2="905"
+                    [attr.y2]="tick.y"
+                    class="pol-gridline"
+                  />
+                  <text
+                    x="918"
+                    [attr.y]="tick.y + 4"
+                    class="pol-axis-text nf-mono"
+                  >
+                    {{ tick.label }}
+                  </text>
+                }
+
+                <!-- Área sutil bajo la curva -->
+                <path [attr.d]="evo.areaPath" fill="url(#polAreaGrad)" />
+
+                <!-- Línea de Trayectoria Continua y Nítida -->
+                <path
+                  [attr.d]="evo.linePath"
+                  fill="none"
+                  stroke="var(--grp-c1, var(--nf-primary, #3b82f6))"
+                  stroke-width="2.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+
+                <!-- Línea Guía Vertical (Crosshair) -->
+                <line
+                  [attr.x1]="evo.activePoint.x"
+                  y1="25"
+                  [attr.x2]="evo.activePoint.x"
+                  y2="255"
+                  class="pol-crosshair"
+                />
+
+                <!-- Punto Destacado en la Intersección -->
+                <circle
+                  [attr.cx]="evo.activePoint.x"
+                  [attr.cy]="evo.activePoint.y"
+                  r="5"
+                  class="pol-active-dot"
+                  [style.fill]="activeGroup()?.c1 || 'var(--nf-primary, #3b82f6)'"
+                />
+              </svg>
+            </div>
+
+            <!-- Barra Inferior de Métricas Clave -->
+            <div class="pol-footer-grid">
+              <div class="pol-footer-item">
+                <span class="pol-footer-label">Resultado Temporada</span>
+                <span class="pol-footer-val nf-mono">{{ evo.wins }}V - {{ evo.losses }}D ({{ evo.wr }}% WR)</span>
+              </div>
+              <div class="pol-footer-item">
+                <span class="pol-footer-label">LP Actual</span>
+                <span class="pol-footer-val nf-mono">{{ evo.currentLp }} LP <small>(#{{ evo.rank }})</small></span>
+              </div>
+              <div class="pol-footer-item">
+                <span class="pol-footer-label">Δ {{ timeRange() === '24h' ? '24 h' : timeRange() === '7d' ? '7 d' : '30 d' }}</span>
+                <span
+                  class="pol-footer-val nf-mono"
+                  [class.is-up]="evo.netDelta > 0"
+                  [class.is-down]="evo.netDelta < 0"
+                >
+                  {{ evo.netDelta > 0 ? '+' : '' }}{{ evo.netDelta }} LP ↗
+                </span>
+              </div>
+            </div>
+          }
+        }
+      </div>
+
+      <!-- Subgrid 2 Columnas de Rendimiento: MVP de la Noche + Némesis Cara a Cara -->
+      <div class="ini-perf-subgrid">
+        <!-- Tarjeta Interactiva: MVP de la Noche (Clic redirige al perfil) -->
+        <div
+          class="ini-card ini-interactive-card ini-mvp-card"
+          role="button"
+          tabindex="0"
+          aria-label="Ver perfil del MVP"
+          (click)="lastMvp() && verPerfil(lastMvp()!.riotId)"
+          (keydown.enter)="lastMvp() && verPerfil(lastMvp()!.riotId)"
+        >
+          <div class="ini-card__head">
+            <div class="ini-card__title-row">
+              <svg class="ini-icon ini-icon--gold" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
+                <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+                <path d="M4 22h16" />
+                <path d="M10 14.66V17c0 .55-.45 1-1 1H7v2h10v-2h-2c-.55 0-1-.45-1-1v-2.34c3.08-.63 5.4-3.35 5.4-6.66V4H6v4c0 3.31 2.32 6.03 5.4 6.66z" />
+              </svg>
+              <span class="ini-block-title">MVP de la Noche</span>
+            </div>
+            <div class="ini-card__head-actions">
+              <nf-badge color="warning">Destacado</nf-badge>
+            </div>
+          </div>
+
+          <div class="ini-card__body">
+            @if (lastMvp(); as mvp) {
+              <div class="ini-mvp-profile">
+                <div class="ini-mvp-avatar">{{ mvp.initials }}</div>
+                <div class="ini-mvp-info">
+                  <div class="ini-mvp-name">{{ mvp.name }}</div>
+                  <div class="ini-mvp-champ nf-mono">{{ mvp.champion }}</div>
                 </div>
-                <div class="ini-lobby__status-msg">
-                  Crea una convocatoria 5v5 para jugar una custom equilibrada con tu grupo.
+                <div class="ini-mvp-kda-badge nf-mono">
+                  {{ mvp.kda }}
                 </div>
-                <div class="ini-lobby__actions">
-                  <button nfButton variant="primary" size="md" (click)="crearPartida()">
-                    ＋ Convocar Partida 5v5
-                  </button>
+              </div>
+
+              <div class="ini-mvp-quote-bubble">
+                <span class="ini-quote-mark">“</span>
+                <span class="ini-quote-text">{{ mvp.quote }}</span>
+              </div>
+            } @else {
+              <p class="ini-empty-msg">
+                Aún no hay partidas disputadas recientemente en este grupo.
+              </p>
+            }
+          </div>
+        </div>
+
+        <!-- Tarjeta Interactiva: Tu Mayor Némesis (Clic redirige a versus) -->
+        <div
+          class="ini-card ini-interactive-card ini-nemesis-card"
+          role="button"
+          tabindex="0"
+          aria-label="Ver cara a cara contra tu némesis"
+          (click)="nemesisHighlight() && retarNemesis(nemesisHighlight()!.riotId)"
+          (keydown.enter)="nemesisHighlight() && retarNemesis(nemesisHighlight()!.riotId)"
+        >
+          <div class="ini-card__head">
+            <div class="ini-card__title-row">
+              <svg class="ini-icon ini-icon--crimson" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5" />
+                <line x1="13" y1="19" x2="19" y2="13" />
+                <line x1="16" y1="16" x2="20" y2="20" />
+                <line x1="19" y1="21" x2="21" y2="19" />
+                <polyline points="14.5 6.5 18 3 21 3 21 6 17.5 9.5" />
+                <line x1="5" y1="14" x2="9" y2="18" />
+                <line x1="7" y1="17" x2="3" y2="21" />
+                <line x1="3" y1="19" x2="5" y2="21" />
+              </svg>
+              <span class="ini-block-title">Tu Mayor Némesis</span>
+            </div>
+            <div class="ini-card__head-actions">
+              <nf-badge color="danger">Rivalidad</nf-badge>
+            </div>
+          </div>
+
+          <div class="ini-card__body">
+            @if (nemesisHighlight(); as nemesis) {
+              <div class="ini-nemesis-versus">
+                <div class="ini-nemesis-players">
+                  <span class="ini-nemesis-tag nf-mono">Tú ({{ nemesis.myWins }}V)</span>
+                  <span class="ini-nemesis-vs nf-mono">VS</span>
+                  <span class="ini-nemesis-tag nf-mono">{{ nemesis.name }} ({{ nemesis.myLosses }}V)</span>
+                </div>
+
+                <!-- Barra Head-to-Head Visual -->
+                <div class="ini-nemesis-bar">
+                  <div
+                    class="ini-nemesis-bar__win"
+                    [style.width.%]="(nemesis.myWins / (nemesis.myWins + nemesis.myLosses || 1)) * 100"
+                  ></div>
+                  <div
+                    class="ini-nemesis-bar__loss"
+                    [style.width.%]="(nemesis.myLosses / (nemesis.myWins + nemesis.myLosses || 1)) * 100"
+                  ></div>
+                </div>
+
+                <div class="ini-nemesis-stats">
+                  <span class="ini-nemesis-wr nf-mono">{{ nemesis.myWinrate }}% WR en contra</span>
+                </div>
+              </div>
+
+              <div class="ini-nemesis-callout">
+                {{ nemesis.callout }}
+              </div>
+            } @else {
+              <p class="ini-empty-msg">
+                Aún no tienes un rival con suficientes partidas directas.
+              </p>
+            }
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- ── COLUMNA LATERAL (35% Ancho) ─────────────────────────────────── -->
+    <aside class="ini-sidebar-col">
+      <!-- Card A: Convocatoria en Directo (Pool Unificado de 10 Plazas) -->
+      <div class="ini-card ini-lobby-card">
+        <div class="ini-card__head">
+          <div class="ini-card__title-row">
+            <svg class="ini-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+            <span class="ini-block-title">Sala en Directo</span>
+          </div>
+
+          @if (activeRoom()) {
+            <span class="ini-live-badge-wrapper">
+              <nf-badge color="success" [dot]="true">En vivo</nf-badge>
+            </span>
+          } @else {
+            <nf-badge color="secondary">Sin sala</nf-badge>
+          }
+        </div>
+
+        <div class="ini-card__body">
+          @if (activeRoom(); as room) {
+            <div class="ini-lobby-status">
+              <div class="ini-lobby-status__top">
+                <span class="ini-lobby-count nf-mono">{{ room.seats.length }} / {{ room.capacity }} Jugadores</span>
+                <span class="ini-lobby-percent nf-mono">{{ lobbyFillPercent() }}%</span>
+              </div>
+
+              <!-- Barra de Progreso de Ocupación -->
+              <div class="ini-lobby-progress">
+                <div class="ini-lobby-progress__fill" [style.width.%]="lobbyFillPercent()"></div>
+              </div>
+            </div>
+
+            <!-- Pool Unificado de 10 Plazas (Cuadrícula 2x5) -->
+            <div class="ini-bench-grid">
+              @for (slot of lobbySlots(); track $index) {
+                <div
+                  class="ini-bench-slot"
+                  [class.is-filled]="slot.filled"
+                  [class.is-empty]="!slot.filled"
+                  [attr.role]="slot.filled ? 'button' : null"
+                  [attr.tabindex]="slot.filled ? 0 : null"
+                  [attr.title]="slot.filled ? 'Ver perfil de ' + slot.name : 'Plaza disponible'"
+                  [attr.aria-label]="slot.filled ? 'Ver perfil de ' + slot.name : 'Plaza disponible'"
+                  (click)="slot.filled && slot.riotId && verPerfil(slot.riotId)"
+                  (keydown.enter)="slot.filled && slot.riotId && verPerfil(slot.riotId)"
+                >
+                  @if (slot.filled) {
+                    <svg class="ini-bench-slot__discord" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994.021-.041.001-.09-.041-.106a13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.929 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.894.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z" />
+                    </svg>
+                  } @else {
+                    <span class="ini-bench-slot__plus">+</span>
+                  }
                 </div>
               }
             </div>
-          </div>
-        </div>
-      </section>
-    } @else {
-      <!-- Estado vacío si el usuario no tiene ningún grupo -->
-      <section class="ini-hero">
-        <div class="ini-hero__top">
-          <div class="ini-hero__group-info">
-            <div class="ini-hero__name">Bienvenido a Sale Custom</div>
-          </div>
-        </div>
-        <div style="padding: 28px 20px; text-align: center;">
-          <p style="margin-bottom: 16px; color: var(--nf-text-dim);">Aún no perteneces a ningún grupo. Crea uno o únete a uno existente para empezar.</p>
-          <button nfButton variant="primary" size="md" (click)="crearPartida()">Explorar grupos</button>
-        </div>
-      </section>
-    }
-  </div>
 
-  <!-- Rejilla de Módulos de Engagement (2x2) -->
-  <div class="ini-grid">
-    <!-- Módulo 1: MVP de la última custom -->
-    <div class="ini-card">
-      <div class="ini-card__head">
-        <span class="ini-block-title">👑 MVP & Qué Pasó Anoche</span>
-        <nf-badge color="warning">Destacado</nf-badge>
-      </div>
-      <div class="ini-card__body">
-        @if (lastMvp(); as mvp) {
-          <div class="ini-mvp-summary">
-            <div class="ini-mvp-avatar">{{ mvp.initials }}</div>
-            <div class="ini-mvp-meta">
-              <span class="ini-mvp-meta__name">{{ mvp.name }} · {{ mvp.champion }}</span>
-              <span class="ini-mvp-meta__kda nf-mono">{{ mvp.kda }}</span>
+            <div class="ini-lobby-msg">
+              @if (missingSeats() > 0) {
+                <span>Faltan <strong>{{ missingSeats() }}</strong> jugadores para iniciar el draft equilibrado.</span>
+              } @else {
+                <span>¡Sala completa! Preparando generación de equipos equilibrados.</span>
+              }
             </div>
-          </div>
-          <div class="ini-mvp-quote">
-            "{{ mvp.quote }}"
-          </div>
-        } @else {
-          <p style="margin: 0; color: var(--nf-text-dim); font-size: 13px;">
-            Aún no hay partidas disputadas recientemente en este grupo.
-          </p>
-        }
-      </div>
-    </div>
 
-    <!-- Módulo 2: Highlights de la Semana -->
-    <div class="ini-card">
-      <div class="ini-card__head">
-        <span class="ini-block-title">⚡ Highlights de la Semana</span>
-        <nf-badge color="secondary">Estadísticas</nf-badge>
-      </div>
-      <div class="ini-card__body">
-        <div class="ini-highlights-list">
-          @for (h of highlights(); track h.label) {
-            <div class="ini-highlight-item">
-              <span class="ini-highlight-item__label">{{ h.label }}</span>
-              <span class="ini-highlight-item__val nf-mono">{{ h.value }}</span>
+            <button
+              nfButton
+              [variant]="isUserInActiveRoom() ? 'secondary' : 'primary'"
+              size="md"
+              class="ini-lobby-btn"
+              [class.is-joined]="isUserInActiveRoom()"
+              (click)="entrarSala(room.id)"
+            >
+              @if (isUserInActiveRoom()) {
+                <span class="ini-lobby-btn__joined-dot"></span>
+              }
+              <span>{{ roomCtaLabel() }}</span>
+            </button>
+          } @else {
+            <div class="ini-lobby-empty">
+              <div class="ini-bench-grid ini-bench-grid--ghost">
+                @for (i of [1,2,3,4,5,6,7,8,9,10]; track i) {
+                  <div class="ini-bench-slot is-empty">
+                    <span class="ini-bench-slot__plus">+</span>
+                  </div>
+                }
+              </div>
+              <p class="ini-empty-msg">No hay ninguna sala abierta en este momento.</p>
+              <button
+                nfButton
+                variant="primary"
+                size="md"
+                class="ini-lobby-btn"
+                (click)="crearPartida()"
+              >
+                Convocar Partida 5v5
+              </button>
             </div>
           }
         </div>
       </div>
-    </div>
 
-    <!-- Módulo 3: Tu Mayor Némesis (Pique Competitivo) -->
-    <div class="ini-card">
-      <div class="ini-card__head">
-        <span class="ini-block-title">💀 Tu Mayor Némesis</span>
-        <nf-badge color="danger">Rivalidad</nf-badge>
-      </div>
-      <div class="ini-card__body">
-        @if (nemesisHighlight(); as nemesis) {
-          <div class="ini-nemesis-summary">
-            <div class="ini-nemesis-avatar">{{ nemesis.initials }}</div>
-            <div class="ini-nemesis-meta">
-              <span class="ini-nemesis-meta__name">{{ nemesis.name }}</span>
-              <span class="ini-nemesis-meta__record nf-mono">{{ nemesis.record }}</span>
+      <!-- Card B: Tu Rival Directo (Escalera de Posición & Distancia en LP) -->
+      <div class="ini-card ini-rival-card">
+        <div class="ini-card__head">
+          <div class="ini-card__title-row">
+            <svg class="ini-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <circle cx="12" cy="12" r="6" />
+              <circle cx="12" cy="12" r="2" />
+            </svg>
+            <span class="ini-block-title">Tu Rival Directo</span>
+          </div>
+          <span class="ini-rival-rank-tag nf-mono">Ranking</span>
+        </div>
+
+        <div class="ini-card__body">
+          @if (leaguesLoading()) {
+            <div class="ini-skeleton-box" aria-busy="true">
+              <nf-skeleton width="100%" height="32px" />
+              <nf-skeleton width="100%" height="32px" />
+              <nf-skeleton width="100%" height="32px" />
             </div>
-          </div>
-          <div class="ini-nemesis-callout">
-            {{ nemesis.callout }}
-          </div>
-          <div style="margin-top: 4px;">
-            <button
-              nfButton
-              variant="secondary"
-              size="sm"
-              (click)="retarNemesis(nemesis.riotId)"
-            >⚔️ Retar en Versus</button>
-          </div>
-        } @else {
-          <p style="margin: 0; color: var(--nf-text-dim); font-size: 13px;">
-            Aún no tienes un rival con suficientes partidas en contra.
-          </p>
-        }
-      </div>
-    </div>
+          } @else {
+            <div class="ini-rival-ladder">
+              @for (row of rivalSummary().rows; track row.name) {
+                <div class="ini-ladder-row" [class.is-me]="row.isMe">
+                  <div class="ini-ladder-row__left">
+                    <span class="ini-ladder-row__rank nf-mono">#{{ row.rank }}</span>
+                    <span class="ini-ladder-row__name">{{ row.name }}</span>
+                  </div>
+                  <span class="ini-ladder-row__lp nf-mono">{{ row.lp }} LP</span>
+                </div>
+              }
+            </div>
 
-    <!-- Módulo 4: Requiere tu Atención -->
-    <div class="ini-card">
-      <div class="ini-card__head">
-        <span class="ini-block-title">🔔 Requiere tu Atención</span>
-        @if (attention().length) {
-          <nf-badge color="danger">{{ attention().length }}</nf-badge>
-        } @else {
-          <nf-badge color="secondary">Al día</nf-badge>
-        }
+            <div class="ini-rival-callout">
+              <svg class="ini-callout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="16" x2="12" y2="12" />
+                <line x1="12" y1="8" x2="12.01" y2="8" />
+              </svg>
+              <span>{{ rivalSummary().calloutText }}</span>
+            </div>
+          }
+        </div>
       </div>
-      <div class="ini-card__body">
-        @if (attention().length) {
-          <div class="ini-attn-list">
-            @for (n of attention(); track n.id) {
-              <div class="ini-attn-item" [style.--attn-accent]="n.accent">
-                <div class="ini-attn-item__text">
-                  <div class="ini-attn-item__title nf-mono">{{ n.title }}</div>
-                  <div class="ini-attn-item__sub">{{ n.message }}</div>
-                </div>
-                <div class="ini-attn-item__actions">
-                  <button
-                    nfButton
-                    variant="ghost"
-                    size="sm"
-                    [disabled]="responding(n)"
-                    (click)="respond(n, false)"
-                  >Rechazar</button>
-                  <button
-                    nfButton
-                    variant="primary"
-                    size="sm"
-                    [disabled]="responding(n)"
-                    (click)="respond(n, true)"
-                  >Unirme</button>
-                </div>
+
+      <!-- Card C: Highlights Semanales del Grupo (Mini-Tiles Interactivos) -->
+      <div class="ini-card ini-highlights-card">
+        <div class="ini-card__head">
+          <div class="ini-card__title-row">
+            <svg class="ini-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+            </svg>
+            <span class="ini-block-title">Highlights del Grupo</span>
+          </div>
+          <span class="ini-rival-rank-tag nf-mono">Semanal</span>
+        </div>
+
+        <div class="ini-card__body">
+          <div class="ini-highlights-grid">
+            @for (h of highlights(); track h.id) {
+              <div
+                class="ini-highlight-tile ini-interactive-tile"
+                role="button"
+                tabindex="0"
+                [attr.aria-label]="h.label + ': ' + h.value"
+                (click)="onHighlightClick(h)"
+                (keydown.enter)="onHighlightClick(h)"
+              >
+                <span class="ini-highlight-tile__label">{{ h.label }}</span>
+                <span class="ini-highlight-tile__val nf-mono">{{ h.value }}</span>
+                <span class="ini-highlight-tile__sublabel">{{ h.sublabel }}</span>
               </div>
             }
           </div>
-        } @else {
-          <p style="margin: 0; color: var(--nf-text-dim); font-size: 13px;">
-            No tienes invitaciones ni avisos pendientes en este momento.
-          </p>
-        }
+        </div>
       </div>
-    </div>
+    </aside>
   </div>
 </div>

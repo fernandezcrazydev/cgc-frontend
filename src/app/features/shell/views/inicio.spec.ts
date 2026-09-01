@@ -114,4 +114,108 @@ describe('Inicio Component', () => {
     component.retarNemesis('daxlup#EUW');
     expect(navigateSpy).toHaveBeenCalledWith(['/app', 'versus', 'daxlup%23EUW']);
   });
+
+  it('selectGroup selecciona un grupo directamente y sincroniza el índice', () => {
+    expect(component.groupIndex()).toBe(0);
+
+    component.selectGroup(1);
+    expect(component.groupIndex()).toBe(1);
+    expect(component.slideState()).toBe('sliding-left');
+    expect(component.activeGroup()?.id).toBe('grp-2');
+    vi.advanceTimersByTime(260);
+    expect(component.slideState()).toBe('idle');
+  });
+
+  it('calcula correctamente el resumen multigrupo allGroupsLpSummary', () => {
+    const summary = component.allGroupsLpSummary();
+    expect(summary.length).toBe(2);
+    expect(summary[0].name).toBe('LAN Challenger');
+    expect(summary[0].isActive).toBe(true);
+    expect(summary[1].name).toBe('Scrim Squad');
+    expect(summary[1].isActive).toBe(false);
+  });
+
+  it('permite alternar el intervalo temporal y recalcula los puntos', () => {
+    expect(component.timeRange()).toBe('30d');
+    expect(component.lpEvolution().points.length).toBeGreaterThanOrEqual(18);
+    expect(component.lpEvolution().yTicks.length).toBe(6);
+
+    component.timeRange.set('7d');
+    expect(component.timeRange()).toBe('7d');
+    expect(component.lpEvolution().points.length).toBe(7);
+
+    component.timeRange.set('24h');
+    expect(component.timeRange()).toBe('24h');
+    expect(component.lpEvolution().points.length).toBe(3);
+  });
+
+  it('permite establecer puntos en hover y resolver activePoint', () => {
+    expect(component.hoveredPoint()).toBeNull();
+    const evo = component.lpEvolution();
+    expect(evo.activePoint).toBeDefined();
+
+    const samplePoint = {
+      idx: 2,
+      x: 100,
+      y: 50,
+      percentX: 10,
+      percentY: 18,
+      val: 980,
+      delta: 25,
+      dateStr: '26 ago 2026, 12:30 (CEST)',
+      label: 'P3',
+      win: true,
+    };
+    component.setHoveredPoint(samplePoint);
+    expect(component.hoveredPoint()?.val).toBe(980);
+    component.onChartMouseLeave();
+    expect(component.hoveredPoint()).toBeNull();
+  });
+
+  it('verPerfil navega a la ruta de perfil del jugador', () => {
+    const navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
+
+    component.verPerfil('Nightstalker#EUW');
+    expect(navigateSpy).toHaveBeenCalledWith(['/app', 'perfil', 'Nightstalker%23EUW']);
+  });
+
+  it('calcula lobbyFillPercent adecuadamente', () => {
+    expect(component.lobbyFillPercent()).toBe(60);
+    expect(component.missingSeats()).toBe(4);
+    expect(component.isUserInActiveRoom()).toBe(true);
+    expect(component.roomCtaLabel()).toBe('¡Solo faltan 4!');
+  });
+
+  it('onHighlightClick gestiona la navegación para cada tipo de highlight', () => {
+    const navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
+
+    // Damage
+    component.onHighlightClick({
+      id: 'damage',
+      label: 'Mayor daño',
+      value: '54.2k',
+      sublabel: 'Partida',
+      matchId: 'match-123',
+    });
+    expect(navigateSpy).toHaveBeenCalledWith(['/app', 'historial', 'match-123']);
+
+    // Streak
+    component.onHighlightClick({
+      id: 'streak',
+      label: 'Racha',
+      value: 'W6',
+      sublabel: 'Récord',
+    });
+    expect(navigateSpy).toHaveBeenCalledWith(['/app', 'grupos', 'grp-1', 'ranking']);
+
+    // Duel
+    component.onHighlightClick({
+      id: 'duel',
+      label: 'Duelo',
+      value: 'daxlup vs EduUC',
+      sublabel: '15 duelos',
+      riotId: 'EduUC',
+    });
+    expect(navigateSpy).toHaveBeenCalledWith(['/app', 'versus', 'EduUC']);
+  });
 });
