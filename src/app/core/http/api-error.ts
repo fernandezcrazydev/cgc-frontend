@@ -62,6 +62,7 @@ function parseFieldErrors(raw: unknown): ApiFieldError[] {
  */
 const MESSAGES_BY_CODE: Record<string, string> = {
   ALREADY_MEMBER: 'Este usuario ya es miembro del grupo.',
+  CANNOT_SANCTION_PLAYER: 'Solo puedes sancionar a jugadores por debajo de ti en el grupo.',
   CHAMPION_NOT_FOUND: 'No se ha encontrado ese campeón.',
   DEVICE_NOT_FOUND: 'Ese dispositivo ya no estaba vinculado.',
   DISCORD_API_UNAVAILABLE: 'No hemos podido hablar con Discord ahora mismo. Prueba en un minuto.',
@@ -80,6 +81,7 @@ const MESSAGES_BY_CODE: Record<string, string> = {
   DISCORD_GUILD_NOT_SELECTED:
     'Este grupo ya no tiene ningún servidor de Discord conectado. Empieza otra vez por el primer paso.',
   DUPLICATE_PENDING_INVITATION: 'Este usuario ya tiene una invitación pendiente.',
+  DUPLICATE_RESOURCE: 'Eso ya existe. Recarga la página para ver cómo está ahora.',
   EMPTY_AUDIT_WINDOW: 'Ese periodo está al revés: la fecha de fin debe ser posterior a la de inicio.',
   FEEDBACK_QUOTA_EXCEEDED:
     'Has enviado demasiados reportes en las últimas 24 horas. Prueba de nuevo más tarde.',
@@ -92,22 +94,31 @@ const MESSAGES_BY_CODE: Record<string, string> = {
     'Ese periodo no es válido. Solo guardamos las llamadas a Riot de los últimos 7 días.',
   INVALID_LEAGUE_DATES: 'Una temporada no puede acabar antes de empezar. Revisa las fechas.',
   INVALID_RIOT_ID: 'Ese Riot ID no es válido. Debe ser «Nombre#TAG», tal y como aparece en el cliente.',
-  LEAGUE_ALREADY_OPEN:
-    'Este grupo ya tiene una temporada en marcha. Para abrir otra, espera a que termine la actual.',
-  LEAGUE_NOT_FOUND: 'Esa temporada ya no existe.',
   INVITATION_NOT_FOUND: 'Esa invitación ya no existe.',
   INVITATION_NOT_PENDING: 'Esa invitación ya no está pendiente: se aceptó, se rechazó o se canceló.',
   INVITEE_NOT_FOUND: 'No se ha encontrado ese usuario.',
   INVITEE_REFUSES_INVITATIONS: 'Este usuario no acepta invitaciones a grupos nuevos.',
+  LEAGUE_ALREADY_OPEN:
+    'Este grupo ya tiene una temporada en marcha. Para abrir otra, espera a que termine la actual.',
+  LEAGUE_CLOSED:
+    'Esta temporada ya ha terminado: su clasificación es definitiva. Abre una nueva para seguir compitiendo.',
+  LEAGUE_HAS_HISTORY:
+    'Esta temporada ya tiene jugadores o movimientos de LP, así que no se puede borrar. Ciérrala y se conservará como histórico.',
+  LEAGUE_NOT_FOUND: 'Esa temporada ya no existe.',
+  LEAGUE_NOT_IN_GROUP: 'Esa temporada no es de este grupo.',
+  LEAGUE_NOT_STARTED: 'Esta temporada todavía no ha empezado. Podrás hacerlo cuando arranque.',
   LOBBY_NOT_FOUND: 'Esa partida ya no existe.',
   LOBBY_NOT_OPEN: 'Esta partida ya no admite gente: se canceló o ya se está jugando.',
   LOBBY_SLOT_NOT_FOUND: 'Esa hora ya no está disponible. Puede que se haya cerrado otra.',
+  PLAYER_NOT_IN_GROUP: 'Ese jugador ya no está en el grupo.',
   PRIMARY_LANE_NOT_CHOSEN: 'Tu rol principal tiene que ser uno de los roles que has seleccionado.',
   RIOT_ACCOUNT_ALREADY_LINKED:
     'Esa cuenta de Riot ya está vinculada por otro usuario. Si es tuya, pídele que la desvincule.',
   RIOT_ACCOUNT_NOT_LINKED: 'No tienes ninguna cuenta de Riot vinculada.',
   RIOT_RELINK_ON_COOLDOWN:
     'Has desvinculado tu cuenta hace poco. Puedes volver a poner la misma, pero para vincular otra distinta tendrás que esperar.',
+  SANCTION_ALREADY_EXPIRED:
+    'Esa fecha de fin ya ha pasado, así que la sanción nacería caducada. Elige una futura, o déjala indefinida.',
   SECURITY_AUDIT_EVENT_NOT_FOUND:
     'Ese evento ya no está en el registro. Puede que se haya borrado por antigüedad: solo se guardan 90 días.',
   SLOT_IN_THE_PAST: 'Esa hora ya ha pasado. Elige una futura.',

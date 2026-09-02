@@ -191,6 +191,20 @@ describe('mapLeaderboardEntries', () => {
     expect(row.bannedUntil).toBeNull();
   });
 
+  /**
+   * Quién está sancionado lo dice el servidor en `isBanned`, ya derivado de SU reloj. Una sanción
+   * vencida llega con `isBanned: false` aunque `bannedUntil` siga en la fila, y el cliente no
+   * vuelve a comparar esa fecha con la suya: la sanción se levantó, y el podio también lo sabe.
+   */
+  it('no repinta como sancionada una sanción que el servidor ya dio por vencida', () => {
+    const [row] = mapLeaderboardEntries([
+      entry({ isBanned: false, banReason: 'AFK reiterado', bannedUntil: '2020-01-01T00:00:00Z' }),
+    ]);
+
+    expect(row.banned).toBe(false);
+    expect(row.trophyImg).toContain('Trofeo1');
+  });
+
   it('una sanción sin fecha es indefinida, no una sanción sin motivo', () => {
     const [row] = mapLeaderboardEntries([
       entry({ isBanned: true, banReason: 'Conducta antideportiva', bannedUntil: null }),
