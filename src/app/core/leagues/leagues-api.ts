@@ -107,8 +107,38 @@ export class LeaguesApi {
 
   /**
    * Crea una nueva liga dentro del grupo (requiere rol OWNER o ADMIN).
+   *
+   * El `status` NO viaja: lo decide el servidor a partir de las fechas (`startsAt` futuro nace
+   * `NOT_STARTED` y arranca solo; `startsAt` pasado nace `IN_PROGRESS`).
    */
   createLeague(groupId: string, request: CreateLeagueRequest): Observable<LeagueResponse> {
     return this.http.post<LeagueResponse>(`${environment.apiUrl}/groups/${groupId}/leagues`, request);
+  }
+
+  /**
+   * Cierra una temporada antes de su fecha de fin (requiere OWNER o ADMIN del grupo).
+   *
+   * Es la salida para una liga creada con las fechas mal puestas: como solo puede haber una viva
+   * por grupo, sin esto el grupo se queda sin poder abrir la de verdad hasta que la otra venza.
+   * Idempotente en el servidor — cerrar la que ya estaba cerrada no es un error. Devuelve la liga
+   * ya cerrada, así que el llamante puede escribirla sin refetch.
+   */
+  closeLeague(groupId: string, leagueId: string): Observable<LeagueResponse> {
+    return this.http.post<LeagueResponse>(
+      `${environment.apiUrl}/groups/${groupId}/leagues/${leagueId}/close`,
+      // Sin cuerpo: no hay nada que decidir, y `null` es lo que `HttpClient` manda como body vacío.
+      null,
+    );
+  }
+
+  /**
+   * Borra una liga que nadie ha jugado (requiere OWNER o ADMIN del grupo).
+   *
+   * Solo para deshacer del todo una liga creada por error. En cuanto tiene participantes o
+   * movimientos de LP el servidor responde 409 `LEAGUE_HAS_HISTORY`: el ledger cae en cascada con
+   * la liga y no se puede reconstruir. Para esas, `closeLeague`.
+   */
+  deleteLeague(groupId: string, leagueId: string): Observable<void> {
+    return this.http.delete<void>(`${environment.apiUrl}/groups/${groupId}/leagues/${leagueId}`);
   }
 }

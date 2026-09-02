@@ -58,7 +58,6 @@ describe('LeaguesApi', () => {
     const payload: CreateLeagueRequest = {
       name: 'Nueva Liga',
       endsAt: '2026-10-01T00:00:00Z',
-      status: 'IN_PROGRESS',
       type: 'COMPETITIVE',
     };
 
@@ -71,6 +70,32 @@ describe('LeaguesApi', () => {
     req.flush(mockLeague);
 
     expect(result).toEqual(mockLeague);
+  });
+
+  it('cierra una temporada mediante POST /groups/{groupId}/leagues/{leagueId}/close', () => {
+    const closed: LeagueResponse = { ...mockLeague, status: 'FINISHED' };
+
+    let result: LeagueResponse | undefined;
+    api.closeLeague('group-456', 'league-123').subscribe((res) => (result = res));
+
+    const req = http.expectOne(`${environment.apiUrl}/groups/group-456/leagues/league-123/close`);
+    expect(req.request.method).toBe('POST');
+    // Sin cuerpo: qué estado queda no lo decide el cliente.
+    expect(req.request.body).toBeNull();
+    req.flush(closed);
+
+    expect(result).toEqual(closed);
+  });
+
+  it('borra una liga sin historial mediante DELETE /groups/{groupId}/leagues/{leagueId}', () => {
+    let done = false;
+    api.deleteLeague('group-456', 'league-123').subscribe(() => (done = true));
+
+    const req = http.expectOne(`${environment.apiUrl}/groups/group-456/leagues/league-123`);
+    expect(req.request.method).toBe('DELETE');
+    req.flush(null, { status: 204, statusText: 'No Content' });
+
+    expect(done).toBe(true);
   });
 
   it('pide UNA PÁGINA del leaderboard, con su orden, a GET /groups/{groupId}/leaderboard', () => {
