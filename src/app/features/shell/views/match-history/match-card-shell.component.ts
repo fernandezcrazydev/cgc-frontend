@@ -47,6 +47,7 @@ let panelSeq = 0;
       <div
         class="m-card__main"
         [class.m-card__main--group]="variant() === 'group'"
+        [class.m-card__main--cross]="variant() === 'cross'"
         [attr.role]="rowIsControl() ? 'button' : null"
         [attr.tabindex]="rowIsControl() ? 0 : null"
         [attr.aria-expanded]="rowIsControl() ? isExpanded() : null"
@@ -105,7 +106,7 @@ let panelSeq = 0;
           [attr.aria-label]="toggleLabel()"
           (click)="toggle()"
         >
-          <span>{{ isExpanded() ? 'Ocultar alineación' : 'Ver alineación' }}</span>
+          <span>{{ isExpanded() ? 'Ocultar ' + panelNoun() : 'Ver ' + panelNoun() }}</span>
           <svg
             class="m-card__toggle-chevron"
             viewBox="0 0 24 24"
@@ -126,7 +127,20 @@ let panelSeq = 0;
 
       @if (isExpanded()) {
         <div class="m-card__accordion" [id]="panelId" role="region" [attr.aria-label]="panelLabel()">
-          <app-match-lineup [match]="match()" [returnTo]="returnTo()" />
+          <!--
+            Ranura con contenido por defecto: quien no proyecte nada obtiene la alineación de
+            siempre —el historial personal y el de grupo no cambian—, y el historial cruzado
+            proyecta su comparativa cara a cara, que responde a otra pregunta. Es una ranura y
+            no un @if sobre un modo por lo mismo que este componente existe: ese if ya estuvo
+            aquí una vez y convertía dos vistas distintas en un solo componente disfrazado.
+          -->
+          <ng-content select="[matchAccordion]">
+            <app-match-lineup
+              [match]="match()"
+              [returnTo]="returnTo()"
+              [crossContext]="crossContext()"
+            />
+          </ng-content>
         </div>
       }
     </div>
@@ -135,14 +149,10 @@ let panelSeq = 0;
 export class MatchCardShellComponent {
   readonly match = input.required<Match>();
   readonly accent = input<'win' | 'loss' | 'neutral' | 'blue' | 'red'>('neutral');
-  /**
-   * Qué proyecta la fila. Cambia la rejilla: la personal reparte seis columnas medidas para
-   * sus datos y la de grupo cuatro bloques mucho más anchos, así que compartir una sola
-   * rejilla dejaba el bloque del MVP pegado a la tira de campeones.
-   */
-  readonly variant = input<'personal' | 'group'>('personal');
-  /** Se propaga al enlace del desglose para que «volver» regrese al sitio correcto. */
+  readonly variant = input<'personal' | 'group' | 'cross'>('personal');
   readonly returnTo = input<string | null>(null);
+  readonly crossContext = input<{ playerId: string; relation: 'ally' | 'enemy' } | null>(null);
+  readonly panelNoun = input('alineación');
 
   private readonly ui = inject(MatchHistoryUiState);
   private readonly viewport = inject(Viewport);
@@ -156,18 +166,20 @@ export class MatchCardShellComponent {
 
   protected readonly dateLabel = computed(() => formatMatchDate(this.match().decidedAt));
 
+  // El grupo es el único que no lo pinta: ahí la fila es el registro colectivo y los LP son
+  // de quien mira, no de la partida.
   protected readonly lpDelta = computed(() =>
-    this.variant() === 'personal' ? (this.match().userParticipant?.lpDelta ?? 0) : 0,
+    this.variant() === 'group' ? 0 : (this.match().userParticipant?.lpDelta ?? 0),
   );
 
   protected readonly toggleLabel = computed(() =>
     this.isExpanded()
-      ? `Ocultar la alineación de la partida del ${this.dateLabel()}`
-      : `Ver la alineación de la partida del ${this.dateLabel()}`,
+      ? `Ocultar la ${this.panelNoun()} de la partida del ${this.dateLabel()}`
+      : `Ver la ${this.panelNoun()} de la partida del ${this.dateLabel()}`,
   );
 
   protected readonly panelLabel = computed(
-    () => `Alineación de la partida del ${this.dateLabel()}`,
+    () => `${capitalize(this.panelNoun())} de la partida del ${this.dateLabel()}`,
   );
 
   /** En móvil la fila no es un control: un toque en su fondo no debe desplegar nada. */
@@ -178,4 +190,8 @@ export class MatchCardShellComponent {
   protected toggle(): void {
     this.ui.toggleExpand(this.match().id);
   }
+}
+
+function capitalize(text: string): string {
+  return text.charAt(0).toUpperCase() + text.slice(1);
 }

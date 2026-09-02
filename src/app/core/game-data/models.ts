@@ -69,3 +69,21 @@ export interface GameDataManifest {
   version: string | null;
   updatedAt: string | null;
 }
+
+/**
+ * Una runa ("Electrocutar") o un árbol de runas ("Dominación"), de
+ * `GET /game-data/perks`. La `iconUrl` viene absoluta como todas las demás.
+ *
+ * Ojo, único caso del catálogo que NO sale de Data Dragon: Riot retiró de ahí las
+ * runas (`runesReactive.json` responde 403) y el backend las importa de
+ * CommunityDragon. Para el front eso es invisible a propósito —sigue siendo una
+ * `iconUrl` ya montada por el servidor—, pero explica por qué estas imágenes
+ * cuelgan de otro host en la pestaña de red.
+ */
+export interface Perk {
+  id: number;
+  name: string;
+  iconUrl: string;
+  /** `true` = árbol (Precisión, Dominación…); `false` = runa concreta. */
+  style: boolean;
+}

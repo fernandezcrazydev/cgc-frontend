@@ -1,0 +1,440 @@
+/* Navegación de grupo de la barra lateral: el segundo nivel del acordeón y el popover del
+   rail (Fase 1).
+
+   Va en su propia hoja y no al final de `shell.scss` porque aquella ya rozaba el
+   presupuesto de `anyComponentStyle` (24 kB) y añadir esto lo rebasaba. Separarlo también
+   lo deja donde se busca: todo lo de las secciones del grupo, junto. */
+/* ── Segundo nivel del acordeón: las secciones del grupo activo ──────────────
+   La barra listaba los grupos pero no ofrecía nada de ellos, así que cambiar de sección dentro
+   de un grupo obligaba a volver al hub. Estas filas cuelgan del grupo activo y son las mismas
+   que sirve el popover del rail. */
+/* ── Segundo nivel del acordeón: las secciones del grupo activo ──────────────
+   La barra listaba los grupos pero no ofrecía nada de ellos, así que cambiar de sección dentro
+   de un grupo obligaba a volver al hub. Estas filas cuelgan del grupo activo y son las mismas
+   que sirve el popover del rail. */
+.shell__group {
+  position: relative;
+  user-select: none;
+  -webkit-user-drag: element;
+  cursor: grab;
+  transition: opacity 0.16s ease, transform 0.16s ease;
+
+  &:active {
+    cursor: grabbing;
+  }
+
+  &.is-dragging {
+    opacity: 0.35;
+    transform: scale(0.97);
+  }
+
+  &.is-drop-target::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: 4px;
+    right: 4px;
+    height: 2px;
+    background: var(--nf-primary);
+    border-radius: 2px;
+    box-shadow: 0 0 8px var(--nf-primary);
+    z-index: 10;
+  }
+}
+
+.shell__sections {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin: 2px 0 6px;
+  /* Sangrado alineado con el avatar del grupo (28px + 10px de hueco), más una guía vertical:
+     sin ella, a 248px las secciones se leen como hermanas del grupo y no como sus hijas. */
+  padding-left: 19px;
+  margin-left: 18px;
+  border-left: 1px solid var(--nf-border);
+}
+
+.shell__section {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border-radius: 4px;
+  color: var(--nf-text-dim);
+  text-decoration: none;
+  font-weight: 600;
+}
+.shell__section.is-primary .shell__section-glyph { color: var(--grp-c1, var(--nf-primary)); }
+
+.shell__section.is-live-room {
+  color: #34d399;
+  font-weight: 600;
+
+  &:hover {
+    background: rgba(16, 185, 129, 0.12);
+    color: #6ee7b7;
+  }
+}
+
+.shell__group-live-dot {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #10b981;
+  border: 1.5px solid var(--nf-void);
+  box-shadow: 0 0 6px #10b981;
+  animation: shell-live-pulse 1.8s infinite ease-in-out;
+  z-index: 2;
+}
+
+.shell__live-pulse {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 8px #10b981;
+  animation: shell-live-pulse 1.8s infinite ease-in-out;
+}
+
+@keyframes shell-live-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.35);
+    opacity: 0.6;
+  }
+}
+
+.shell__section-glyph {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: inherit;
+}
+
+.shell__section-icon {
+  width: 15px;
+  height: 15px;
+  display: block;
+}
+
+.shell__section-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* En la hoja móvil no hay guía vertical que seguir */
+.shell__sections--sheet {
+  margin: 2px 0 10px;
+  padding-left: 8px;
+  margin-left: 12px;
+}
+.shell__sections--sheet .shell__section { padding: 9px 8px; font-size: 13px; }
+
+/* ── Popover de secciones en rail ──────────────────────────────────────────── */
+.shell__groupmenu {
+  position: absolute;
+  z-index: 91;
+  top: -4px;
+  left: calc(100% + 6px);
+  width: 208px;
+  padding: 6px;
+  border-radius: 8px;
+  background: var(--nf-surface-2, rgba(28, 28, 30, 0.98));
+  border: 1px solid var(--nf-border-strong);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(10px);
+  animation: nf-pop 0.16s ease both;
+}
+.shell__groupmenu-head {
+  padding: 6px 8px 8px;
+  font-size: 11px;
+  color: var(--nf-text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.shell__groupmenu .shell__section-label { display: inline; }
+
+.shell__sidebar.is-rail .shell__grouplist {
+  overflow: visible;
+  width: 100%;
+  margin-left: 0;
+  padding: 4px 0 6px;
+  border-left: none;
+  gap: 2px;
+}
+.shell__sidebar.is-rail .shell__group {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+.shell__sidebar.is-rail .shell__groupitem {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  width: 100%;
+  height: 40px;
+  min-height: 40px;
+  padding: 0;
+  box-sizing: border-box;
+  background: transparent;
+  border: none;
+  border-left: 3px solid transparent;
+  border-radius: 0 4px 4px 0;
+  cursor: pointer;
+  transition: background 0.14s, border-color 0.14s, color 0.14s;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: #fff;
+  }
+
+  &.is-active {
+    background: color-mix(in srgb, var(--nf-primary) 14%, transparent);
+    border-left-color: var(--nf-primary);
+    color: #fff;
+  }
+}
+.shell__sidebar.is-rail .shell__groupitem-meta,
+.shell__sidebar.is-rail .shell__groupitem-check {
+  opacity: 0;
+  max-width: 0;
+  pointer-events: none;
+}
+.shell__sidebar.is-rail .shell__grouplist-all-label { display: none; }
+.shell__sidebar.is-rail .shell__grouplist-all {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 40px;
+  min-height: 40px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  box-sizing: border-box;
+}
+.shell__sidebar.is-rail .shell__grouplist-all-glyph {
+  margin: 0 auto;
+}
+.shell__sidebar.is-rail .shell__grouplist-empty { display: none; }
+
+/* ── Botón Logo Clicable ────────────────────────────────────────────────────── */
+.shell__logo-btn {
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  outline: none;
+
+  &:focus-visible .shell__logo {
+    outline: 2px solid var(--nf-secondary);
+    outline-offset: 2px;
+  }
+}
+
+/* ── Control de plegado: flecha en la cabecera de marca ────────────────────── */
+.shell__railtoggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  flex: none;
+  margin-left: auto;
+  padding: 0;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  color: var(--nf-text-dim);
+  cursor: pointer;
+  transition: background 0.14s, color 0.14s, border-color 0.14s, opacity 0.16s;
+}
+.shell__railtoggle:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: var(--nf-border);
+  color: var(--nf-text);
+}
+.shell__railtoggle:focus-visible {
+  outline: 2px solid var(--nf-secondary);
+  outline-offset: 2px;
+}
+.shell__railtoggle-icon {
+  transition: transform 0.24s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.shell__railtoggle.is-railed .shell__railtoggle-icon {
+  transform: rotate(180deg);
+}
+
+/* Cabecera Estable con altura fija de 64px que nunca cambia de eje vertical */
+.shell__brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 64px;
+  min-height: 64px;
+  max-height: 64px;
+  box-sizing: border-box;
+  padding: 0 14px 0 16px;
+  position: relative;
+  flex: none;
+}
+
+.shell__brand-text {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  opacity: 1;
+  max-width: 140px;
+  transition: opacity 0.16s ease, max-width 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.shell__sidebar.is-rail .shell__brand {
+  padding: 0;
+  gap: 0;
+  justify-content: center;
+}
+
+.shell__sidebar.is-rail .shell__brand-text {
+  opacity: 0;
+  max-width: 0;
+  pointer-events: none;
+}
+
+.shell__sidebar.is-rail .shell__railtoggle {
+  display: none;
+}
+
+/* ── Avatar del grupo con soporte de indicador en vivo ─────────────────────── */
+.shell__groupitem-avatar-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  border-radius: 6px;
+}
+
+/* ── Opciones de grupo directamente visibles en modo rail ─────────────────── */
+.shell__rail-sections {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  margin: 3px 0 6px;
+  padding: 3px 0;
+  width: 100%;
+  overflow: hidden;
+  animation: shell-rail-expand 0.22s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  transform-origin: top center;
+}
+
+@keyframes shell-rail-expand {
+  0% {
+    opacity: 0;
+    max-height: 0;
+    transform: translateY(-6px) scaleY(0.85);
+  }
+  100% {
+    opacity: 1;
+    max-height: 320px;
+    transform: translateY(0) scaleY(1);
+  }
+}
+
+.shell__rail-section-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  color: var(--nf-text-dim);
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.14s, color 0.14s, transform 0.14s;
+  animation: shell-rail-item-in 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+
+  @for $i from 1 through 8 {
+    &:nth-child(#{$i}) {
+      animation-delay: #{$i * 20}ms;
+    }
+  }
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+    transform: scale(1.05);
+  }
+
+  &.is-active {
+    background: color-mix(in srgb, var(--grp-c1, var(--nf-primary)) 20%, transparent);
+    color: var(--grp-c1, var(--nf-primary));
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--grp-c1, var(--nf-primary)) 45%, transparent);
+  }
+
+  &.is-primary {
+    color: var(--grp-c1, var(--nf-primary));
+  }
+
+  &.is-live-room {
+    color: #34d399;
+  }
+}
+
+@keyframes shell-rail-item-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.6) translateY(-4px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* ── Scroll seguro del sidebar (sin barra visual pero 100% funcional) ─────────── */
+.shell__sidebar-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+}
+
+.shell__sidefoot-wrap {
+  flex: none;
+  margin-top: auto;
+  border-top: 1px solid var(--nf-border);
+  background: inherit;
+  z-index: 10;
+}

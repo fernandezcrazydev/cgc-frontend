@@ -9,3 +9,4 @@ export {
 } from './api-error';
 export { SessionRecovery, sessionRecoveryInterceptor } from './session-recovery';
 export { type PageResponse } from './page';
+export { ServerClock, serverClockInterceptor } from './server-clock';

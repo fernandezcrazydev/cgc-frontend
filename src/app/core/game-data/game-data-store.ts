@@ -1,6 +1,6 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
-import { ChampionSummary, GameDataManifest, SummonerSpell } from './models';
+import { ChampionSummary, GameDataManifest, Perk, SummonerSpell } from './models';
 import { GameDataApi } from './game-data-api';
 
 export type GameDataStatus = 'idle' | 'loading' | 'ready' | 'error';
@@ -14,12 +14,12 @@ const EMPTY_MANIFEST: GameDataManifest = { version: null, updatedAt: null };
  * (`core/auth/session.ts`): `status` explícito y `ensureLoaded()` idempotente
  * con deduplicación de la petición en vuelo.
  *
- * Carga manifest + campeones + hechizos de invocador a la vez. Los hechizos son
- * una lista fija y cortísima (una docena) que el marcador de una partida necesita
- * para resolver `spellId → icono`, así que cabe en la misma carga; los objetos NO
- * entran aquí porque son una colección paginada que solo usa el buscador del
- * selector (`GameDataApi.items` suelto). Un `version: null` (nunca se ha
- * importado) no es un error: el backend responde 200 con catálogo vacío, así que
+ * Carga manifest + campeones + hechizos de invocador + runas a la vez. Hechizos y
+ * runas son listas fijas y cortas (una docena y ~108) que el marcador de una partida
+ * y el acordeón del ranking necesitan para resolver `id → icono`, así que caben en la
+ * misma carga; los objetos NO entran aquí porque son una colección paginada que solo
+ * usa el buscador del selector (`GameDataApi.items` suelto). Un `version: null` (nunca
+ * se ha importado) no es un error: el backend responde 200 con catálogo vacío, así que
  * el store queda `ready` con una lista vacía, no `error`.
  */
 @Injectable({ providedIn: 'root' })
@@ -29,6 +29,7 @@ export class GameDataStore {
   private readonly _manifest = signal<GameDataManifest>(EMPTY_MANIFEST);
   private readonly _champions = signal<ChampionSummary[]>([]);
   private readonly _summonerSpells = signal<SummonerSpell[]>([]);
+  private readonly _perks = signal<Perk[]>([]);
   private readonly _status = signal<GameDataStatus>('idle');
 
   /** La carga en vuelo, para que N llamadas concurrentes compartan una petición. */
@@ -37,6 +38,7 @@ export class GameDataStore {
   readonly status = this._status.asReadonly();
   readonly champions = this._champions.asReadonly();
   readonly summonerSpells = this._summonerSpells.asReadonly();
+  readonly perks = this._perks.asReadonly();
 
   /** `null` si el backend nunca ha importado el catálogo. */
   readonly version = computed(() => this._manifest().version);
@@ -50,6 +52,15 @@ export class GameDataStore {
   /** Índice por id para resolver los dos hechizos de un participante (`stats.spells`). */
   readonly summonerSpellById = computed<Map<number, SummonerSpell>>(
     () => new Map(this._summonerSpells().map((s) => [s.id, s])),
+  );
+
+  /**
+   * Índice por id de runas y árboles. Comparten espacio de ids sin solaparse (verificado
+   * contra los dos feeds), así que un solo mapa resuelve tanto la runa clave como el árbol
+   * secundario que pinta el acordeón del ranking.
+   */
+  readonly perkById = computed<Map<number, Perk>>(
+    () => new Map(this._perks().map((p) => [p.id, p])),
   );
 
   /**
@@ -75,25 +86,32 @@ export class GameDataStore {
     this._manifest.set(EMPTY_MANIFEST);
     this._champions.set([]);
     this._summonerSpells.set([]);
+    this._perks.set([]);
     this._status.set('idle');
   }
 
   private async load(): Promise<void> {
     this._status.set('loading');
     try {
-      const [manifest, champions, spells] = await Promise.all([
+      const [manifest, champions, spells, perks] = await Promise.all([
         firstValueFrom(this.api.manifest()),
         firstValueFrom(this.api.champions()),
         firstValueFrom(this.api.summonerSpells()),
+        firstValueFrom(this.api.perks()),
       ]);
       this._manifest.set(manifest);
       this._champions.set(champions);
       this._summonerSpells.set(spells);
+      this._perks.set(perks);
       this._status.set('ready');
     } catch {
+      // Todo o nada: un catálogo a medias dejaría vistas pintando unos iconos y otros no,
+      // sin que `status` lo delatara. `error` con las cuatro listas vacías es el estado que
+      // la vista sabe reintentar.
       this._manifest.set(EMPTY_MANIFEST);
       this._champions.set([]);
       this._summonerSpells.set([]);
+      this._perks.set([]);
       this._status.set('error');
     } finally {
       // Se libera SIEMPRE: si no, un fallo dejaría cacheada la promesa

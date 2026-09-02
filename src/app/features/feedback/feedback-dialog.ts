@@ -386,7 +386,7 @@ export class FeedbackDialog {
 /** Zona que toca la ruta actual. Heurística de UX: el usuario puede corregirla. */
 function areaOfRoute(url: string): FeedbackArea {
   if (url.includes('/partidas')) return 'partidas';
-  if (url.includes('/draft') || url.includes('/campeones')) return 'draft';
+  if (url.includes('/draft') || url.includes('/tierlist')) return 'draft';
   if (url.includes('/grupos')) return 'grupos';
   if (url.includes('/historial')) return 'historial';
   if (url.includes('/ajustes') || url.includes('/perfil')) return 'ajustes';

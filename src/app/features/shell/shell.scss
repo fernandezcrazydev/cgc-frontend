@@ -12,23 +12,19 @@
   flex: none;
   position: sticky;
   top: 0;
+  /* Por encima de la columna principal (su cabecera va a 30) */
+  z-index: 50;
   height: calc(var(--nf-vh) * 100);
   display: flex;
   flex-direction: column;
   background: rgba(20, 20, 22, 0.72);
   border-right: 1px solid var(--nf-border);
   backdrop-filter: blur(8px);
+  transition: width 0.24s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow-x: hidden;
+  will-change: width;
 }
 
-.shell__brand {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  padding: 20px 20px 22px;
-}
-/* Mismo cambio que en el login: el diagonal índigo→azul se sustituye por un
-   radial del acento único, con la luz entrando por arriba a la izquierda como
-   en el resto de la app. Ver el comentario largo en login.scss. */
 .shell__logo {
   width: 36px;
   height: 36px;
@@ -69,9 +65,12 @@
 .shell__nav-item {
   display: flex;
   align-items: center;
-  gap: 13px;
+  gap: 12px;
   width: 100%;
-  padding: 12px 14px;
+  height: 40px;
+  min-height: 40px;
+  padding: 0 12px;
+  box-sizing: border-box;
   background: transparent;
   border: none;
   border-left: 3px solid transparent;
@@ -86,7 +85,33 @@
   transition: color 0.15s, background 0.15s;
 }
 .shell__nav-item:hover { color: #fff; }
-.shell__nav-glyph { font-size: 14px; width: 18px; text-align: center; color: inherit; }
+.shell__nav-glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex: none;
+  color: inherit;
+}
+.shell__nav-icon {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  display: block;
+}
+.shell__nav-label {
+  white-space: nowrap;
+  opacity: 1;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: opacity 0.16s ease, max-width 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
 .shell__nav-item.is-active {
   background: color-mix(in srgb, var(--nf-primary) 14%, transparent);
   border-left-color: var(--nf-primary);
@@ -113,48 +138,48 @@
 .shell__nav-item--toggle.is-open { color: #fff; }
 .shell__nav-item--toggle.is-open .shell__nav-glyph { color: var(--nf-primary); }
 
-/* grid-rows 0fr↔1fr animates the height collapse in BOTH directions */
-.shell__groupwrap {
-  display: grid;
-  grid-template-rows: 0fr;
-  opacity: 0;
-  transition: grid-template-rows 0.24s ease, opacity 0.2s ease;
-}
-.shell__groupwrap.is-open {
-  grid-template-rows: 1fr;
-  opacity: 1;
-}
 .shell__grouplist {
   display: flex;
   flex-direction: column;
   gap: 2px;
   min-height: 0;
-  overflow: hidden;
-  /* vertical spacing as padding (clipped on collapse) so the row closes flush */
-  margin-left: 24px;
-  padding: 2px 0 6px 8px;
-  border-left: 1px solid var(--nf-border);
+  margin: 4px 0;
+  padding: 4px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 .shell__groupitem {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   width: 100%;
-  padding: 8px 9px;
+  height: 40px;
+  min-height: 40px;
+  padding: 0 12px;
+  box-sizing: border-box;
   background: transparent;
-  border: 1px solid transparent;
-  border-radius: 6px;
-  color: var(--nf-text-mid);
+  border: none;
+  border-left: 3px solid transparent;
+  border-radius: 0 4px 4px 0;
+  color: var(--nf-text-dim);
+  font-family: var(--nf-font);
   cursor: pointer;
   text-align: left;
-  transition: background 0.14s, border-color 0.14s;
+  user-select: none;
+  -webkit-user-drag: element;
+  transition: background 0.14s, border-color 0.14s, color 0.14s;
 }
-.shell__groupitem:hover { background: rgba(255, 255, 255, 0.05); }
+.shell__groupitem:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+}
 .shell__groupitem.is-active {
-  background: color-mix(in srgb, var(--grp-c1) 12%, transparent);
-  border-color: color-mix(in srgb, var(--grp-c1) 45%, transparent);
+  background: color-mix(in srgb, var(--nf-primary) 14%, transparent);
+  border-left-color: var(--nf-primary);
+  color: #fff;
 }
 .shell__groupitem-avatar {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -163,15 +188,29 @@
   flex: none;
   border-radius: 6px;
   background: linear-gradient(135deg, var(--grp-c1), var(--grp-c2));
-  overflow: hidden;
+  overflow: visible;
   font-family: var(--nf-mono);
   font-weight: 700;
   font-size: 11px;
   color: #fff;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
 }
-.shell__avatar-img { width: 100%; height: 100%; object-fit: cover; }
-.shell__groupitem-meta { min-width: 0; flex: 1; }
+.shell__avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 6px;
+}
+
+.shell__groupitem-meta {
+  min-width: 0;
+  flex: 1;
+  white-space: nowrap;
+  opacity: 1;
+  max-width: 160px;
+  overflow: hidden;
+  transition: opacity 0.16s ease, max-width 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
 .shell__groupitem-name {
   display: block;
   font-weight: 700;
@@ -191,16 +230,55 @@
 .shell__groupitem-check { flex: none; color: var(--grp-c1); font-size: 13px; }
 
 .shell__grouplist-all {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  height: 40px;
+  min-height: 40px;
   margin-top: 4px;
-  padding: 9px 9px;
-  font-size: 11px;
+  padding: 0 12px;
+  box-sizing: border-box;
+  font-family: var(--nf-font);
+  font-weight: 700;
+  font-size: 12.5px;
   color: var(--nf-secondary);
   text-decoration: none;
-  border-radius: 6px;
+  border-left: 3px solid transparent;
+  border-radius: 0 4px 4px 0;
   transition: background 0.14s, color 0.14s;
 }
-.shell__grouplist-all:hover { background: rgba(255, 255, 255, 0.05); color: #fff; }
+.shell__grouplist-all:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+}
+.shell__grouplist-all-glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  flex: none;
+  font-size: 15px;
+  font-weight: 800;
+  border-radius: 6px;
+  border: 1px dashed var(--nf-border-strong);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--nf-secondary);
+  transition: border-color 0.14s, background 0.14s;
+}
+.shell__grouplist-all:hover .shell__grouplist-all-glyph {
+  border-color: var(--nf-secondary);
+  background: color-mix(in srgb, var(--nf-secondary) 10%, transparent);
+}
+.shell__grouplist-all-label {
+  white-space: nowrap;
+  opacity: 1;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: opacity 0.16s ease, max-width 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
 .shell__grouplist-empty {
   padding: 10px 9px;
   font-size: 11px;
@@ -208,29 +286,21 @@
 }
 
 /* ---- descarga de la app de escritorio ---- */
-/* El margin-top:auto vive AQUÍ y no en .shell__sidefoot: en una columna flex, dos
-   márgenes automáticos se reparten el espacio libre entre ambos y quedaría un hueco
-   entre este bloque y el perfil. Con el auto solo en este, el bloque cae al final de
-   las opciones del menú y el perfil queda pegado justo debajo. */
 .shell__download {
   position: relative; /* ancla del popover */
   margin-top: auto;
-  padding: 0 10px;
+  padding: 4px 10px;
 }
-/* El disparador es una opción más del menú a propósito: quien ya está en la web
-   mayoritariamente no necesita el instalador, y un CTA gritón ahí sería ruido
-   permanente. Lo que lo distingue de una ruta es el separador de arriba y que el
-   icono va en cian. */
 .shell__download-trigger {
-  border-top: 1px solid var(--nf-border);
-  border-radius: 0;
-  margin-top: 4px;
-  padding-top: 14px;
+  border-radius: 4px;
 }
 .shell__download-glyph {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex: none;
   color: var(--nf-secondary);
 }
 .shell__download-trigger.is-open {
@@ -547,102 +617,52 @@
 }
 .shell__invite-actions > * { flex: 1; }
 
-/* ---- disparador del menú (hamburguesa) ---- */
-/* Es una opción más de la lista, no un botón aparte: mismo alto, misma columna de
-   glifos y mismos estados de hover. Lo único que lo separa es la línea de abajo —el
-   recurso que ya usa "Descargar app"—, para que no se lea como una sección más. */
-.shell__burger {
-  border-bottom: 1px solid var(--nf-border);
-  border-radius: 0;
-  margin-bottom: 4px;
-  padding-bottom: 13px;
-}
-.shell__burger:focus-visible {
-  outline: 2px solid var(--nf-secondary);
-  outline-offset: -2px;
-}
-/* Barras dibujadas con cajas y no con el glifo "☰": así heredan el color del estado
-   (dim → blanco al pasar por encima) y no dependen de la fuente del sistema. */
-.shell__burger-bars {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 3px;
-  width: 18px;
-  height: 14px;
-  flex: none;
-}
-.shell__burger-bars > span {
-  display: block;
-  width: 100%;
-  height: 2px;
-  border-radius: 1px;
-  background: currentColor;
-}
-
 /* ---- menú plegado en rail (solo escritorio) ---- */
-/* Plegar deja un rail de 68px, no cero: los glifos siguen diciendo dónde estás y las
-   secciones siguen a un clic. Las etiquetas se ocultan de golpe (display:none) en vez
-   de encogerse con el ancho: un texto aplastado a mitad de transición se ve peor que
-   uno que desaparece. El `title` de cada fila lo suple. */
-.shell__sidebar { transition: width 0.22s ease; }
-.shell__sidebar.is-rail { width: 68px; }
-
-.shell__sidebar.is-rail .shell__brand {
-  justify-content: center;
-  padding: 20px 0 18px;
+.shell__sidebar.is-rail {
+  width: 68px;
 }
-.shell__sidebar.is-rail .shell__brand-text { display: none; }
 
 .shell__sidebar.is-rail .shell__nav-label,
-.shell__sidebar.is-rail .shell__nav-caret { display: none; }
+.shell__sidebar.is-rail .shell__nav-caret {
+  display: none !important;
+  opacity: 0;
+  max-width: 0;
+  margin: 0 !important;
+  pointer-events: none;
+}
 .shell__sidebar.is-rail .shell__nav-item {
   justify-content: center;
   gap: 0;
-  padding: 12px 0;
+  height: 40px;
+  min-height: 40px;
+  padding: 0;
+  box-sizing: border-box;
 }
 .shell__sidebar.is-rail .shell__burger { padding-bottom: 13px; }
 
-/* Sin etiquetas al lado, la jerarquía la da la posición bajo el glifo de Grupos:
-   fuera sangría y guía vertical. */
-.shell__sidebar.is-rail .shell__grouplist {
-  align-items: center;
-  margin-left: 0;
-  padding: 4px 0 6px;
-  border-left: none;
-  gap: 4px;
-}
-.shell__sidebar.is-rail .shell__groupitem {
-  justify-content: center;
-  padding: 3px 0;
-  background: transparent;
-  border-color: transparent;
-}
-.shell__sidebar.is-rail .shell__groupitem-meta,
-.shell__sidebar.is-rail .shell__groupitem-check { display: none; }
-/* El activo se marca con un aro en el avatar y no con el fondo de la fila: a este
-   ancho la fila es casi el avatar y un fondo teñido apenas se vería. El avatar
-   conserva sus 28px para que plegar no lo redimensione, solo lo recoloque. */
-.shell__sidebar.is-rail .shell__groupitem.is-active .shell__groupitem-avatar {
-  box-shadow:
-    0 0 0 2px var(--nf-void),
-    0 0 0 4px color-mix(in srgb, var(--grp-c1) 75%, transparent);
-}
-
-.shell__sidebar.is-rail .shell__grouplist-all-label { display: none; }
-.shell__sidebar.is-rail .shell__grouplist-all {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
+.shell__sidebar.is-rail .shell__download {
   padding: 0;
-  font-size: 14px;
-  border: 1px dashed var(--nf-border-strong);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
 }
-.shell__sidebar.is-rail .shell__grouplist-empty { display: none; }
+.shell__sidebar.is-rail .shell__download-trigger {
+  padding: 0;
+  margin: 0;
+  border-top: none;
+  height: 40px;
+  min-height: 40px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.shell__sidebar.is-rail .shell__download-glyph {
+  margin: 0 auto;
+}
 
-/* El popover de descarga no cabe bajo un disparador de 48px: sale al lado. */
+/* El popover de descarga no cabe bajo un disparador de 48px: sale al lado */
 .shell__download-menu.is-rail {
   left: calc(100% - 4px);
   right: auto;
@@ -653,7 +673,7 @@
 .shell__sidebar.is-rail .shell__profile { justify-content: center; padding: 6px 0; }
 .shell__sidebar.is-rail .shell__user-meta { display: none; }
 
-/* "Cerrar sesión" con texto no cabe en el rail; ahí va el icono. */
+/* "Cerrar sesión" con texto no cabe en el rail; ahí va el icono */
 .shell__logout-icon { display: none; flex: none; }
 .shell__sidebar.is-rail .shell__logout-icon { display: block; }
 .shell__sidebar.is-rail .shell__logout-label { display: none; }
@@ -672,78 +692,162 @@
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 13px clamp(16px, 4vw, 30px);
+  height: 64px;
+  min-height: 64px;
+  max-height: 64px;
+  padding: 0 clamp(16px, 4vw, 30px);
+  box-sizing: border-box;
   background: rgba(10, 10, 11, 0.82);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--nf-border);
 }
 .shell__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   margin: 0;
   font-weight: 800;
   font-size: clamp(16px, 4.5vw, 20px);
+  line-height: 1.2;
   color: var(--nf-text);
   letter-spacing: -0.3px;
+}
+
+.shell__welcome {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.shell__streak-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 9px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--nf-success);
+  background: color-mix(in srgb, var(--nf-success) 12%, var(--nf-surface));
+  border: 1px solid color-mix(in srgb, var(--nf-success) 35%, transparent);
+}
+
+.shell__streak-badge--lose {
+  color: var(--nf-danger);
+  background: color-mix(in srgb, var(--nf-danger) 12%, var(--nf-surface));
+  border-color: color-mix(in srgb, var(--nf-danger) 35%, transparent);
+}
+
+.shell__groups-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 20px;
+  padding: 0 6px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--nf-text-mid);
+  background: var(--nf-surface-2);
+  border: 1px solid var(--nf-border-strong);
+  border-radius: 5px;
+  margin-top: 2px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 /* ---- active-group banner in the header ---- */
 .shell__header--group {
   background:
-    linear-gradient(90deg, color-mix(in srgb, var(--grp-c1) 22%, transparent), transparent 55%),
+    linear-gradient(90deg, color-mix(in srgb, var(--grp-c1) 20%, transparent), transparent 55%),
     rgba(10, 10, 11, 0.82);
   border-bottom-color: color-mix(in srgb, var(--grp-c1) 35%, var(--nf-border));
 }
-.shell__groupbar {
-  display: flex;
+
+/* ---- breadcrumb hierarchy in the header ---- */
+.shell__breadcrumb {
+  display: inline-flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   min-width: 0;
-  padding: 4px 6px 4px 4px;
+}
+
+.shell__breadcrumb-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 4px 8px 4px 4px;
   background: transparent;
   border: 1px solid transparent;
-  border-radius: 9px;
+  border-radius: 8px;
   cursor: pointer;
   text-align: left;
   transition: background 0.14s, border-color 0.14s;
+  color: inherit;
 }
-.shell__groupbar:hover {
-  background: rgba(255, 255, 255, 0.04);
-  border-color: color-mix(in srgb, var(--grp-c1) 35%, transparent);
+
+.shell__breadcrumb-group:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: color-mix(in srgb, var(--grp-c1, var(--nf-primary)) 35%, transparent);
 }
-.shell__groupbar-avatar {
+
+.shell__breadcrumb-avatar {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 38px;
-  height: 38px;
+  width: 28px;
+  height: 28px;
   flex: none;
-  border-radius: 9px;
+  border-radius: 6px;
   background: linear-gradient(135deg, var(--grp-c1), var(--grp-c2));
   border: 1.5px solid color-mix(in srgb, var(--grp-c1) 60%, #fff 0%);
   overflow: hidden;
   font-family: var(--nf-mono);
   font-weight: 700;
-  font-size: 14px;
+  font-size: 11px;
   color: #fff;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
-.shell__groupbar-meta { min-width: 0; }
-.shell__groupbar-name {
-  display: block;
+
+.shell__breadcrumb-name {
   font-weight: 800;
-  font-size: clamp(15px, 4.5vw, 19px);
+  font-size: clamp(14px, 3.5vw, 16px);
   color: #fff;
-  letter-spacing: -0.3px;
+  letter-spacing: -0.2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 220px;
+}
+
+.shell__breadcrumb-caret {
+  flex: none;
+  font-size: 11px;
+  color: var(--nf-text-dim);
+}
+
+.shell__breadcrumb-sep {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--nf-text-dim);
+  opacity: 0.65;
+  flex: none;
+}
+
+.shell__breadcrumb-section {
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--nf-text-dim);
+  letter-spacing: var(--ls-normal);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.shell__groupbar-section {
-  display: block;
-  margin-top: 1px;
-  font-size: 11px;
-  color: var(--nf-text-dim);
-}
-.shell__groupbar-caret { flex: none; font-size: 11px; color: var(--nf-text-dim); }
+
 .shell__header-right { margin-left: auto; display: flex; align-items: center; gap: 14px; }
 /* El selector de tema ya no vive en el header: está en Ajustes (/app/ajustes). */
 /* ---- pending open-room banner (under the header) ---- */
@@ -864,7 +968,7 @@
 }
 .shell__notif {
   position: absolute;
-  top: 60px;
+  top: 68px;
   right: clamp(12px, 4vw, 30px);
   width: 380px;
   max-width: calc(var(--nf-vw) * 100 - 24px);

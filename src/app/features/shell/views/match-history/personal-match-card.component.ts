@@ -19,7 +19,12 @@ import { MatchCardShellComponent } from './match-card-shell.component';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterLink, NfAvatar, NfLaneIcon, NfSkeleton, MatchCardShellComponent],
   template: `
-    <app-match-card-shell [match]="match()" [accent]="accent()" variant="personal">
+    <app-match-card-shell
+      [match]="match()"
+      [accent]="accent()"
+      variant="personal"
+      [returnTo]="returnTo()"
+    >
       <!-- Resultado -->
       <div class="m-card__result">
         <span class="m-card__result-label" [class.is-win]="isWin()" [class.is-loss]="isLoss()">
@@ -32,7 +37,7 @@ import { MatchCardShellComponent } from './match-card-shell.component';
       <div class="m-card__champ">
         <div class="m-card__avatar-wrap">
           <a
-            [routerLink]="['/app', 'campeones']"
+            [routerLink]="['/app', 'tierlist']"
             [title]="'Ver estadísticas de ' + championName()"
             (click)="$event.stopPropagation()"
           >
@@ -56,7 +61,7 @@ import { MatchCardShellComponent } from './match-card-shell.component';
           } @else {
             <a
               class="m-card__champ-name"
-              [routerLink]="['/app', 'campeones']"
+              [routerLink]="['/app', 'tierlist']"
               [title]="'Ver estadísticas de ' + championName()"
               (click)="$event.stopPropagation()"
             >
@@ -121,6 +126,7 @@ import { MatchCardShellComponent } from './match-card-shell.component';
 })
 export class PersonalMatchCardComponent {
   readonly match = input.required<Match>();
+  readonly returnTo = input<string | null>(null);
 
   private readonly gameData = inject(GameDataStore);
 

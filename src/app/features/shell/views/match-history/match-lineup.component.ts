@@ -42,7 +42,7 @@ import { NfAvatar, NfLaneIcon } from '../../../../ui';
                 <nf-lane-icon class="m-lineup__lane" [lane]="p.role" mode="original" />
                 <a
                   class="m-lineup__champ-link"
-                  [routerLink]="['/app', 'campeones']"
+                  [routerLink]="['/app', 'tierlist']"
                   [title]="'Ver estadísticas de ' + championName(p)"
                   (click)="$event.stopPropagation()"
                 >
@@ -67,7 +67,7 @@ import { NfAvatar, NfLaneIcon } from '../../../../ui';
                   </a>
                   <a
                     class="m-lineup__champ-name nf-mono"
-                    [routerLink]="['/app', 'campeones']"
+                    [routerLink]="['/app', 'tierlist']"
                     [title]="'Ver estadísticas de ' + championName(p)"
                     (click)="$event.stopPropagation()"
                   >
@@ -92,23 +92,40 @@ import { NfAvatar, NfLaneIcon } from '../../../../ui';
         }
       </div>
 
-      <a
-        class="m-lineup__more nf-mono"
-        [routerLink]="['/app', 'historial', match().id]"
-        [queryParams]="queryParams()"
-      >
-        Análisis completo
-      </a>
+      <div class="m-lineup__actions">
+        @if (crossContext(); as ctx) {
+          @if (ctx.relation === 'enemy') {
+            <a
+              class="m-lineup__more nf-mono"
+              [routerLink]="['/app', 'jugador', ctx.playerId, 'contra', match().id]"
+            >
+              Cara a Cara
+            </a>
+          } @else if (ctx.relation === 'ally') {
+            <a
+              class="m-lineup__more nf-mono"
+              [routerLink]="['/app', 'jugador', ctx.playerId, 'juntos', match().id]"
+            >
+              Sinergia
+            </a>
+          }
+        }
+
+        <a
+          class="m-lineup__more nf-mono"
+          [routerLink]="['/app', 'historial', match().id]"
+          [queryParams]="queryParams()"
+        >
+          Análisis completo
+        </a>
+      </div>
     </div>
   `,
 })
 export class MatchLineupComponent {
   readonly match = input.required<Match>();
-  /**
-   * De dónde se abre la partida, para que la página de detalle sepa a dónde volver. La vista
-   * no puede deducirlo sola: una partida pertenece a un grupo Y sale en el historial personal.
-   */
   readonly returnTo = input<string | null>(null);
+  readonly crossContext = input<{ playerId: string; relation: 'ally' | 'enemy' } | null>(null);
 
   private readonly gameData = inject(GameDataStore);
 

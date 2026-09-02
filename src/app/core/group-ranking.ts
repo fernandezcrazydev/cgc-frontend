@@ -1,45 +1,136 @@
 /**
- * Mock leaderboard data for the per-group "Ranking" view. Members are ranked by
- * rating (desc). Each entry carries the win/loss record, peak rating and a short
- * rating-history series that drives the inline trend sparkline. Deterministic so
- * a given group always renders the same board until the backend lands.
+ * Presentación de la clasificación de un grupo: traduce las filas que sirve el backend
+ * (`LeaderboardEntryResponse`) a lo que pinta la vista.
+ *
+ * Aquí ya no se inventa nada. Este fichero contenía `rankingFor()`, un generador determinista que
+ * fabricaba 24 jugadores con LP, winrate, rachas, sanciones e historial completo, y la vista caía a
+ * él en cuanto la liga venía vacía o la petición fallaba. Es decir: tres estados distintos
+ * —cargando, error y liga sin partidas— acababan pintados como "aquí hay una competición en
+ * marcha", con nombres de compañeros que no existen en el grupo. Se borró entero, junto con
+ * `ranking-matches.ts`, que hacía lo mismo con el historial de cada jugador.
+ *
+ * Lo que el backend todavía no sirve se marca como **ausente** (`null`), nunca se rellena con un
+ * valor plausible: la vista tiene que poder decir "aún no" en vez de enseñar un dato falso.
  */
+import { NfLane } from '../ui/lane-icon/nf-lane-icon';
+import { LeaderboardEntryResponse } from './leagues';
+import { opggUrl } from './member-detail';
 
-/** Roster name pool — kept in sync (by convention) with grupo-detalle's roster. */
-const NAME_POOL = [
-  { name: 'Pix3lQueen', tag: 'EUW' },
-  { name: 'Cr1msonByte', tag: 'PSOE' },
-  { name: 'D4rkFl4me', tag: 'CITY' },
-  { name: 'V0idWalker', tag: '666' },
-  { name: 'NeonRift', tag: 'DRWHO' },
-  { name: 'GlitchKid', tag: 'EUW' },
-  { name: 'St0rmcaller', tag: 'LANA' },
-  { name: 'HexHunter', tag: 'NA' },
-  { name: 'AshenWolf', tag: 'EUW' },
-  { name: 'LumeCore', tag: 'KR' },
-  { name: 'Zer0Cool', tag: 'BR' },
-  { name: 'ByteSiren', tag: 'EUW' },
-];
+export type LolTier =
+  | 'CHALLENGER' | 'GRANDMASTER' | 'MASTER' | 'DIAMOND' | 'EMERALD'
+  | 'PLATINUM' | 'GOLD' | 'SILVER' | 'BRONZE' | 'IRON';
 
-export interface RankEntry {
-  rank: number;
-  name: string;
-  tag: string;
-  initials: string;
-  hue: number;
-  rating: number;
-  peak: number;
-  wins: number;
-  losses: number;
-  /** Win-rate percentage, rounded. */
-  wr: number;
-  /** Recent rating points (oldest → newest) for the trend sparkline. */
-  spark: number[];
-  /** Overall direction of the spark, for the line color. */
-  trend: 'up' | 'down';
+export interface LolRankInfo {
+  tier: LolTier;
+  /**
+   * Etiqueta legible ("SoloQ: Diamante II"). No se pinta como texto suelto: es el nombre
+   * accesible del escudo (`title`/`alt` de `nf-rank-emblem`).
+   */
+  label: string;
+  color: string;
 }
 
-/** Tiny seeded PRNG (mulberry32) so the board is stable across renders. */
+/**
+ * Nombre visible y color de CADA tier, los diez.
+ *
+ * Un `Record` completo y no una lista suelta porque faltar aquí no degradaba, mentía: la versión
+ * anterior validaba `riotTier` contra una lista de siete y todo lo que no encajaba caía al `GOLD`
+ * por defecto, así que un jugador de Hierro lucía escudo de Oro. `NfRankEmblem` ya soportaba los
+ * diez y los SVG ya estaban en `public/assets/ranks/`; el que los recortaba era este lado. Con un
+ * `Record` el compilador avisa si algún día se añade un tier.
+ */
+const TIER_META: Record<LolTier, { label: string; color: string }> = {
+  CHALLENGER:  { label: 'Challenger',  color: '#3fbfdd' },
+  GRANDMASTER: { label: 'Grandmaster', color: '#e43e3e' },
+  MASTER:      { label: 'Master',      color: '#9d48e0' },
+  DIAMOND:     { label: 'Diamante',    color: '#5aa9e6' },
+  EMERALD:     { label: 'Esmeralda',   color: '#00b894' },
+  PLATINUM:    { label: 'Platino',     color: '#00cec9' },
+  GOLD:        { label: 'Oro',         color: '#cd8837' },
+  SILVER:      { label: 'Plata',       color: '#95a5a6' },
+  BRONZE:      { label: 'Bronce',      color: '#a1683a' },
+  IRON:        { label: 'Hierro',      color: '#6b5f5a' },
+};
+
+const ALL_TIERS = Object.keys(TIER_META) as LolTier[];
+
+/**
+ * Una fila de la clasificación, ya lista para pintar.
+ *
+ * Los campos que pueden ser `null` no son opcionales por comodidad: significan **"el servidor
+ * todavía no tiene este dato"**, y la vista los pinta con su estado "sin datos". No se rellenan
+ * con ceros ni con valores intermedios, porque el usuario lee eso como un dato real.
+ */
+export interface RankEntry {
+  /** Id estable del backend (`userId`). Clave de `@for ... track` y del acordeón. */
+  playerId: string;
+  /** Puesto oficial en la liga. No se recalcula al reordenar la tabla. */
+  rank: number;
+  /** Nombre de juego del Riot ID si la cuenta está vinculada; si no, el de Discord. */
+  name: string;
+  /**
+   * Tagline del Riot ID (`EUW`, `KR1`), o `null` sin cuenta vinculada.
+   *
+   * Antes esto era la REGIÓN inventada en la rama mock y el tagline real en la del servidor: la
+   * misma etiqueta significando dos cosas distintas en la misma tabla.
+   */
+  tag: string | null;
+  initials: string;
+  /** Tinte del avatar de reserva. Es presentación derivada del id, no un dato de dominio. */
+  hue: number;
+  avatar: string | null;
+  lpValue: number;
+  formattedLp: string;
+  wins: number;
+  losses: number;
+  totalGames: number;
+  /** Winrate en porcentaje, redondeado. */
+  wr: number;
+  /** Rango real de Riot, o `null` si la cuenta no está vinculada o no tiene ranked. */
+  lolRank: LolRankInfo | null;
+  streakCount: number;
+  streakType: 'WIN' | 'LOSS';
+  /**
+   * Rango del jugador EN EL GRUPO, tal cual lo manda el servidor (`OWNER` / `ADMIN` / `MEMBER`).
+   * Es lo que permite decidir a quién puede expulsar quien mira, sin cruzar con otra fuente.
+   */
+  groupRole: string | null;
+  banned: boolean;
+  /**
+   * Motivo real de la sanción, del servidor. `null` si el jugador no está sancionado.
+   *
+   * Antes era una constante del cliente igual para todo el mundo, porque no había ningún motivo
+   * guardado: la etiqueta «Baneado» se pintaba sin nada detrás.
+   */
+  banReason: string | null;
+  /** Cuándo termina la sanción. `null` = indefinida, hay que levantarla a mano. */
+  bannedUntil: string | null;
+  /** Enlace a OP.GG, o `null` sin Riot ID: sin él no hay perfil al que enlazar. */
+  opggUrl: string | null;
+  /** Trofeo del podio activo. Un sancionado nunca lo luce. */
+  trophyImg: string | null;
+
+  /**
+   * Polilínea SVG de la evolución de LP, o `null` si no hay histórico que dibujar.
+   *
+   * Hacen falta al menos dos puntos: con uno solo no hay línea, solo un punto, y una raya plana
+   * dibujada sobre un único movimiento sugeriría una estabilidad que nadie ha medido.
+   */
+  sparkPath: string | null;
+  /** Dirección de la serie, para el color. `null` cuando no hay serie. */
+  trend: 'up' | 'down' | null;
+  /** Media real de LP ganados / perdidos. `null` = todavía no hay partidas de ese signo. */
+  avgLpGain: number | null;
+  avgLpLoss: number | null;
+
+  // --- Sin fuente de datos todavía: llegan con la subida de partidas ---
+  /** Rol principal, deducido del historial de picks. `null` = aún no se sabe. */
+  lane: NfLane | null;
+  /** Campeón más jugado. `null` = aún no se sabe. */
+  mainChampionId: number | null;
+}
+
+/** Tiny seeded PRNG (mulberry32), estable entre renders. */
 export function seeded(seed: number): () => number {
   let t = seed >>> 0;
   return () => {
@@ -50,7 +141,7 @@ export function seeded(seed: number): () => number {
   };
 }
 
-/** Hash a string to a stable 32-bit seed. */
+/** Hash de una cadena a una semilla estable de 32 bits. */
 export function hash(str: string): number {
   let h = 2166136261;
   for (let i = 0; i < str.length; i++) {
@@ -60,48 +151,7 @@ export function hash(str: string): number {
   return h >>> 0;
 }
 
-/** Build a leaderboard of `count` members for a group, ranked by rating desc. */
-export function rankingFor(groupId: string, count: number): RankEntry[] {
-  const rnd = seeded(hash(groupId));
-
-  const entries = Array.from({ length: count }, (_, i) => {
-    const pick = NAME_POOL[i % NAME_POOL.length];
-    const games = 5 + Math.floor(rnd() * 25);
-    const wins = Math.round(games * (0.35 + rnd() * 0.5));
-    const losses = Math.max(0, games - wins);
-    const rating = 480 + Math.floor(rnd() * 320);
-    const peak = rating + Math.floor(rnd() * 130);
-
-    // Walk a short rating history ending near the current rating.
-    const spark: number[] = [];
-    let v = rating - 30 + Math.floor(rnd() * 60);
-    for (let s = 0; s < 8; s++) {
-      v += Math.floor((rnd() - 0.45) * 36);
-      spark.push(v);
-    }
-    spark[spark.length - 1] = rating;
-
-    return {
-      name: pick.name,
-      tag: pick.tag,
-      initials: pick.name.slice(0, 2).toUpperCase(),
-      hue: (i * 47) % 360,
-      rating,
-      peak,
-      wins,
-      losses,
-      wr: games ? Math.round((wins / games) * 100) : 0,
-      spark,
-      trend: spark[spark.length - 1] >= spark[0] ? ('up' as const) : ('down' as const),
-    };
-  });
-
-  return entries
-    .sort((a, b) => b.rating - a.rating)
-    .map((e, i) => ({ ...e, rank: i + 1 }));
-}
-
-/** Map a spark series to an SVG polyline `points` string within `w`×`h`. */
+/** Serie de puntos a una polilínea SVG dentro de `w`×`h`. */
 export function sparkPoints(spark: number[], w = 120, h = 32): string {
   if (spark.length < 2) return '';
   const min = Math.min(...spark);
@@ -116,4 +166,81 @@ export function sparkPoints(spark: number[], w = 120, h = 32): string {
       return `${x.toFixed(1)},${y.toFixed(1)}`;
     })
     .join(' ');
+}
+
+/**
+ * Rango de Riot de una fila, o `null` si no hay ninguno que enseñar.
+ *
+ * Antes esto no podía devolver `null`: sin `riotTier` derivaba un tier a partir del LP de la liga
+ * custom, que es otra escala y otro juego, y lo pintaba como si fuese el rango de SoloQ del
+ * jugador. Alguien sin cuenta vinculada salía con escudo de Oro.
+ */
+function lolRankOf(entry: LeaderboardEntryResponse): LolRankInfo | null {
+  if (!entry.riotTier) return null;
+
+  const tier = entry.riotTier.toUpperCase() as LolTier;
+  if (!ALL_TIERS.includes(tier)) return null;
+
+  // El tier se pinta con su nombre en español, no con el enum del backend: `riotTier` llega como
+  // `BRONZE` y volcarlo tal cual daría "SoloQ: BRONZE II", que es a la vez inglés y mayúsculas.
+  // La división (`riotRank`) sí es un numeral romano y va tal cual.
+  const meta = TIER_META[tier];
+  const label = entry.riotRank ? `SoloQ: ${meta.label} ${entry.riotRank}` : `SoloQ: ${meta.label}`;
+  return { tier, label, color: meta.color };
+}
+
+/** Mapea las filas que sirve el backend a lo que consume la vista. */
+export function mapLeaderboardEntries(entries: readonly LeaderboardEntryResponse[]): RankEntry[] {
+  return entries.map((entry) => {
+    const riotId = entry.riotId ?? '';
+    const hasRiotId = riotId.includes('#');
+    const [gameName, tagLine] = hasRiotId ? riotId.split('#') : [entry.discordUsername, null];
+
+    return {
+      playerId: entry.userId,
+      rank: entry.rank,
+      name: gameName,
+      tag: tagLine,
+      initials: entry.discordUsername.slice(0, 2).toUpperCase(),
+      hue: hash(entry.userId) % 360,
+      avatar: entry.avatarUrl,
+      lpValue: entry.lp,
+      formattedLp: `${entry.lp.toLocaleString('es-ES')} LP`,
+      wins: entry.wins,
+      losses: entry.losses,
+      totalGames: entry.totalGames,
+      wr: Math.round(entry.winrate),
+      lolRank: lolRankOf(entry),
+      streakCount: entry.streakCount,
+      streakType: entry.streakType,
+      groupRole: entry.groupRole,
+      banned: entry.isBanned,
+      banReason: entry.banReason,
+      bannedUntil: entry.bannedUntil,
+      opggUrl: hasRiotId ? opggUrl(riotId) : null,
+      trophyImg: entry.rank <= 3 && !entry.isBanned ? `/assets/trofeos/Trofeo${entry.rank}.webp` : null,
+
+      // Serie real del ledger de LP. Hacen falta dos puntos para que haya línea que dibujar.
+      sparkPath: entry.lpHistory.length >= 2 ? sparkPoints(entry.lpHistory, 100, 28) : null,
+      trend: trendOf(entry.lpHistory),
+      avgLpGain: entry.avgLpGain,
+      avgLpLoss: entry.avgLpLoss,
+
+      // Pendientes de la subida de partidas. `null`, nunca un valor de relleno.
+      lane: null,
+      mainChampionId: null,
+    };
+  });
+}
+
+/**
+ * Si la serie sube o baja, comparando el primer punto con el último.
+ *
+ * Se deriva de la SERIE, no de la racha actual. La versión anterior usaba `streakType`, así que
+ * alguien que había subido doscientos LP en la temporada y acababa de perder una partida salía con
+ * la tendencia hacia abajo: la racha describe la última partida, la tendencia describe el recorrido.
+ */
+function trendOf(lpHistory: readonly number[]): 'up' | 'down' | null {
+  if (lpHistory.length < 2) return null;
+  return lpHistory[lpHistory.length - 1] >= lpHistory[0] ? 'up' : 'down';
 }

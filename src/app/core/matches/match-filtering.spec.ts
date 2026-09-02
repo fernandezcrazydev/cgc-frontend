@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest';
+import { buildCrossMatches } from './cross-history';
 import {
   EMPTY_FILTERS,
   MatchFilterState,
+  filterCrossMatches,
   filterGroupMatches,
   filterPersonalMatches,
+  sortCrossMatches,
   sortMatches,
 } from './match-filtering';
 import { Match, MatchParticipant, TeamSide, TeamSummary } from './models';
@@ -193,5 +196,75 @@ describe('sortMatches', () => {
     const list = [older, newer];
     sortMatches(list, 'date-desc');
     expect(list.map((m) => m.id)).toEqual(['old', 'new']);
+  });
+});
+
+describe('filterCrossMatches', () => {
+  const yo = participant({ id: 'me', team: 'blue', riotId: 'N1ghtfang#LAN', role: 'MID', championId: 103 });
+  const RIVAL = 'Pix3lQueen#LAN';
+
+  const juntos = match({
+    id: 'juntos',
+    decidedAt: '2026-06-02T10:00:00Z',
+    blue: [yo, participant({ id: 'a', team: 'blue', riotId: RIVAL })],
+    red: [participant({ id: 'x', team: 'red' })],
+    userParticipant: yo,
+  });
+  const contra = match({
+    id: 'contra',
+    decidedAt: '2026-06-01T10:00:00Z',
+    winningTeam: 'red',
+    blue: [yo],
+    red: [participant({ id: 'b', team: 'red', riotId: RIVAL })],
+    userParticipant: yo,
+  });
+
+  const cross = buildCrossMatches([juntos, contra], RIVAL);
+
+  it('la relación es la dimensión propia del cruce y filtra por ella', () => {
+    expect(filterCrossMatches(cross, withFilters({ relation: 'ally' })).map((c) => c.id)).toEqual([
+      'juntos',
+    ]);
+    expect(filterCrossMatches(cross, withFilters({ relation: 'enemy' })).map((c) => c.id)).toEqual([
+      'contra',
+    ]);
+  });
+
+  it('la relación y el resultado son preguntas distintas y se combinan', () => {
+    // Juntos la ganaste; enfrentados la perdiste. Pedir «juntos y derrota» no da nada.
+    expect(filterCrossMatches(cross, withFilters({ relation: 'ally', outcome: 'loss' }))).toEqual([]);
+    expect(
+      filterCrossMatches(cross, withFilters({ relation: 'ally', outcome: 'win' })).map((c) => c.id),
+    ).toEqual(['juntos']);
+  });
+
+  it('la posición se mide contra TU participante, igual que en el historial personal', () => {
+    expect(filterCrossMatches(cross, withFilters({ role: 'MID' })).length).toBe(2);
+    expect(filterCrossMatches(cross, withFilters({ role: 'TOP' }))).toEqual([]);
+  });
+});
+
+describe('sortCrossMatches', () => {
+  it('ordena igual que la lista normal, sobre la partida que cada cruce envuelve', () => {
+    const yo = participant({ id: 'me', team: 'blue', riotId: 'N1ghtfang#LAN' });
+    const rival = (id: string) => participant({ id, team: 'red', riotId: 'Pix3lQueen#LAN' });
+    const viejo = match({
+      id: 'viejo',
+      decidedAt: '2026-01-01T10:00:00Z',
+      blue: [yo],
+      red: [rival('r1')],
+      userParticipant: yo,
+    });
+    const nuevo = match({
+      id: 'nuevo',
+      decidedAt: '2026-06-01T10:00:00Z',
+      blue: [yo],
+      red: [rival('r2')],
+      userParticipant: yo,
+    });
+    const cross = buildCrossMatches([viejo, nuevo], 'Pix3lQueen#LAN');
+
+    expect(sortCrossMatches(cross, 'date-asc').map((c) => c.id)).toEqual(['viejo', 'nuevo']);
+    expect(sortCrossMatches(cross, 'date-desc').map((c) => c.id)).toEqual(['nuevo', 'viejo']);
   });
 });

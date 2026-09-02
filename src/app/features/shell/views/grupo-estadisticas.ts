@@ -1,9 +1,10 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, linkedSignal, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
 import { NfAvatar, NfBadge, NfButton, NfSkeleton, NfWindow } from '../../../ui';
 import { GroupStore } from '../../../core/group-store';
+import { GroupBridge, GroupsStore } from '../../../core/groups';
 import { Member } from '../../../core/lobby';
 import { sparkPoints } from '../../../core/group-ranking';
 import { GameDataStore } from '../../../core/game-data';
@@ -26,7 +27,28 @@ type StatTab = 'resumen' | 'jugadores' | 'premios';
   imports: [RouterLink, NfBadge, NfButton, NfWindow, NfAvatar, NfSkeleton],
   template: `
     <div class="view">
-      @if (group(); as g) {
+      @if (loadingGroup()) {
+        <div aria-busy="true">
+          <div class="view-back nf-mono">
+            <nf-skeleton width="140px" height="14px" />
+          </div>
+          <div class="view__head">
+            <div class="view__eyebrow nf-mono">Estadísticas del grupo</div>
+            <nf-skeleton width="240px" height="28px" />
+          </div>
+          <div class="hl-grid">
+            <div class="hl" data-accent="primary">
+              <nf-skeleton width="100%" height="140px" radius="10px" />
+            </div>
+            <div class="hl" data-accent="secondary">
+              <nf-skeleton width="100%" height="140px" radius="10px" />
+            </div>
+            <div class="hl" data-accent="warning">
+              <nf-skeleton width="100%" height="140px" radius="10px" />
+            </div>
+          </div>
+        </div>
+      } @else if (group(); as g) {
         <a class="view-back nf-mono" [routerLink]="['/app', 'grupos', g.id]">
           <span class="view-back__arrow" aria-hidden="true">←</span> {{ g.name }}
         </a>
@@ -124,7 +146,7 @@ type StatTab = 'resumen' | 'jugadores' | 'premios';
                 </div>
               </div>
 
-              <div class="view__label nf-mono">▸ Clasificaciones</div>
+              <div class="view__label nf-mono">Clasificaciones</div>
               <div class="sc-grid">
                 @for (lb of leaderboards(); track lb.id) {
                   <div class="sc" [attr.data-accent]="lb.accent">
@@ -188,12 +210,12 @@ type StatTab = 'resumen' | 'jugadores' | 'premios';
             <nf-window title="Jugadores" bodyPadding="0">
               <div class="members">
                 @for (p of players(); track p.member.tag) {
-                  <div class="member-row" [class.member-row--open]="expandedTag() === p.member.tag">
+                  <div class="member-row" [class.member-row--open]="expandedName() === p.member.name">
                     <div
                       class="member"
                       role="button"
                       tabindex="0"
-                      [attr.aria-expanded]="expandedTag() === p.member.tag"
+                      [attr.aria-expanded]="expandedName() === p.member.name"
                       (click)="toggle(p.member)"
                       (keydown.enter)="toggle(p.member)"
                       (keydown.space)="$event.preventDefault(); toggle(p.member)"
@@ -207,7 +229,7 @@ type StatTab = 'resumen' | 'jugadores' | 'premios';
                       <span class="member__chevron" aria-hidden="true">▾</span>
                     </div>
 
-                    @if (expandedTag() === p.member.tag) {
+                    @if (expandedName() === p.member.name) {
                       <div class="member-detail">
                         <div class="member-detail__head">
                           <div class="member-detail__tag nf-mono">{{ p.member.tag }}</div>
@@ -245,7 +267,7 @@ type StatTab = 'resumen' | 'jugadores' | 'premios';
           }
 
           @case ('premios') {
-            <div class="view__label nf-mono">▸ Muro de trofeos · {{ scopeLabel() }}</div>
+            <div class="view__label nf-mono">Muro de trofeos · {{ scopeLabel() }}</div>
             <div class="trophy-grid">
               @for (a of awards(); track a.id) {
                 <div class="trophy" [attr.data-color]="a.color">
@@ -275,7 +297,9 @@ type StatTab = 'resumen' | 'jugadores' | 'premios';
 })
 export class GrupoEstadisticas {
   private readonly route = inject(ActivatedRoute);
-  readonly groups = inject(GroupStore);
+  private readonly groupStore = inject(GroupStore);
+  private readonly groupsStore = inject(GroupsStore);
+  readonly bridge = inject(GroupBridge);
 
   protected readonly gameData = inject(GameDataStore);
   protected readonly champsLoading = computed(() => this.gameData.status() === 'loading');
@@ -290,6 +314,13 @@ export class GrupoEstadisticas {
 
   constructor() {
     this.gameData.ensureLoaded();
+    this.groupsStore.ensureLoaded();
+    effect(() => {
+      const id = this.id();
+      if (id) {
+        void this.bridge.ensure(id);
+      }
+    });
   }
 
   readonly scopeOptions = SCOPE_OPTIONS;
@@ -300,23 +331,41 @@ export class GrupoEstadisticas {
   ];
 
   readonly scope = signal<StatScope>('temporada');
-  readonly tab = signal<StatTab>('resumen');
-  readonly expandedTag = signal<string | null>(null);
+
+  private readonly focusedName = toSignal(
+    this.route.queryParamMap.pipe(map((p) => p.get('jugador'))),
+    { initialValue: this.route.snapshot.queryParamMap.get('jugador') },
+  );
+
+  readonly tab = linkedSignal<string | null, StatTab>({
+    source: this.focusedName,
+    computation: (name, prev) => (name ? 'jugadores' : prev?.value ?? 'resumen'),
+  });
+
+  readonly expandedName = linkedSignal<string | null, string | null>({
+    source: this.focusedName,
+    computation: (name, prev) => name ?? prev?.value ?? null,
+  });
 
   private readonly id = toSignal(
     this.route.paramMap.pipe(map((p) => p.get('id'))),
     { initialValue: this.route.snapshot.paramMap.get('id') },
   );
 
+  readonly loadingGroup = computed(
+    () => this.bridge.status() === 'loading' || this.bridge.status() === 'idle',
+  );
+
   readonly group = computed(() => {
     const id = this.id();
-    return id ? this.groups.byId(id) ?? null : null;
+    if (!id) return null;
+    return this.groupStore.byId(id) ?? this.groupsStore.byId(id) ?? null;
   });
 
   /** Base per-member stats for the active group + scope. */
   private readonly stats = computed(() => {
     const g = this.group();
-    return g ? statsFor(g.id, this.groups.rosterOf(g.id), this.scope()) : [];
+    return g ? statsFor(g.id, this.groupStore.rosterOf(g.id), this.scope()) : [];
   });
 
   readonly summary = computed(() => summaryFor(this.stats(), this.scope()));
@@ -343,7 +392,7 @@ export class GrupoEstadisticas {
   }
 
   toggle(m: Member): void {
-    this.expandedTag.update((t) => (t === m.tag ? null : m.tag));
+    this.expandedName.update((n) => (n === m.name ? null : m.name));
   }
 
   tiles = playerTiles;

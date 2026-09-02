@@ -1,4 +1,4 @@
-import { Component, DestroyRef, computed, effect, inject, signal } from '@angular/core';
+import { Component, DestroyRef, computed, effect, inject, signal, untracked } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -21,17 +21,27 @@ import {
   GroupInvitationsStore,
   GroupMemberResponse,
   InvitationsStore,
+  JoinRequestsStore,
   bannerColors,
   initialsOf,
   groupRoleLabel,
 } from '../../../core/groups';
 import { UserSearchResult, UsersApi } from '../../../core/users';
+import { LeaderboardEntryResponse, LeaguesStore } from '../../../core/leagues';
+import { LobbiesStore, LobbyResponse } from '../../../core/lobbies';
 import { ToastService } from '../../../core/toast';
 import { errorMessage } from '../../../core/http';
 
 @Component({
   selector: 'app-grupo-detalle',
   standalone: true,
+  styleUrl: './grupo-detalle.scss',
+  // Mismo idioma que el shell para las capas flotantes: Escape y clic fuera cierran el menú de
+  // gestión. Se guarda por `.gd-more` para que el propio clic que lo abre no lo cierre.
+  host: {
+    '(document:click)': 'onDocumentClick($event)',
+    '(document:keydown.escape)': 'showActions.set(false)',
+  },
   imports: [
     RouterLink,
     FormsModule,
@@ -109,36 +119,125 @@ import { errorMessage } from '../../../core/http';
                   <span class="group-hero__count nf-mono">◉ {{ store.memberCount() }} miembros</span>
                 </div>
               </div>
+
+              <!-- Gestión del grupo, fuera de la vista principal: invitar y sobre todo borrar o
+                   salir no deben compartir fila con lo que se usa a diario. La navegación del
+                   grupo NO se repite aquí; vive en la barra lateral desde la Fase 1. -->
+              <div class="gd-more">
+                <button
+                  type="button"
+                  class="gd-more__trigger"
+                  [class.is-open]="showActions()"
+                  aria-haspopup="menu"
+                  [attr.aria-expanded]="showActions()"
+                  aria-label="Gestionar el grupo"
+                  title="Gestionar el grupo"
+                  (click)="toggleActions($event)"
+                >⋯</button>
+
+                @if (showActions()) {
+                  <div class="gd-more__menu" role="menu" aria-label="Gestionar el grupo">
+                    @if (store.canManage()) {
+                      <button type="button" class="gd-more__item" role="menuitem" (click)="openInvite()">
+                        Invitar a alguien
+                      </button>
+                      <a class="gd-more__item" role="menuitem" [routerLink]="['/app', 'grupos', g.id, 'discord']">
+                        Vincular Discord
+                      </a>
+                    }
+                    @if (store.isOwner()) {
+                      <button
+                        type="button"
+                        class="gd-more__item gd-more__item--danger"
+                        role="menuitem"
+                        [disabled]="store.busy()"
+                        (click)="confirmDelete.set(true); showActions.set(false)"
+                      >Borrar grupo</button>
+                    } @else {
+                      <button
+                        type="button"
+                        class="gd-more__item gd-more__item--danger"
+                        role="menuitem"
+                        [disabled]="store.busy()"
+                        (click)="confirmLeave.set(true); showActions.set(false)"
+                      >Salir del grupo</button>
+                    }
+                  </div>
+                }
+              </div>
             </div>
 
-            <div class="actions">
-              <button nfButton variant="primary" size="md" [routerLink]="['/app', 'grupos', g.id, 'crear-partida']">Crear partida</button>
-              @if (store.canManage()) {
-                <button nfButton variant="secondary" size="md" (click)="openInvite()">✉ Invitar</button>
-              }
-              <button nfButton variant="secondary" size="md" [routerLink]="['/app', 'grupos', g.id, 'partidas']">Partidas</button>
-              <button nfButton variant="secondary" size="md" [routerLink]="['/app', 'grupos', g.id, 'ranking']">Ranking</button>
-              <button nfButton variant="secondary" size="md" [routerLink]="['/app', 'grupos', g.id, 'estadisticas']">Estadísticas</button>
-              <button nfButton variant="secondary" size="md" [routerLink]="['/app', 'grupos', g.id, 'historial']">Historial</button>
-              <!-- Solo para quien gestiona: cambiar dónde avisa el grupo afecta a todo el mundo.
-                   Esconderlo es UX, no seguridad — el backend revalida con @groupSecurity.isAdmin. -->
-              @if (store.canManage()) {
-                <button nfButton variant="secondary" size="md" [routerLink]="['/app', 'grupos', g.id, 'discord']">Discord</button>
-              }
-              @if (store.isOwner()) {
-                <button nfButton variant="danger" size="md" [disabled]="store.busy()" (click)="confirmDelete.set(true)">Borrar grupo</button>
-              } @else {
-                <button nfButton variant="ghost" size="md" [disabled]="store.busy()" (click)="confirmLeave.set(true)">Salir del grupo</button>
-              }
-              <button nfButton variant="ghost" size="md" [routerLink]="['/app', 'grupos']">← Todos</button>
+            <div class="gd-panel">
+              <!-- Acción central de la aplicación (prompt.md §3.A.2): ocupa la mitad del panel y
+                   no comparte fila con nada que compita por el clic. -->
+              <a class="gd-cta" [routerLink]="['/app', 'grupos', g.id, 'crear-partida']">
+                <span class="gd-cta__glyph" aria-hidden="true">＋</span>
+                <span class="gd-cta__text">
+                  <span class="gd-cta__title">Crear partida</span>
+                  <span class="gd-cta__sub">Convoca a tu grupo y reparte los diez</span>
+                </span>
+              </a>
+
+              <!-- Tu estado competitivo. Los cuatro estados van separados: la clasificación se
+                   pide al servidor y puede estar cargando, fallar, no existir todavía o no
+                   incluirte aún. Ninguno de esos casos pinta un número inventado. -->
+              <div class="gd-standing" [attr.aria-busy]="leagues.isLoading() ? 'true' : null">
+                <span class="gd-standing__label nf-mono">Tu puesto</span>
+                @if (leagues.isLoading()) {
+                  <nf-skeleton width="88px" height="30px" />
+                  <nf-skeleton width="130px" height="12px" />
+                } @else if (leagues.status() === 'error') {
+                  <span class="gd-standing__none">No se pudo cargar la clasificación</span>
+                  <a class="gd-standing__link nf-mono" [routerLink]="['/app', 'grupos', g.id, 'ranking']">
+                    Ir al ranking
+                  </a>
+                } @else if (myStanding(); as me) {
+                  <span class="gd-standing__rank nf-mono">{{ me.rank }}.º</span>
+                  <span class="gd-standing__lp nf-mono">{{ me.lp }} LP</span>
+                  <span class="gd-standing__sub nf-mono">
+                    {{ me.wins }}V {{ me.losses }}D · racha {{ me.streakType === 'WIN' ? 'W' : 'L' }}{{ me.streakCount }}
+                  </span>
+                } @else {
+                  <span class="gd-standing__none">Todavía no has puntuado en esta temporada</span>
+                  <a class="gd-standing__link nf-mono" [routerLink]="['/app', 'grupos', g.id, 'ranking']">
+                    Ver la clasificación
+                  </a>
+                }
+              </div>
             </div>
+
+            <!-- Solo aparece si hay algo que hacer: una sección vacía titulada "requiere tu
+                 atención" es ruido que enseña a ignorarla. -->
+            @if (openLobbies().length > 0) {
+              <div class="view__label nf-mono">Requiere tu atención</div>
+              <div class="gd-attention">
+                @for (lobby of openLobbies(); track lobby.id) {
+                  <button
+                    type="button"
+                    class="gd-attention__row"
+                    (click)="openLobby(g.id, lobby.id)"
+                  >
+                    <span class="gd-attention__pulse" aria-hidden="true"></span>
+                    <span class="gd-attention__text">
+                      <span class="gd-attention__title nf-mono">
+                        Sala abierta · {{ signedUp(lobby) }}/{{ lobby.capacity }} apuntados
+                      </span>
+                      <span class="gd-attention__sub nf-mono">
+                        Sala {{ lobby.code }} — di a qué horas puedes
+                      </span>
+                    </span>
+                    <span class="gd-attention__cta nf-mono">Entrar</span>
+                  </button>
+                }
+              </div>
+            }
 
             <!-- Una sola ventana para las dos secciones: las pestañas viven DENTRO, pegadas bajo
                  la barra de título, y el paginador es su barra de estado. Antes el segmented
                  flotaba fuera y el título de la ventana repetía el mismo estado: dos indicadores
                  sueltos de lo mismo. -->
             <nf-window
-              [title]="showingInvites() ? 'Invitados' : 'Miembros'"
+              [title]="tab() === 'requests' ? 'Solicitudes de ingreso' : tab() === 'invites' ? 'Invitados' : 'Miembros'"
               bodyPadding="0"
             >
               @if (store.canManage()) {
@@ -147,11 +246,11 @@ import { errorMessage } from '../../../core/http';
                   [options]="tabOptions()"
                   [value]="tab()"
                   (valueChange)="setTab($event)"
-                  ariaLabel="Miembros o invitados"
+                  ariaLabel="Miembros, invitados o solicitudes"
                 />
               }
 
-              @if (!showingInvites()) {
+              @if (tab() === 'members') {
                 <div class="gd-members" [attr.aria-busy]="store.membersLoading() ? 'true' : null">
                   @if (store.membersLoading()) {
                     <!-- Tantos esqueletos como filas tenía la página que se sustituye: la ventana
@@ -223,7 +322,7 @@ import { errorMessage } from '../../../core/http';
                     />
                   </div>
                 }
-              } @else {
+              } @else if (tab() === 'invites') {
                 @switch (groupInvitations.status()) {
                   @case ('loading') {
                     <div class="gd-members" aria-busy="true">
@@ -280,6 +379,45 @@ import { errorMessage } from '../../../core/http';
                     }
                   }
                 }
+              } @else if (tab() === 'requests') {
+                <div class="gd-members">
+                  @for (req of joinRequests.groupRequests(); track req.id) {
+                    <div class="gd-member">
+                      <span class="gd-member__avatar" [style.background]="avatarBg(req.userId)">
+                        @if (req.userAvatarUrl) {
+                          <img class="gd-member__avatar-img" [src]="req.userAvatarUrl" alt="" />
+                        } @else {
+                          {{ initials(req.username) }}
+                        }
+                      </span>
+                      <div class="gd-member__meta">
+                        <div class="gd-member__name nf-mono">{{ req.username }}</div>
+                        <div class="gd-member__role nf-mono">Solicitud de ingreso pendiente</div>
+                      </div>
+                      <div class="gd-member__actions">
+                        <button
+                          nfButton
+                          variant="primary"
+                          size="sm"
+                          [disabled]="joinRequests.pending()"
+                          (click)="acceptRequest(req.id)"
+                        >✓ Aceptar</button>
+                        <button
+                          nfButton
+                          variant="danger"
+                          size="sm"
+                          [disabled]="joinRequests.pending()"
+                          (click)="declineRequest(req.id)"
+                        >✕ Rechazar</button>
+                      </div>
+                    </div>
+                  } @empty {
+                    <div class="gd-invites-empty">
+                      <div class="gd-invites-empty__text nf-mono">Sin solicitudes de ingreso pendientes</div>
+                      <p class="empty-state__hint">Los jugadores que encuentren este grupo por #TAG podrán solicitar unirse.</p>
+                    </div>
+                  }
+                </div>
               }
             </nf-window>
           </div>
@@ -396,8 +534,13 @@ export class GrupoDetalle {
   /** Etiqueta en español del rol del backend (OWNER -> Capitán). */
   protected readonly roleLabel = groupRoleLabel;
   readonly store = inject(GroupDetailStore);
+  /** Clasificación del grupo: de aquí sale «tu puesto». Es el MISMO store que usa el ranking. */
+  readonly leagues = inject(LeaguesStore);
+  /** Convocatorias abiertas: son lo que reclama acción hoy en este grupo. */
+  private readonly lobbies = inject(LobbiesStore);
   readonly invitations = inject(InvitationsStore);
   readonly groupInvitations = inject(GroupInvitationsStore);
+  readonly joinRequests = inject(JoinRequestsStore);
   private readonly usersApi = inject(UsersApi);
   private readonly session = inject(Session);
   private readonly toasts = inject(ToastService);
@@ -427,25 +570,90 @@ export class GrupoDetalle {
   /** Se está mirando la pestaña de invitados (solo existe para quien gestiona el grupo). */
   readonly showingInvites = computed(() => this.store.canManage() && this.tab() === 'invites');
 
+  // ── Panel de control del grupo ─────────────────────────────────────
+  // El hub dejó de ser un lanzador: la navegación del grupo vive en la barra lateral desde la
+  // Fase 1, y de los nueve botones que había aquí seis eran duplicados suyos.
+
+  /** Menú de gestión (invitar, Discord, salir/borrar). Estado de UI, no de dominio. */
+  readonly showActions = signal(false);
+
+  toggleActions(event: Event): void {
+    event.stopPropagation();
+    this.showActions.update((open) => !open);
+  }
+
+  onDocumentClick(event: MouseEvent): void {
+    if (!this.showActions()) return;
+    const target = event.target as HTMLElement | null;
+    if (target?.closest('.gd-more')) return;
+    this.showActions.set(false);
+  }
+
+  /**
+   * Tu fila en la clasificación, o `null` si todavía no puntúas.
+   *
+   * Se busca en el podio y en la página cargada, que es lo que el contrato actual entrega. En un
+   * grupo grande puedes caer fuera de esa página: entonces devuelve `null` y la tarjeta ofrece ir
+   * al ranking en vez de inventar un puesto. El caso lo cierra `GET .../leaderboard/me` (§2.2).
+   */
+  readonly myStanding = computed<LeaderboardEntryResponse | null>(() => {
+    const me = this.session.user()?.userId;
+    if (!me) return null;
+    return (
+      this.leagues.podium().find((e) => e.userId === me) ??
+      this.leagues.rows().find((e) => e.userId === me) ??
+      null
+    );
+  });
+
+  /** Convocatorias que siguen esperando gente. Una ya confirmada no reclama nada. */
+  readonly openLobbies = computed<LobbyResponse[]>(() =>
+    this.lobbies.open().filter((lobby) => lobby.status === 'POLLING'),
+  );
+
+  /** Cuánta gente ha juntado la franja que mejor va. Mismo criterio que el banner del shell. */
+  signedUp(lobby: LobbyResponse): number {
+    return lobby.slots.reduce((best, slot) => Math.max(best, slot.signedUp), 0);
+  }
+
+  openLobby(groupId: string, lobbyId: string): void {
+    void this.router.navigate(['/app', 'grupos', groupId, 'partidas', lobbyId]);
+  }
+
   // ── Diálogos de confirmación / estado local de UI ──────────────────
   readonly confirmDelete = signal(false);
   readonly confirmLeave = signal(false);
   readonly kick = signal<GroupMemberResponse | null>(null);
   readonly transferTo = signal<GroupMemberResponse | null>(null);
 
-  // ── Tabs miembros / invitados (estado de UI, no de dominio) ─────────
-  readonly tab = signal<'members' | 'invites'>('members');
+  // ── Tabs miembros / invitados / solicitudes (estado de UI, no de dominio) ──
+  readonly tab = signal<'members' | 'invites' | 'requests'>('members');
   setTab(value: string): void {
-    this.tab.set(value === 'invites' ? 'invites' : 'members');
+    this.tab.set(value as 'members' | 'invites' | 'requests');
   }
   readonly tabOptions = computed<NfSegmentOption[]>(() => {
     const invites = this.groupInvitations.invitations().length;
+    const requests = this.joinRequests.pendingGroupRequestsCount();
     return [
       // El contador es el total del grupo, no el de la página visible.
       { value: 'members', label: `Miembros · ${this.store.memberCount()}` },
       { value: 'invites', label: invites ? `Invitados · ${invites}` : 'Invitados' },
+      { value: 'requests', label: requests ? `Solicitudes · ${requests}` : 'Solicitudes' },
     ];
   });
+
+  async acceptRequest(requestId: string): Promise<void> {
+    const groupId = this.routeId();
+    if (!groupId) return;
+    await this.joinRequests.acceptJoinRequest(groupId, requestId);
+    void this.store.reloadRoster();
+  }
+
+  async declineRequest(requestId: string): Promise<void> {
+    const groupId = this.routeId();
+    if (!groupId) return;
+    await this.joinRequests.declineJoinRequest(groupId, requestId);
+  }
 
   /** Salta de página en el roster. `<nf-pagination>` es 1-based; el backend, 0-based. */
   goToMembersPage(page: number): void {
@@ -481,6 +689,25 @@ export class GrupoDetalle {
     effect(() => {
       const id = this.routeId();
       if (id) void this.store.load(id);
+    });
+
+    // Datos del panel de control. Ambas son idempotentes y se recargan al cambiar de :id.
+    // `ensureLoaded` de ligas puede fallar (hoy el backend da 500 en un grupo sin liga, ver
+    // Roadmap §1.1.g): la tarjeta de puesto tiene su propia rama de error y el resto del hub
+    // no se entera.
+    effect(() => {
+      const id = this.routeId();
+      if (!id) return;
+      // `untracked` no es adorno: `ensureLoaded` LEE los signals de estado del store (`status`,
+      // `groupId`) para decidir si hace falta la petición. Sin aislarlo, esos signals entran como
+      // dependencias del efecto, y entonces cada cambio de estado lo vuelve a disparar: cargar →
+      // error → reintentar → error, en bucle. Lo único que debe reabrir estas cargas es cambiar
+      // de :id.
+      untracked(() => {
+        void this.leagues.ensureLoaded(id);
+        void this.lobbies.ensureLoaded(id);
+        void this.joinRequests.loadGroupRequests(id);
+      });
     });
 
     // Puente identidad + roster → store mock, para que los sub-views placeholder de matchmaking

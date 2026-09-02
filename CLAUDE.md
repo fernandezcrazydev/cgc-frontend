@@ -277,8 +277,9 @@ Cuando se acuerde uno, documentarlo aquí y borrar la línea de pendientes.
   gusto — se adelgazarán solas al migrar matchmaking/MMR/resultados a endpoints.
 - Duplicados pendientes de unificar en `shared/`: resolución de `:id`→grupo (repetida en 8
   vistas), `avatarBg(hue)`, bloque 404, modales ad-hoc (falta un `NfModal`).
-- Rutas huérfanas: `crear.ts`, `campeones.ts`, `partidas.ts` no están en `app.routes.ts`
-  (los enlaces desde inicio caen en el wildcard → login).
+- Rutas huérfanas: `crear.ts` y `partidas.ts` no están en `app.routes.ts`. Ya no caen en el
+  login: el wildcard interno del shell pinta `no-encontrado`. (`campeones.ts` se renombró a
+  `tierlist.ts` y sí tiene ruta.)
 - `lobby.ts` es un God-module de tipos + datos semilla; al migrar cada dominio, mueve sus tipos a
   `core/<dominio>/models.ts` y borra sus semillas.
 - `GroupStore.selectedId` es estado de UI (sidebar del shell) viviendo en un store de dominio, y
@@ -287,3 +288,5 @@ Cuando se acuerde uno, documentarlo aquí y borrar la línea de pendientes.
   `provideZonelessChangeDetection` explícito. El objetivo es activarlos — no escribas código
   nuevo que lo impida.
 - `environment.prod.ts` tiene `apiBaseUrl` placeholder (`TODO`).
+- Advertencia de bundle budget en producción (`Initial total exceeded maximum budget: ~841 kB vs 500 kB`):
+  temporal por albergar generadores y semillas deterministas en frontend (Fase 0/1); se reducirá al migrar a endpoints reales y borrar los placeholders en la Fase 6.

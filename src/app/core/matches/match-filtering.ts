@@ -12,6 +12,7 @@
  * filtradas en servidor). `MatchFilterState` es justo la forma de esos parámetros, así que
  * sobrevive; las tres funciones de abajo se borran.
  */
+import { CrossMatch, CrossRelation } from './cross-history';
 import { Lane, Match } from './models';
 
 export type MatchSortBy = 'date-desc' | 'date-asc' | 'duration-desc' | 'kills-desc';
@@ -48,6 +49,12 @@ export interface MatchFilterState {
    * estados y no un interruptor.
    */
   participation: MatchParticipation;
+  /**
+   * Solo en la vista cruzada: si en esa partida fuisteis compañeros o rivales. Es la pregunta
+   * propia de esa pantalla —«¿cómo nos ha ido juntos, y cómo enfrentados?»— y por eso no se
+   * mezcla con `outcome`, que sigue diciendo cómo TE fue.
+   */
+  relation: CrossRelation | 'all';
   /** Búsqueda libre por jugador, campeón o grupo. */
   searchQuery: string;
   sortBy: MatchSortBy;
@@ -60,6 +67,7 @@ export const EMPTY_FILTERS: MatchFilterState = {
   outcome: 'all',
   winningSide: 'all',
   participation: 'all',
+  relation: 'all',
   searchQuery: '',
   sortBy: 'date-desc',
 };
@@ -69,7 +77,7 @@ export const SORT_OPTIONS: readonly { value: MatchSortBy; label: string }[] = [
   { value: 'date-desc', label: 'Más recientes' },
   { value: 'date-asc', label: 'Más antiguas' },
   { value: 'duration-desc', label: 'Más largas' },
-  { value: 'kills-desc', label: 'Más bajas' },
+  { value: 'kills-desc', label: 'Más Kills' },
 ];
 
 /**
@@ -103,6 +111,44 @@ export function filterGroupMatches(list: readonly Match[], f: MatchFilterState):
     }
     return matchesQuery(m, f.searchQuery);
   });
+}
+
+/**
+ * Historial cruzado: como el personal —todo se mide contra TU participación— más la relación,
+ * que es la dimensión que solo existe cuando hay otro jugador enfrente.
+ *
+ * `role` mira tu posición y no la suya a propósito: filtrar por MID contesta «cuando yo jugaba
+ * MID», que es la pregunta que se hace desde tu propio historial. Para el duelo de línea real
+ * está `sameLane`, que ya viene resuelto en cada `CrossMatch`.
+ */
+export function filterCrossMatches(
+  list: readonly CrossMatch[],
+  f: MatchFilterState,
+): CrossMatch[] {
+  return list.filter((c) => {
+    if (f.relation !== 'all' && c.relation !== f.relation) return false;
+    if (f.groupId !== 'all' && c.match.groupId !== f.groupId) return false;
+    if (f.outcome !== 'all' && c.match.userOutcome !== f.outcome) return false;
+    if (f.role !== 'all' && c.me.role !== f.role) return false;
+    if (f.championId !== 'all' && c.me.championId !== f.championId) return false;
+    return matchesQuery(c.match, f.searchQuery);
+  });
+}
+
+/**
+ * Ordena partidas cruzadas con el mismo criterio que la lista normal, reutilizando
+ * `sortMatches` sobre la partida que cada una envuelve: si el control de orden dice lo mismo
+ * en las dos pantallas, tiene que ordenar igual.
+ */
+export function sortCrossMatches(
+  list: readonly CrossMatch[],
+  sortBy: MatchSortBy,
+): CrossMatch[] {
+  const byId = new Map(list.map((c) => [c.id, c]));
+  return sortMatches(
+    list.map((c) => c.match),
+    sortBy,
+  ).map((m) => byId.get(m.id)!);
 }
 
 /** Devuelve una copia ordenada: `sort` muta, y estas listas vienen de un `computed`. */

@@ -69,6 +69,11 @@ export const routes: Routes = [
           import('./features/shell/views/grupo-ranking').then((m) => m.GrupoRanking),
       },
       {
+        path: 'grupos/:id/tierlist',
+        title: 'Tierlist · Sale Custom',
+        loadComponent: () => import('./features/shell/views/tierlist').then((m) => m.Tierlist),
+      },
+      {
         path: 'grupos/:id/estadisticas',
         title: 'Estadísticas · Sale Custom',
         loadComponent: () =>
@@ -87,9 +92,8 @@ export const routes: Routes = [
           import('./features/shell/views/grupo-historial').then((m) => m.GrupoHistorial),
       },
       {
-        path: 'campeones',
-        title: 'Campeones · Sale Custom',
-        loadComponent: () => import('./features/shell/views/campeones').then((m) => m.Campeones),
+        path: 'tierlist',
+        redirectTo: 'grupos',
       },
       {
         path: 'perfil',
@@ -102,6 +106,51 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/shell/views/perfil-miembro').then((m) => m.PerfilMiembro),
       },
+      // Cruce con otro jugador (Fase 4): CrossLayout gestiona el estado y la cabecera compartida,
+      // mientras que las vistas hijas (Historial, Versus, Sinergia y Detalle) se cargan sin parpadeos.
+      {
+        path: 'jugador/:playerId',
+        loadComponent: () =>
+          import('./features/shell/views/cross/cross-layout').then((m) => m.CrossLayout),
+        children: [
+          {
+            path: '',
+            title: 'Historial cruzado · Sale Custom',
+            loadComponent: () =>
+              import('./features/shell/views/historial-cruzado').then((m) => m.HistorialCruzado),
+          },
+          {
+            path: 'contra',
+            title: 'Cara a cara · Sale Custom',
+            loadComponent: () => import('./features/shell/views/versus').then((m) => m.Versus),
+          },
+          {
+            path: 'contra/:matchId',
+            title: 'Duelo directo · Sale Custom',
+            data: { relation: 'enemy' },
+            loadComponent: () =>
+              import('./features/shell/views/cross/cross-match-detail').then((m) => m.CrossMatchDetail),
+          },
+          {
+            path: 'juntos',
+            title: 'Sinergia de dúo · Sale Custom',
+            loadComponent: () => import('./features/shell/views/synergy').then((m) => m.Synergy),
+          },
+          {
+            path: 'juntos/:matchId',
+            title: 'Sinergia en la partida · Sale Custom',
+            data: { relation: 'ally' },
+            loadComponent: () =>
+              import('./features/shell/views/cross/cross-match-detail').then((m) => m.CrossMatchDetail),
+          },
+        ],
+      },
+      // Redirects de compatibilidad para enlaces profundos
+      { path: 'versus/:playerId', redirectTo: 'jugador/:playerId/contra' },
+      { path: 'versus/:playerId/:matchId', redirectTo: 'jugador/:playerId/contra/:matchId' },
+      { path: 'synergy/:playerId', redirectTo: 'jugador/:playerId/juntos' },
+      { path: 'synergy/:playerId/:matchId', redirectTo: 'jugador/:playerId/juntos/:matchId' },
+      { path: 'historial-cruzado/:playerId', redirectTo: 'jugador/:playerId' },
       {
         path: 'ajustes',
         title: 'Ajustes · Sale Custom',

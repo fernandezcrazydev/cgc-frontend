@@ -1,4 +1,4 @@
-import { Injectable, computed, inject } from '@angular/core';
+import { Injectable, computed, signal } from '@angular/core';
 import {
   GroupMatchHistorySummary,
   Lane,
@@ -7,11 +7,13 @@ import {
   UserMatchHistorySummary,
 } from './models';
 import { kdaRatio } from './match-view';
-import { MockHistoryGroup, buildMockHistory } from './match-history-seed';
-import { Session } from '../auth';
-import { GroupsStore, MOCK_GROUP_VIEWS } from '../groups';
-import { GroupStore } from '../group-store';
-import { RiotAccountStore } from '../riot';
+import {
+  CrossMatch,
+  CrossPartner,
+  buildCrossMatches,
+  buildCrossPartners,
+  participantKey,
+} from './cross-history';
 
 /** Rendimiento del usuario con un campeón concreto, para comparar contra una partida suelta. */
 export interface ChampionAverages {
@@ -37,80 +39,40 @@ export interface HeadToHead {
   laneWins: number;
 }
 
-/**
- * Identidad estable de un participante. `userId` cuando existe (invitados no tienen), y si no
- * el `riotId` normalizado. Nunca se compara por nombre a secas: `Nombre#REGION` es la clave
- * completa, y el mock la escribe con mayúsculas inconsistentes.
- */
-function participantKey(p: MatchParticipant): string {
-  return p.userId ?? p.riotId.toLowerCase();
+/** El cruce contra otro jugador, ya repartido por relación. */
+export interface CrossWith {
+  all: CrossMatch[];
+  allies: CrossMatch[];
+  enemies: CrossMatch[];
 }
 
 /**
- * Estado de dominio del historial. Solo datos y derivaciones sobre ellos: los filtros, la
- * página y qué filas están desplegadas son estado de UI y viven en `MatchHistoryUiState`,
- * provisto por cada vista (regla de oro: estado de UI ≠ estado de dominio). Antes estaban
- * aquí, y el efecto secundario era que los filtros del historial personal se colaban en el
- * de grupo sin que nada lo indicase.
+ * Estado de dominio del historial. Solo datos y derivaciones sobre ellos.
  *
- * BACKEND NOTE: la lista entera es placeholder desechable: sale de proyectar la semilla sobre
- * las ligas reales del usuario (`buildMockHistory`, en `match-history-seed.ts`). Cuando exista
- * `GET /matches` este store pasa al patrón `Session` (status/ensureLoaded/reload/clear), la
- * semilla y su proyección se borran enteras, y los agregados de abajo se sustituyen por los que
- * calcule el servidor.
+ * BACKEND NOTE: Cuando exista `GET /matches` este store pasa al patrón `Session`
+ * (status/ensureLoaded/reload/clear) y carga directamente del servidor.
  */
 @Injectable({ providedIn: 'root' })
 export class MatchHistoryStore {
-  private readonly session = inject(Session);
-  private readonly groupsStore = inject(GroupsStore);
-  private readonly groupStore = inject(GroupStore);
-  private readonly riotAccount = inject(RiotAccountStore);
+  /** Estado de carga del store de historial de partidas. */
+  readonly status = signal<'loading' | 'ready'>('ready');
 
   /**
-   * Todas las partidas del sistema.
-   *
-   * Es un `computed` y no una constante porque sus tres entradas llegan por red y en cualquier
-   * orden: las ligas del usuario (`GroupsStore`), su identidad (`Session` + cuenta de Riot) y el
-   * roster de cada grupo, que `GroupBridge` siembra al entrar en él. Recalcular en vez de
-   * congelar la lista al arrancar es lo que hace que, al abrir un grupo, sus partidas pasen de
-   * enseñar nombres de la semilla a enseñar a tus compañeros de verdad sin recargar nada.
+   * Todas las partidas del sistema (0 partidas por defecto hasta conexión con backend real).
    */
-  readonly allMatches = computed<Match[]>(() =>
-    buildMockHistory(this.leagues(), this.viewer(), (id) => this.groupStore.rosterOf(id)),
-  );
-
-  /**
-   * Las ligas sobre las que se reparte el historial. Mientras la lista real está en vuelo (o si
-   * falla, o si el usuario aún no tiene ninguna) se usa la mock, para que el historial personal
-   * no aparezca vacío por una carga a medias —que se leería como «no has jugado nada»—.
-   */
-  private readonly leagues = computed<MockHistoryGroup[]>(() => {
-    const real = this.groupsStore.groups();
-    const source = real.length > 0 ? real : MOCK_GROUP_VIEWS;
-    return source.map((g) => ({
-      id: g.id,
-      name: g.name,
-      region: g.region ?? 'LAN',
-      initials: g.initials,
-      c1: g.c1,
-      c2: g.c2,
-    }));
-  });
-
-  /**
-   * Quién mira. El `userId` de `/me` es la identidad estable; el Riot ID es solo lo que se
-   * pinta, y si no hay cuenta de LoL vinculada se cae al nombre de Discord antes que a un hueco.
-   */
-  private readonly viewer = computed(() => {
-    const user = this.session.user();
-    return {
-      userId: user?.userId ?? 'mock:viewer',
-      riotId: this.riotAccount.account()?.riotId ?? user?.discordUsername ?? 'Yo',
-    };
-  });
+  readonly allMatches = signal<Match[]>([]);
 
   /** Partidas en las que participó el usuario actual. */
   readonly allPersonalMatches = computed(() => this.allMatches().filter((m) => !!m.userParticipant));
+
+  /**
+   * Todos los jugadores con los que has coincidido, con sus dos listas. Es de donde salen el
+   * mejor aliado y la némesis del perfil: antes cada uno se sembraba por su cuenta, así que la
+   * tarjeta de «mejor aliado» podía anunciar un winrate que su propia página desmentía.
+   */
+  readonly crossPartners = computed<CrossPartner[]>(() =>
+    buildCrossPartners(this.allPersonalMatches()),
+  );
 
   /** Resumen analítico de las partidas del usuario actual. */
   readonly personalSummary = computed<UserMatchHistorySummary>(() => {
@@ -302,6 +264,22 @@ export class MatchHistoryStore {
     }
 
     return { riotId: opponent.riotId, games, wins, losses: games - wins, laneGames, laneWins };
+  }
+
+  /**
+   * Todas las partidas que el usuario ha compartido con otro jugador, separadas por relación.
+   *
+   * Es la ÚNICA fuente del historial cruzado, de las medias en contra, de las medias juntos y
+   * del detalle de una partida cruzada. Antes cada superficie contaba lo suyo —una desde una
+   * semilla y otra desde estas partidas— y las cifras no coincidían entre pantallas contiguas.
+   */
+  crossWith(playerKey: string): CrossWith {
+    const all = buildCrossMatches(this.allPersonalMatches(), playerKey);
+    return {
+      all,
+      allies: all.filter((c) => c.relation === 'ally'),
+      enemies: all.filter((c) => c.relation === 'enemy'),
+    };
   }
 }
 

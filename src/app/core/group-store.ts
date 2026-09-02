@@ -1,12 +1,14 @@
 import { Injectable, computed, signal } from '@angular/core';
-import { CURRENT_USER, GROUPS, Group, Member } from './lobby';
+import { CURRENT_USER, GROUPS, Group, Member, MOCK_NAMES } from './lobby';
 
-/** Deterministic name pool used to seed mock rosters for the seed groups. */
-const MEMBER_POOL = [
-  'Pix3lQueen', 'Cr1msonByte', 'D4rkFl4me', 'V0idWalker', 'NeonRift',
-  'GlitchKid', 'St0rmcaller', 'HexHunter', 'AshenWolf', 'LumeCore',
-  'Zer0Cool', 'ByteSiren',
-];
+/**
+ * Deterministic name pool used to seed mock rosters for the seed groups.
+ * Es `MOCK_NAMES` de `lobby.ts`: la lista vive en un solo sitio porque
+ * `group-ranking.ts` necesita exactamente los mismos nombres, y porque un
+ * nombre repetido genera dos miembros con el mismo `tag` (ver el comentario
+ * de `MOCK_NAMES`).
+ */
+const MEMBER_POOL = MOCK_NAMES;
 
 const ROSTER_ROLES = ['Capitán', 'TOP', 'JUNGLA', 'MID', 'ADC', 'SUPPORT', 'Suplente'];
 

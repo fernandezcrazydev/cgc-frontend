@@ -3,7 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { PageResponse } from '../http/page';
-import { ChampionDetail, ChampionSummary, GameDataManifest, GameItem, SummonerSpell } from './models';
+import { ChampionDetail, ChampionSummary, GameDataManifest, GameItem, Perk, SummonerSpell } from './models';
 
 /**
  * Único sitio de `core/game-data` que conoce las URLs del catálogo de Data
@@ -36,6 +36,11 @@ export class GameDataApi {
 
   summonerSpells(): Observable<SummonerSpell[]> {
     return this.http.get<SummonerSpell[]>(`${environment.apiUrl}/game-data/summoner-spells`);
+  }
+
+  /** Las ~103 runas más los 5 árboles, en un array plano: misma excepción consciente que los campeones. */
+  perks(): Observable<Perk[]> {
+    return this.http.get<Perk[]>(`${environment.apiUrl}/game-data/perks`);
   }
 
   /** Paginado por offset (`core/http/page.ts`). `q` es opcional: ausente, no filtra. */
