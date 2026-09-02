@@ -670,6 +670,16 @@
   width: 232px;
 }
 
+/* Un popover que sale al lado chocaba con el `overflow-x: hidden` del sidebar: en rail
+   quedaba recortado a los 68px y no se veía nada. `position: fixed` tampoco escapa,
+   porque el `backdrop-filter` del sidebar lo convierte en su bloque contenedor (misma
+   causa que la de los fondos de cierre, ver Shell.onDocumentClick). Se levanta el
+   recorte solo mientras hay un popover abierto: en ese momento no hay transición de
+   anchura en curso, que es lo único que el recorte estaba tapando. */
+.shell__sidebar.has-popover {
+  overflow-x: visible;
+}
+
 .shell__sidebar.is-rail .shell__profile { justify-content: center; padding: 6px 0; }
 .shell__sidebar.is-rail .shell__user-meta { display: none; }
 
