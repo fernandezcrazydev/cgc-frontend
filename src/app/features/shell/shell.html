@@ -7,7 +7,7 @@
 
   <!-- desktop sidebar -->
   @if (!isMobile()) {
-    <aside class="shell__sidebar" [class.is-rail]="railed()">
+    <aside class="shell__sidebar" [class.is-rail]="railed()" [class.has-popover]="showDownload() || !!railMenuFor()">
       <!-- Cabecera de marca fija y estable (mismo eje vertical exacto) -->
       <div class="shell__brand">
         <button
