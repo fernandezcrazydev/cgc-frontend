@@ -663,7 +663,15 @@
   margin: 0 auto;
 }
 
-/* El popover de descarga no cabe bajo un disparador de 48px: sale al lado */
+/* El popover de descarga NO se posiciona ya dentro de la barra.
+
+   Aquí vivían dos reglas —`.shell__download-menu.is-rail`, que lo sacaba al lado, y
+   `.shell__sidebar.has-popover`, que levantaba el `overflow-x: hidden` para que no
+   quedara recortado a los 68px del rail—. Las dos desaparecen porque el menú dejó de
+   colgar del sidebar: ahora se pinta como capa flotante fuera de él, anclada a la
+   posición real del botón (ver `shell.html`, `downloadAnchor()`). Esa vía resuelve
+   además el caso que el `overflow` no podía: el `backdrop-filter` del sidebar lo
+   convierte en bloque contenedor, así que ni `position: fixed` escapaba de él. */
 .shell__sidebar.is-rail .shell__profile { justify-content: center; padding: 6px 0; }
 .shell__sidebar.is-rail .shell__user-meta { display: none; }
 

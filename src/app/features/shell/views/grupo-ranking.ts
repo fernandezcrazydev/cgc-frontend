@@ -29,7 +29,6 @@ import {
   NfSkeleton,
   NfTypeahead,
 } from '../../../ui';
-import { Session } from '../../../core/auth';
 import { GroupBridge, GroupDetailStore, GroupsStore } from '../../../core/groups';
 import { GroupStore } from '../../../core/group-store';
 import { hash, mapLeaderboardEntries, RankEntry } from '../../../core/group-ranking';
@@ -97,9 +96,14 @@ const RUNES_FALLBACK: Record<Lane, { primary: number; secondary: number }> = {
 };
 
 /**
- * Duración de una temporada abierta desde aquí. Es el mismo valor por defecto que usa el backend al
- * crear la primera liga de un grupo; el día que haya una pantalla de configuración de temporada, la
- * fecha la elegirá quien la abra en vez de fijarse aquí.
+ * Duración de una temporada abierta desde aquí.
+ *
+ * BACKEND NOTE: es una COPIA de `DEFAULT_SEASON_DAYS`, que el backend ya usa para crear la primera
+ * liga de un grupo. Dos constantes para el mismo valor por defecto, en dos repos, que nadie va a
+ * acordarse de cambiar a la vez. Desaparece con `POST /groups/{groupId}/leagues/next`: la siguiente
+ * temporada se pide sin cuerpo y el servidor —que ya conoce la duración y sabe qué número le
+ * toca— decide fechas y nombre. Hasta entonces se queda aquí, porque el endpoint de creación
+ * exige `endsAt` y alguien tiene que proponerlo.
  */
 const SEASON_LENGTH_DAYS = 14;
 
@@ -516,8 +520,11 @@ const SEASON_LENGTH_DAYS = 14;
                   <span class="rk-rowend">
                   <!-- Gestión del jugador. Un menú de tres puntos y no botones sueltos por fila:
                        en una tabla de quince filas, repetir acciones destructivas a la vista
-                       invita al accidente y se come ancho que aquí ya va justo. -->
-                  @if (canManageMembers()) {
+                       invita al accidente y se come ancho que aquí ya va justo.
+                       Solo aparece si hay algo que ofrecer: quien lo abre gestiona el grupo Y
+                       supera en rango a esta fila. Sobre el propietario, o sobre uno mismo, no
+                       hay ninguna acción posible y ni el botón se pinta. -->
+                  @if (canManageMembers() && canActOn(e)) {
                     <span class="rk-actions">
                       <button
                         type="button"
@@ -548,14 +555,12 @@ const SEASON_LENGTH_DAYS = 14;
                               (click)="openSanction(e)"
                             >Sancionar</button>
                           }
-                          @if (canKick(e)) {
-                            <button
-                              type="button"
-                              class="rk-actions__item rk-actions__item--danger"
-                              role="menuitem"
-                              (click)="askKick(e)"
-                            >Expulsar del grupo</button>
-                          }
+                          <button
+                            type="button"
+                            class="rk-actions__item rk-actions__item--danger"
+                            role="menuitem"
+                            (click)="askKick(e)"
+                          >Expulsar del grupo</button>
                         </span>
                       }
                     </span>
@@ -887,7 +892,6 @@ const SEASON_LENGTH_DAYS = 14;
 export class GrupoRanking {
   private readonly route = inject(ActivatedRoute);
   private readonly groupStore = inject(GroupStore);
-  private readonly session = inject(Session);
   private readonly groupsStore = inject(GroupsStore);
   private readonly destroyRef = inject(DestroyRef);
   private readonly toasts = inject(ToastService);
@@ -1183,17 +1187,23 @@ export class GrupoRanking {
    * La versión anterior, sin respuesta, fabricaba una fecha con `Date.now() + hash(groupId)`: un
    * cronómetro corriendo hacia una fecha inexistente, además distinta en cada recarga.
    *
-   * Se compara contra el reloj del SERVIDOR, no contra el del equipo. Antes usaba el local, así que
-   * un reloj adelantado media hora daba la temporada por terminada media hora antes solo para esa
-   * persona: veía "Finalizada" mientras el resto seguía jugando.
+   * El tiempo que queda se cuenta contra el reloj del SERVIDOR (`ServerClock.offsetMs()`), no
+   * contra el del equipo. Y si la temporada ha terminado ya no lo decide esta resta: lo dice el
+   * `status` de la liga, que el backend deriva de su propio reloj. Con el reloj local mandando, un
+   * equipo adelantado media hora veía "Finalizada" —solo él— mientras el resto seguía jugando.
    */
   readonly countdown = computed(() => {
-    const endsAt = this.leagues.league()?.endsAt;
-    if (!endsAt) return null;
+    const league = this.leagues.league();
+    if (!league?.endsAt) return null;
 
-    const diff = Math.max(0, new Date(endsAt).getTime() - (this.now() + this.clock.offsetMs()));
-    const isExpired = diff <= 0;
+    const diff = Math.max(0, new Date(league.endsAt).getTime() - (this.now() + this.clock.offsetMs()));
     const days = Math.floor(diff / 86_400_000);
+
+    // Que la temporada haya terminado lo dice el SERVIDOR: `status` ya viene derivado de su reloj,
+    // así que compararlo aquí otra vez sería tener dos verdades para el mismo hecho, y la del
+    // cliente pierde siempre. El umbral de "Fase final" sí sigue siendo nuestro: es una regla de
+    // presentación (cuándo avisar de que queda poco), no un estado del dominio.
+    const isExpired = league.status === 'FINISHED';
 
     let statusLabel = 'En curso';
     let statusVariant: 'success' | 'warning' | 'danger' = 'success';
@@ -1211,6 +1221,12 @@ export class GrupoRanking {
       minutes: Math.floor((diff / 60_000) % 60),
       seconds: Math.floor((diff / 1000) % 60),
       isExpired,
+      /**
+       * El reloj ha llegado a cero. NO es "la temporada ha terminado" —eso es `isExpired`, y lo
+       * dice el servidor—: es solo que no queda nada que contar, y sirve para parar el cronómetro
+       * en vez de tenerlo repintando ceros hasta el próximo refetch.
+       */
+      hasRunOut: diff === 0,
       statusLabel,
       statusVariant,
     };
@@ -1246,22 +1262,17 @@ export class GrupoRanking {
    * opcional y sin él sirve la activa, así que la cadena vacía es exactamente «la de siempre» y
    * no un id que haya que mantener sincronizado.
    */
-  readonly seasonOptions = computed<NfComboboxOption[]>(() => {
-    // La activa PRIMERA, y las cerradas de la más reciente a la más antigua. El orden importa
-    // más de lo que parece: el servidor las devuelve por fecha ascendente, y un `<select>` nativo
-    // se queda en su primera opción cuando el valor enlazado aún no existe entre las opciones
-    // renderizadas. Con la temporada vieja arriba, el desplegable decía «Temporada 1 (cerrada)»
-    // mientras la tabla mostraba la liga en curso.
-    const seasons = [...this.leagues.seasons()].sort((a, b) => {
-      if (a.status !== 'FINISHED' && b.status === 'FINISHED') return -1;
-      if (a.status === 'FINISHED' && b.status !== 'FINISHED') return 1;
-      return new Date(b.startsAt).getTime() - new Date(a.startsAt).getTime();
-    });
-    return seasons.map((season) => ({
+  readonly seasonOptions = computed<NfComboboxOption[]>(() =>
+    // El orden lo da el SERVIDOR (`created_at DESC`: la más reciente primero) y aquí no se toca.
+    // Este `computed` reordenaba a mano «la activa primero, luego las cerradas por fecha», y lo
+    // hacía a partir de una premisa falsa —que el backend las servía en orden ascendente—: la
+    // lista ya llegaba bien. Como solo puede haber una liga viva por grupo, la más reciente ES la
+    // activa, así que la primera opción del desplegable es la que la tabla está enseñando.
+    this.leagues.seasons().map((season) => ({
       value: season.status === 'FINISHED' ? season.id : '',
       label: season.status === 'FINISHED' ? `${season.name} (cerrada)` : `${season.name} (en curso)`,
-    }));
-  });
+    })),
+  );
 
   onSeasonChange(value: string): void {
     void this.leagues.selectSeason(value || null);
@@ -1273,8 +1284,22 @@ export class GrupoRanking {
   /** Fila cuyo menú está abierto, o `null`. Estado de UI. */
   readonly menuFor = signal<string | null>(null);
 
-  /** ¿Puede este usuario gestionar jugadores? Lo dice el servidor en la propia clasificación. */
-  readonly canManageMembers = computed(() => this.leagues.canManageLeague());
+  /**
+   * ¿Puede este usuario gestionar jugadores EN LA TABLA QUE SE ESTÁ VIENDO?
+   *
+   * Dos condiciones, y la segunda es fácil de olvidar. Quién gestiona lo dice el servidor en la
+   * propia clasificación (`canManageLeague`). Y la temporada tiene que estar viva: una cerrada se
+   * sirve en solo lectura —es un resultado congelado— y el backend rechaza cualquier escritura
+   * sobre ella con 409 `LEAGUE_CLOSED`. Peor aún al mirar una temporada pasada por el selector:
+   * la sanción no viaja con `leagueId`, así que actúa sobre la liga ACTIVA, no sobre la que se
+   * está mirando. Se sancionaría a alguien en otra temporada distinta de la que se tiene delante.
+   *
+   * BACKEND NOTE: esto deduce de `status === 'FINISHED'` lo que el contrato acabará diciendo con
+   * un `readOnly` en `LeagueResponse`. Cuando llegue, se lee de ahí.
+   */
+  readonly canManageMembers = computed(
+    () => this.leagues.canManageLeague() && !this.leagues.isSeasonClosed(),
+  );
 
   toggleMenu(playerId: string, event: Event): void {
     event.stopPropagation();
@@ -1292,23 +1317,41 @@ export class GrupoRanking {
     this.closeMenu();
   }
 
+  /** Jerarquía del grupo. Solo se usa para comparar: quien tiene más número manda más. */
+  private static readonly ROLE_RANK: Record<string, number> = { OWNER: 3, ADMIN: 2, MEMBER: 1 };
+
   /**
-   * ¿Se puede expulsar a este jugador? Misma regla que el hub: hay que superarle en rango, y
-   * nadie expulsa al propietario ni a sí mismo.
+   * ¿Puede quien mira actuar sobre esta fila? Hay que superarle ESTRICTAMENTE en rango.
    *
-   * El rango del otro viene en su propia fila (`groupRole`). Antes no estaba en el DTO y había
-   * que cruzarlo con el roster que carga `GroupBridge`: dos fuentes para un dato que se sirve
-   * junto a los demás. El del que mira sale de `GroupsStore`, que es su propia pertenencia.
+   * Una sola función para las tres acciones del menú —sancionar, levantar la sanción y expulsar—
+   * porque el servidor aplica la misma regla a las tres: `MembershipPolicy.checkCanRemove` para la
+   * expulsión y `outranks` para las sanciones son la misma comparación. Tenerlas separadas es lo
+   * que dejaba «Sancionar» sin comprobar nada: se podía pulsar sobre el OWNER y comerse un 409
+   * `CANNOT_SANCTION_PLAYER` que la interfaz había ofrecido ella misma.
+   *
+   * «Estrictamente» cubre gratis dos casos que antes iban a mano: nadie se supera a sí mismo (mismo
+   * rol) y nadie supera al OWNER (no hay rango por encima).
+   *
+   * Es SOLO UX. El backend revalida las tres acciones y responde 409 (`CANNOT_SANCTION_PLAYER`,
+   * `CANNOT_REMOVE_GROUP_MEMBER`); esto solo evita ofrecer un botón que ya se sabe que va a fallar.
+   *
+   * BACKEND NOTE: esto reimplementa en cliente el `outranks` del servidor, que es quien manda. Se
+   * borra —junto con `groupRole` de la fila— en cuanto `LeaderboardEntryResponse` traiga
+   * `canRemove` / `canSanction` ya resueltos por el backend.
    */
-  canKick(e: RankEntry): boolean {
+  canActOn(e: RankEntry): boolean {
     const groupId = this.id();
     if (!groupId) return false;
-    if (e.playerId === this.session.user()?.userId) return false;
-    if (e.groupRole === 'OWNER') return false;
 
-    const myRole = this.groupsStore.byId(groupId)?.role;
-    if (myRole === 'OWNER') return true;
-    return myRole === 'ADMIN' && e.groupRole === 'MEMBER';
+    // El rango del otro viene en su propia fila (`groupRole`); el propio, de `GroupsStore`, que es
+    // la pertenencia de quien mira. Antes el del otro había que cruzarlo con el roster de
+    // `GroupBridge`: dos fuentes para un dato que se sirve junto a los demás.
+    const mine = GrupoRanking.ROLE_RANK[this.groupsStore.byId(groupId)?.role ?? ''] ?? 0;
+    const theirs = GrupoRanking.ROLE_RANK[e.groupRole ?? ''] ?? 0;
+    // Sin rango conocido del otro no se puede afirmar que se le supera, así que no se ofrece:
+    // el control se esconde y, si acaso, el servidor sigue siendo quien decide.
+    if (!theirs) return false;
+    return mine > theirs;
   }
 
   // ── Sancionar ─────────────────────────────────────────────────────────
@@ -1514,16 +1557,24 @@ export class GrupoRanking {
   /**
    * Abre la siguiente temporada del grupo con la duración por defecto.
    *
-   * El nombre y las fechas se proponen aquí; el día que haya una pantalla de configuración de
-   * temporada, este método pasa a recibirlos en vez de calcularlos.
+   * El número sale de CUÁNTAS temporadas tiene ya el grupo, no de leer una cifra al final del
+   * nombre de la anterior. Ese `name.match(/(\d+)\s*$/)` no tenía nada que leer en la primera liga
+   * —se llama «<grupo> · Liga oficial», sin número—, caía al `?? '1'` y bautizaba «Temporada 2» a
+   * la segunda liga de todos los grupos, con una «Temporada 1» que no existía en ninguno. Y a la
+   * mínima que alguien renombrase su liga con un año o un número al final, el conteo saltaba a él.
+   *
+   * `Math.max(..., 1)` es la red por si la lista de temporadas no llegó: se carga aparte y falla
+   * en silencio a lista vacía, pero si se está abriendo la siguiente es que hay al menos una.
+   *
+   * BACKEND NOTE: número, fechas y nombre son cosa del servidor. Este método entero se reduce a
+   * llamar a `POST /groups/{groupId}/leagues/next` sin cuerpo en cuanto ese endpoint exista.
    */
   async startNextSeason(groupName: string): Promise<void> {
     const groupId = this.id();
     if (!groupId) return;
 
     const endsAt = new Date(Date.now() + SEASON_LENGTH_DAYS * 86_400_000).toISOString();
-    const seasonNumber = (this.leagues.league()?.name.match(/(\d+)\s*$/)?.[1] ?? '1');
-    const next = Number(seasonNumber) + 1;
+    const next = Math.max(this.leagues.seasons().length, 1) + 1;
 
     try {
       await this.leagues.startNextSeason(groupId, `${groupName} · Temporada ${next}`, endsAt);
@@ -1586,7 +1637,10 @@ export class GrupoRanking {
 
     const tick = () => {
       this.now.set(Date.now());
-      if (this.countdown()?.isExpired) stop();
+      // Se para cuando no queda tiempo que contar, no cuando el servidor da la liga por cerrada:
+      // entre lo uno y lo otro hay el hueco de un refetch, y durante él el cronómetro estaría
+      // repintando la vista entera cada segundo para enseñar los mismos ceros.
+      if (this.countdown()?.hasRunOut) stop();
     };
 
     const start = () => {

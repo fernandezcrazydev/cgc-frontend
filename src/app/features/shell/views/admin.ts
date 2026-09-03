@@ -1,7 +1,7 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
-import { AdminActionsApi, RiotProfileIconSyncReport } from '../../../core/admin';
+import { AdminActionsApi, RiotAccountRefreshReport } from '../../../core/admin';
 import { errorMessage } from '../../../core/http';
 import { ToastService } from '../../../core/toast';
 import { NfButton } from '../../../ui';
@@ -37,10 +37,10 @@ const ITEMS: AdminDirectoryItem[] = [
     glyph: '🔐',
   },
   {
-    id: 'riot-profile-icons-sync',
-    label: 'Sincronizar iconos de perfil de Riot',
+    id: 'riot-accounts-refresh',
+    label: 'Refrescar cuentas de Riot',
     description:
-      'Fuerza ya la sincronización que corre cada noche, sin esperar al cron. Actualiza el icono de invocador guardado de cada cuenta vinculada.',
+      'Fuerza ya el barrido que corre cada noche, sin esperar al cron. Actualiza de cada cuenta vinculada el icono de invocador y el rango de SoloQ, que es lo que pinta el escudo del ranking.',
     glyph: '🔄',
   },
 ];
@@ -96,16 +96,14 @@ const ITEMS: AdminDirectoryItem[] = [
                 <span class="ad-card__cta nf-mono">Abrir</span>
               </a>
             }
-            @case ('riot-profile-icons-sync') {
+            @case ('riot-accounts-refresh') {
               <div class="ad-card">
                 <span class="ad-card__glyph">{{ item.glyph }}</span>
                 <span class="ad-card__body">
                   <span class="ad-card__label">{{ item.label }}</span>
                   <span class="ad-card__desc">{{ item.description }}</span>
-                  @if (syncResult(); as r) {
-                    <span class="ad-card__result nf-mono">
-                      {{ r.updated }}/{{ r.total }} cuentas actualizadas{{ r.failed ? ', ' + r.failed + ' fallidas' : '' }}
-                    </span>
+                  @if (refreshSummary(); as summary) {
+                    <span class="ad-card__result nf-mono">{{ summary }}</span>
                   }
                 </span>
                 <button
@@ -113,10 +111,10 @@ const ITEMS: AdminDirectoryItem[] = [
                   nfButton
                   variant="primary"
                   size="sm"
-                  [disabled]="syncPending()"
-                  (click)="syncRiotProfileIcons()"
+                  [disabled]="refreshPending()"
+                  (click)="refreshRiotAccounts()"
                 >
-                  {{ syncPending() ? 'Sincronizando…' : 'Sincronizar ahora' }}
+                  {{ refreshPending() ? 'Refrescando…' : 'Refrescar ahora' }}
                 </button>
               </div>
             }
@@ -186,23 +184,39 @@ export class AdminDirectory {
 
   readonly items = ITEMS;
 
-  readonly syncPending = signal(false);
-  readonly syncResult = signal<RiotProfileIconSyncReport | null>(null);
+  readonly refreshPending = signal(false);
+  readonly refreshResult = signal<RiotAccountRefreshReport | null>(null);
+
+  /**
+   * Una sola frase para la tarjeta y para el toast, para que no puedan contar cosas distintas.
+   *
+   * Se nombran los dos hechos por separado porque fallan por separado, y `anchored` se dice
+   * aparte de `seedsUpdated` porque no son lo mismo: un unranked refresca bien y no ancla. Los
+   * saltos solo se mencionan si los hay — son lo normal cuando queda poca cuota, no una alarma.
+   */
+  readonly refreshSummary = computed(() => {
+    const r = this.refreshResult();
+    if (!r) return null;
+    const parts = [
+      `${r.iconsUpdated}/${r.total} iconos`,
+      `${r.seedsUpdated}/${r.total} rangos (${r.anchored} con elo)`,
+    ];
+    if (r.failed) parts.push(`${r.failed} fallidas`);
+    if (r.skipped) parts.push(`${r.skipped} sin cuota, para esta noche`);
+    return parts.join(' · ');
+  });
 
   /** No reentrante: el botón se deshabilita mientras la petición está en vuelo. */
-  async syncRiotProfileIcons(): Promise<void> {
-    if (this.syncPending()) return;
-    this.syncPending.set(true);
+  async refreshRiotAccounts(): Promise<void> {
+    if (this.refreshPending()) return;
+    this.refreshPending.set(true);
     try {
-      const report = await firstValueFrom(this.api.syncRiotProfileIcons());
-      this.syncResult.set(report);
-      this.toasts.success(
-        `${report.updated}/${report.total} cuentas actualizadas${report.failed ? ', ' + report.failed + ' fallidas' : ''}`,
-      );
+      this.refreshResult.set(await firstValueFrom(this.api.refreshRiotAccounts()));
+      this.toasts.success(this.refreshSummary() ?? 'Cuentas refrescadas');
     } catch (error) {
       this.toasts.error(errorMessage(error));
     } finally {
-      this.syncPending.set(false);
+      this.refreshPending.set(false);
     }
   }
 }

@@ -27,11 +27,20 @@ export interface LeagueResponse {
   playerCount: number;
 }
 
+/**
+ * Cuerpo de `POST /groups/{groupId}/leagues`.
+ *
+ * NO lleva `status`, y esa ausencia es deliberada: el estado de una liga es una función de sus
+ * fechas y lo decide el servidor (`startsAt` en el futuro nace `NOT_STARTED` y arranca solo;
+ * `startsAt` ya pasado nace `IN_PROGRESS`). Mientras el campo existió aquí, el cliente podía
+ * pedir una liga en un estado que nada arrancaba y nada caducaba. El backend lo ignora.
+ *
+ * `startsAt` puede faltar: entonces la temporada empieza en el momento de crearla.
+ */
 export interface CreateLeagueRequest {
   name: string;
   startsAt?: string;
   endsAt: string;
-  status?: LeagueStatus;
   type?: LeagueType;
 }
 
@@ -56,10 +65,13 @@ export interface LeaderboardSearchSuggestion {
 /**
  * Fila individual del Leaderboard devuelta por la API.
  *
- * Lo que NO está aquí importa tanto como lo que está: no hay `recentMatches`, ni `mainLane`,
- * ni `mainChampionId`, ni `avgLpGain`/`avgLpLoss`, ni `lpHistory`. Esos datos salen de la
- * subida de partidas, que todavía no existe, y el contrato no promete lo que el servidor no
- * tiene. Las columnas que los pintaban muestran su estado "sin datos" hasta entonces.
+ * Lo que NO está aquí importa tanto como lo que está: no hay `recentMatches`, ni `mainLane`, ni
+ * `mainChampionId`. Esos datos salen de la subida de partidas, que todavía no existe, y el
+ * contrato no promete lo que el servidor no tiene: las columnas que los pintaban muestran su
+ * estado "sin datos" hasta entonces.
+ *
+ * `lpHistory`, `avgLpGain` y `avgLpLoss` SÍ están, y salen del ledger de LP: llegaron con él y
+ * este javadoc seguía diciendo que no existían tres líneas por encima de sus propios campos.
  */
 export interface LeaderboardEntryResponse {
   rank: number;

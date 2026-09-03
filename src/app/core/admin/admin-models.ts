@@ -1,13 +1,27 @@
 /** Contratos de las acciones puntuales de administración (directorio `/app/admin`). */
 
 /**
- * Resumen de una sincronización manual de iconos de perfil de Riot. Espejo de
- * `RiotProfileIconSyncReportResponse` del backend (`total`/`updated`/`failed`, todos `int`).
+ * Resumen de un refresco manual de cuentas de Riot. Espejo de
+ * `RiotAccountRefreshReportResponse` del backend (todos `int`).
+ *
+ * El barrido refresca DOS hechos por cuenta —el icono de invocador y el rango de SoloQ— y
+ * **fallan por separado**, así que `iconsUpdated` y `seedsUpdated` no tienen por qué coincidir.
+ *
+ * `anchored` es un subconjunto de `seedsUpdated`, no un tercer resultado: una cuenta unranked
+ * se refresca con éxito (escribir "sin ancla" es lo correcto, y es lo que hace que quien se ha
+ * caído de ranked deje de aparentar que tiene elo) pero no ancla nada.
+ *
+ * `skipped` **no es un fallo**: son las cuentas que ni se intentaron porque el trabajo de fondo
+ * solo puede gastar una parte de la cuota de Riot y el resto queda reservado para quien está
+ * esperando una respuesta. Se reintentan esa noche.
  */
-export interface RiotProfileIconSyncReport {
+export interface RiotAccountRefreshReport {
   total: number;
-  updated: number;
+  iconsUpdated: number;
+  seedsUpdated: number;
+  anchored: number;
   failed: number;
+  skipped: number;
 }
 
 /**

@@ -63,6 +63,23 @@
   color: var(--nf-text-dim);
   text-decoration: none;
   font-weight: 600;
+  transition: background 0.14s, color 0.14s;
+}
+.shell__section:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--nf-text);
+}
+.shell__section:focus-visible {
+  outline: 2px solid var(--nf-primary);
+  outline-offset: -2px;
+}
+.shell__section.is-active {
+  background: color-mix(in srgb, var(--grp-c1, var(--nf-primary)) 16%, transparent);
+  color: #fff;
+}
+.shell__section.is-active .shell__section-glyph { color: var(--grp-c1, var(--nf-primary)); }
+.shell__section.is-active:hover {
+  background: color-mix(in srgb, var(--grp-c1, var(--nf-primary)) 24%, transparent);
 }
 .shell__section.is-primary .shell__section-glyph { color: var(--grp-c1, var(--nf-primary)); }
 
