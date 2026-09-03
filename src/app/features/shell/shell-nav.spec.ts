@@ -69,9 +69,15 @@ describe('pageTitleFor', () => {
 });
 
 describe('GROUP_NAV', () => {
-  it('lleva «Crear partida» primero y destacada: es la acción central de la app', () => {
-    expect(GROUP_NAV[0].path).toBe('crear-partida');
-    expect(GROUP_NAV[0].primary).toBe(true);
+  it('encabeza con el hub: pulsar el grupo despliega estas secciones en vez de entrar', () => {
+    expect(GROUP_NAV[0].path).toBe('');
+    expect(GROUP_NAV[0].label).toBe('Hub del grupo');
+  });
+
+  it('«Crear partida» sigue destacada: es la acción central de la app', () => {
+    expect(GROUP_NAV[1].path).toBe('crear-partida');
+    expect(GROUP_NAV[1].primary).toBe(true);
+    expect(GROUP_NAV.filter((i) => i.primary)).toHaveLength(1);
   });
 
   it('solo Discord está restringido a quien gestiona el grupo', () => {

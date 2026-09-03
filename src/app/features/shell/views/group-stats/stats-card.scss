@@ -1,0 +1,52 @@
+/* Chrome común de las tarjetas de Estadísticas del grupo (§5.5.5).
+
+   Se comparte por `styleUrls`, no por una clase global: cada componente de la
+   sección conserva sus estilos encapsulados y aun así todas las tarjetas son la
+   misma tarjeta. Es el mismo mecanismo que `group-hub/hub-card.scss`, y los
+   valores coinciden a propósito: las dos pantallas son el mismo producto. */
+
+.st-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 18px;
+  border-radius: 12px;
+  background: var(--nf-surface);
+  border: 1px solid var(--nf-border);
+}
+
+.st-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 26px;
+}
+
+.st-card__title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: var(--fw-bold);
+  color: var(--nf-text-dim);
+}
+
+/* Frase de apoyo bajo el título: explica qué mide la tarjeta sin que haya que
+   deducirlo de las cifras. */
+.st-card__note {
+  margin: -4px 0 0;
+  font-size: 12px;
+  color: var(--nf-text-dim);
+}
+
+.st-card__empty {
+  margin: 0;
+  padding: 10px 0;
+  font-size: 12.5px;
+  color: var(--nf-text-dim);
+}
+
+/* Rejilla interior de una tarjeta que reparte varias celdas iguales. */
+.st-grid {
+  display: grid;
+  gap: 10px;
+}

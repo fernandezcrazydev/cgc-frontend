@@ -1,10 +1,11 @@
-import { ChangeDetectionStrategy, Component, ElementRef, computed, inject, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, afterNextRender, computed, inject, viewChild } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { MatchHistoryStore } from '../../../core/matches/match-history-store';
 import { filterPersonalMatches, sortMatches } from '../../../core/matches/match-filtering';
 import { GameDataStore } from '../../../core/game-data';
 import { GroupsStore } from '../../../core/groups';
 import { Viewport } from '../../../shared/viewport';
+import { ViewMemoryService } from '../../../shared/view-memory';
 import { NfButton, NfPagination, NfSkeleton } from '../../../ui';
 import { MatchFiltersComponent } from './match-history/match-filters.component';
 import { MatchHistoryUiState } from './match-history/match-history-ui';
@@ -97,6 +98,7 @@ export class Historial {
   private readonly gameData = inject(GameDataStore);
   private readonly groupsStore = inject(GroupsStore);
   private readonly viewport = inject(Viewport);
+  private readonly viewMemory = inject(ViewMemoryService);
   protected readonly ui = inject(MatchHistoryUiState);
 
   protected readonly champsLoading = computed(() => this.gameData.status() === 'loading');
@@ -119,10 +121,21 @@ export class Historial {
   });
 
   constructor() {
+    this.ui.setContextKey('/app/historial');
     this.gameData.ensureLoaded();
     // El historial se reparte sobre las ligas del usuario, asi que la lista tiene que estar
     // pedida aunque se entre aqui directamente por URL. Idempotente y deduplicada.
     this.groupsStore.ensureLoaded();
+
+    afterNextRender(() => {
+      // El scroll se recupera solo al volver del detalle: entrar de nuevo por el menú empieza
+      // arriba, como cualquier lista recién abierta.
+      if (!this.viewMemory.consumeReturn('/app/historial')) return;
+      const y = this.viewMemory.consumeScroll('/app/historial');
+      if (y !== null && y > 0) {
+        window.scrollTo({ top: y, behavior: 'instant' });
+      }
+    });
   }
 
   /**

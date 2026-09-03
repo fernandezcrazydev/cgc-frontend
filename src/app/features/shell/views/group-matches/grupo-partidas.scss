@@ -1,0 +1,118 @@
+@use 'breakpoints' as *;
+
+/* Panel de convocatorias y partidas activas (§5.5.6): 60/40.
+
+   Solo el armazón; cada columna trae su hoja y el chrome común está en
+   `matches-card.scss`. */
+
+/* La columna izquierda: la sala, y debajo las dos acciones. */
+.gm-live {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Dos tarjetas a partes iguales, y entre las dos ocupan lo mismo que la sala que
+   tienen encima: son la continuación de esa columna, no una barra de botones. */
+.gm-actions {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+
+.gm-action {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 16px 18px;
+  border-radius: 12px;
+  background: var(--nf-surface);
+  border: 1px solid var(--nf-border);
+  color: inherit;
+  text-decoration: none;
+  /* Una de las dos es un `<button>` y la otra un enlace: sin esto, la primera
+     heredaba el centrado y la fuente del navegador y no casaban. */
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  transition:
+    border-color 0.16s,
+    background 0.16s,
+    transform 0.16s;
+}
+
+.gm-action:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--nf-primary) 45%, var(--nf-border));
+  background: color-mix(in srgb, var(--nf-primary) 7%, var(--nf-surface));
+}
+
+.gm-action:focus-visible {
+  outline: var(--nf-focus-ring, 2px) solid var(--nf-focus);
+  outline-offset: 2px;
+}
+
+.gm-action__glyph {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--nf-primary) 16%, transparent);
+  color: var(--nf-primary);
+}
+
+.gm-action__glyph svg {
+  width: 21px;
+  height: 21px;
+}
+
+.gm-action__text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.gm-action__title {
+  font-size: 14px;
+  font-weight: var(--fw-semibold);
+  color: var(--nf-text);
+}
+
+.gm-action__sub {
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--nf-text-dim);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gm-action {
+    transition: none;
+  }
+
+  .gm-action:hover {
+    transform: none;
+  }
+}
+
+.gm-deck {
+  display: grid;
+  grid-template-columns: 6fr 4fr;
+  align-items: start;
+  gap: 14px;
+}
+
+/* Por debajo del salto las dos columnas se apilan, y la sala en directo va primero:
+   lo que se juega ahora manda sobre lo que se jugará el sábado. */
+@media (max-width: $bp-compact) {
+  .gm-deck {
+    grid-template-columns: 1fr;
+  }
+
+  .gm-actions {
+    grid-template-columns: 1fr;
+  }
+}

@@ -26,8 +26,10 @@ export interface GroupNavItem {
  * miedo pinchar.
  */
 export const GROUP_NAV: readonly GroupNavItem[] = [
-  { path: 'crear-partida', label: 'Crear partida', glyph: '＋', primary: true },
+  // El hub encabeza la lista: es la puerta del grupo, y pulsar el grupo en la barra lateral
+  // despliega estas secciones en vez de entrar, así que tiene que ser lo primero que se ofrece.
   { path: '', label: 'Hub del grupo', glyph: '◇' },
+  { path: 'crear-partida', label: 'Crear partida', glyph: '＋', primary: true },
   { path: 'partidas', label: 'Partidas', glyph: '▤' },
   { path: 'ranking', label: 'Ranking', glyph: '▲' },
   { path: 'tierlist', label: 'Tierlist', glyph: '⚔' },
@@ -88,6 +90,7 @@ const ROUTE_TITLES: readonly (readonly [readonly string[], string])[] = [
 
   [['grupos'], 'Grupos'],
   [['grupos', ':id'], 'Hub del grupo'],
+  [['grupos', ':id', 'perfil'], 'Perfil del grupo'],
   [['grupos', ':id', 'crear-partida'], 'Crear partida'],
   [['grupos', ':id', 'partidas'], 'Partidas'],
   [['grupos', ':id', 'partidas', ':roomId'], 'Sala'],
@@ -141,6 +144,14 @@ export function groupIdFromUrl(url: string): string | null {
   return segments[2] ?? null;
 }
 
+function urlSegments(url: string): string[] {
+  return (url ?? '')
+    .split('?')[0]
+    .split('#')[0]
+    .split('/')
+    .filter(Boolean);
+}
+
 /**
  * ¿La ruta es el HUB de un grupo (`/app/grupos/:id`), y no una de sus secciones?
  *
@@ -150,10 +161,24 @@ export function groupIdFromUrl(url: string): string | null {
  * pantalla, que es para lo que existe: enterarte sin que nadie te pase un enlace.
  */
 export function isGroupHubUrl(url: string): boolean {
-  const segments = (url ?? '')
-    .split('?')[0]
-    .split('#')[0]
-    .split('/')
-    .filter(Boolean);
+  const segments = urlSegments(url);
   return segments.length === 3 && segments[0] === 'app' && segments[1] === 'grupos';
+}
+
+/**
+ * ¿La ruta es el panel de partidas de un grupo (`/app/grupos/:id/partidas`)?
+ *
+ * Mismo motivo que el hub, y desde §5.5.6 con más razón: esta pantalla ES el panel de
+ * convocatorias, así que el banner encima repetía literalmente la tarjeta que hay debajo.
+ * El detalle de una convocatoria (`/partidas/:roomId`) no cuenta: allí solo se ve UNA, y
+ * el banner sigue sirviendo para enterarte de que hay otra.
+ */
+export function isGroupMatchesUrl(url: string): boolean {
+  const segments = urlSegments(url);
+  return (
+    segments.length === 4 &&
+    segments[0] === 'app' &&
+    segments[1] === 'grupos' &&
+    segments[3] === 'partidas'
+  );
 }

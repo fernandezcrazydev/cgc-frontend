@@ -1,29 +1,42 @@
 /**
- * Deterministic mock data for the per-group "Estadísticas" view. Everything is
- * seeded by the group id + the active scope (NOCHE / TEMPORADA / HISTÓRICO) so a
- * given group always renders the same numbers until the backend lands. The data
- * is derived from a single per-member base-stats pass and then projected into
- * the three surfaces the screen shows:
- *   - summaryFor()      → the RESUMEN dashboard highlights
- *   - leaderboardsFor() → the reusable "stat card" mini-leaderboards
- *   - awardsFor()       → the PREMIOS trophy wall ("para reírse")
- *   - playerStatsFor()  → the JUGADORES per-member deep dive
+ * Maqueta determinista de la vista de Estadísticas del grupo (`Roadmap.md` §5.5.5).
+ *
+ * Todo se siembra con el id del grupo + el alcance activo (sesión / temporada /
+ * histórico), así que un grupo siempre pinta las mismas cifras hasta que llegue el
+ * backend. Hay una única pasada de estadísticas por miembro (`statsFor`) y de ella
+ * se proyecta todo lo demás, para que la pantalla no cuente dos verdades distintas:
+ *   - mapTelemetryFor()  → balance de bandos e impacto de objetivos
+ *   - metagameFor()      → campeones más jugados, más baneados y de mayor winrate
+ *   - epicRecordsFor()   → los tres récords históricos, con enlace a su partida
+ *   - playerTiles()      → el desglose de la fila expandible de cada jugador
+ *   - awardsFor()        → los seis premios que consume `core/group-badges.ts`
+ * Las medallas del Hall of Fame viven aparte, en `core/group-medals.ts`.
+ *
+ * BACKEND NOTE: fichero PLACEHOLDER. Al existir los endpoints de estadísticas
+ * agregadas del grupo se borra entero; los tipos de esta hoja son la forma que
+ * tendrán los DTO, así que la vista no tendrá que cambiar.
  */
 import { Member, REAL_CHAMPION_IDS } from './lobby';
 import { hash, seeded } from './group-ranking';
+import { SEEDED_MATCH_COUNT, seedMatchId } from './seed-matches';
 
-/** Time window every widget is scaled to. */
-export type StatScope = 'noche' | 'temporada' | 'historico';
+/** Ventana temporal a la que se escala cada widget. */
+export type StatScope = 'sesion' | 'temporada' | 'historico';
 
+/**
+ * §5.5.5 fija la nomenclatura: «Sesión» y «Temporada actual». El histórico solo se
+ * ofrece cuando hay más de una temporada, porque con una sola repetiría cifras
+ * idénticas a las de la temporada actual; de esa criba se encarga la vista.
+ */
 export const SCOPE_OPTIONS: { id: StatScope; label: string }[] = [
-  { id: 'noche', label: 'Noche' },
-  { id: 'temporada', label: 'Temporada' },
-  { id: 'historico', label: 'Histórico' },
+  { id: 'sesion', label: 'Sesión' },
+  { id: 'temporada', label: 'Temporada actual' },
+  { id: 'historico', label: 'Histórico total' },
 ];
 
-/** Rough game-count band per scope, so totals feel right at each zoom level. */
+/** Banda aproximada de partidas por alcance, para que los totales cuadren en cada zoom. */
 const SCOPE_GAMES: Record<StatScope, [number, number]> = {
-  noche: [3, 6],
+  sesion: [3, 6],
   temporada: [18, 44],
   historico: [70, 160],
 };
@@ -69,6 +82,33 @@ export interface MemberStats {
   trend: 'up' | 'down';
   /** Composite performance index (0-100) used to pick the MVP. */
   rating: number;
+
+  /* ---- Métricas del Hall of Fame (§5.5.5) ----
+     Se sortean al final de la pasada, después de todo lo anterior, para que
+     añadirlas no mueva ni una cifra de las que ya se venían pintando. */
+
+  /** Estructuras enemigas derribadas en el alcance. */
+  towers: number;
+  /** Dragones asegurados por su equipo con él en partida. */
+  dragons: number;
+  /** Barones asegurados. */
+  barons: number;
+  /** Objetivos épicos robados con el castigo. */
+  steals: number;
+  /** Primeras sangres firmadas. */
+  firstBloods: number;
+  /** Partidas terminadas sin morir ni una vez. */
+  deathlessGames: number;
+  /** Veces que se llevó el MVP de la partida. */
+  mvps: number;
+  /** Daño mitigado por partida, en miles. */
+  mitigatedK: number;
+  /** Curación y escudo repartidos a aliados por partida, en miles. */
+  healShieldK: number;
+  /** Daño recibido por partida, en miles. */
+  damageTakenK: number;
+  /** Racha de victorias más larga del alcance (`streak` es la vigente). */
+  bestStreak: number;
 }
 
 /** Pick a stable item from `arr` for `seed`. */
@@ -126,6 +166,20 @@ export function statsFor(groupId: string, roster: readonly Member[], scope: Stat
       Math.min(100, wr * 55 + Math.min(kda, 6) * 5 + Math.min(dmgK, 40) * 0.45),
     );
 
+    // Métricas del Hall of Fame. Van al final del flujo aleatorio a propósito:
+    // así todas las cifras anteriores siguen valiendo exactamente lo que valían.
+    const towers = Math.round(games * (0.8 + rnd() * 2.2));
+    const dragons = Math.round(games * (0.3 + rnd() * 0.9));
+    const barons = Math.round(games * (0.1 + rnd() * 0.45));
+    const steals = Math.floor(rnd() * Math.max(1, games * 0.15));
+    const firstBloods = Math.floor(rnd() * Math.max(1, games * 0.28));
+    const deathlessGames = Math.floor(rnd() * Math.max(1, games * 0.18));
+    const mvps = Math.floor(rnd() * Math.max(1, wins * 0.4));
+    const mitigatedK = +(6 + rnd() * 26).toFixed(1);
+    const healShieldK = +(1 + rnd() * 14).toFixed(1);
+    const damageTakenK = +(14 + rnd() * 26).toFixed(1);
+    const bestStreak = streak + Math.floor(rnd() * 4);
+
     return {
       member,
       games,
@@ -152,190 +206,275 @@ export function statsFor(groupId: string, roster: readonly Member[], scope: Stat
       spark,
       trend: spark[spark.length - 1] >= spark[0] ? ('up' as const) : ('down' as const),
       rating,
+      towers,
+      dragons,
+      barons,
+      steals,
+      firstBloods,
+      deathlessGames,
+      mvps,
+      mitigatedK,
+      healShieldK,
+      damageTakenK,
+      bestStreak,
     };
   });
 }
 
-// ===================== RESUMEN =====================
+// ===================== Telemetría de mapa =====================
 
-export interface StatSummary {
-  mvp: { stats: MemberStats; blurb: string };
-  bestCombo: { a: Member; b: Member; wr: number; wins: number; games: number };
-  hotStreak: { member: Member; streak: number };
-  totals: { games: number; hours: number; kills: number; pentas: number };
+export type ObjectiveId = 'dragon' | 'herald' | 'baron' | 'tower';
+
+/** Cuánto pesa quedarse un objetivo en la victoria del grupo. */
+export interface ObjectiveImpact {
+  id: ObjectiveId;
+  label: string;
+  /** Porcentaje de victorias en las partidas en las que el grupo se lo llevó. */
+  winrate: number;
+  wins: number;
+  games: number;
+  /** El winrate dicho en una palabra, para no obligar a interpretar el número. */
+  impact: 'Decisivo' | 'Alto' | 'Medio';
 }
 
-/** Build the RESUMEN dashboard highlights from the base stats. */
-export function summaryFor(stats: readonly MemberStats[], scope: StatScope): StatSummary | null {
+/** Reparto de victorias entre los dos lados del mapa. */
+export interface SideBalance {
+  games: number;
+  blueWins: number;
+  redWins: number;
+  bluePct: number;
+  redPct: number;
+}
+
+export interface MapTelemetry {
+  side: SideBalance;
+  objectives: ObjectiveImpact[];
+}
+
+const OBJECTIVE_LABELS: Record<ObjectiveId, string> = {
+  dragon: 'Primer dragón',
+  herald: 'Heraldo de la grieta',
+  baron: 'Primer barón',
+  tower: 'Primera torre',
+};
+
+const OBJECTIVE_ORDER: ObjectiveId[] = ['dragon', 'herald', 'baron', 'tower'];
+
+function impactOf(winrate: number): ObjectiveImpact['impact'] {
+  if (winrate >= 82) return 'Decisivo';
+  if (winrate >= 70) return 'Alto';
+  return 'Medio';
+}
+
+/**
+ * Partidas que ha jugado el grupo en el alcance. Las partidas son compartidas —los
+ * diez juegan la misma—, así que el total es la media de las de cada miembro y no
+ * la suma, que contaría cada partida diez veces.
+ */
+export function groupGamesOf(stats: readonly MemberStats[]): number {
+  if (!stats.length) return 0;
+  return Math.round(stats.reduce((total, s) => total + s.games, 0) / stats.length);
+}
+
+/** Balance de bandos e impacto de los cuatro objetivos (§5.5.5, bloque 1). */
+export function mapTelemetryFor(
+  groupId: string,
+  stats: readonly MemberStats[],
+  scope: StatScope,
+): MapTelemetry | null {
   if (!stats.length) return null;
 
-  const byRating = [...stats].sort((a, b) => b.rating - a.rating);
-  const mvp = byRating[0];
+  const games = groupGamesOf(stats);
+  if (!games) return null;
 
-  // Best combo: top two members by rating "play well together".
-  const rnd = seeded(hash(mvp.member.tag + scope + 'combo'));
-  const a = byRating[0];
-  const b = byRating[1] ?? byRating[0];
-  const comboGames = 4 + Math.floor(rnd() * 12);
-  const comboWins = Math.round(comboGames * (0.62 + rnd() * 0.3));
+  const rnd = seeded(hash(groupId + ':telemetria:' + scope));
 
-  const streaker = [...stats].sort((x, y) => y.streak - x.streak)[0];
+  // El bando azul gana algo más que el rojo, como en la grieta de verdad.
+  const bluePct = Math.round(46 + rnd() * 12);
+  const blueWins = Math.round((games * bluePct) / 100);
 
-  // Totals: games is the median-ish (sessions are shared), kills sum the avgs.
-  const totalGames = Math.round(stats.reduce((s, x) => s + x.games, 0) / stats.length);
-  const totalKills = Math.round(stats.reduce((s, x) => s + x.kills, 0));
-  const totalPentas = stats.reduce((s, x) => s + x.pentas, 0);
+  const objectives = OBJECTIVE_ORDER.map((id) => {
+    const objectiveGames = Math.max(1, Math.round(games * (0.45 + rnd() * 0.35)));
+    const winrate = Math.round(58 + rnd() * 34);
+    return {
+      id,
+      label: OBJECTIVE_LABELS[id],
+      winrate,
+      wins: Math.round((objectiveGames * winrate) / 100),
+      games: objectiveGames,
+      impact: impactOf(winrate),
+    };
+  });
 
   return {
-    mvp: {
-      stats: mvp,
-      blurb: `${mvp.kda} KDA · ${mvp.wr}% WR · ${mvp.dmgK}k daño/partida`,
+    side: {
+      games,
+      blueWins,
+      redWins: games - blueWins,
+      bluePct,
+      redPct: 100 - bluePct,
     },
-    bestCombo: {
-      a: a.member,
-      b: b.member,
-      wr: Math.round((comboWins / comboGames) * 100),
-      wins: comboWins,
-      games: comboGames,
-    },
-    hotStreak: { member: streaker.member, streak: streaker.streak },
-    totals: {
-      games: totalGames,
-      hours: Math.round((totalGames * 32) / 60),
-      kills: totalKills,
-      pentas: totalPentas,
-    },
+    objectives,
   };
 }
 
-// ===================== STAT CARDS (mini-leaderboards) =====================
+// ===================== Metagame =====================
 
-export type StatAccent = 'secondary' | 'primary' | 'warning';
+export type MetagameBoardId = 'picks' | 'bans' | 'winrate';
 
-export interface StatLeaderRow {
-  rank: number;
-  member: Member;
-  /** Formatted headline value, e.g. "68%" or "7.4". */
-  value: string;
-  /** Secondary line, e.g. "17V 8D". Empty for the "main" metric (see `championId`). */
-  sub: string;
+export interface MetagameEntry {
   /**
-   * Solo lo lleva el leaderboard "WIN RATE POR MAIN": el generador no tiene
-   * acceso al catálogo real, así que no puede formatear un nombre de campeón
-   * en `sub`. La vista resuelve `id → ChampionSummary` con
-   * `GameDataStore.championById()`.
+   * Id real de ddragon. La vista lo resuelve a nombre e icono con
+   * `GameDataStore.championById()`: aquí no se conoce el catálogo.
    */
-  championId?: number;
+  championId: number;
+  /** Cifra principal ya formateada, p. ej. «16 partidas». */
+  value: string;
+  /** Cifra de apoyo, p. ej. «68% de victorias». */
+  sub: string;
 }
 
-export interface StatLeaderboard {
-  id: string;
+export interface MetagameBoard {
+  id: MetagameBoardId;
   title: string;
-  glyph: string;
-  accent: StatAccent;
-  /** Sorted + ranked, leader first. */
-  rows: StatLeaderRow[];
-  /** True when the leader also gets a trend sparkline (win-rate card only). */
-  spark?: number[];
-  trend?: 'up' | 'down';
+  note: string;
+  entries: MetagameEntry[];
 }
 
-/** One metric definition projected into a leaderboard. */
-interface Metric {
-  id: string;
-  title: string;
-  glyph: string;
-  accent: StatAccent;
-  value: (s: MemberStats) => number;
-  format: (s: MemberStats) => string;
-  sub: (s: MemberStats) => string;
-  /** Solo 'main': el id a resolver en la vista (ver `StatLeaderRow.championId`). */
-  championId?: (s: MemberStats) => number;
-  withSpark?: boolean;
+/** Toma `count` campeones distintos del catálogo corto, de forma estable. */
+function pickChampions(rnd: () => number, count: number): number[] {
+  const pool = [...REAL_CHAMPION_IDS];
+  const out: number[] = [];
+  for (let i = 0; i < count && pool.length; i++) {
+    out.push(pool.splice(Math.floor(rnd() * pool.length), 1)[0]);
+  }
+  return out;
 }
 
-const METRICS: Metric[] = [
-  {
-    id: 'winrate',
-    title: 'Win rate',
-    glyph: '🏆',
-    accent: 'primary',
-    value: (s) => s.wr,
-    format: (s) => `${s.wr}%`,
-    sub: (s) => `${s.wins}V ${s.losses}D`,
-    withSpark: true,
-  },
-  {
-    id: 'kda',
-    title: 'KDA medio',
-    glyph: '⚔️',
-    accent: 'secondary',
-    value: (s) => s.kda,
-    format: (s) => `${s.kda}`,
-    sub: (s) => `${s.kills} / ${s.deaths} / ${s.assists}`,
-  },
-  {
-    id: 'main',
-    title: 'Win rate por main',
-    glyph: '★',
-    accent: 'warning',
-    value: (s) => s.mainChampWr,
-    format: (s) => `${s.mainChampWr}%`,
-    // El generador no conoce el catálogo real: no puede formatear un nombre
-    // de campeón. La vista resuelve `championId` con `GameDataStore`.
-    sub: () => '',
-    championId: (s) => s.mainChampionId,
-  },
-  {
-    id: 'damage',
-    title: 'Daño a campeones',
-    glyph: '🔥',
-    accent: 'primary',
-    value: (s) => s.dmgK,
-    format: (s) => `${s.dmgK}k`,
-    sub: (s) => `por partida`,
-  },
-  {
-    id: 'cs',
-    title: 'CS por minuto',
-    glyph: '🌾',
-    accent: 'secondary',
-    value: (s) => s.csPerMin,
-    format: (s) => `${s.csPerMin}`,
-    sub: (s) => `${s.goldPerMin} oro/min`,
-  },
-  {
-    id: 'vision',
-    title: 'Puntuación de visión',
-    glyph: '👁',
-    accent: 'warning',
-    value: (s) => s.visionScore,
-    format: (s) => `${s.visionScore}`,
-    sub: (s) => `${s.wardsPlaced} wards`,
-  },
-];
+/** Los tres tableros del metagame del grupo (§5.5.5, bloque 2). */
+export function metagameFor(groupId: string, stats: readonly MemberStats[]): MetagameBoard[] {
+  if (!stats.length) return [];
 
-/** Build the reusable stat-card leaderboards from the base stats. */
-export function leaderboardsFor(stats: readonly MemberStats[], top = 4): StatLeaderboard[] {
-  return METRICS.map((m) => {
-    const ranked = [...stats].sort((a, b) => m.value(b) - m.value(a)).slice(0, top);
-    const leader = ranked[0];
+  const games = groupGamesOf(stats);
+  const rnd = seeded(hash(groupId + ':metagame'));
+
+  const picks = pickChampions(rnd, 3).map((championId, i) => {
+    const played = Math.max(2, Math.round(games * (0.42 - i * 0.08) + rnd() * 3));
     return {
-      id: m.id,
-      title: m.title,
-      glyph: m.glyph,
-      accent: m.accent,
-      rows: ranked.map((s, i) => ({
-        rank: i + 1,
-        member: s.member,
-        value: m.format(s),
-        sub: m.sub(s),
-        championId: m.championId?.(s),
-      })),
-      spark: m.withSpark && leader ? leader.spark : undefined,
-      trend: m.withSpark && leader ? leader.trend : undefined,
+      championId,
+      value: played + (played === 1 ? ' partida' : ' partidas'),
+      sub: Math.round(42 + rnd() * 34) + '% de victorias',
     };
   });
+
+  const bans = pickChampions(rnd, 3).map((championId, i) => {
+    const banned = Math.max(2, Math.round(games * (0.46 - i * 0.09) + rnd() * 3));
+    return {
+      championId,
+      value: banned + (banned === 1 ? ' baneo' : ' baneos'),
+      sub: Math.round(38 + rnd() * 28) + '% de victorias cuando juega',
+    };
+  });
+
+  // Ordenado de mayor a menor: el tablero promete un ranking.
+  const winrates = pickChampions(rnd, 3)
+    .map((championId) => ({
+      championId,
+      played: 5 + Math.floor(rnd() * 9),
+      wr: Math.round(62 + rnd() * 26),
+    }))
+    .sort((a, b) => b.wr - a.wr)
+    .map((c) => ({
+      championId: c.championId,
+      value: c.wr + '% de victorias',
+      sub: c.played + ' partidas',
+    }));
+
+  return [
+    {
+      id: 'picks',
+      title: 'Más jugados',
+      note: 'Los campeones que más pisan la grieta en este grupo.',
+      entries: picks,
+    },
+    {
+      id: 'bans',
+      title: 'Más baneados',
+      note: 'A quién no se le deja salir del banquillo.',
+      entries: bans,
+    },
+    {
+      id: 'winrate',
+      title: 'Mayor winrate',
+      note: 'Solo campeones con cinco partidas o más.',
+      entries: winrates,
+    },
+  ];
+}
+
+// ===================== Récords históricos =====================
+
+export type EpicRecordIcon = 'blood' | 'damage' | 'marathon';
+
+export interface EpicRecord {
+  id: string;
+  icon: EpicRecordIcon;
+  title: string;
+  /** La cifra del récord, ya formateada. */
+  value: string;
+  /** Quién o qué lo firmó. */
+  detail: string;
+  /** Partida de la semilla a la que enlaza la tarjeta. */
+  matchId: string;
+  matchLabel: string;
+}
+
+/**
+ * Los tres hitos de máxima dificultad (§5.5.5, bloque 3). A diferencia de la trivia
+ * del hub, estos sí llevan `matchId`: la tarjeta promete «ver partida» y tiene que
+ * aterrizar en una que exista.
+ */
+export function epicRecordsFor(groupId: string, stats: readonly MemberStats[]): EpicRecord[] {
+  if (!stats.length) return [];
+
+  const rnd = seeded(hash(groupId + ':records'));
+  const matchOf = () => {
+    const n = 1 + Math.floor(rnd() * SEEDED_MATCH_COUNT);
+    return { matchId: seedMatchId(n), matchLabel: 'Partida ' + n };
+  };
+
+  const topDamage = [...stats].sort((a, b) => b.dmgK - a.dmgK)[0];
+
+  const bloodiest = matchOf();
+  const hardest = matchOf();
+  const longest = matchOf();
+
+  return [
+    {
+      id: 'bloodiest',
+      icon: 'blood',
+      title: 'Partida más sangrienta',
+      value: 62 + Math.floor(rnd() * 34) + ' asesinatos',
+      detail: 30 + Math.floor(rnd() * 12) + ' minutos de pelea sin descanso',
+      ...bloodiest,
+    },
+    {
+      id: 'top-damage',
+      icon: 'damage',
+      title: 'Mayor daño individual',
+      value: Math.round(topDamage.dmgK * 1000 + rnd() * 12000).toLocaleString('es-ES') + ' de daño',
+      detail: topDamage.member.name + ' lo firmó en una sola partida',
+      ...hardest,
+    },
+    {
+      id: 'marathon',
+      icon: 'marathon',
+      title: 'Maratón de resistencia',
+      value: 44 + Math.floor(rnd() * 12) + ' min ' + Math.floor(rnd() * 60) + ' s',
+      detail: 'La partida más larga que ha jugado el grupo',
+      ...longest,
+    },
+  ];
 }
 
 // ===================== PREMIOS (trophy wall) =====================
@@ -428,6 +567,9 @@ export function awardsFor(stats: readonly MemberStats[]): StatAward[] {
 }
 
 // ===================== JUGADORES (per-member tiles) =====================
+
+/** Tinte de una cifra destacada. Se nombra por lo que significa, nunca por el color. */
+export type StatAccent = 'secondary' | 'primary' | 'warning';
 
 export interface PlayerTile {
   label: string;

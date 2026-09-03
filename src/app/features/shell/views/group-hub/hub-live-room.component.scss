@@ -1,0 +1,152 @@
+.hub-room__live {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--nf-emerald, #3fb950);
+}
+
+.hub-room__pulse {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--nf-emerald, #3fb950);
+  animation: hub-room-pulse 2s ease-out infinite;
+}
+
+/* Quien prefiere no ver movimiento sigue viendo el punto, quieto. */
+@media (prefers-reduced-motion: reduce) {
+  .hub-room__pulse {
+    animation: none;
+  }
+}
+
+@keyframes hub-room-pulse {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--nf-emerald, #3fb950) 55%, transparent);
+  }
+  70% {
+    box-shadow: 0 0 0 7px transparent;
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+/* Dos filas de cinco: la parrilla de la sala se lee de un vistazo como un 5v5. */
+.hub-room__grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+}
+
+@media (max-width: 620px) {
+  .hub-room__grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.hub-room__slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 6px;
+  border-radius: 9px;
+  background: var(--nf-surface-2, rgba(255, 255, 255, 0.03));
+  border: 1px solid var(--nf-border);
+}
+
+.hub-room__slot.is-free {
+  border-style: dashed;
+  background: transparent;
+}
+
+.hub-room__free-mark {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  border: 1px dashed var(--nf-border-strong);
+}
+
+.hub-room__name {
+  max-width: 100%;
+  font-size: 11px;
+  color: var(--nf-text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hub-room__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.hub-room__count {
+  font-size: 12.5px;
+  color: var(--nf-text);
+}
+
+/* Sin sala abierta, la tarjeta es el acceso a crear partida: la acción central de la app. */
+.hub-room__cta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 20px;
+  border-radius: 12px;
+  text-decoration: none;
+  color: var(--nf-text);
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--nf-primary) 26%, transparent),
+    color-mix(in srgb, var(--nf-primary) 8%, transparent)
+  );
+  border: 1px solid color-mix(in srgb, var(--nf-primary) 45%, transparent);
+  transition: border-color 0.16s, transform 0.16s, box-shadow 0.16s;
+}
+
+.hub-room__cta:hover {
+  border-color: var(--nf-primary);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--nf-primary) 22%, transparent);
+}
+
+.hub-room__cta:focus-visible {
+  outline: 2px solid var(--nf-secondary);
+  outline-offset: 3px;
+}
+
+.hub-room__cta-glyph {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  flex: none;
+  border-radius: 12px;
+  background: var(--nf-primary);
+  color: var(--nf-void);
+  font-size: 21px;
+  line-height: 1;
+}
+
+.hub-room__cta-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.hub-room__cta-title {
+  font-size: 16px;
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-tight);
+}
+
+.hub-room__cta-sub {
+  font-size: 12.5px;
+  color: var(--nf-text-dim);
+}

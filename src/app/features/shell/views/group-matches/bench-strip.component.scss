@@ -1,0 +1,71 @@
+/* Banquillo de suplentes (§5.5.6): mini-tarjetas cuadradas en tira. */
+
+.bench {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--nf-border);
+}
+
+.bench__label {
+  font-size: 11.5px;
+  color: var(--nf-gold);
+}
+
+.bench__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bench__card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 96px;
+  padding: 9px 7px;
+  border-radius: 9px;
+  background: var(--nf-surface-2);
+  /* Ámbar como los titulares en banquillo de los pods: mismo estado, mismo color. */
+  border: 1px solid color-mix(in srgb, var(--nf-gold) 40%, var(--nf-border));
+  color: inherit;
+  text-decoration: none;
+  transition:
+    border-color 0.14s,
+    background 0.14s;
+}
+
+.bench__card:hover {
+  border-color: color-mix(in srgb, var(--nf-gold) 65%, var(--nf-border));
+  background: color-mix(in srgb, var(--nf-gold) 7%, var(--nf-surface-2));
+}
+
+.bench__card:focus-visible {
+  outline: var(--nf-focus-ring, 2px) solid var(--nf-focus);
+  outline-offset: 2px;
+}
+
+.bench__name {
+  overflow: hidden;
+  max-width: 100%;
+  font-size: 11.5px;
+  color: var(--nf-text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bench__rank {
+  font-size: 11px;
+  color: var(--nf-text-dim);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bench__card {
+    transition: none;
+  }
+}

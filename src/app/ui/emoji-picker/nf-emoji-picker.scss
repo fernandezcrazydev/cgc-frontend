@@ -1,0 +1,187 @@
+/* Emoji Picker (global, consume tokens del tema). */
+
+.nf-emoji {
+  display: block;
+}
+
+.nf-emoji__quick {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2px;
+}
+
+.nf-emoji__item {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--nf-radius-sm, 8px);
+  background: transparent;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.14s, border-color 0.14s;
+}
+
+.nf-emoji__item:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.nf-emoji__item:focus-visible {
+  outline: 2px solid var(--nf-secondary);
+  outline-offset: 1px;
+}
+
+/* La reacción que ya has puesto se distingue dentro de la propia paleta. */
+.nf-emoji__item.is-selected {
+  border-color: var(--nf-primary);
+  background: color-mix(in srgb, var(--nf-primary) 18%, transparent);
+}
+
+/* El octavo hueco no es un emoji: abre el buscador, y se dibuja como tal. */
+.nf-emoji__more {
+  color: var(--nf-text-dim);
+  border: 1px dashed var(--nf-border-strong);
+  font-size: 13px;
+}
+
+.nf-emoji__more:hover {
+  border-color: var(--nf-primary);
+  color: var(--nf-text);
+}
+
+/* ── Buscador ─────────────────────────────────────────────────────────────── */
+.nf-emoji__browser {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 232px;
+}
+
+.nf-emoji__searchbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.nf-emoji__back {
+  width: 24px;
+  height: 26px;
+  flex: none;
+  padding: 0;
+  border: 1px solid var(--nf-border);
+  border-radius: var(--nf-radius-sm, 8px);
+  background: transparent;
+  color: var(--nf-text-dim);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.nf-emoji__back:hover {
+  border-color: var(--nf-border-strong);
+  color: var(--nf-text);
+}
+
+.nf-emoji__search {
+  flex: 1;
+  min-width: 0;
+  height: 26px;
+  padding: 0 8px;
+  border: 1px solid var(--nf-border);
+  border-radius: var(--nf-radius-sm, 8px);
+  background: var(--nf-surface, rgba(255, 255, 255, 0.04));
+  color: var(--nf-text);
+  font-family: inherit;
+  font-size: 12px;
+}
+
+.nf-emoji__search::placeholder {
+  color: var(--nf-text-dim);
+}
+
+/* Ninguna web puede abrir el teclado del sistema: se dice dónde está el atajo y ya. */
+.nf-emoji__hint {
+  margin: 0;
+  font-size: 10.5px;
+  color: var(--nf-text-dim);
+}
+
+.nf-emoji__tabs {
+  display: flex;
+  gap: 3px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: none;
+}
+
+.nf-emoji__tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.nf-emoji__tab {
+  flex: none;
+  padding: 3px 8px;
+  border: 1px solid var(--nf-border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--nf-text-dim);
+  font-size: 10.5px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: border-color 0.14s, background 0.14s, color 0.14s;
+}
+
+.nf-emoji__tab:hover {
+  border-color: var(--nf-border-strong);
+  color: var(--nf-text);
+}
+
+.nf-emoji__tab.is-on {
+  border-color: var(--nf-primary);
+  background: color-mix(in srgb, var(--nf-primary) 16%, transparent);
+  color: var(--nf-text);
+}
+
+.nf-emoji__scroll {
+  max-height: 208px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--nf-border-strong) transparent;
+}
+
+.nf-emoji__scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.nf-emoji__scroll::-webkit-scrollbar-thumb {
+  background: var(--nf-border);
+  border-radius: 999px;
+}
+
+.nf-emoji__group-label {
+  padding: 6px 2px 3px;
+  font-size: 10.5px;
+  color: var(--nf-text-dim);
+}
+
+.nf-emoji__grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 2px;
+}
+
+/* Una familia son cientos de emojis y dibujar tipografía de color no es barato: al pintarlos
+   todos de golpe la pestaña se quedaba clavada casi un segundo. Con esto el navegador solo
+   dibuja los que caen dentro del panel, y reserva el hueco de los demás para que la barra de
+   scroll no baile. */
+.nf-emoji__grid .nf-emoji__item {
+  content-visibility: auto;
+  contain-intrinsic-size: 30px 30px;
+}
+
+.nf-emoji__empty {
+  margin: 10px 2px;
+  font-size: 11.5px;
+  color: var(--nf-text-dim);
+}

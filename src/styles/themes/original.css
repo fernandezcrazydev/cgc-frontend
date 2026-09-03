@@ -26,6 +26,7 @@
   --nf-inset: #0b0e1c;
   --nf-surface: #121527;
   --nf-surface-2: #171a2e;
+  --nf-surface-3: #1b1f35;
   --nf-elevated: #20243c;
 
   /* ---- Paleta: índigo primario, fucsia secundario ---- */
@@ -36,6 +37,16 @@
   --nf-warning: #fbbf24; /* amber-400                      */
   --nf-success: #34d399; /* emerald-400                     */
   --nf-danger: #fb7185; /* rose-400                          */
+
+  /* Semáforo de Notificaciones [F5.5-02] - Fijo e inmune a las skins fucsia/índigo */
+  --nf-crimson: #f85149;
+  --nf-gold: #e3b341;
+  --nf-emerald: #3fb950;
+  --nf-blue-semantic: #388bfd;
+
+  /* Los metales del podio tampoco cambian con la skin: la plata es plata. */
+  --nf-silver: #94a3b8;
+  --nf-bronze: #d97706;
 
   --nf-team-blue: #60a5fa; /* blue-400  */
   --nf-team-red: #fb7185; /* rose-400   */

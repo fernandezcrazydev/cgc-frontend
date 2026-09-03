@@ -52,7 +52,21 @@ const TIER_META: Record<LolTier, { label: string; color: string }> = {
   IRON:        { label: 'Hierro',      color: '#6b5f5a' },
 };
 
-const ALL_TIERS = Object.keys(TIER_META) as LolTier[];
+/** Los diez tiers, del más alto al más bajo. */
+export const LOL_TIERS = Object.keys(TIER_META) as LolTier[];
+
+/**
+ * Construye la ficha de elo de un tier. Existe para que nadie tenga que repetir los
+ * nombres en español ni los colores de los diez tiers: `TIER_META` es la única
+ * lista, y quien la necesite pasa por aquí.
+ */
+export function lolRankInfo(tier: LolTier, division?: string | null): LolRankInfo {
+  const meta = TIER_META[tier];
+  // La división es un numeral romano y va tal cual; el tier se pinta con su nombre
+  // en español, no con el enum del backend, que llegaría como "BRONZE".
+  const label = division ? `SoloQ: ${meta.label} ${division}` : `SoloQ: ${meta.label}`;
+  return { tier, label, color: meta.color };
+}
 
 /**
  * Una fila de la clasificación, ya lista para pintar.
@@ -179,14 +193,9 @@ function lolRankOf(entry: LeaderboardEntryResponse): LolRankInfo | null {
   if (!entry.riotTier) return null;
 
   const tier = entry.riotTier.toUpperCase() as LolTier;
-  if (!ALL_TIERS.includes(tier)) return null;
+  if (!LOL_TIERS.includes(tier)) return null;
 
-  // El tier se pinta con su nombre en español, no con el enum del backend: `riotTier` llega como
-  // `BRONZE` y volcarlo tal cual daría "SoloQ: BRONZE II", que es a la vez inglés y mayúsculas.
-  // La división (`riotRank`) sí es un numeral romano y va tal cual.
-  const meta = TIER_META[tier];
-  const label = entry.riotRank ? `SoloQ: ${meta.label} ${entry.riotRank}` : `SoloQ: ${meta.label}`;
-  return { tier, label, color: meta.color };
+  return lolRankInfo(tier, entry.riotRank);
 }
 
 /** Mapea las filas que sirve el backend a lo que consume la vista. */

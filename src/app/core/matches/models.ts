@@ -28,10 +28,12 @@ export interface ParticipantStats {
   visionScore: number;
   wardsPlaced: number;
   wardsKilled: number;
-  /** 6 ranuras de inventario + 1 accesorio/trinket (índice 6) */
+  /** Ranuras de inventario: 6 objetos + 1 accesorio (índice 6), o 7 objetos + 1 accesorio para ADC (misión de rol S16) */
   items: (MatchItemSlot | null)[];
   /** IDs de Summoner Spells (D y F) */
   spells: [number, number];
+  /** Variante de aplastar/smite en junglas: azul, rojo, verde o sin evolucionar */
+  smiteVariant?: 'blue' | 'red' | 'green' | 'unevolved';
   /**
    * BACKEND NOTE: sin uso todavía. No hay endpoint ni catálogo de runas en el proyecto
    * (`GameDataApi` solo sirve campeones, hechizos y objetos), así que no hay forma de

@@ -78,6 +78,8 @@
             @for (g of orderedGroups(); track g.id) {
               <div
                 class="shell__group"
+                [class.is-open]="isExpandedGroup(g.id) || (railed() && g.id === groups.selectedId())"
+                [class.is-current]="currentRouteGroup()?.id === g.id"
                 draggable="true"
                 (dragstart)="onGroupDragStart($event, g.id)"
                 (dragover)="onGroupDragOver($event, g.id)"
@@ -338,7 +340,7 @@
             aria-haspopup="menu"
             [attr.title]="railed() ? 'Descargar app' : null"
             [attr.aria-label]="railed() ? 'Descargar app' : null"
-            (click)="toggleDownload()"
+            (click)="toggleDownload($event)"
           >
             <span class="shell__nav-glyph shell__download-glyph" aria-hidden="true">
               <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
@@ -351,55 +353,6 @@
             <span class="shell__nav-caret" aria-hidden="true">▾</span>
           </button>
 
-          @if (showDownload()) {
-            <div
-              class="shell__download-menu"
-              [class.is-rail]="railed()"
-              role="menu"
-              aria-label="Descargar la app de escritorio"
-            >
-              <div class="shell__download-head nf-mono">App de escritorio</div>
-              <a
-                class="shell__download-opt"
-                role="menuitem"
-                href="/downloads/scraper/latest/lol-match-exporter-windows-setup.exe"
-                download
-                (click)="showDownload.set(false)"
-              >
-                <span class="shell__download-logo" aria-hidden="true">
-                  <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor">
-                    <path d="M0 2.4 6.4 1.5v6.2H0V2.4Z" />
-                    <path d="M7.3 1.37 16 .18V7.7H7.3V1.37Z" />
-                    <path d="M0 8.6h6.4v6.2L0 13.9V8.6Z" />
-                    <path d="M7.3 8.6H16v7.52L7.3 14.93V8.6Z" />
-                  </svg>
-                </span>
-                <span class="shell__download-opt-text">
-                  <span class="shell__download-opt-name">Windows</span>
-                  <span class="shell__download-opt-sub nf-mono">Instalador para Windows</span>
-                </span>
-              </a>
-
-              <a
-                class="shell__download-opt"
-                role="menuitem"
-                href="/downloads/scraper/latest/lol-match-exporter-macos.dmg"
-                download
-                (click)="showDownload.set(false)"
-              >
-                <span class="shell__download-logo" aria-hidden="true">
-                  <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor">
-                    <path d="M11.03 8.42c-.02-1.72 1.4-2.55 1.47-2.59-.8-1.17-2.05-1.33-2.5-1.35-1.06-.11-2.07.62-2.61.62-.54 0-1.37-.61-2.25-.59-1.16.02-2.22.67-2.82 1.7-1.2 2.09-.31 5.18.86 6.88.57.83 1.26 1.76 2.16 1.73.87-.04 1.19-.56 2.24-.56 1.04 0 1.34.56 2.25.54.93-.02 1.52-.85 2.09-1.68.66-.96.93-1.89.94-1.94-.02-.01-1.81-.7-1.83-2.76Z" />
-                    <path d="M9.32 3.4c.48-.58.8-1.38.71-2.18-.69.03-1.52.46-2.01 1.03-.44.51-.83 1.33-.72 2.11.77.06 1.55-.39 2.02-.96Z" />
-                  </svg>
-                </span>
-                <span class="shell__download-opt-text">
-                  <span class="shell__download-opt-name">macOS</span>
-                  <span class="shell__download-opt-sub nf-mono">Imagen para macOS</span>
-                </span>
-              </a>
-            </div>
-          }
         </div>
 
         <div class="shell__sidefoot">
@@ -509,6 +462,25 @@
             </span>
           }
         </nav>
+
+        <!-- Ficha del grupo y su gestión. Vivían en una tarjeta al principio del hub que repetía
+             el icono y el nombre que ya están aquí; ahora acompañan a la identidad y se ven desde
+             cualquier sección del grupo. -->
+        <div class="shell__groupmeta">
+          <span class="shell__groupmeta-chips nf-mono">
+            <span class="shell__groupmeta-chip">{{ g.region ?? 'Sin región' }}</span>
+            @if (g.tag) {
+              <span class="shell__groupmeta-chip">#{{ g.tag }}</span>
+            }
+            <!-- El recuento solo existe cuando el detalle de ESTE grupo está cargado; mientras
+                 viaja no se pinta un número de relleno. -->
+            @if (groupMemberCount(); as count) {
+              <span class="shell__groupmeta-chip">{{ count }} {{ count === 1 ? 'miembro' : 'miembros' }}</span>
+            }
+            <span class="shell__groupmeta-chip is-role">{{ roleLabel(g.role) }}</span>
+          </span>
+          <app-group-actions-menu />
+        </div>
       } @else {
         @if (isMobile()) {
           <div class="shell__logo shell__logo--sm"><span class="shell__diamond"></span></div>
@@ -535,6 +507,78 @@
           </h2>
         }
       }
+
+      <!-- Buscador Global de Jugadores y Grupos [F5.5-01] -->
+      <div class="shell__search">
+        <nf-typeahead
+          #searchTypeahead
+          [suggestions]="searchResults()"
+          [placeholder]="'Buscar jugador o grupo...'"
+          [ariaLabel]="'Buscar jugadores y grupos'"
+          [minChars]="2"
+          [showSearchIcon]="true"
+          [emptyText]="'Ningún resultado encontrado'"
+          [query]="searchQuery()"
+          (queryChange)="searchQuery.set($event)"
+          (selectOption)="onSelectSearchItem($event)"
+        >
+          <ng-template let-item let-active="active">
+            @if (isGroup(item)) {
+              <div class="shell__search-item shell__search-item--group" [class.is-active]="active">
+                <div class="shell__search-avatar" [style.background]="groupAvatarBg(item)">
+                  @if (item.avatarUrl) {
+                    <img class="shell__search-avatar-img" [src]="item.avatarUrl" alt="" />
+                  } @else {
+                    {{ item.initials }}
+                  }
+                </div>
+                <div class="shell__search-meta">
+                  <div class="shell__search-top">
+                    <span class="shell__search-discord">{{ item.name }}</span>
+                    <span class="shell__search-badge-type nf-mono" [class.shell__search-badge-type--member]="item.isMember">
+                      {{ item.isMember ? 'Tu grupo' : 'Grupo' }}
+                    </span>
+                  </div>
+                  <div class="shell__search-bottom nf-mono">
+                    <span class="shell__search-riot">#{{ item.tag }}</span>
+                    <span class="shell__search-sep">·</span>
+                    <span>{{ item.region }}</span>
+                    <span class="shell__search-sep">·</span>
+                    <span>{{ item.membersCount }} miembros</span>
+                  </div>
+                </div>
+              </div>
+            } @else if (isPlayer(item)) {
+              <div class="shell__search-item" [class.is-active]="active">
+                <div class="shell__search-avatar" [style.background]="playerAvatarBg(item)">
+                  @if (item.avatarUrl) {
+                    <img class="shell__search-avatar-img" [src]="item.avatarUrl" alt="" />
+                  } @else {
+                    {{ item.initials }}
+                  }
+                </div>
+                <div class="shell__search-meta">
+                  <div class="shell__search-top">
+                    <span class="shell__search-discord">{{ item.discordUsername }}</span>
+                    @if (item.commonGroupsCount > 0) {
+                      <span class="shell__search-common nf-mono">● {{ item.commonGroupsCount }} en común</span>
+                    }
+                  </div>
+                  <div class="shell__search-bottom nf-mono">
+                    <span class="shell__search-riot">{{ item.riotId }}</span>
+                    <span class="shell__search-sep">·</span>
+                    <span class="shell__search-rank-wrap">
+                      <nf-rank-emblem [tier]="item.rankTier" [size]="14" [label]="item.rankLabel || item.rankBadge" />
+                      <span class="shell__search-rank-tag">{{ item.rankBadge }}</span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            }
+          </ng-template>
+        </nf-typeahead>
+      </div>
+
       <div class="shell__header-right">
         <!-- Uso del rate limit de la API de Riot. Solo admins, y solo en escritorio: por debajo
              de 760 px la cabecera ya lleva la barra de grupo y dos botones, y una barra más la
@@ -559,8 +603,9 @@
         <button
           type="button"
           class="shell__bell"
-          [class.is-active]="showNotifications() || notifs.hasUnread()"
-          [attr.aria-label]="'Notificaciones' + (notifs.hasUnread() ? ' (' + notifs.unreadCount() + ' sin leer)' : '')"
+          [class.is-active]="showNotifications() || unreadNotifsCount() > 0"
+          [class.has-critical]="hasCriticalUnread()"
+          [attr.aria-label]="'Notificaciones' + (unreadNotifsCount() > 0 ? ' (' + unreadNotifsCount() + ' sin leer)' : '')"
           [attr.aria-expanded]="showNotifications()"
           (click)="toggleNotifications()"
         >
@@ -569,8 +614,14 @@
             <line x1="1.5" y1="13" x2="14.5" y2="13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
             <path d="M6 13C6 14.1 6.9 15 8 15C9.1 15 10 14.1 10 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
           </svg>
-          @if (notifs.hasUnread()) {
-            <span class="shell__bell-badge nf-mono">{{ notifs.unreadCount() }}</span>
+          @if (unreadNotifsCount() > 0) {
+            <span
+              class="shell__bell-badge nf-mono"
+              [class.shell__bell-badge--critical]="bellSeverity() === 'critical'"
+              [class.shell__bell-badge--achievement]="bellSeverity() === 'achievement'"
+              [class.shell__bell-badge--room]="bellSeverity() === 'room'"
+              [class.shell__bell-badge--social]="bellSeverity() === 'social'"
+            >{{ unreadNotifsCount() }}</span>
           }
         </button>
       </div>
@@ -626,6 +677,60 @@
       }
     </nav>
   }
+
+  <!-- Menú de descarga. Vive FUERA del sidebar: ahí lo recortaba su `overflow` (y un
+       `position: fixed` tampoco escapaba, porque el `backdrop-filter` del sidebar lo convierte en
+       bloque contenedor). Aquí es una capa flotante más, anclada a la posición real del botón. -->
+  @if (showDownload() && downloadAnchor(); as anchor) {
+    <div
+      class="shell__download-menu"
+      role="menu"
+      aria-label="Descargar la app de escritorio"
+      [style.left.px]="anchor.left"
+      [style.bottom.px]="anchor.bottom"
+    >
+      <div class="shell__download-head nf-mono">App de escritorio</div>
+      <a
+        class="shell__download-opt"
+        role="menuitem"
+        href="/downloads/scraper/latest/lol-match-exporter-windows-setup.exe"
+        download
+        (click)="showDownload.set(false)"
+      >
+        <span class="shell__download-logo" aria-hidden="true">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M0 2.4 6.4 1.5v6.2H0V2.4Z" />
+            <path d="M7.3 1.37 16 .18V7.7H7.3V1.37Z" />
+            <path d="M0 8.6h6.4v6.2L0 13.9V8.6Z" />
+            <path d="M7.3 8.6H16v7.52L7.3 14.93V8.6Z" />
+          </svg>
+        </span>
+        <span class="shell__download-opt-text">
+          <span class="shell__download-opt-name">Windows</span>
+          <span class="shell__download-opt-sub nf-mono">Instalador para Windows</span>
+        </span>
+      </a>
+
+      <a
+        class="shell__download-opt"
+        role="menuitem"
+        href="/downloads/scraper/latest/lol-match-exporter-macos.dmg"
+        download
+        (click)="showDownload.set(false)"
+      >
+        <span class="shell__download-logo" aria-hidden="true">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M11.03 8.42c-.02-1.72 1.4-2.55 1.47-2.59-.8-1.17-2.05-1.33-2.5-1.35-1.06-.11-2.07.62-2.61.62-.54 0-1.37-.61-2.25-.59-1.16.02-2.22.67-2.82 1.7-1.2 2.09-.31 5.18.86 6.88.57.83 1.26 1.76 2.16 1.73.87-.04 1.19-.56 2.24-.56 1.04 0 1.34.56 2.25.54.93-.02 1.52-.85 2.09-1.68.66-.96.93-1.89.94-1.94-.02-.01-1.81-.7-1.83-2.76Z" />
+            <path d="M9.32 3.4c.48-.58.8-1.38.71-2.18-.69.03-1.52.46-2.01 1.03-.44.51-.83 1.33-.72 2.11.77.06 1.55-.39 2.02-.96Z" />
+          </svg>
+        </span>
+        <span class="shell__download-opt-text">
+          <span class="shell__download-opt-name">macOS</span>
+          <span class="shell__download-opt-sub nf-mono">Imagen para macOS</span>
+        </span>
+      </a>
+    </div>
+          }
 
   <!-- mobile group switcher (bottom sheet) -->
   @if (showGroupSheet()) {
@@ -702,107 +807,192 @@
     </div>
   }
 
-  <!-- notifications dropdown panel -->
+  <!-- notifications dropdown panel [F5.5-02] -->
   @if (showNotifications()) {
     <div class="shell__notif-overlay" (click)="closeNotifications()">
       <div class="shell__notif" (click)="$event.stopPropagation()">
-        <nf-window title="Notificaciones" bodyPadding="0">
-          <div class="shell__notif-sub">
-            <span class="shell__notif-eyebrow nf-mono">Actividad reciente</span>
-            @if (notifs.hasUnread()) {
-              <button type="button" class="shell__notif-clear nf-mono" (click)="markAllRead($event)">
-                Marcar leídas
+        <div class="shell__notif-box">
+          <!-- Barra ultrafina única: Notificaciones + Marcar todas -->
+          <div class="shell__notif-bar">
+            <span class="shell__notif-bar-title nf-mono">Notificaciones</span>
+            @if (unreadNotifsCount() > 0) {
+              <button type="button" class="shell__notif-bar-clear nf-mono" (click)="markAllRead($event)">
+                Marcar todas
               </button>
             }
           </div>
 
-          <div class="shell__notif-list" [attr.aria-busy]="notifs.isLoading()">
-            @for (n of notifViews(); track n.id) {
-              <div
-                class="shell__notif-item"
-                [class.is-unread]="!n.read"
-                [class.is-clickable]="!!n.link"
-                [style.--notif-accent]="n.accent"
-              >
-                @if (n.link) {
-                  <!-- Capa pulsable sobre toda la fila: da clic Y foco de teclado sin anidar
-                       botones (la × y las acciones de invitación quedan por encima). -->
-                  <button
-                    type="button"
-                    class="shell__notif-open"
-                    [attr.aria-label]="'Abrir: ' + n.title + ' — ' + n.message"
-                    (click)="openNotif(n)"
-                  ></button>
-                }
-                <button
-                  type="button"
-                  class="shell__notif-dismiss nf-mono"
-                  aria-label="Borrar notificación"
-                  (click)="dismissNotif(n, $event)"
-                >×</button>
-                <div class="shell__notif-icon">{{ n.glyph }}</div>
-                <div class="shell__notif-text">
-                  <div class="shell__notif-title nf-mono">
-                    @if (!n.read) {
-                      <span class="shell__notif-dot"></span>
-                    }
-                    {{ n.title }}
-                  </div>
-                  <div class="shell__notif-msg nf-mono">{{ n.message }}</div>
-                  <div class="shell__notif-time nf-mono">{{ n.time }}</div>
-                  @if (n.invite; as inv) {
-                    @if (canRespond(inv.invitationId)) {
-                      <div class="shell__notif-actions">
-                        <button
-                          nfButton
-                          variant="ghost"
-                          size="sm"
-                          [disabled]="invitations.isResponding(inv.invitationId)"
-                          (click)="respondInvite(n, false)"
-                        >Rechazar</button>
-                        <button
-                          nfButton
-                          variant="primary"
-                          size="sm"
-                          [disabled]="invitations.isResponding(inv.invitationId)"
-                          (click)="respondInvite(n, true)">Unirme</button>
+          <div class="shell__notif-scroll-area">
+            <!-- BLOQUE DE AVISOS OBLIGATORIOS (SOLO SANCIÓN / EXPULSIÓN) [F5.5-02] -->
+            @if (mandatoryNotifs().length > 0) {
+              <div class="shell__notif-section shell__notif-section--mandatory">
+                <div class="shell__notif-section-header shell__notif-section-header--mandatory nf-mono">
+                  <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                    <path d="M8 1.5L2.5 4v4.5c0 3.5 2.5 5.8 5.5 6.5 3-.7 5.5-3 5.5-6.5V4L8 1.5z" stroke="currentColor" stroke-width="1.5" />
+                    <line x1="8" y1="5.5" x2="8" y2="8.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                    <circle cx="8" cy="11" r="0.75" fill="currentColor" />
+                  </svg>
+                  <span>Avisos obligatorios</span>
+                </div>
+                <div class="shell__notif-mandatory-list">
+                  @for (n of mandatoryNotifs(); track n.id) {
+                    <div class="shell__notif-mandatory-card" [style.--notif-accent]="n.accent">
+                      <button
+                        type="button"
+                        class="shell__notif-dismiss nf-mono"
+                        aria-label="Borrar notificación"
+                        (click)="dismissNotif(n, $event)"
+                      >×</button>
+                      <div class="shell__notif-mandatory-top">
+                        <span class="shell__notif-dot shell__notif-dot--critical"></span>
+                        <span class="shell__notif-mandatory-title nf-mono">{{ n.title }}</span>
+                        <span class="shell__notif-time nf-mono">{{ n.time }}</span>
                       </div>
-                    } @else {
-                      <div class="shell__notif-resolved nf-mono">Invitación gestionada</div>
-                    }
+                      <p class="shell__notif-msg">{{ n.message }}</p>
+                      <div class="shell__notif-mandatory-actions">
+                        <button
+                          type="button"
+                          class="shell__notif-ack-btn nf-mono"
+                          (click)="acknowledgeNotice(n, $event)"
+                        >
+                          Entendido
+                        </button>
+                      </div>
+                    </div>
                   }
                 </div>
               </div>
-            } @empty {
-              @if (notifs.isLoading()) {
-                @for (row of [0, 1, 2]; track row) {
-                  <!-- Misma geometría que una fila real (icono 28px, antetítulo, dos líneas de
-                       mensaje y hora) para que al llegar el dato no salte nada. -->
-                  <div class="shell__notif-item" aria-hidden="true">
-                    <nf-skeleton width="28px" height="28px" radius="4px" />
-                    <div class="shell__notif-text shell__notif-text--skel">
-                      <nf-skeleton width="45%" height="11px" />
-                      <nf-skeleton width="100%" height="12px" />
-                      <nf-skeleton width="62%" height="12px" />
-                      <nf-skeleton width="28%" height="11px" />
+            }
+
+            <!-- FLUJO RECIENTE (CRONOLÓGICO UNIFICADO) [F5.5-02] -->
+            <div class="shell__notif-section">
+              <div class="shell__notif-list" [attr.aria-busy]="notifs.isLoading()">
+                @for (n of recentNotifs(); track n.id) {
+                  <div
+                    class="shell__notif-item"
+                    [class.is-unread]="!n.read"
+                    [class.is-clickable]="!!n.link"
+                    [style.--notif-accent]="n.accent"
+                  >
+                    @if (n.link) {
+                      <button
+                        type="button"
+                        class="shell__notif-open"
+                        [attr.aria-label]="'Abrir: ' + n.title + ' — ' + n.message"
+                        (click)="openNotif(n)"
+                      ></button>
+                    }
+                    <button
+                      type="button"
+                      class="shell__notif-dismiss nf-mono"
+                      aria-label="Borrar notificación"
+                      (click)="dismissNotif(n, $event)"
+                    >×</button>
+
+                    <!-- Icono vectorial SVG temático sin emojis (22px) -->
+                    <div class="shell__notif-icon">
+                      @switch (n.semanticLevel) {
+                        @case ('critical') {
+                          <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+                            <path d="M8 1.5L2.5 4v4.5c0 3.5 2.5 5.8 5.5 6.5 3-.7 5.5-3 5.5-6.5V4L8 1.5z" stroke="currentColor" stroke-width="1.5" />
+                            <line x1="8" y1="5.5" x2="8" y2="8.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                            <circle cx="8" cy="11" r="0.75" fill="currentColor" />
+                          </svg>
+                        }
+                        @case ('achievement') {
+                          <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+                            <path d="M4 2.5h8v5a4 4 0 01-8 0v-5z" stroke="currentColor" stroke-width="1.5" />
+                            <path d="M4 4H2a1.5 1.5 0 000 3h2M12 4h2a1.5 1.5 0 010 3h-2M8 11.5v2.5M5.5 14h5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
+                          </svg>
+                        }
+                        @case ('room') {
+                          <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+                            <rect x="2" y="4.5" width="12" height="7" rx="3.5" stroke="currentColor" stroke-width="1.4" />
+                            <path d="M4.5 8h2M5.5 7v2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" />
+                            <circle cx="10" cy="7.5" r="0.75" fill="currentColor" />
+                            <circle cx="11.5" cy="8.5" r="0.75" fill="currentColor" />
+                          </svg>
+                        }
+                        @default {
+                          <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+                            <circle cx="6" cy="5" r="2.5" stroke="currentColor" stroke-width="1.4" />
+                            <path d="M2 13.5c0-2.2 1.8-4 4-4s4 1.8 4 4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
+                            <circle cx="11.5" cy="5.5" r="1.8" stroke="currentColor" stroke-width="1.1" />
+                            <path d="M10.5 10c1.5.3 2.5 1.5 2.5 3" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" />
+                          </svg>
+                        }
+                      }
+                    </div>
+
+                    <div class="shell__notif-text">
+                      <div class="shell__notif-title nf-mono">
+                        @if (!n.read) {
+                          <span class="shell__notif-dot"></span>
+                        }
+                        {{ n.title }}
+                      </div>
+                      <div class="shell__notif-msg">{{ n.message }}</div>
+                      <div class="shell__notif-time nf-mono">{{ n.time }}</div>
+
+                      <!-- Acciones contextuales -->
+                      @if (n.invite; as inv) {
+                        @if (canRespond(inv.invitationId)) {
+                          <div class="shell__notif-actions">
+                            <button
+                              type="button"
+                              class="shell__notif-invite-btn shell__notif-invite-btn--ghost nf-mono"
+                              [disabled]="invitations.isResponding(inv.invitationId)"
+                              (click)="respondInvite(n, false)"
+                            >Rechazar</button>
+                            <button
+                              type="button"
+                              class="shell__notif-invite-btn shell__notif-invite-btn--primary nf-mono"
+                              [disabled]="invitations.isResponding(inv.invitationId)"
+                              (click)="respondInvite(n, true)"
+                            >Unirme</button>
+                          </div>
+                        } @else {
+                          <div class="shell__notif-resolved nf-mono">Invitación gestionada</div>
+                        }
+                      } @else if (n.semanticLevel === 'room' && n.link) {
+                        <div class="shell__notif-actions">
+                          <button
+                            type="button"
+                            class="shell__notif-room-btn nf-mono"
+                            (click)="openNotif(n)"
+                          >
+                            Unirme a la sala
+                          </button>
+                        </div>
+                      }
                     </div>
                   </div>
+                } @empty {
+                  @if (notifs.isLoading()) {
+                    @for (row of [0, 1, 2]; track row) {
+                      <div class="shell__notif-item" aria-hidden="true">
+                        <nf-skeleton width="22px" height="22px" radius="4px" />
+                        <div class="shell__notif-text shell__notif-text--skel">
+                          <nf-skeleton width="45%" height="10px" />
+                          <nf-skeleton width="100%" height="11px" />
+                          <nf-skeleton width="28%" height="10px" />
+                        </div>
+                      </div>
+                    }
+                  } @else {
+                    <div class="shell__notif-empty">
+                      <div class="shell__notif-empty-glyph">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                          <path d="M12 2C8.13 2 5 5.13 5 9v5l-2 2v1h18v-1l-2-2V9c0-3.87-3.13-7-7-7z" stroke="currentColor" stroke-width="1.5" />
+                          <path d="M9 19c0 1.66 1.34 3 3 3s3-1.34 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                        </svg>
+                      </div>
+                      <div class="shell__notif-empty-label nf-mono">Estás al día · Sin notificaciones</div>
+                    </div>
+                  }
                 }
-              } @else if (notifs.status() === 'error') {
-                <div class="shell__notif-empty">
-                  <div class="shell__notif-empty-glyph">⚠</div>
-                  <div class="shell__notif-empty-label nf-mono">No se pudo cargar</div>
-                  <button type="button" class="shell__notif-clear nf-mono" (click)="reloadNotifs($event)">
-                    Reintentar
-                  </button>
-                </div>
-              } @else {
-                <div class="shell__notif-empty">
-                  <div class="shell__notif-empty-glyph">◎</div>
-                  <div class="shell__notif-empty-label nf-mono">Bandeja vacía</div>
-                </div>
-              }
-            }
+              </div>
+            </div>
           </div>
 
           @if (notifs.hasMore()) {
@@ -815,7 +1005,7 @@
               >{{ notifs.loadingMore() ? 'Cargando…' : 'Ver más ▾' }}</button>
             </div>
           }
-        </nf-window>
+        </div>
       </div>
     </div>
   }

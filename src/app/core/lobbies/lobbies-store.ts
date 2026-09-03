@@ -58,15 +58,34 @@ export class LobbiesStore {
     if (this.currentGroupId) await this.load(this.currentGroupId, this._page());
   }
 
+  /**
+   * Refetch SIN vaciar la pantalla: el estado no pasa por `loading`, así que la vista
+   * no se cae a esqueletos ni pierde el scroll.
+   *
+   * Es lo que va después de una escritura **y lo que debe usar el aviso en vivo**.
+   * Apuntarse a una hora cambia una cifra de una tarjeta, y hacer parpadear el panel
+   * entero para eso se leía como si la página se recargara: la vista se caía a
+   * esqueletos, el documento se encogía y el navegador tiraba el scroll al principio.
+   * Lo mismo valía cuando quien se apuntaba era otro y llegaba su aviso por SSE.
+   *
+   * Si el refetch falla tampoco se marca error: lo que hay en pantalla sigue siendo
+   * válido, solo un poco viejo, y borrarlo sería peor que mantenerlo. `reload()`, la
+   * ruidosa, se reserva para el reintento explícito, que es cuando el usuario ha
+   * pedido que se vuelva a cargar y espera verlo.
+   */
+  async refreshQuietly(): Promise<void> {
+    if (this.currentGroupId) await this.load(this.currentGroupId, this._page(), true);
+  }
+
   /** Salta a una página (0-based). */
   async goToPage(page: number): Promise<void> {
     if (this.currentGroupId) await this.load(this.currentGroupId, Math.max(0, page));
   }
 
-  private async load(groupId: string, page: number): Promise<void> {
+  private async load(groupId: string, page: number, silent = false): Promise<void> {
     const seq = ++this.seq;
     this.currentGroupId = groupId;
-    this._status.set('loading');
+    if (!silent) this._status.set('loading');
     try {
       const result = await firstValueFrom(
         this.api.listForGroup(groupId, page, LobbiesStore.PAGE_SIZE),
@@ -78,7 +97,7 @@ export class LobbiesStore {
       this._page.set(result.page);
       this._status.set('ready');
     } catch {
-      if (seq !== this.seq) return;
+      if (seq !== this.seq || silent) return;
       this._status.set('error');
     }
   }
@@ -94,11 +113,86 @@ export class LobbiesStore {
     try {
       const created = await firstValueFrom(this.api.create(groupId, body));
       // La lista acaba de quedarse vieja: refetch en vez de insertar a mano, que sería
-      // reimplementar en cliente el orden que decide el servidor.
-      await this.load(groupId, 0);
+      // reimplementar en cliente el orden que decide el servidor. En silencio, para que
+      // la pantalla no parpadee entera por una tarjeta nueva.
+      await this.load(groupId, 0, true);
       return created;
     } finally {
       this._creating.set(false);
+    }
+  }
+
+  /**
+   * Ids de franja con una acción en vuelo. Se guarda por franja y no con un único
+   * booleano porque el panel de convocatorias (§5.5.6) pinta varias a la vez: un
+   * `pending` global apagaría todos los botones de la columna por pulsar uno.
+   */
+  private readonly _acting = signal<ReadonlySet<string>>(new Set());
+  isActing(slotId: string): boolean {
+    return this._acting().has(slotId);
+  }
+
+  /** «Cuenta conmigo a esa hora». Lanza si falla; la vista pinta el mensaje. */
+  async signUp(lobbyId: string, slotId: string): Promise<void> {
+    await this.act(slotId, () => firstValueFrom(this.api.signUp(lobbyId, slotId)));
+  }
+
+  /** «Al final no puedo». */
+  async withdraw(lobbyId: string, slotId: string): Promise<void> {
+    await this.act(slotId, () => firstValueFrom(this.api.withdraw(lobbyId, slotId)));
+  }
+
+  /**
+   * Aplica de una vez a qué horas puede alguien: se apunta a `join` y se borra de
+   * `leave`.
+   *
+   * Existe además de `signUp`/`withdraw` porque decir «puedo a dos de las tres» es UNA
+   * decisión: hacerlo con tres llamadas sueltas eran tres refetch y la lista saltando
+   * bajo el dedo tres veces. Aquí se manda todo y se refresca una sola vez al final.
+   *
+   * No es atómico —el backend no ofrece un endpoint de disponibilidad— así que si una
+   * de las llamadas falla, las anteriores ya se aplicaron. Se refresca igualmente antes
+   * de propagar el error, para que la pantalla enseñe lo que de verdad quedó guardado
+   * en vez de lo que el usuario había marcado.
+   */
+  async setAvailability(lobbyId: string, join: string[], leave: string[]): Promise<void> {
+    if (this._savingAvailability()) return;
+    this._savingAvailability.set(true);
+    try {
+      for (const slotId of join) {
+        await firstValueFrom(this.api.signUp(lobbyId, slotId));
+      }
+      for (const slotId of leave) {
+        await firstValueFrom(this.api.withdraw(lobbyId, slotId));
+      }
+    } finally {
+      this._savingAvailability.set(false);
+      await this.refreshQuietly();
+    }
+  }
+
+  /** Guardar la disponibilidad está en vuelo: bloquea el botón del modal. */
+  private readonly _savingAvailability = signal(false);
+  readonly savingAvailability = this._savingAvailability.asReadonly();
+
+  /**
+   * Escritura pesimista y no reentrante sobre una franja: se espera la confirmación
+   * y solo entonces se refresca la lista. Se refetchea en vez de meter la respuesta
+   * a mano porque quién queda titular y quién suplente lo decide el servidor, y
+   * recolocarlo aquí sería una segunda versión de esa regla.
+   */
+  private async act(slotId: string, call: () => Promise<unknown>): Promise<void> {
+    if (this._acting().has(slotId)) return;
+    this._acting.update((set) => new Set(set).add(slotId));
+    try {
+      await call();
+      await this.refreshQuietly();
+    } finally {
+      this._acting.update((set) => {
+        const next = new Set(set);
+        next.delete(slotId);
+        return next;
+      });
     }
   }
 
@@ -111,5 +205,7 @@ export class LobbiesStore {
     this._totalElements.set(0);
     this._page.set(0);
     this._creating.set(false);
+    this._acting.set(new Set());
+    this._savingAvailability.set(false);
   }
 }

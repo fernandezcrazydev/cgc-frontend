@@ -27,8 +27,8 @@ export class GroupDetailStore {
   private readonly api = inject(GroupsApi);
   private readonly groups = inject(GroupsStore);
 
-  /** Miembros por página. Encaja con el alto de la ventana sin obligar a hacer scroll. */
-  static readonly MEMBERS_PAGE_SIZE = 10;
+  /** Miembros cargados para el slider interno del roster. */
+  static readonly MEMBERS_PAGE_SIZE = 100;
 
   private readonly _status = signal<GroupDetailStatus>('idle');
   private readonly _group = signal<GroupView | null>(null);
@@ -71,12 +71,40 @@ export class GroupDetailStore {
   private readonly _busy = signal(false);
   readonly busy = this._busy.asReadonly();
 
+  /** Carga en vuelo, para deduplicar las peticiones simultáneas del shell y de la vista. */
+  private inFlight: { id: string; promise: Promise<void> } | null = null;
+
+  /**
+   * Asegura que este grupo está cargado, sin repetir la petición.
+   *
+   * Existe porque ahora hay dos interesados a la vez: la cabecera del shell —que pinta región,
+   * `#TAG`, miembros y rol en TODAS las secciones del grupo— y la vista de turno. Con `load()` a
+   * secas, entrar al hub disparaba dos veces `/groups/{id}` y su roster. Para forzar el refetch
+   * sigue estando {@link load}.
+   */
+  ensureLoaded(groupId: string): Promise<void> {
+    if (!groupId) return Promise.resolve();
+    if (this.currentId === groupId && (this._status() === 'ready' || this._status() === 'not-found')) {
+      return Promise.resolve();
+    }
+    if (this.inFlight?.id === groupId) return this.inFlight.promise;
+    return this.load(groupId);
+  }
+
   /**
    * Carga (o recarga) detalle + roster de un grupo. Detalle y roster en paralelo; si el `:id`
    * cambia antes de que respondan, se descartan. Un 403/404 es `not-found` (no existe o no eres
    * miembro), no un error de red.
    */
-  async load(groupId: string): Promise<void> {
+  load(groupId: string): Promise<void> {
+    const promise = this.fetch(groupId);
+    this.inFlight = { id: groupId, promise };
+    return promise.finally(() => {
+      if (this.inFlight?.id === groupId) this.inFlight = null;
+    });
+  }
+
+  private async fetch(groupId: string): Promise<void> {
     this.currentId = groupId;
     this.membersSeq++;
     this._status.set('loading');
@@ -257,6 +285,7 @@ export class GroupDetailStore {
   /** Al cerrar sesión no debe quedar rastro del grupo del usuario anterior. */
   clear(): void {
     this.currentId = null;
+    this.inFlight = null;
     this.membersSeq++;
     this._status.set('idle');
     this._group.set(null);

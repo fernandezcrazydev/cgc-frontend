@@ -33,6 +33,15 @@ let nextTypeaheadId = 0;
   },
   template: `
     <div class="nf-typeahead__field" [class.nf-typeahead__field--open]="open() && (suggestions().length > 0 || (loading() && query().trim().length >= minChars()))">
+      @if (showSearchIcon()) {
+        <span class="nf-typeahead__prefix-icon" aria-hidden="true">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+            <circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.6" />
+            <path d="M10 10l4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+          </svg>
+        </span>
+      }
+
       <input
         #input
         class="nf-typeahead__input"
@@ -64,6 +73,8 @@ let nextTypeaheadId = 0;
         >
           ✕
         </button>
+      } @else if (shortcut()) {
+        <kbd class="nf-typeahead__shortcut nf-mono">{{ shortcut() }}</kbd>
       }
     </div>
 
@@ -117,6 +128,8 @@ export class NfTypeahead<T = any> {
   readonly minChars = input<number>(1);
   readonly clearable = input<boolean>(true);
   readonly loading = input<boolean>(false);
+  readonly showSearchIcon = input<boolean>(false);
+  readonly shortcut = input<string | null>(null);
   readonly suggestions = input<readonly T[]>([]);
 
   /** Función opcional para extraer la clave de tracking */
@@ -227,6 +240,10 @@ export class NfTypeahead<T = any> {
   protected choose(item: T): void {
     this.selectOption.emit(item);
     this.close();
+  }
+
+  focus(): void {
+    this.inputEl()?.nativeElement.focus();
   }
 
   clear(): void {

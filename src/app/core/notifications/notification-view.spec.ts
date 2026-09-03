@@ -58,7 +58,7 @@ describe('notificationView · vinculación con la app de escritorio', () => {
     );
     expect(view.title).toBe('Cuenta vinculada');
     expect(view.message).toBe('Vinculamos N1ghtfang#LAN desde la app de escritorio');
-    expect(view.accent).toBe('var(--nf-secondary)');
+    expect(view.accent).toBe('var(--nf-blue-semantic)');
     expect(view.glyph).toBe('↔');
     expect(view.invite).toBeNull();
   });
@@ -70,7 +70,7 @@ describe('notificationView · vinculación con la app de escritorio', () => {
     );
     expect(view.title).toBe('Cuenta verificada');
     expect(view.message).toBe('Comprobamos con Riot que N1ghtfang#LAN es tuya');
-    expect(view.accent).toBe('var(--nf-success)');
+    expect(view.accent).toBe('var(--nf-blue-semantic)');
     expect(view.glyph).toBe('✓');
     expect(view.invite).toBeNull();
   });
@@ -84,7 +84,7 @@ describe('notificationView · vinculación con la app de escritorio', () => {
     expect(view.message).toBe(
       'Alguien demostró ser el dueño de N1ghtfang#LAN y se ha desvinculado de tu perfil',
     );
-    expect(view.accent).toBe('var(--nf-danger)');
+    expect(view.accent).toBe('var(--nf-crimson)');
     expect(view.glyph).toBe('⊘');
     expect(view.invite).toBeNull();
   });
@@ -92,7 +92,7 @@ describe('notificationView · vinculación con la app de escritorio', () => {
   it('un tipo desconocido sigue cayendo en el genérico (no rompe con tipos nuevos del backend)', () => {
     const view = notificationView(invite({ type: 'RIOT_ACCOUNT_SOMETHING_FUTURE', data: {} }), NOW);
     expect(view.title).toBe('Notificación');
-    expect(view.accent).toBe('var(--nf-warning)');
+    expect(view.accent).toBe('var(--nf-blue-semantic)');
     expect(view.invite).toBeNull();
   });
 });
@@ -109,7 +109,7 @@ describe('notificationView · reporte de feedback (solo admins)', () => {
     );
     expect(view.title).toBe('Nuevo bug');
     expect(view.message).toBe('El draft se queda colgado');
-    expect(view.accent).toBe('var(--nf-tertiary)');
+    expect(view.accent).toBe('var(--nf-blue-semantic)');
     expect(view.glyph).toBe('⚑');
     expect(view.link).toEqual(['/app', 'admin', 'feedback', 'f1']);
     expect(view.invite).toBeNull();
@@ -159,9 +159,11 @@ describe('notificationView · reporte de feedback (solo admins)', () => {
 });
 
 describe('notificationView · enlace', () => {
-  it('las notificaciones que no llevan a ninguna parte no traen enlace', () => {
-    expect(notificationView(invite(), NOW).link).toBeNull();
-    expect(notificationView(invite({ type: 'RIOT_ACCOUNT_PAIRED', data: {} }), NOW).link).toBeNull();
+  it('las notificaciones de grupos llevan a su grupo correspondiente', () => {
+    expect(notificationView(invite(), NOW).link).toEqual(['/app', 'grupos', 'g1']);
+  });
+
+  it('las notificaciones sin destino no traen enlace', () => {
     expect(notificationView(invite({ type: 'SOMETHING_NEW', data: {} }), NOW).link).toBeNull();
   });
 });
@@ -178,3 +180,72 @@ describe('timeAgo', () => {
     expect(timeAgo('no-es-fecha', NOW)).toBe('');
   });
 });
+
+describe('notificationView · niveles semánticos y avisos obligatorios [F5.5-02]', () => {
+  it('mapea SANCTION_ISSUED como crítico obligatorio con botón de lectura', () => {
+    const view = notificationView(
+      {
+        id: 's1',
+        type: 'SANCTION_ISSUED',
+        data: { groupName: 'Customs Tryhard' },
+        read: false,
+        createdAt: '2026-07-18T11:50:00Z',
+      },
+      NOW,
+    );
+    expect(view.title).toBe('Sanción aplicada');
+    expect(view.message).toContain('strike por abandono en "Customs Tryhard"');
+    expect(view.semanticLevel).toBe('critical');
+    expect(view.isMandatory).toBe(true);
+    expect(view.ctaLabel).toBe('Entendido');
+    expect(view.accent).toBe('var(--nf-crimson)');
+  });
+
+  it('mapea MVP_EARNED como logro / amarillo y redirige a la partida', () => {
+    const view = notificationView(
+      {
+        id: 'm1',
+        type: 'MVP_EARNED',
+        data: { champion: 'Aatrox', kda: '12/2/8', matchId: 'partida-12' },
+        read: false,
+        createdAt: '2026-07-18T11:00:00Z',
+      },
+      NOW,
+    );
+    expect(view.title).toBe('¡Nuevo MVP obtenido!');
+    expect(view.message).toBe('Fuiste el MVP en la victoria con Aatrox (12/2/8).');
+    expect(view.semanticLevel).toBe('achievement');
+    expect(view.accent).toBe('var(--nf-gold)');
+    expect(view.link).toEqual(['/app', 'historial', 'partida-12']);
+  });
+
+  it('mapea LOBBY_OPENED como sala con slots y cta de unirse', () => {
+    const view = notificationView(
+      {
+        id: 'l1',
+        type: 'LOBBY_OPENED',
+        data: {
+          groupId: 'g1',
+          groupName: 'Noche de Flex',
+          slotsMissing: '2',
+          slotsOccupied: '8',
+          slotsTotal: '10',
+        },
+        read: false,
+        createdAt: '2026-07-18T11:58:00Z',
+      },
+      NOW,
+    );
+    expect(view.title).toBe('Sala abierta: Solo faltan 2');
+    expect(view.message).toBe('"Noche de Flex" tiene 8/10 jugadores apuntados.');
+    expect(view.semanticLevel).toBe('room');
+    expect(view.ctaLabel).toBe('Unirme a la sala');
+  });
+
+  it('mapea INVITED_TO_GROUP como social', () => {
+    const view = notificationView(invite(), NOW);
+    expect(view.semanticLevel).toBe('social');
+    expect(view.accent).toBe('var(--nf-blue-semantic)');
+  });
+});
+

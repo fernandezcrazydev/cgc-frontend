@@ -1,0 +1,161 @@
+@use 'breakpoints' as *;
+
+/* Hall of Fame (§5.5.5): rejilla de medallas con aura al pasar por encima. */
+
+.hof {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.hof__empty {
+  margin: 0;
+  padding: 26px 0;
+  font-size: 13px;
+  color: var(--nf-text-dim);
+  text-align: center;
+}
+
+.hof-family {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.hof-family__title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: var(--fw-bold);
+  color: var(--nf-text-dim);
+}
+
+.hof-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hof-medal {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: 100%;
+  height: 100%;
+  padding: 14px 15px;
+  background: var(--nf-surface);
+  border: 1px solid var(--nf-border);
+  border-radius: 12px;
+  color: inherit;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  transition:
+    border-color 0.16s,
+    background 0.16s,
+    box-shadow 0.16s,
+    transform 0.16s;
+}
+
+/* El aura: un halo dorado contenido, no un resplandor difuso. Es el mismo criterio
+   que el resto de la app —el color se acerca, no se derrama. */
+.hof-medal:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--nf-gold) 45%, var(--nf-border));
+  background: color-mix(in srgb, var(--nf-gold) 6%, var(--nf-surface));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--nf-gold) 12%, transparent);
+}
+
+.hof-medal:focus-visible {
+  outline: var(--nf-focus-ring, 2px) solid var(--nf-focus);
+  outline-offset: 2px;
+}
+
+/* Las que ya son tuyas se distinguen en reposo: sin esto hay que abrir veinte
+   modales para saber cuáles llevas ganadas. */
+.hof-medal.is-mine {
+  border-color: color-mix(in srgb, var(--nf-gold) 40%, var(--nf-border));
+  background: linear-gradient(
+    160deg,
+    color-mix(in srgb, var(--nf-gold) 9%, var(--nf-surface)),
+    var(--nf-surface)
+  );
+}
+
+.hof-medal__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  margin-bottom: 3px;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--nf-gold) 13%, transparent);
+  color: var(--nf-gold);
+}
+
+.hof-medal__icon app-medal-icon {
+  width: 19px;
+  height: 19px;
+}
+
+.hof-medal__title {
+  font-size: 13px;
+  font-weight: var(--fw-semibold);
+  color: var(--nf-text);
+}
+
+.hof-medal__leader {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 11.5px;
+  color: var(--nf-text-mid);
+}
+
+.hof-medal__leader .nf-mono {
+  color: var(--nf-text-dim);
+}
+
+.hof-medal__me {
+  margin-top: auto;
+  padding-top: 7px;
+  font-size: 11.5px;
+  color: var(--nf-text-dim);
+  border-top: 1px solid var(--nf-border);
+}
+
+.hof-medal__me.is-first {
+  color: var(--nf-gold);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hof-medal {
+    transition: none;
+  }
+
+  .hof-medal:hover {
+    transform: none;
+  }
+}
+
+@media (max-width: $bp-compact) {
+  .hof-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: $bp-narrow) {
+  .hof-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Medalla sin dueño: nadie ha marcado todavía en esa métrica. Se dice, en vez de
+   coronar al primero de una lista de ceros. */
+.hof-medal__leader--vacant {
+  color: var(--nf-text-dim);
+  font-style: italic;
+}

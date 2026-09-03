@@ -32,6 +32,7 @@ import {
   GroupContext,
   Lane,
   Match,
+  MatchItemSlot,
   MatchParticipant,
   ParticipantStats,
   TeamSide,
@@ -44,6 +45,71 @@ const REGION = 'LAN';
 /** Las cinco posiciones, en el orden en que se lee un marcador. */
 const LANES: readonly Lane[] = ['TOP', 'JUNGLA', 'MID', 'ADC', 'SUPPORT'];
 
+/** Catálogo de objetos reales de League of Legends (DataDragon 14.24.1) por posición */
+interface ItemDef {
+  id: number;
+  name: string;
+}
+
+const ITEMS_BY_LANE: Record<Lane, ItemDef[]> = {
+  TOP: [
+    { id: 3078, name: 'Fuerza de la Trinidad' },
+    { id: 3053, name: 'Guantelete de Sterak' },
+    { id: 3071, name: 'Cuchilla Negra' },
+    { id: 3047, name: 'Punteras de Acero' },
+    { id: 6333, name: 'Danza de la Muerte' },
+    { id: 3026, name: 'Ángel de la Guarda' },
+    { id: 3340, name: 'Guardián Invisible' },
+  ],
+  JUNGLA: [
+    { id: 6692, name: 'Eclipse' },
+    { id: 3142, name: 'Filo Fantasma de Youmuu' },
+    { id: 6694, name: 'Rencor de Serylda' },
+    { id: 3158, name: 'Botas Jonias de Lucidez' },
+    { id: 3814, name: 'Filo de la Noche' },
+    { id: 3026, name: 'Ángel de la Guarda' },
+    { id: 3364, name: 'Lente del Oráculo' },
+  ],
+  MID: [
+    { id: 6655, name: 'Compañero de Luden' },
+    { id: 4645, name: 'Llama Sombría' },
+    { id: 3157, name: 'Reloj de Arena de Zhonya' },
+    { id: 3020, name: 'Botas del Hechicero' },
+    { id: 3089, name: 'Sombrero Mortal de Rabadon' },
+    { id: 3135, name: 'Bastón del Vacío' },
+    { id: 3340, name: 'Guardián Invisible' },
+  ],
+  ADC: [
+    { id: 6672, name: 'Verdugo de Krakens' },
+    { id: 3031, name: 'Filo Infinito' },
+    { id: 3036, name: 'Recuerdos de Lord Dominik' },
+    { id: 3006, name: 'Grebas de Berserker' },
+    { id: 3072, name: 'Sanguinaria' },
+    { id: 3094, name: 'Cañón de Fuego Rápido' },
+    { id: 3026, name: 'Ángel de la Guarda' },
+    { id: 3363, name: 'Alteración de Lejanía' },
+  ],
+  SUPPORT: [
+    { id: 3869, name: 'Oposición Celestial' },
+    { id: 3190, name: 'Relicario de los Solari de Hierro' },
+    { id: 3107, name: 'Redención' },
+    { id: 3158, name: 'Botas Jonias de Lucidez' },
+    { id: 3109, name: 'Promesa del Caballero' },
+    { id: 2303, name: 'Piedra de Visión Vigilante' },
+    { id: 3364, name: 'Lente del Oráculo' },
+  ],
+};
+
+function generateItems(role: Lane): (MatchItemSlot | null)[] {
+  const pool = ITEMS_BY_LANE[role] ?? ITEMS_BY_LANE.MID;
+  return pool.map((item) => ({
+    id: item.id,
+    name: item.name,
+    iconUrl: `https://ddragon.leagueoflegends.com/cdn/14.24.1/img/item/${item.id}.png`,
+    gold: 3000,
+  }));
+}
+
 /** Segundo hechizo por posición; el primero es siempre Destello (4). Ids reales de ddragon. */
 const SECOND_SPELL: Record<Lane, number> = {
   TOP: 12,
@@ -52,6 +118,34 @@ const SECOND_SPELL: Record<Lane, number> = {
   ADC: 7,
   SUPPORT: 3,
 };
+
+/** Runa clave principal y árbol secundario por posición. Ids reales de Data Dragon / Community Dragon. */
+const RUNES_BY_LANE: Record<Lane, { primary: number; secondary: number }> = {
+  TOP: { primary: 8437, secondary: 8000 },
+  JUNGLA: { primary: 8010, secondary: 8300 },
+  MID: { primary: 8112, secondary: 8200 },
+  ADC: { primary: 8008, secondary: 8300 },
+  SUPPORT: { primary: 8465, secondary: 8400 },
+};
+
+/**
+ * Variantes de Smite para junglas:
+ * - 1102: Smite Azul (Gustwalker / Caminavientos)
+ * - 1101: Smite Rojo (Scorchclaw / Garramélica)
+ * - 1103: Smite Verde (Mosshoof / Brincamusgo)
+ * - 11: Smite clásico sin evolucionar
+ */
+function pickJungleSmite(seed: string, minutes: number): { spellId: number; variant: 'blue' | 'red' | 'green' | 'unevolved' } {
+  if (minutes < 16 || hash(`${seed}:smite_evo`) % 8 === 0) {
+    return { spellId: 11, variant: 'unevolved' };
+  }
+  const choices: { spellId: number; variant: 'blue' | 'red' | 'green' }[] = [
+    { spellId: 1102, variant: 'blue' },
+    { spellId: 1101, variant: 'red' },
+    { spellId: 1103, variant: 'green' },
+  ];
+  return choices[hash(`${seed}:smite_pick`) % choices.length];
+}
 
 /**
  * Los nueve compañeros de reparto. Salen de `MOCK_NAMES` para que sus tags coincidan con el
@@ -123,8 +217,9 @@ function draftParticipant(args: {
   role: Lane;
   won: boolean;
   minutes: number;
+  userId?: string | null;
 }): Draft {
-  const { matchId, riotId, team, role, won, minutes } = args;
+  const { matchId, riotId, team, role, won, minutes, userId } = args;
   const s = `${matchId}:${riotId}`;
 
   const championId = pick(`${s}:champ`, REAL_CHAMPION_IDS);
@@ -151,18 +246,18 @@ function draftParticipant(args: {
     visionScore: role === 'SUPPORT' ? between(`${s}:vs`, 30, 78) : between(`${s}:vs`, 8, 34),
     wardsPlaced: role === 'SUPPORT' ? between(`${s}:wp`, 14, 34) : between(`${s}:wp`, 3, 14),
     wardsKilled: between(`${s}:wk`, 0, 11),
-    // Siete ranuras vacías (6 objetos + accesorio): no hay catálogo de objetos que consultar,
-    // y rellenarlas con nombres inventados sería fabricar dato de dominio. La rejilla se pinta
-    // con sus huecos, que es la verdad.
-    items: [null, null, null, null, null, null, null],
-    spells: [4, SECOND_SPELL[role]],
+    items: generateItems(role),
+    spells: [4, role === 'JUNGLA' ? pickJungleSmite(s, minutes).spellId : SECOND_SPELL[role]],
+    smiteVariant: role === 'JUNGLA' ? pickJungleSmite(s, minutes).variant : undefined,
+    primaryRuneId: RUNES_BY_LANE[role].primary,
+    secondaryRuneTreeId: RUNES_BY_LANE[role].secondary,
     goldAt14,
     csAt14,
   };
 
   const participant: MatchParticipant = {
     id: `${matchId}-${team}-${role}`,
-    userId: null,
+    userId: userId ?? null,
     riotId,
     isGuest: false,
     team,
@@ -330,14 +425,150 @@ function buildMatch(index: number): Match {
   };
 }
 
+export const CHIRINGUITO_GROUP_ID = 'a0000000-0000-0000-0000-000000000001';
+
+const GROUP_CHIRINGUITO: GroupContext = {
+  id: CHIRINGUITO_GROUP_ID,
+  name: 'Chiringuito Chatarra',
+  tag: 'EUW · #CCH',
+  initials: 'CC',
+  color1: '#f85149',
+  color2: '#e3b341',
+  seasonName: 'Chiringo',
+};
+
+interface ChiringuitoMember {
+  userId: string;
+  riotId: string;
+  name: string;
+}
+
+export const CHIRINGUITO_ROSTER: readonly ChiringuitoMember[] = [
+  { userId: 'daxlup', riotId: 'Daxlup#EUW', name: 'daxlup' },
+  { userId: 'c0000000-0000-0000-0000-000000000001', riotId: 'Nightstalker#EUW', name: 'Nightstalker' },
+  { userId: 'c0000000-0000-0000-0000-000000000002', riotId: 'Hide on bush#KR1', name: 'FakerClone' },
+  { userId: 'c0000000-0000-0000-0000-000000000003', riotId: 'JungleKing#MAD', name: 'ElyoyaFan' },
+  { userId: 'c0000000-0000-0000-0000-000000000004', riotId: 'Craps#G2W', name: 'Capsito' },
+  { userId: 'c0000000-0000-0000-0000-000000000005', riotId: 'ZileanGod#EUW', name: 'Chronoshift' },
+  { userId: 'c0000000-0000-0000-0000-000000000006', riotId: 'Dunkmaster#LAN', name: 'SilverScrapes' },
+  { userId: 'c0000000-0000-0000-0000-000000000007', riotId: 'NexusLord#EUW', name: 'NexusFounder' },
+  { userId: 'c0000000-0000-0000-0000-000000000008', riotId: 'Daredevil#EUW', name: 'PentaSamira' },
+  { userId: 'c0000000-0000-0000-0000-000000000009', riotId: 'Madlife#KR1', name: 'ThreshHook' },
+  { userId: 'c0000000-0000-0000-0000-000000000010', riotId: 'LeeSinMain#LAN', name: 'InsecKick' },
+  { userId: 'c0000000-0000-0000-0000-000000000011', riotId: 'SmiteGod#EUW', name: 'BaronStealer' },
+  { userId: 'c0000000-0000-0000-0000-000000000012', riotId: 'VisionScore#EUW', name: 'WardHunter' },
+  { userId: 'c0000000-0000-0000-0000-000000000013', riotId: 'AllIn#LAS', name: 'FlashIgnite' },
+  { userId: 'c0000000-0000-0000-0000-000000000014', riotId: 'xPeke#EUW', name: 'BackdoorKing' },
+  { userId: 'c0000000-0000-0000-0000-000000000015', riotId: '10CSMin#EUW', name: 'MinionFarmer' },
+  { userId: 'c0000000-0000-0000-0000-000000000016', riotId: 'IntingSion#EUW', name: 'TurretDiver' },
+  { userId: 'c0000000-0000-0000-0000-000000000017', riotId: 'ShyvanaOtp#LAN', name: 'DragonSlayer' },
+  { userId: 'c0000000-0000-0000-0000-000000000018', riotId: 'Shelly#EUW', name: 'RiftHerald' },
+  { userId: 'c0000000-0000-0000-0000-000000000019', riotId: 'BrambleVest#EUW', name: 'RedBuffEnjoyer' },
+  { userId: 'c0000000-0000-0000-0000-000000000020', riotId: 'BronzeBeast#LAN', name: 'IronForged' },
+  { userId: 'c0000000-0000-0000-0000-000000000021', riotId: 'PlasticV#EUW', name: 'WoodDivision' },
+  { userId: 'c0000000-0000-0000-0000-000000000022', riotId: 'DiscoNunu#EUW', name: 'ToxicTroll' },
+];
+
+const CHIRINGUITO_MATCH_COUNT = 30;
+
+function buildChiringuitoMatch(index: number): Match {
+  const id = `cc-match-${String(index + 1).padStart(3, '0')}`;
+  const minutes = between(`${id}:dur`, 23, 43);
+  const winningTeam: TeamSide = hash(`${id}:win`) % 2 === 0 ? 'blue' : 'red';
+
+  // Rotamos el elenco de forma determinista para que todos los jugadores participen
+  const offset = (index * 7) % CHIRINGUITO_ROSTER.length;
+  const pool = [...CHIRINGUITO_ROSTER.slice(offset), ...CHIRINGUITO_ROSTER.slice(0, offset)];
+  const blueMembers = pool.slice(0, 5);
+  const redMembers = pool.slice(5, 10);
+
+  const blueDrafts: Draft[] = blueMembers.map((m, j) =>
+    draftParticipant({
+      matchId: id,
+      riotId: m.riotId,
+      userId: m.userId,
+      team: 'blue',
+      role: LANES[j],
+      won: winningTeam === 'blue',
+      minutes,
+    }),
+  );
+
+  const redDrafts: Draft[] = redMembers.map((m, j) =>
+    draftParticipant({
+      matchId: id,
+      riotId: m.riotId,
+      userId: m.userId,
+      team: 'red',
+      role: LANES[j],
+      won: winningTeam === 'red',
+      minutes,
+    }),
+  );
+
+  const blueKills = blueDrafts.reduce((a, d) => a + d.kills, 0);
+  const redKills = redDrafts.reduce((a, d) => a + d.kills, 0);
+  settleTeam(id, blueDrafts, redKills);
+  settleTeam(id, redDrafts, blueKills);
+
+  const all = [...blueDrafts, ...redDrafts].map((d) => d.participant);
+
+  for (const lane of LANES) {
+    const pair = all.filter((p) => p.role === lane);
+    if (pair.length === 2) {
+      const [a, b] = pair;
+      const aAhead = (a.stats.goldAt14 ?? 0) >= (b.stats.goldAt14 ?? 0);
+      a.stats.wonLane = aAhead;
+      b.stats.wonLane = !aAhead;
+    }
+  }
+
+  const order = (p: MatchParticipant) => LANES.indexOf(p.role);
+  const blueSorted = blueDrafts.map((d) => d.participant).sort((a, b) => order(a) - order(b));
+  const redSorted = redDrafts.map((d) => d.participant).sort((a, b) => order(a) - order(b));
+
+  const mvp = all
+    .filter((p) => p.team === winningTeam)
+    .reduce((best, p) => (kda(p) > kda(best) ? p : best));
+  mvp.stats.isMvp = true;
+
+  // Si daxlup jugó en esta partida, asignamos userParticipant
+  const userParticipant = all.find(
+    (p) => p.userId === 'daxlup' || p.riotId.toLowerCase().includes('daxlup'),
+  );
+  const userWon = userParticipant ? userParticipant.team === winningTeam : undefined;
+
+  return {
+    id,
+    groupId: CHIRINGUITO_GROUP_ID,
+    group: GROUP_CHIRINGUITO,
+    source: hash(`${id}:src`) % 2 === 0 ? 'import' : 'manual',
+    durationSeconds: minutes * 60,
+    decidedAt: new Date(BASE_MS - index * (DAY_MS * 0.7) - between(`${id}:hh`, 0, 8) * 3_600_000).toISOString(),
+    winningTeam,
+    blueTeam: summarize(id, 'blue', winningTeam === 'blue', blueSorted),
+    redTeam: summarize(id, 'red', winningTeam === 'red', redSorted),
+    mvpParticipantId: mvp.id,
+    milestones: {
+      firstBloodParticipantId: pick(`${id}:fb`, all).id,
+      firstTowerTeam: hash(`${id}:ft`) % 3 === 0 ? other(winningTeam) : winningTeam,
+      firstDragonTeam: hash(`${id}:fd`) % 2 === 0 ? 'blue' : 'red',
+      firstBaronTeam: winningTeam,
+    },
+    userParticipant,
+    userOutcome: userWon !== undefined ? (userWon ? 'win' : 'loss') : undefined,
+  };
+}
+
 /**
  * Las partidas de la semilla, de más reciente a más antigua (el orden natural del historial).
  *
- * Se construyen una sola vez al importar el módulo, que solo ocurre fuera de producción.
+ * Incluye tanto partidas de LAN Challenger (historial personal) como de Chiringuito Chatarra (grupo y ranking).
  */
-export const MATCH_SEED: readonly Match[] = Array.from({ length: MATCH_COUNT }, (_, i) =>
-  buildMatch(i),
-);
+export const MATCH_SEED: readonly Match[] = [
+  ...Array.from({ length: MATCH_COUNT }, (_, i) => buildMatch(i)),
+  ...Array.from({ length: CHIRINGUITO_MATCH_COUNT }, (_, i) => buildChiringuitoMatch(i)),
+].sort((a, b) => new Date(b.decidedAt).getTime() - new Date(a.decidedAt).getTime());
 
 /**
  * Carga la semilla en el store. Es el único consumidor de `MATCH_SEED`.
