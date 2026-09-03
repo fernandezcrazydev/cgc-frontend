@@ -6,7 +6,9 @@
     "start": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "arch": "node scripts/arch-check.mjs",
+    "arch:fix": "node scripts/arch-check.mjs --fix"
   },
   "private": true,
   "packageManager": "npm@11.6.4",

@@ -180,7 +180,6 @@
   color: #fff;
   flex: none;
 }
-.login__discord-arrow { margin-left: 2px; }
 
 /* ---- checking session ---- */
 .login__checking {
@@ -230,7 +229,7 @@
   align-items: center;
   justify-content: center;
   color: var(--nf-success);
-  font-size: 30px;
+  font-size: var(--fs-h1);
   margin-bottom: 22px;
   animation: nf-pop 0.35s ease-out;
 }

@@ -1,0 +1,48 @@
+/* Ajustes de la cuenta.
+
+   Extraida de `views.scss` (el monolito global) a la hoja de su componente. Con
+   encapsulacion emulada estos estilos mueren con la vista y viajan en su chunk lazy,
+   en vez de lastrar todas las rutas.
+
+   No escribas aqui selectores hacia hijos internos de un `nf-*`: la encapsulacion no
+   los alcanza. Si necesitas ajustar el interior de una primitiva, expon una custom
+   property en ella y fijala sobre el host (ver `nf-pagination.scss`). Nunca `::ng-deep`. */
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--nf-border);
+}
+
+.setting-row--last {
+  border-bottom: none;
+  padding-bottom: 4px;
+}
+
+.setting-sub {
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+  margin-top: 3px;
+}
+
+/* Texto que EXPLICA la consecuencia de un ajuste, no la etiqueta de un dato: va en frase
+   normal y con interlineado de lectura, porque una frase entera en versalitas de 10px no
+   hay quien la lea. */
+
+.setting-sub--help {
+  font-size: 11.5px;
+  letter-spacing: 0;
+  line-height: 1.45;
+  margin-top: 5px;
+  max-width: 34ch;
+}
+
+/* El control de la derecha no debe encogerse ni estirarse con el texto de su izquierda. */
+
+.setting-row__control {
+  flex: none;
+  width: 150px;
+}

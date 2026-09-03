@@ -19,6 +19,7 @@ import { Viewport } from '../../../../shared/viewport';
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterLink, NfAvatar, NfLaneIcon, NfSegmented],
+  styleUrl: './match-scoreboard.component.scss',
   template: `
     <div class="m-scoreboard">
       <!-- Tabs de visualización -->

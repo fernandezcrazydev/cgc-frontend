@@ -1,12 +1,20 @@
 /* Pagination (global, ViewEncapsulation.None) */
 
+/* Puntos de extension como custom properties: el paginador nace suelto en una pagina
+   (de ahi el margen superior) pero a veces va empotrado en una barra. Una vista NO puede
+   estilar el `<nav>` ni los `<button>` internos con un selector descendente —su hoja
+   encapsulada no marca esos hijos—, pero las custom properties si heredan a traves de la
+   frontera, asi que se fijan sobre el host:
+
+     .mi-barra nf-pagination { --nf-pager-margin-top: 0; --nf-pager-btn-size: 30px; } */
 .nf-pager {
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 14px;
-  margin-top: 22px;
+  width: var(--nf-pager-width, auto);
+  margin-top: var(--nf-pager-margin-top, 22px);
 }
 
 /* Píldora: el resumen "1–15 de 28" era texto suelto flotando junto a unos
@@ -41,8 +49,8 @@
 }
 
 .nf-pager__btn {
-  min-width: 34px;
-  height: 34px;
+  min-width: var(--nf-pager-btn-size, 34px);
+  height: var(--nf-pager-btn-size, 34px);
   padding: 0 9px;
   display: inline-flex;
   align-items: center;
@@ -74,7 +82,7 @@
 }
 
 .nf-pager__btn--nav {
-  font-size: 11px;
+  font-size: var(--fs-label);
 }
 
 .nf-pager__gap {

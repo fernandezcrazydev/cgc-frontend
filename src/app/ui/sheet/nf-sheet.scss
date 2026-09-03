@@ -55,7 +55,7 @@
 
 .nf-sheet__title {
   margin: 0;
-  font-size: 15px;
+  font-size: var(--fs-body-lg);
   font-weight: var(--fw-bold);
   color: var(--nf-text);
 }

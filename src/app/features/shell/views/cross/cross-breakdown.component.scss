@@ -1,0 +1,40 @@
+/* Desglose del cruce entre dos jugadores.
+
+   Extraida de `views.scss` (el monolito global) a la hoja de su componente. Con
+   encapsulacion emulada estos estilos mueren con la vista y viajan en su chunk lazy,
+   en vez de lastrar todas las rutas.
+
+   No escribas aqui selectores hacia hijos internos de un `nf-*`: la encapsulacion no
+   los alcanza. Si necesitas ajustar el interior de una primitiva, expon una custom
+   property en ella y fijala sobre el host (ver `nf-pagination.scss`). Nunca `::ng-deep`. */
+
+/* ── Desglose: la comparativa cara a cara ─────────────────────────── */
+
+.cx-breakdown { padding: 14px 18px 12px; }
+
+.cx-breakdown__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-bottom: 8px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--nf-border);
+}
+
+.cx-breakdown__relation {
+  font-size: 12px;
+  font-weight: var(--fw-bold);
+  color: var(--cx-me);
+}
+
+.cx-breakdown__relation--ally { color: var(--nf-secondary); }
+
+.cx-breakdown__meta,
+.cx-breakdown__note {
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+}
+
+.cx-breakdown__note { margin: 10px 0 0; }

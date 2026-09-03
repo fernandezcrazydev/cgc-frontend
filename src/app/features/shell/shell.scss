@@ -54,7 +54,6 @@
   color: var(--nf-text);
   line-height: 1;
 }
-.shell__tag { font-size: var(--fs-label); color: var(--nf-text-dim); margin-top: 4px; }
 
 .shell__nav {
   display: flex;
@@ -120,23 +119,12 @@
 .shell__nav-item.is-active .shell__nav-glyph { color: var(--nf-primary); }
 
 /* ---- sidebar groups dropdown ---- */
-.shell__nav-group { display: flex; flex-direction: column; }
-.shell__nav-item--toggle {
-  width: 100%;
-  font: inherit;
-  font-weight: 700;
-  font-size: 12.5px;
-  color: var(--nf-text-dim);
-}
 .shell__nav-caret {
   margin-left: auto;
-  font-size: 11px;
+  font-size: var(--fs-label);
   color: var(--nf-text-dim);
   transition: transform 0.18s ease;
 }
-.shell__nav-item--toggle.is-open .shell__nav-caret { transform: rotate(180deg); }
-.shell__nav-item--toggle.is-open { color: #fff; }
-.shell__nav-item--toggle.is-open .shell__nav-glyph { color: var(--nf-primary); }
 
 .shell__grouplist {
   display: flex;
@@ -191,7 +179,7 @@
   overflow: visible;
   font-family: var(--nf-mono);
   font-weight: 700;
-  font-size: 11px;
+  font-size: var(--fs-label);
   color: #fff;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
 }
@@ -223,7 +211,7 @@
 .shell__groupitem-sub {
   display: block;
   margin-top: 3px;
-  font-size: 11px;
+  font-size: var(--fs-label);
   color: var(--nf-text-mid);
 }
 .shell__groupitem.is-active .shell__groupitem-name { color: #fff; }
@@ -259,7 +247,7 @@
   width: 28px;
   height: 28px;
   flex: none;
-  font-size: 15px;
+  font-size: var(--fs-body-lg);
   font-weight: 800;
   border-radius: 6px;
   border: 1px dashed var(--nf-border-strong);
@@ -281,7 +269,7 @@
 }
 .shell__grouplist-empty {
   padding: 10px 9px;
-  font-size: 11px;
+  font-size: var(--fs-label);
   color: var(--nf-text-dim);
 }
 
@@ -311,11 +299,6 @@
 }
 
 /* Capa de cierre al pulsar fuera, igual que el panel de notificaciones. */
-.shell__download-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 90;
-}
 /* Se abre hacia ARRIBA: está pegado al fondo del sidebar, así que desplegar hacia
    abajo lo dejaría fuera de la pantalla. */
 .shell__download-menu {
@@ -333,7 +316,7 @@
 }
 .shell__download-head {
   padding: 6px 8px 8px;
-  font-size: 11px;
+  font-size: var(--fs-label);
   color: var(--nf-text-dim);
 }
 .shell__download-opt {
@@ -376,7 +359,7 @@
   line-height: 1.1;
 }
 .shell__download-opt-sub {
-  font-size: 11px;
+  font-size: var(--fs-label);
   color: var(--nf-text-dim);
   margin-top: 3px;
 }
@@ -466,7 +449,7 @@
   text-overflow: ellipsis;
 }
 .shell__profile-cta {
-  font-size: 11px;
+  font-size: var(--fs-label);
   color: var(--nf-text-mid);
   margin-top: 4px;
   transition: color 0.16s;
@@ -485,7 +468,7 @@
   border-radius: 4px;
   font-family: var(--nf-font);
   font-weight: 700;
-  font-size: 11px;
+  font-size: var(--fs-label);
   cursor: pointer;
   transition: color 0.16s, border-color 0.16s;
 }
@@ -523,99 +506,6 @@
 .shell__dialog-actions > * { flex: 1; }
 
 /* ---- group invitation review modal ---- */
-.shell__dialog--invite { max-width: 460px; }
-.shell__invite { display: flex; flex-direction: column; }
-.shell__invite-hero {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 18px 20px;
-  background:
-    linear-gradient(120deg, color-mix(in srgb, var(--grp-c1) 26%, transparent), transparent 60%),
-    var(--nf-surface-2);
-  border-bottom: 1px solid color-mix(in srgb, var(--grp-c1) 30%, var(--nf-border));
-}
-.shell__invite-avatar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 56px;
-  height: 56px;
-  flex: none;
-  border-radius: 12px;
-  background: linear-gradient(135deg, var(--grp-c1), var(--grp-c2));
-  border: 2px solid color-mix(in srgb, var(--grp-c1) 60%, #fff);
-  font-family: var(--nf-mono);
-  font-weight: 700;
-  font-size: 20px;
-  color: #fff;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
-}
-.shell__invite-headmeta { min-width: 0; }
-.shell__invite-tag { font-size: 11px; color: var(--nf-text-dim); }
-.shell__invite-name {
-  margin: 5px 0 7px;
-  font-weight: 800;
-  font-size: 21px;
-  color: #fff;
-  letter-spacing: -0.4px;
-}
-.shell__invite-count { font-size: 11px; color: var(--nf-secondary); }
-.shell__invite-facts {
-  display: flex;
-  gap: 12px;
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--nf-border);
-}
-.shell__invite-fact {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.shell__invite-fact-label { font-size: 11px; color: var(--nf-text-dim); }
-.shell__invite-fact-value { font-size: 13px; color: var(--nf-text); }
-.shell__invite-rosterhead {
-  padding: 14px 20px 8px;
-  font-size: 11px;
-  color: var(--nf-text-dim);
-}
-.shell__invite-roster {
-  max-height: 200px;
-  overflow-y: auto;
-  padding: 0 20px;
-}
-.shell__invite-member {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  padding: 8px 0;
-  border-bottom: 1px solid var(--nf-border);
-}
-.shell__invite-member:last-child { border-bottom: none; }
-.shell__invite-member-avatar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
-  flex: none;
-  border-radius: 6px;
-  border: 1.5px solid var(--nf-border);
-  font-family: var(--nf-mono);
-  font-weight: 700;
-  font-size: 11px;
-  color: #fff;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-}
-.shell__invite-member-name { flex: 1; min-width: 0; font-size: 12.5px; color: var(--nf-text); }
-.shell__invite-member-role { font-size: 11px; color: var(--nf-text-dim); }
-.shell__invite-actions {
-  display: flex;
-  gap: 10px;
-  padding: 18px 20px 20px;
-}
-.shell__invite-actions > * { flex: 1; }
 
 /* ---- menú plegado en rail (solo escritorio) ---- */
 .shell__sidebar.is-rail {
@@ -638,7 +528,6 @@
   padding: 0;
   box-sizing: border-box;
 }
-.shell__sidebar.is-rail .shell__burger { padding-bottom: 13px; }
 
 .shell__sidebar.is-rail .shell__download {
   padding: 0;
@@ -736,7 +625,7 @@
   justify-content: center;
   padding: 3px 9px;
   border-radius: 6px;
-  font-size: 11px;
+  font-size: var(--fs-label);
   font-weight: 800;
   line-height: 1;
   color: var(--nf-success);
@@ -757,7 +646,7 @@
   min-width: 22px;
   height: 20px;
   padding: 0 6px;
-  font-size: 11px;
+  font-size: var(--fs-label);
   font-weight: 700;
   line-height: 1;
   color: var(--nf-text-mid);
@@ -817,7 +706,7 @@
   overflow: hidden;
   font-family: var(--nf-mono);
   font-weight: 700;
-  font-size: 11px;
+  font-size: var(--fs-label);
   color: #fff;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
@@ -835,7 +724,7 @@
 
 .shell__breadcrumb-caret {
   flex: none;
-  font-size: 11px;
+  font-size: var(--fs-label);
   color: var(--nf-text-dim);
 }
 
@@ -890,15 +779,15 @@
   animation: nf-pulse 1.6s infinite;
 }
 .shell__pending-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.shell__pending-title { font-size: 11px; font-weight: 700; color: var(--nf-warning); }
+.shell__pending-title { font-size: var(--fs-label); font-weight: 700; color: var(--nf-warning); }
 .shell__pending-sub {
-  font-size: 11px;
+  font-size: var(--fs-label);
   color: var(--nf-text-dim);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.shell__pending-cta { margin-left: auto; flex: none; font-size: 11px; color: var(--nf-warning); }
+.shell__pending-cta { margin-left: auto; flex: none; font-size: var(--fs-label); color: var(--nf-warning); }
 
 /* sheet variant (top of the mobile group switcher) */
 .shell__sheet-pending {
@@ -944,7 +833,7 @@
   border-radius: 9px;
   background: var(--nf-primary);
   color: var(--nf-void);
-  font-size: 11px;
+  font-size: var(--fs-label);
   font-weight: 700;
   line-height: 17px;
   text-align: center;
@@ -992,11 +881,11 @@
   padding: 10px 16px;
   border-bottom: 1px solid var(--nf-border);
 }
-.shell__notif-eyebrow { font-size: 11px; color: var(--nf-text-dim); }
+.shell__notif-eyebrow { font-size: var(--fs-label); color: var(--nf-text-dim); }
 .shell__notif-clear {
   background: transparent;
   border: none;
-  font-size: 11px;
+  font-size: var(--fs-label);
   color: var(--nf-secondary);
   cursor: pointer;
   padding: 0;
@@ -1026,11 +915,6 @@
 }
 .shell__notif-item.is-clickable { cursor: pointer; }
 .shell__notif-item.is-clickable:hover { background: rgba(255, 255, 255, 0.05); }
-.shell__notif-cta {
-  margin-top: 6px;
-  font-size: 11px;
-  color: var(--notif-accent);
-}
 .shell__notif-actions {
   // Por encima de la capa pulsable de la fila (`.shell__notif-open`): aceptar/rechazar son
   // acciones propias, no "abrir la notificación".
@@ -1042,7 +926,7 @@
 }
 .shell__notif-resolved {
   margin-top: 8px;
-  font-size: 11px;
+  font-size: var(--fs-label);
   color: var(--nf-text-dim);
   opacity: 0.7;
 }
@@ -1076,7 +960,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 11px;
+  font-size: var(--fs-label);
   color: var(--nf-text-mid);
 }
 .shell__notif-item.is-unread .shell__notif-title { color: var(--notif-accent); }
@@ -1097,7 +981,7 @@
 }
 .shell__notif-time {
   margin-top: 5px;
-  font-size: 11px;
+  font-size: var(--fs-label);
   color: var(--nf-text-dim);
 }
 .shell__notif-dot {
@@ -1138,7 +1022,7 @@
   border-radius: 4px;
   background: transparent;
   color: var(--nf-text-dim);
-  font-size: 15px;
+  font-size: var(--fs-body-lg);
   line-height: 1;
   cursor: pointer;
   opacity: 0.45;
@@ -1151,7 +1035,7 @@
 }
 .shell__notif-more {
   font: inherit;
-  font-size: 11px;
+  font-size: var(--fs-label);
   color: var(--nf-secondary);
   background: transparent;
   border: none;
@@ -1167,7 +1051,7 @@
   text-align: center;
 }
 .shell__notif-empty-glyph { font-size: 22px; color: var(--nf-text-dim); margin-bottom: 12px; }
-.shell__notif-empty-label { font-size: 11px; color: var(--nf-text-dim); }
+.shell__notif-empty-label { font-size: var(--fs-label); color: var(--nf-text-dim); }
 
 .shell__notif-foot {
   padding: 12px 16px;
@@ -1175,7 +1059,7 @@
   text-align: center;
 }
 .shell__notif-foot span {
-  font-size: 11px;
+  font-size: var(--fs-label);
   color: var(--nf-secondary);
   cursor: pointer;
 }
@@ -1215,7 +1099,7 @@
   background: var(--nf-border-strong);
 }
 .shell__sheet-head {
-  font-size: 11px;
+  font-size: var(--fs-label);
   color: var(--nf-secondary);
   margin: 0 4px 12px;
 }
@@ -1226,14 +1110,14 @@
   overflow-y: auto;
 }
 .shell__groupitem--lg { padding: 12px; border-radius: 10px; }
-.shell__groupitem--lg .shell__groupitem-avatar { width: 40px; height: 40px; font-size: 14px; }
+.shell__groupitem--lg .shell__groupitem-avatar { width: 40px; height: 40px; font-size: var(--fs-body); }
 .shell__groupitem--lg .shell__groupitem-name { font-size: 14.5px; }
 .shell__sheet-all {
   display: block;
   margin-top: 12px;
   padding: 13px;
   text-align: center;
-  font-size: 11px;
+  font-size: var(--fs-label);
   color: var(--nf-secondary);
   text-decoration: none;
   border: 1.5px solid var(--nf-border);
@@ -1306,28 +1190,3 @@
 }
 
 /* ---- center CREAR (raised FAB) ---- */
-.shell__bottomnav-item--center { gap: 8px; }
-.shell__fab {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 58px;
-  height: 58px;
-  margin-top: -30px;
-  border-radius: 18px;
-  background: var(--nf-primary);
-  border: none;
-  color: #fff;
-  font-size: 24px;
-  line-height: 1;
-  /* El aro del color del fondo recorta el FAB contra la barra: es lo que hace
-     que se lea como un botón flotante y no como parte de la propia barra. */
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5), 0 0 0 6px var(--nf-void);
-  transition: transform 0.14s, box-shadow 0.14s;
-}
-.shell__bottomnav-item--center .shell__bottomnav-label { color: var(--nf-primary); font-weight: 800; }
-.shell__bottomnav-item--center:active .shell__fab { transform: translateY(1px) scale(0.97); }
-.shell__bottomnav-item--center.is-active .shell__fab {
-  box-shadow: 0 8px 22px color-mix(in srgb, var(--nf-primary) 45%, transparent), 0 0 0 6px var(--nf-void);
-}
-.shell__bottomnav-item--center.is-active .shell__bottomnav-label { color: #fff; }

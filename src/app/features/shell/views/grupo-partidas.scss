@@ -1,0 +1,43 @@
+/* Listado de partidas del grupo.
+
+   Extraida de `views.scss` (el monolito global) a la hoja de su componente. Con
+   encapsulacion emulada estos estilos mueren con la vista y viajan en su chunk lazy,
+   en vez de lastrar todas las rutas.
+
+   No escribas aqui selectores hacia hijos internos de un `nf-*`: la encapsulacion no
+   los alcanza. Si necesitas ajustar el interior de una primitiva, expon una custom
+   property en ella y fijala sobre el host (ver `nf-pagination.scss`). Nunca `::ng-deep`. */
+
+.pm-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.pm-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 5px;
+  border: 1.5px solid var(--nf-border);
+  flex: none;
+}
+
+.pm-mode {
+  font-weight: 700;
+  font-size: var(--fs-body);
+  color: var(--nf-text);
+}
+
+.pm-players {
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+  margin-top: 3px;
+}
+
+.pm-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}

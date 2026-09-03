@@ -25,6 +25,7 @@ type StatTab = 'resumen' | 'jugadores' | 'premios';
   selector: 'app-grupo-estadisticas',
   standalone: true,
   imports: [RouterLink, NfBadge, NfButton, NfWindow, NfAvatar, NfSkeleton],
+  styleUrl: './grupo-estadisticas.scss',
   template: `
     <div class="view">
       @if (loadingGroup()) {

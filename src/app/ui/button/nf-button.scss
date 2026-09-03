@@ -39,10 +39,10 @@
 }
 
 /* ---- tamaños ---- */
-.nf-btn--xs { padding: 3px 8px; font-size: 11px; border-radius: 5px; gap: 5px; }
+.nf-btn--xs { padding: 3px 8px; font-size: var(--fs-label); border-radius: 5px; gap: 5px; }
 .nf-btn--sm { padding: 7px 14px; font-size: 12px; }
 .nf-btn--md { padding: 11px 20px; font-size: 13px; }
-.nf-btn--lg { padding: 15px 26px; font-size: 14px; }
+.nf-btn--lg { padding: 15px 26px; font-size: var(--fs-body); }
 
 /* ---- primary ----
    Los rellenos sólidos llevan sombra tintada del propio acento (no negra):

@@ -1,6 +1,11 @@
-import { NfLane } from '../../ui/lane-icon/nf-lane-icon';
-
-export type Lane = NfLane;
+/**
+ * Líneas de LoL. Se declara aquí y no se importa de `ui/lane-icon`: `Lane` es dominio
+ * —el backend lo manda en los DTOs— y `core/` no puede depender de `ui/`. `NfLane` es la
+ * misma unión declarada del lado del UI kit; TypeScript es estructural, así que las dos
+ * siguen siendo intercambiables sin que ninguna capa importe de la otra. Si el backend
+ * añade una línea, este es el sitio que manda, y `NfLane` la sigue.
+ */
+export type Lane = 'TOP' | 'JUNGLA' | 'MID' | 'ADC' | 'SUPPORT';
 export type TeamSide = 'blue' | 'red';
 export type MatchResultOutcome = 'win' | 'loss' | 'cancelled';
 export type MatchSource = 'manual' | 'import';

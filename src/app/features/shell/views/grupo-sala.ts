@@ -48,6 +48,7 @@ import { ChampionSummary, GameDataStore } from '../../../core/game-data';
   selector: 'app-grupo-sala',
   standalone: true,
   imports: [RouterLink, NfBadge, NfButton, NfWindow, NfAvatar, NfSkeleton],
+  styleUrl: './grupo-sala.scss',
   template: `
     <div class="view">
       <!-- ===== CONVOCATORIA REAL (backend) ===== -->

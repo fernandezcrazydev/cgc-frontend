@@ -30,7 +30,7 @@ import { PreferencesStore } from '../../core/preferences';
 import { ToastService } from '../../core/toast';
 import { RiotMetricsStore, RiotUsageStore } from '../../core/admin';
 import { NfAvatar, NfButton, NfSkeleton, NfToastHost, NfWindow } from '../../ui';
-import { FeedbackDialog } from '../feedback/feedback-dialog';
+import { FeedbackDialog } from '../feedback';
 import { RiotUsageIndicator } from './riot-usage-indicator';
 import { wireRiotAccountRefresh } from './riot-account-refresh';
 
@@ -100,7 +100,8 @@ export class Shell {
   private readonly devices = inject(DevicesStore);
   private readonly prefs = inject(PreferencesStore);
   private readonly discord = inject(DiscordStore);
-  private readonly toasts = inject(ToastService);
+  /** Público: la plantilla lo cablea a `<nf-toast-host>`, que ya no lo inyecta. */
+  readonly toasts = inject(ToastService);
   /** Solo para poder pararlos y vaciarlos al cerrar sesión; el indicador se arranca solo. */
   private readonly riotUsage = inject(RiotUsageStore);
   private readonly riotMetrics = inject(RiotMetricsStore);

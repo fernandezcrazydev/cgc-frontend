@@ -40,7 +40,7 @@
 /* ---- tamaños ----
    El área táctil manda sobre el tamaño del dibujo: 30/34px de caja para un
    icono de 15/17px, que es lo mínimo para acertarle con el dedo. */
-.nf-icon-btn--sm { width: 30px; height: 30px; font-size: 15px; }
+.nf-icon-btn--sm { width: 30px; height: 30px; font-size: var(--fs-body-lg); }
 .nf-icon-btn--md { width: 34px; height: 34px; font-size: 17px; }
 
 /* ---- ghost · el discreto de cabecera de tarjeta ---- */

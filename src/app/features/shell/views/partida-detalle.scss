@@ -1,0 +1,425 @@
+@use '../../../../styles/breakpoints' as *;
+
+/* Detalle de una partida: hero, marcador y objetivos.
+
+   Extraida de `views.scss` (el monolito global) a la hoja de su componente. Con
+   encapsulacion emulada estos estilos mueren con la vista y viajan en su chunk lazy,
+   en vez de lastrar todas las rutas.
+
+   No escribas aqui selectores hacia hijos internos de un `nf-*`: la encapsulacion no
+   los alcanza. Si necesitas ajustar el interior de una primitiva, expon una custom
+   property en ella y fijala sobre el host (ver `nf-pagination.scss`). Nunca `::ng-deep`. */
+
+/* ======== PÁGINA DE DETALLE ========
+   El tono de la cabecera lo decide un solo `heroTone()`. Antes se calculaban `is-win` e
+   `is-loss` por separado con condiciones que se solapaban, y una derrota con victoria azul
+   se pintaba a la vez de las dos cosas. */
+
+.md-hero {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  padding: 22px;
+  margin-bottom: 18px;
+  border-radius: 10px;
+  border: 1.5px solid var(--nf-border);
+  border-left: 5px solid var(--nf-text-dim);
+  background: var(--nf-surface-2);
+  flex-wrap: wrap;
+}
+
+.md-hero--win {
+  border-left-color: var(--nf-success);
+  background:
+    linear-gradient(
+      120deg,
+      color-mix(in srgb, var(--nf-success) 18%, transparent),
+      transparent 60%
+    ),
+    var(--nf-surface-2);
+}
+
+.md-hero--loss {
+  border-left-color: var(--nf-danger);
+  background:
+    linear-gradient(120deg, color-mix(in srgb, var(--nf-danger) 18%, transparent), transparent 60%),
+    var(--nf-surface-2);
+}
+
+.md-hero--neutral {
+  border-left-color: var(--nf-border-strong);
+}
+
+/* El marcador: lo primero que quiere saber quien abre una partida, y lo que la cabecera
+   anterior no enseñaba en ninguna parte. */
+
+.md-score {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex: none;
+}
+
+.md-score__side {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  opacity: 0.6;
+}
+
+.md-score__side.is-winner { opacity: 1; }
+
+.md-score__side--blue { align-items: flex-end; }
+
+.md-score__side--red { align-items: flex-start; }
+
+.md-score__side--blue .md-score__kills { color: var(--nf-team-blue); }
+
+.md-score__side--red .md-score__kills { color: var(--nf-team-red); }
+
+.md-score__kills {
+  font-size: 34px;
+  font-weight: var(--fw-black);
+  line-height: 1;
+}
+
+.md-score__vs {
+  font-size: var(--fs-label);
+  font-weight: var(--fw-black);
+  color: var(--nf-text-dim);
+  padding: 2px 8px;
+  background: var(--nf-inset);
+  border-radius: 10px;
+}
+
+.md-hero__meta { flex: 1; min-width: 220px; }
+
+.md-hero__top { display: flex; align-items: center; gap: 8px; font-size: var(--fs-label); color: var(--nf-text-mid); flex-wrap: wrap; }
+
+.md-hero__dot { color: var(--nf-text-dim); }
+
+.md-hero__champ-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 7px 0 8px;
+}
+
+.md-hero__champ-icon {
+  border-radius: var(--nf-radius-sm);
+  flex: none;
+}
+
+.md-hero__champ {
+  margin: 7px 0 8px;
+  font-weight: 800;
+  font-size: clamp(22px, 5vw, 30px);
+  color: var(--nf-text);
+  letter-spacing: -0.5px;
+  line-height: 1.1;
+}
+
+.md-hero__champ-row .md-hero__champ {
+  margin: 0;
+}
+
+.md-hero__sub { display: flex; align-items: center; gap: 8px; font-size: var(--fs-label); color: var(--nf-text-dim); }
+
+.md-hero__group { color: var(--nf-secondary); transition: color 0.14s; }
+
+.md-hero__group:hover,
+.md-hero__group:focus-visible { color: var(--nf-text); }
+
+.md-objectives {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  margin-top: 10px;
+  font-size: var(--fs-label);
+  color: var(--nf-text-mid);
+}
+
+.md-objectives__side--blue { border-left: 3px solid var(--nf-team-blue); padding-left: 8px; }
+
+.md-objectives__side--red { border-left: 3px solid var(--nf-team-red); padding-left: 8px; }
+
+.md-hero__badges {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+/* La posición antes y después es lo que convierte un +22 LP en algo que importa. */
+
+.md-rank {
+  font-size: 12px;
+  padding: 3px 10px;
+  border-radius: 12px;
+  background: var(--nf-inset);
+  border: var(--bw-1) solid var(--nf-border);
+  white-space: nowrap;
+}
+
+.md-rank.is-up { color: var(--nf-success); border-color: color-mix(in srgb, var(--nf-success) 40%, var(--nf-border)); }
+
+.md-rank.is-down { color: var(--nf-danger); border-color: color-mix(in srgb, var(--nf-danger) 40%, var(--nf-border)); }
+
+.md-milestones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 22px;
+}
+
+.md-milestone {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: var(--nf-surface);
+  border: var(--bw-1) solid var(--nf-border);
+  border-left-width: 3px;
+}
+
+.md-milestone--blue { border-left-color: var(--nf-team-blue); }
+
+.md-milestone--red { border-left-color: var(--nf-team-red); }
+
+.md-milestone__label { font-size: var(--fs-label); color: var(--nf-text-dim); }
+
+.md-milestone__who { font-size: 13px; color: var(--nf-text); }
+
+.md-panels {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 16px;
+  margin-bottom: 22px;
+}
+
+.md-panel,
+.md-section {
+  padding: 18px;
+  border-radius: 10px;
+  background: var(--nf-surface);
+  border: var(--bw-1) solid var(--nf-border);
+}
+
+.md-section { margin-bottom: 22px; }
+
+.md-panel__title {
+  margin: 0 0 12px;
+  font-size: 12px;
+  color: var(--nf-text-dim);
+  letter-spacing: var(--ls-wide);
+}
+
+.md-panel__lead {
+  margin: -6px 0 14px;
+  font-size: 12px;
+  line-height: var(--lh-body);
+  color: var(--nf-text-mid);
+}
+
+/* Tu partida contra tu media: un KDA suelto no dice si fue buena; comparado, sí. */
+
+.md-compare {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 22px;
+}
+
+.md-compare__now,
+.md-compare__avg {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.md-compare__kda {
+  font-size: 26px;
+  font-weight: var(--fw-black);
+  color: var(--nf-text);
+  line-height: 1;
+}
+
+.md-compare__kda--muted { font-size: var(--fs-h3); color: var(--nf-text-mid); font-weight: var(--fw-bold); }
+
+.md-compare__sep { margin: 0 4px; color: var(--nf-text-dim); font-weight: var(--fw-medium); }
+
+.md-compare__caption { font-size: var(--fs-label); color: var(--nf-text-dim); }
+
+.md-compare__extra { margin-top: 14px; font-size: 12px; color: var(--nf-text-mid); }
+
+.md-compare__delta { color: var(--nf-text-dim); }
+
+.md-spells {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: var(--bw-1) solid var(--nf-border);
+}
+
+.md-spell { border-radius: var(--nf-radius-sm); }
+
+.md-spells__caption { font-size: var(--fs-label); color: var(--nf-text-dim); }
+
+.md-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.md-bar {
+  display: grid;
+  grid-template-columns: minmax(90px, max-content) 1fr 44px;
+  align-items: center;
+  gap: 10px;
+}
+
+.md-bar__label { font-size: var(--fs-label); color: var(--nf-text-mid); }
+
+.md-bar__track {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--nf-inset);
+  overflow: hidden;
+}
+
+.md-bar__fill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--nf-primary);
+  transition: width 0.24s;
+}
+
+.md-bar__value { font-size: 12px; color: var(--nf-text); text-align: right; }
+
+.md-scoreboard-wrap {
+  border: var(--bw-1) solid var(--nf-border);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 22px;
+}
+
+/* La página deja de ser una vía muerta: se recorre la racha sin volver a la lista. */
+
+.md-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+
+.md-nav__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
+  border-radius: var(--nf-radius);
+  border: var(--bw-1) solid var(--nf-border);
+  background: var(--nf-surface);
+  color: var(--nf-text-mid);
+  font-size: 12px;
+  text-decoration: none;
+  transition: border-color 0.14s, color 0.14s;
+}
+
+.md-nav__link:hover:not(.is-disabled) {
+  border-color: var(--nf-border-strong);
+  color: var(--nf-text);
+}
+
+.md-nav__link--center { color: var(--nf-secondary); }
+
+.md-nav__link.is-disabled { opacity: 0.45; }
+
+/* ---- Rejilla de objetivos (solo móvil) ----
+   En escritorio los objetivos son dos frases («Azul: 3 dragones · 1 barón · 8 torres»).
+   Envueltas en una columna estrecha ocupan cuatro líneas de texto denso y obligan a
+   comparar leyendo. En móvil los mismos datos van enfrentados en tres filas: mismo
+   contenido, un tercio del alto, y la comparación se hace mirando. */
+
+.md-obj-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 5px 12px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: var(--bw-1) solid var(--nf-border);
+}
+
+.md-obj-grid__head {
+  font-size: var(--fs-label);
+  font-weight: var(--fw-bold);
+}
+
+.md-obj-grid__head--blue { color: var(--nf-team-blue); }
+
+.md-obj-grid__head--red { color: var(--nf-team-red); text-align: right; }
+
+.md-obj-grid__label {
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.md-obj-grid__val { font-size: var(--fs-body-lg); color: var(--nf-text); }
+
+.md-obj-grid__val--red { text-align: right; }
+
+@media (max-width: $bp-compact) {
+/* ---- Cabecera ----
+     Con `flex-wrap` los tres bloques caían en tres filas y el marcador se quedaba solo
+     y pegado a la izquierda, que es el sitio menos parecido a un marcador. Aquí es una
+     rejilla explícita: primero el resultado (lo que se viene a mirar), luego el marcador
+     a ancho completo, luego el resto. */
+.md-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+    padding: 18px 16px;
+  }
+.md-hero__badges {
+    order: -1;
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+.md-score {
+    justify-content: center;
+    gap: 18px;
+    padding: 4px 0;
+  }
+.md-score__side { flex: 1; }
+.md-score__side--blue { align-items: flex-end; }
+.md-score__side--red { align-items: flex-start; }
+.md-score__kills { font-size: var(--fs-h1); }
+.md-hero__meta { min-width: 0; }
+/* ---- Paneles y copy ----
+     Los `lead` son párrafos de tono editorial escritos para una pantalla ancha; en móvil
+     el alto vertical es lo caro. Se conservan (explican por qué el dato está ahí) pero a
+     dos líneas como mucho. */
+.md-panel,
+  .md-section { padding: 16px 14px; }
+.md-compare { gap: 16px; }
+.md-bar { grid-template-columns: 68px minmax(0, 1fr) 42px; gap: 8px; }
+/* ---- Navegación entre partidas ----
+     Ya se apilaba; lo que faltaba era altura. El enlace del centro («volver») queda el
+     último, que es donde llega el pulgar sin recolocar la mano. */
+.md-nav { flex-direction: column; align-items: stretch; gap: 8px; }
+.md-nav__link {
+    justify-content: center;
+    min-height: $touch;
+  }
+.md-nav__link--center { order: 1; }
+}

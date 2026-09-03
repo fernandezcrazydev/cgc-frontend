@@ -1,0 +1,321 @@
+/* Estadisticas del grupo: tarjetas de resumen, mini-leaderboards y muro de trofeos.
+
+   Extraida de `views.scss` (el monolito global) a la hoja de su componente. Con
+   encapsulacion emulada estos estilos mueren con la vista y viajan en su chunk lazy,
+   en vez de lastrar todas las rutas.
+
+   No escribas aqui selectores hacia hijos internos de un `nf-*`: la encapsulacion no
+   los alcanza. Si necesitas ajustar el interior de una primitiva, expon una custom
+   property en ella y fijala sobre el host (ver `nf-pagination.scss`). Nunca `::ng-deep`. */
+
+/* ---- RESUMEN: stat cards (mini-leaderboards) ---- */
+
+.sc-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.sc {
+  --ac: var(--nf-secondary);
+  display: flex;
+  flex-direction: column;
+  padding: 16px 18px 18px;
+  border-radius: 12px;
+  border: 1px solid var(--nf-border);
+  border-top: 2px solid color-mix(in srgb, var(--ac) 60%, var(--nf-border));
+  background: var(--nf-surface-2);
+}
+
+.sc[data-accent='primary'] {
+  --ac: var(--nf-primary);
+}
+
+.sc[data-accent='secondary'] {
+  --ac: var(--nf-secondary);
+}
+
+.sc[data-accent='warning'] {
+  --ac: var(--nf-warning);
+}
+
+.sc__head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 14px;
+}
+
+.sc__glyph {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.sc__title {
+  font-size: var(--fs-label);
+  color: var(--ac);
+  font-weight: 700;
+}
+
+.sc__leader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sc__leader-meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.sc__leader-name {
+  font-size: var(--fs-body-lg);
+  font-weight: 700;
+  color: var(--nf-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sc__leader-sub {
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+  margin-top: 2px;
+}
+
+.sc__leader-val {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--nf-text);
+}
+
+.sc__spark {
+  height: 28px;
+  margin: 10px 0 4px;
+}
+
+.sc__row {
+  display: grid;
+  grid-template-columns: 16px 1fr auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 0;
+  border-top: 1px solid var(--nf-border);
+  font-size: 12px;
+}
+
+.sc__row:first-of-type {
+  margin-top: 6px;
+}
+
+.sc__row-rank {
+  color: var(--nf-text-dim);
+  font-weight: 700;
+}
+
+.sc__row-name {
+  color: var(--nf-text-mid);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sc__row-sub {
+  color: var(--nf-text-dim);
+  font-size: var(--fs-label);
+}
+
+.sc__row-val {
+  color: var(--nf-text);
+  font-weight: 700;
+}
+
+.ptile {
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid var(--nf-border);
+  background: var(--nf-inset);
+  text-align: center;
+}
+
+.ptile__val {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--nf-text);
+  line-height: 1;
+}
+
+.ptile__lbl {
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+  margin-top: 6px;
+}
+
+.ptile[data-accent='secondary'] .ptile__val {
+  color: var(--nf-secondary);
+}
+
+.ptile[data-accent='primary'] .ptile__val {
+  color: var(--nf-primary);
+}
+
+.ptile[data-accent='warning'] .ptile__val {
+  color: var(--nf-warning);
+}
+
+/* ---- PREMIOS: trophy wall ---- */
+
+.trophy-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+.trophy {
+  --tc: var(--nf-secondary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+  padding: 22px 16px 18px;
+  border-radius: 12px;
+  border: 1.5px solid color-mix(in srgb, var(--tc) 35%, transparent);
+  background:
+    radial-gradient(
+      120% 80% at 50% -10%,
+      color-mix(in srgb, var(--tc) 16%, transparent),
+      transparent 70%
+    ),
+    var(--nf-surface-2);
+  transition:
+    transform 0.14s,
+    box-shadow 0.14s;
+}
+
+.trophy:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 26px color-mix(in srgb, var(--tc) 22%, transparent);
+}
+
+.trophy[data-color='primary'] {
+  --tc: var(--nf-primary);
+}
+
+.trophy[data-color='secondary'] {
+  --tc: var(--nf-secondary);
+}
+
+.trophy[data-color='warning'] {
+  --tc: var(--nf-warning);
+}
+
+.trophy[data-color='success'] {
+  --tc: var(--nf-success);
+}
+
+.trophy[data-color='tertiary'] {
+  --tc: var(--nf-tertiary);
+}
+
+.trophy[data-color='danger'] {
+  --tc: var(--nf-danger);
+}
+
+.trophy__glyph {
+  font-size: 38px;
+  line-height: 1;
+}
+
+.trophy__title {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--tc);
+}
+
+.trophy__winner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.trophy__avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1.5px solid var(--nf-border);
+  font-family: var(--nf-mono);
+  font-weight: 700;
+  font-size: var(--fs-label);
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.trophy__name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--nf-text);
+}
+
+.trophy__blurb {
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+  line-height: 1.4;
+}
+
+/* roster row wrapper: header (clickable) + optional detail panel */
+
+.member-row:not(:last-child) {
+  border-bottom: 1px solid var(--nf-border);
+}
+
+.member-row--open {
+  background: color-mix(in srgb, var(--nf-secondary) 4%, transparent);
+}
+
+/* La caja (34px, borde) y el tinte de reserva ahora los da `nf-avatar`; el radio
+   (6px antes de la migración a iconos reales) se recupera aquí. */
+
+.champ-icon {
+  border-radius: var(--nf-radius-lg);
+}
+
+/* De la tabla anterior solo sobreviven estas dos reglas, que sigue usando
+   `grupo-estadisticas.ts` (avatar de líder y sparkline de leaderboard). El
+   resto del bloque `.lb-*` se borró: nada lo renderizaba. */
+
+.lb-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1.5px solid var(--nf-border);
+  font-family: var(--nf-mono);
+  font-weight: 700;
+  font-size: 13px;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.lb-spark {
+  width: 100%;
+  height: 32px;
+  overflow: visible;
+}
+
+.lb-spark polyline {
+  fill: none;
+  stroke: var(--nf-success);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.lb-spark.is-down polyline {
+  stroke: var(--nf-danger);
+}

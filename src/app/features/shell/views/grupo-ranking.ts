@@ -109,6 +109,7 @@ const SEASON_LENGTH_DAYS = 14;
     NfCombobox,
     NfTypeahead,
   ],
+  styleUrl: './grupo-ranking.scss',
   template: `
     <div class="view rk-view">
       @if (isLoading()) {

@@ -18,6 +18,7 @@ import { NotificationsStore } from '../../../core/notifications';
   selector: 'app-grupo-partidas',
   standalone: true,
   imports: [RouterLink, NfBadge, NfButton, NfSkeleton, NfWindow],
+  styleUrl: './grupo-partidas.scss',
   template: `
     <div class="view">
       @if (loadingGroup()) {

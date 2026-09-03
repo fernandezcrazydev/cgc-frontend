@@ -1,0 +1,343 @@
+@use '../../../../../styles/breakpoints' as *;
+
+/* Filtros del historial, con su hoja movil.
+
+   Extraida de `views.scss` (el monolito global) a la hoja de su componente. Con
+   encapsulacion emulada estos estilos mueren con la vista y viajan en su chunk lazy,
+   en vez de lastrar todas las rutas.
+
+   No escribas aqui selectores hacia hijos internos de un `nf-*`: la encapsulacion no
+   los alcanza. Si necesitas ajustar el interior de una primitiva, expon una custom
+   property en ella y fijala sobre el host (ver `nf-pagination.scss`). Nunca `::ng-deep`. */
+
+/* Jerarquía: buscar → ver qué hay puesto → afinar. La versión anterior era una fila de seis
+   controles heterogéneos, sin contador y sin orden, y con dos búsquedas que se pisaban. */
+
+.m-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.m-filters__search-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.m-filters__search-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Ancho fijo: la versión anterior crecía de 170px a 210px al enfocar y hacía saltar la fila
+   entera en cuanto empezabas a escribir. */
+
+.m-filters__search {
+  width: 100%;
+  height: 40px;
+  padding: 0 14px;
+  background: var(--nf-inset);
+  border: var(--bw-1) solid var(--nf-border);
+  border-radius: var(--nf-radius);
+  color: var(--nf-text);
+  font-family: var(--nf-font);
+  font-size: var(--fs-body);
+  outline: none;
+  transition: border-color 0.14s;
+
+  &:hover { border-color: var(--nf-border-strong); }
+  &:focus { border-color: var(--nf-secondary); }
+  &::placeholder { color: var(--nf-text-dim); }
+}
+
+.m-filters__suggest-list {
+  position: absolute;
+  z-index: var(--z-overlay);
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  background: var(--nf-elevated);
+  border: var(--bw-1) solid var(--nf-secondary);
+  border-radius: var(--nf-radius);
+  box-shadow: var(--nf-shadow-pop);
+}
+
+.m-filters__suggest-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border-radius: var(--nf-radius-sm);
+  font-size: 13px;
+  color: var(--nf-text-mid);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+
+  &.is-active,
+  &:hover {
+    background: var(--nf-surface-2);
+    color: var(--nf-text);
+  }
+}
+
+.m-filters__suggest-tag {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  background: var(--nf-inset);
+  color: var(--nf-text-dim);
+  font-size: var(--fs-label);
+  font-weight: var(--fw-bold);
+}
+
+.m-filters__suggest-info {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex: 1;
+  min-width: 0;
+}
+
+.m-filters__suggest-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  color: var(--nf-text);
+}
+
+.m-filters__suggest-type {
+  font-size: 10px;
+  color: var(--nf-text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-left: 8px;
+}
+
+.m-filters__count {
+  flex: none;
+  font-size: var(--fs-label);
+  font-weight: var(--fw-bold);
+  color: var(--nf-text-mid);
+  white-space: nowrap;
+  padding: 4px 10px;
+  background: var(--nf-surface-2);
+  border: var(--bw-1) solid var(--nf-border);
+  border-radius: 999px;
+}
+
+.m-filters__chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Cada filtro puesto es un chip que se quita solo: es lo que hace visible el estado y lo que
+   permite tener a la vez búsqueda libre y filtros estructurados sin que se pisen. */
+
+.m-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 10px;
+  border: var(--bw-1) solid var(--nf-border-strong);
+  border-radius: 13px;
+  background: var(--nf-surface-2);
+  color: var(--nf-text);
+  font-family: var(--nf-font);
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.14s, border-color 0.14s, color 0.14s;
+
+  &::after {
+    content: '✕';
+    font-size: 10px;
+    color: var(--nf-text-dim);
+  }
+
+  &:hover {
+    border-color: var(--nf-danger);
+    color: var(--nf-text);
+  }
+
+  &:hover::after { color: var(--nf-danger); }
+}
+
+.m-chip--clear {
+  border-style: dashed;
+  background: transparent;
+  color: var(--nf-text-mid);
+
+  &::after { content: none; }
+  &:hover { border-color: var(--nf-border-strong); color: var(--nf-text); }
+}
+
+.m-filters__controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 16px;
+  padding-top: 4px;
+}
+
+.m-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.m-field__label {
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+  letter-spacing: var(--ls-wide);
+}
+
+/* Anchos fijos: si se encogen con su contenido, la barra baila cada vez que cambia lo elegido. */
+
+.m-field--champion { width: 210px; }
+
+.m-field--group { width: 190px; }
+
+.m-field--sort { width: 170px; }
+
+.m-role-pills {
+  display: flex;
+  background: var(--nf-inset);
+  border: var(--bw-1) solid var(--nf-border);
+  border-radius: var(--nf-radius);
+  padding: 2px;
+  gap: 2px;
+}
+
+.m-role-pill {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 30px;
+  padding: 0 9px;
+  border-radius: calc(var(--nf-radius) - 2px);
+  border: none;
+  background: transparent;
+  color: var(--nf-text-dim);
+  cursor: pointer;
+  transition: background 0.14s, color 0.14s;
+
+  &:hover {
+    color: var(--nf-text);
+    background: var(--nf-surface-2);
+  }
+
+  &.is-active {
+    background: var(--nf-elevated);
+    color: var(--nf-text);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--nf-secondary);
+    outline-offset: -2px;
+  }
+}
+
+.m-role-pill__text {
+  font-size: 12px;
+  font-weight: var(--fw-bold);
+}
+
+@media (max-width: $bp-compact) {
+  .m-field--champion,
+  .m-field--group,
+  .m-field--sort {
+    width: 100%;
+  }
+
+  .m-filters__controls > .m-field { flex: 1 1 100%; }
+}
+
+@media (max-width: $bp-mobile) {
+/* ---- Filtros ----
+     En la vista solo quedan buscador, contador, chips y el botón que abre el panel. Los
+     controles viven dentro del `nf-sheet` (lo monta `match-filters`, mismo umbral). */
+.m-filters { gap: 10px; margin-bottom: 16px; }
+.m-filters__search { height: $touch; font-size: 16px; }
+/* Los chips dejan de envolver y pasan a carril: con cuatro filtros puestos, tres filas
+     de chips volvían a comerse la pantalla que acaba de liberarse. */
+.m-filters__chips {
+    flex-wrap: nowrap;
+    gap: 6px;
+    margin-inline: calc(-1 * clamp(18px, 4vw, 32px));
+    padding-block: 0 2px;
+    padding-inline: clamp(18px, 4vw, 32px);
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+  }
+.m-filters__chips::-webkit-scrollbar { display: none; }
+.m-chip { flex: none; height: 32px; }
+.m-filters__more {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    align-self: flex-start;
+    min-height: $touch;
+    padding: 0 18px;
+    background: var(--nf-surface-2);
+    border: var(--bw-1) solid var(--nf-border-strong);
+    border-radius: var(--nf-radius);
+    color: var(--nf-text);
+    font-family: var(--nf-font);
+    font-size: 13px;
+    font-weight: var(--fw-bold);
+    cursor: pointer;
+  }
+.m-filters__more-count {
+    display: grid;
+    place-items: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    border-radius: 10px;
+    background: var(--nf-primary);
+    color: #fff;
+    font-size: var(--fs-label);
+    font-weight: var(--fw-black);
+  }
+/* Dentro del panel los campos van uno por línea y con altura de dedo: ahí el espacio
+     vertical es del panel, no de la lista. */
+.m-filters__controls--sheet {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 18px;
+    /* El hueco de abajo no es aire: el combobox y los `nf-select` abren su lista hacia
+       abajo y en posición absoluta, y el cuerpo del panel recorta lo que se salga. Sin
+       este colchón, el último campo abría su desplegable contra el borde y no se veía.
+       Se paga con scroll al final del panel, que es barato; lo otro era un control roto. */
+    padding: 8px 0 200px;
+  }
+.m-filters__controls--sheet .m-field { width: 100%; }
+.m-filters__controls--sheet .m-role-pills { justify-content: space-between; }
+.m-filters__controls--sheet .m-role-pill { flex: 1; height: 40px; }
+/* Los segmentados de la hoja móvil ocupan todo el ancho. Se ajustan por las custom
+     properties que expone `nf-segmented.scss`, no con un selector hacia sus `<button>`
+     internos: eso no cruzaría la encapsulación de esta hoja. */
+  .m-filters__controls--sheet nf-segmented {
+    --nf-seg-display: flex;
+    --nf-seg-btn-flex: 1;
+    --nf-seg-btn-padding: 11px 10px;
+  }
+.m-filters__sheet-foot {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 10px;
+  }
+}

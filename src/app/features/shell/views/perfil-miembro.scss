@@ -1,0 +1,134 @@
+/* Perfil de otro miembro: comparativa y tarjetas de enfrentamiento.
+
+   Extraida de `views.scss` (el monolito global) a la hoja de su componente. Con
+   encapsulacion emulada estos estilos mueren con la vista y viajan en su chunk lazy,
+   en vez de lastrar todas las rutas.
+
+   No escribas aqui selectores hacia hijos internos de un `nf-*`: la encapsulacion no
+   los alcanza. Si necesitas ajustar el interior de una primitiva, expon una custom
+   property en ella y fijala sobre el host (ver `nf-pagination.scss`). Nunca `::ng-deep`. */
+
+/* ── Módulo VS Battle Card (Perfil Miembro) ────────────────────────── */
+
+.pf-vs-card {
+  border-left: 3px solid var(--nf-secondary);
+}
+
+.pf-vs-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.pf-vs-tile {
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--nf-border);
+  background: var(--nf-surface);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pf-vs-tile--synergy {
+  border-left: 2px solid var(--nf-secondary);
+}
+
+.pf-vs-tile--rivalry {
+  border-left: 2px solid var(--nf-primary);
+}
+
+.pf-vs-tile--interactive {
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: transform 0.14s ease, border-color 0.14s ease, background 0.14s ease;
+}
+
+.pf-vs-tile--interactive:hover {
+  transform: translateY(-1px);
+  border-color: var(--nf-border-strong);
+  background: var(--nf-surface-2);
+}
+
+.pf-vs-tile__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: var(--fs-label);
+  font-weight: 700;
+  color: var(--nf-text-dim);
+}
+
+.pf-vs-tile__val {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--nf-text);
+  line-height: 1.1;
+}
+
+.pf-vs-tile__sub {
+  font-size: var(--fs-label);
+  color: var(--nf-text-mid);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.pf-compare-compact {
+  display: flex;
+  flex-direction: column;
+  border-radius: 8px;
+  border: 1px solid var(--nf-border);
+  background: var(--nf-surface);
+  overflow: hidden;
+}
+
+.pf-compare-compact__head,
+.pf-compare-compact__row {
+  display: grid;
+  grid-template-columns: 1fr 2fr 1fr;
+  padding: 8px 14px;
+  align-items: center;
+  font-size: 11.5px;
+}
+
+.pf-compare-compact__head {
+  background: var(--nf-surface-2);
+  font-weight: 700;
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+  border-bottom: 1px solid var(--nf-border);
+}
+
+.pf-compare-compact__row {
+  border-bottom: 1px solid var(--nf-border);
+}
+
+.pf-compare-compact__row:last-child { border-bottom: none; }
+
+.pf-compare-compact__col--me,
+.pf-compare-compact__val--me {
+  text-align: left;
+  font-weight: 700;
+}
+
+.pf-compare-compact__col--metric,
+.pf-compare-compact__label {
+  text-align: center;
+  color: var(--nf-text-mid);
+}
+
+.pf-compare-compact__col--foe,
+.pf-compare-compact__val--foe {
+  text-align: right;
+  font-weight: 700;
+}
+
+@media (max-width: 600px) {
+  .pf-vs-grid {
+    grid-template-columns: 1fr;
+  }
+}

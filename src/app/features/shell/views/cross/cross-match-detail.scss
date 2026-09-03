@@ -1,0 +1,113 @@
+/* Detalle de una partida cruzada.
+
+   Extraida de `views.scss` (el monolito global) a la hoja de su componente. Con
+   encapsulacion emulada estos estilos mueren con la vista y viajan en su chunk lazy,
+   en vez de lastrar todas las rutas.
+
+   No escribas aqui selectores hacia hijos internos de un `nf-*`: la encapsulacion no
+   los alcanza. Si necesitas ajustar el interior de una primitiva, expon una custom
+   property en ella y fijala sobre el host (ver `nf-pagination.scss`). Nunca `::ng-deep`. */
+
+/* ============================================================
+   CRUZADO — cara a cara entre dos jugadores
+   Prefijo `.cx-`, siguiendo la convención por superficie del
+   proyecto (`.m-` historial, `.md-` detalle de partida, `.pf-`
+   perfil). Todo lo que es una fila de partida reutiliza `.m-card`:
+   aquí solo está lo que esta vista añade.
+   ============================================================ */
+
+.cx-view {
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+/* ── Detalle de una partida cruzada ───────────────────────────────── */
+
+.cx-detail__head {
+  margin-bottom: 18px;
+  padding: 16px 20px;
+  border-radius: var(--nf-radius);
+  border: 1px solid var(--nf-border);
+  border-left: 5px solid var(--nf-border-strong);
+  background: var(--nf-surface-2);
+}
+
+.cx-detail__head.is-win { border-left-color: var(--nf-success); }
+
+.cx-detail__head.is-loss { border-left-color: var(--nf-danger); }
+
+.cx-detail__eyebrow {
+  font-size: var(--fs-label);
+  color: var(--nf-secondary);
+  margin-bottom: 6px;
+}
+
+.cx-detail__title {
+  margin: 0;
+  font-size: var(--fs-h2);
+  font-weight: var(--fw-black);
+  letter-spacing: var(--ls-tight);
+  color: var(--nf-text);
+}
+
+.cx-detail__meta {
+  margin: 6px 0 0;
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+}
+
+.cx-builds {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+.cx-build {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: var(--nf-radius-sm);
+  border: 1px solid var(--nf-border);
+  border-top: 2px solid var(--cx-me);
+  background: var(--nf-surface-2);
+}
+
+.cx-build--them { border-top-color: var(--cx-them); }
+
+.cx-build__who {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cx-build__id {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cx-build__name {
+  font-size: 13px;
+  font-weight: var(--fw-bold);
+  color: var(--nf-text);
+}
+
+.cx-build__champ {
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+}
+
+.cx-build__items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.cx-detail__nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}

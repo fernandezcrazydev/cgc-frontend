@@ -12,7 +12,7 @@
  * Lo que el backend todavía no sirve se marca como **ausente** (`null`), nunca se rellena con un
  * valor plausible: la vista tiene que poder decir "aún no" en vez de enseñar un dato falso.
  */
-import { NfLane } from '../ui/lane-icon/nf-lane-icon';
+import { Lane } from './matches/models';
 import { LeaderboardEntryResponse } from './leagues';
 import { opggUrl } from './member-detail';
 
@@ -125,7 +125,7 @@ export interface RankEntry {
 
   // --- Sin fuente de datos todavía: llegan con la subida de partidas ---
   /** Rol principal, deducido del historial de picks. `null` = aún no se sabe. */
-  lane: NfLane | null;
+  lane: Lane | null;
   /** Campeón más jugado. `null` = aún no se sabe. */
   mainChampionId: number | null;
 }

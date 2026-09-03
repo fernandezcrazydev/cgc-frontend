@@ -63,6 +63,7 @@ interface SearchSuggestion {
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [NgTemplateOutlet, NfAvatar, NfButton, NfCombobox, NfLaneIcon, NfSegmented, NfSelect, NfSheet],
+  styleUrl: './match-filters.component.scss',
   template: `
     <div class="m-filters">
       <!-- FILA 1: búsqueda libre + cuánto queda tras filtrar -->

@@ -1,5 +1,13 @@
 # cgc-frontend — Guía para agentes
 
+> **Este fichero es la fuente única de las reglas del proyecto, sea cual sea el agente.**
+> `AGENTS.md` (Codex, Cursor, Copilot, Jules…) y `GEMINI.md` (Gemini CLI) son punteros a este
+> documento; no dupliques contenido en ellos. Hubo una copia completa en `AGENTS.md` y se
+> desincronizó: describía rutas huérfanas que ya no existían. Un documento normativo duplicado
+> es un documento normativo equivocado.
+>
+> Lo que aquí se puede verificar, se verifica: **`npm run arch`** (§ "Reglas verificadas").
+
 SPA Angular 22 (standalone + signals) para organizar partidas custom de LoL entre grupos.
 La aplicación se llama **Sale Custom** (nombre oficial: es el que va en el wordmark, el `<title>`
 y los títulos de ruta). UI en **español**. Design system propio: tokens `--nf-*` y componentes
@@ -13,7 +21,11 @@ serían ~1.500 ediciones sin ningún beneficio. Léelo como "el prefijo de este 
 npm start        # ng serve (dev, backend en http://localhost:8080)
 npm run build    # ng build (defaultConfiguration: production)
 npm test         # ng test (vitest vía @angular/build:unit-test)
+npm run arch     # reglas de arquitectura de este documento (ver § "Reglas verificadas")
 ```
+
+**Antes de dar por terminado cualquier cambio: `npm run arch && npm test`.** El primero es
+instantáneo y es lo que impide que este documento vuelva a ser decorativo.
 
 ## Estrategia de migración mock → backend (LA decisión de arquitectura)
 
@@ -57,11 +69,215 @@ src/app/
   shared/          Helpers transversales (utils de ruta, gradientes, etc.).
 src/environments/  Única fuente de URLs (apiBaseUrl, apiUrl, authority, clientId).
 src/styles/tokens/ Tokens --nf-* globales (colors, typography, spacing, effects, base).
+src/styles/_breakpoints.scss  Escalones responsive ($bp-*, $touch) para las hojas de componente.
+                   Partial de SCSS y no un token CSS a propósito: `@media` necesita un valor en
+                   tiempo de compilación. Se consume con `@use '<ruta>/breakpoints' as *;`.
 ```
 
 Dirección de dependencias: `features → core | ui | shared`; `core → shared`; `ui` y `shared` no
 importan de nadie. Una feature nunca importa internals de otra. Nadie construye URLs con
 `environment.apiUrl` fuera de un `*-api.ts`.
+
+Esto **lo verifica `npm run arch`**, no la buena voluntad (ver § "Reglas verificadas"), y hoy
+está en **cero incumplimientos**. Los cuatro que había se arreglaron así, que es el patrón a
+repetir:
+
+- `core/matches/models.ts` y `core/group-ranking.ts` importaban `NfLane` de `ui/lane-icon`: la
+  dependencia estaba invertida, porque `Lane` es **dominio** (viene en los DTOs). Ahora `core/`
+  declara `Lane` y `ui/` declara `NfLane` por su cuenta. Son uniones de string idénticas y
+  TypeScript es estructural, así que siguen siendo intercambiables sin que ninguna capa importe
+  de la otra. **La de `core/` es la que manda si el dominio cambia.**
+- `ui/toast/nf-toast.ts` inyectaba `ToastService` de `core/` (este documento afirmaba lo
+  contrario y no era cierto). No se pudo mover el servicio a `ui/`, porque `core/groups` y
+  `core/http` también lo inyectan y solo habría invertido la violación. Se arregló convirtiendo
+  `NfToastHost` en la primitiva presentacional que decía ser: recibe `[toasts]`/`[paused]` y
+  emite `(dismiss)`/`(pause)`/`(resume)`; el cableado vive en `shell.html`.
+- `features/shell/shell.ts` importaba `../feedback/feedback-dialog`. Ahora hay
+  `features/feedback/index.ts` y se importa `../feedback`. **La distinción es deliberada y la
+  regla la respeta**: el barrel es superficie pública y se permite; el fichero de dentro es un
+  internal y no.
+
+## Organización de ficheros y localidad del CSS (regla dura)
+
+**Un componente = una carpeta con su `.ts`, su `.html` si pasa de 150 líneas, su `.scss` y su
+`.spec.ts`.** Los estilos viven pegados al markup que estilan. No es preferencia estética: es la
+única forma de que el CSS **muera cuando muere su markup**.
+
+**`views.scss` está congelado. Cero líneas nuevas, sin excepciones.** Es una hoja *global*
+(declarada en `angular.json`, no en un `styleUrl`), así que no tiene encapsulación, no tiene
+dueño y nadie la poda. Lo que eso ha producido, medido:
+
+- 12.312 líneas, y la curva se rompió en agosto de 2026: 4.740 líneas el 28-ago → 12.312 el
+  01-sep. Cuatro días, +7.500 líneas.
+- **128 de sus 1.308 clases (~10%) no las referencia ningún `.ts` ni `.html`**: `attn-card__*`,
+  `cx-hero__*`, `cx-kpi*`, `cp-launched__*`, `resume-hero__*`... Se borró el markup y el CSS
+  se quedó, porque no estaba a la vista de quien borraba.
+- Todas las rutas cargan el CSS de todas las vistas en el arranque, lo que alimenta el aviso de
+  bundle budget de más abajo.
+
+El CSS en sí está bien escrito (anidamiento máximo 2, 23 `!important` en 12k líneas, prefijos BEM
+disciplinados). **El problema nunca fue la calidad: es la ubicación y el ciclo de vida.** No hay
+que reescribirlo, hay que moverlo.
+
+**Si escribes estilo nuevo, va en `<componente>.scss` con `styleUrl`.** Ya hay seis vistas
+migradas que sirven de molde: `grupo-detalle.scss`, `grupos.scss`, `inicio.scss`, `tierlist.scss`,
+`synergy.scss`, `versus.scss`.
+
+### Estado: hecho
+
+La migración está ejecutada. Resultado medido:
+
+| | antes | después |
+|---|---|---|
+| `views.scss` | 12.312 líneas | **4.011** |
+| CSS real del proyecto | 17.833 líneas | **16.633** (−1.200 borradas) |
+| clases muertas | 187 | **0** |
+| `styles.css` (bundle) | 209,00 kB | **69,56 kB** (−67%) |
+| transferencia | 26,97 kB | **11,02 kB** |
+| bundle inicial | 891,62 kB | **747,74 kB** |
+| violaciones de capas | 4 | **0** |
+| `font-size` en px crudos | 750 | **390** |
+
+21 hojas de componente nuevas. El CSS de cada vista viaja ahora en su chunk lazy: solo lo paga
+quien abre esa vista. El aviso de `shell.scss exceeded budget` desapareció solo al podar sus 36
+reglas muertas.
+
+### Lo que queda global, y por qué
+
+`views.scss` conserva ~4.000 líneas y **eso es correcto, no deuda pendiente**. Son bloques que
+escriben varios componentes sin un ancestro siempre cargado, así que una hoja encapsulada no los
+alcanzaría:
+
+| bloque | reglas | lo escriben |
+|---|---|---|
+| `m-card` | 108 | 7 componentes (la fila de partida, en historial, cruzado y perfil) |
+| `m-lineup` | 34 | 4 |
+| `m-summary` | 30 | 2 |
+| `cp-tray`, `cp-pchip`, `cp-balance`, `cp-pick`… | ~100 | crear-partida + sala |
+| `pf-hero-compact`, `pf-champ-tile`, `pf-mini-champ`… | ~90 | perfil + perfil-miembro |
+| `cx-card`, `cx-metric`, `cx-compare` | ~46 | 2-3 de `cross/` |
+| `view*`, `field`, `modal`, `tabs`, `empty` | ~50 | transversales |
+
+**Regla para decidir**: si un bloque lo escribe un solo componente, va a su hoja. Si lo escriben
+varios, se queda global salvo que exista un componente ancestro que se cargue siempre con ellos.
+`planificar.mjs` calcula las dos listas.
+
+Antes de mover un bloque compartido a `ui/`, comprueba que de verdad es una primitiva y no solo
+CSS repetido: `.modal*` y `.tabs*`/`.seg*` sí lo son (duplican `NfModal` y `NfSegmented`), pero
+`m-card` es una vista de dominio y no pinta nada en `ui/`.
+
+### Cómo se desmonta el monolito (una vista por PR, sin cambio visual)
+
+Las utilidades están en `scripts/migracion-css/`, con un README que explica el ciclo y las
+**cuatro trampas** que costaron una pasada cada una (reformatear el origen, comentarios entre
+selectores, comas dentro de comentarios, `@use` al principio del fichero). **Son temporales:
+cuando `views.scss` desaparezca, se borra esa carpeta.**
+
+El ciclo, si vuelves a mover un bloque:
+
+```bash
+node scripts/migracion-css/planificar.mjs <prefijo>        # ¿tiene dueño único?
+node scripts/migracion-css/extraer-prefijo.mjs <bloques> <destino.scss> --apply
+node scripts/migracion-css/borrar-clases-muertas.mjs <hoja> <clases>
+node scripts/migracion-css/verificar-vs-head.mjs           # ¿se ha perdido algo?
+npm run arch && npm test && npx ng build --configuration production
+```
+
+**`verificar-vs-head.mjs` es lo que da la confianza, no el build.** Un build en verde no ve una
+regla mutilada ni un cuerpo alterado: compara HEAD con el estado actual regla a regla y solo
+aprueba si toda regla que existía sigue existiendo igual, salvo las borradas a propósito. Los
+tres bugs del extractor los encontró él, no el compilador.
+
+**El único riesgo no mecánico**: hay 13 selectores que apuntan a internals de componentes `nf-*`,
+y ~6 de ellos **dejarán de aplicar al encapsular**, porque apuntan a hijos internos y el atributo
+`_ngcontent` del padre no llega ahí: `.nf-pager__btn`, `.nf-seg__btn`, `.nf-game-icon`,
+`.nf-avatar__fallback`. Los que apuntan al elemento host (`.nf-avatar` a secas) sí siguen
+funcionando. Localízalos antes de mover con:
+
+```bash
+grep -nE '\.nf-[a-z]' src/app/features/shell/views/views.scss | grep -v 'var(--nf'
+```
+
+y resuélvelos subiendo el estilo a la primitiva o exponiendo un `input`/token — nunca con
+`::ng-deep`, que es API muerta.
+
+**Distingue host de interno**: `.nf-avatar` es la clase HOST de `<nf-avatar>`
+(`host: { class: 'nf-avatar' }`), y el elemento `<nf-avatar>` de tu plantilla sí recibe tu
+`_ngcontent`, así que ese selector sobrevive. `.nf-pager__btn` es un `<button>` dentro de la
+plantilla de `NfPagination`: ese no.
+
+Para los internos, **la primitiva expone una custom property y la vista la fija sobre el host**;
+las custom properties sí heredan a través de la frontera de encapsulación. Ya está hecho en
+`nf-pagination.scss` (`--nf-pager-width`, `--nf-pager-margin-top`, `--nf-pager-btn-size`) y
+`nf-segmented.scss` (`--nf-seg-display`, `--nf-seg-btn-flex`, `--nf-seg-btn-padding`):
+
+```scss
+.gd-statusbar nf-pagination {   /* el host sí lo alcanza la hoja de la vista */
+  --nf-pager-margin-top: 0;
+  --nf-pager-btn-size: 30px;
+}
+```
+
+Nunca `::ng-deep`, que es API muerta. En toda la migración solo aparecieron 13 casos: 9 eran
+clase host (seguros), 2 se resolvieron con custom properties, y 2 (`.nf-game-icon`) apuntaban a
+un componente **que no existe en el repo** — CSS muerto que se borró.
+
+**Tamaño de hoja**: Angular avisa a 24 kB y falla a 32 por hoja de componente
+(`anyComponentStyle` en `angular.json`). Una vista-página no es un componente del tamaño que
+asume ese umbral, pero **no subas el presupuesto**: parte la hoja por bloques y usa `styleUrls`
+con varios ficheros, como hacen `shell.ts` y `grupo-ranking.ts` (base + `-podio` + `-historial`).
+Ojo: ese presupuesto **no ve el CSS global**, así que hoy pasa solo porque el monolito lo esquiva.
+Sacar CSS a componentes es la primera vez que ese límite mira de verdad.
+
+### La duplicación es otro problema, y se arregla con tokens (no con ficheros)
+
+`views.scss` **casi no duplica selectores** (22 repetidos de 1.591 únicos, 1,4%) y **no solapa
+nada** con las hojas ya extraídas. Pero el **9,6% de sus declaraciones tienen un gemelo byte a
+byte**, y no es copia-pega de componentes:
+
+```
+44 reglas idénticas: { color: var(--nf-text-dim); font-size: 11px }
+ 8 reglas idénticas: { color: var(--nf-text-dim); font-size: 12px }
+ 8 reglas idénticas: { display: flex; align-items: center; gap: 8px }
+```
+
+Eso es **una decisión de diseño sin nombre, escrita 44 veces**. "Texto secundario pequeño" es un
+estilo del design system que no existe como token, así que cada componente lo reinventa.
+
+La escala `--fs-*` **ya existe** en `styles/tokens/typography.css` y estaba al 4% de adopción
+(24 usos con token frente a 556 en px crudos, solo el bloque `cx-` la usaba). Hay además medios
+escalones inventados sobre la marcha: `11.5px` ×24, `12.5px` ×17, `13.5px` ×13; y `13px` (×54) no
+tiene token.
+
+**Duplicación y ubicación son problemas independientes.** Partir el fichero no crea duplicación
+(esas 44 reglas ya pertenecen a 44 componentes distintos) ni juntarlo la arregla (ya está todo en
+un fichero y sigue duplicado).
+
+**Hecho: 360 sustituciones exactas**, sin mover un píxel (los temas no redefinen la escala, así
+que la equivalencia es total): `11px → var(--fs-label)`, `14px → var(--fs-body)`,
+`15px → var(--fs-body-lg)`, `18px → var(--fs-h3)`, `30px → var(--fs-h1)`. La regla
+`font-size-raw` bajó de 750 a 390.
+
+**Pendiente, y es decisión de diseño tuya, no mecánica.** Los 390 que quedan no se pudieron
+sustituir porque *la escala tiene huecos y una ambigüedad*:
+
+| valor | usos | problema |
+|---|---|---|
+| `12px` | 134 | **ambiguo**: `--fs-eyebrow` y `--fs-caption` valen los dos 12px. Un token semánticamente equivocado miente más que un `px` crudo, así que no se eligió a ciegas |
+| `13px` | 93 | **sin token**. Es el segundo valor más usado de la app y no está en la escala |
+| `16px`, `17px` | 28 | sin token |
+| `12.5px`, `13.5px` | 43 | medios escalones inventados sobre la marcha |
+
+Lo sensato es cerrar la escala (¿fusionar `eyebrow` y `caption`? ¿añadir un peldaño en 13px?
+¿redondear los medios escalones al vecino?) y entonces la sustitución del resto vuelve a ser
+mecánica. `npm run arch` lo vigila para que no se quede otra vez al 4% de adopción.
+
+### Carpetas
+
+`features/shell/views/` es una carpeta plana con 48 ficheros donde `admin-seguridad.ts`,
+`perfil.ts` y `no-encontrado.ts` son hermanos. `views` no es una capa, es un cubo. **Agrupa por
+dominio**, como ya hacen bien `views/cross/` y `views/match-history/`: `views/admin/`,
+`views/grupo/`, `views/perfil/`. Al tocar una vista por otro motivo, muévela.
 
 ## Patrón obligatorio: store asíncrono (clon de `Session`)
 
@@ -221,7 +437,11 @@ Cuando se acuerde uno, documentarlo aquí y borrar la línea de pendientes.
 - Signal APIs: `input()`, `output()`, `model()` — no `@Input()/@Output()/EventEmitter`.
 - Estado local con `signal`/`computed`/`linkedSignal`; streams de router con `toSignal`.
 - Rutas hijas siempre `loadComponent` (lazy) con `title` definido.
-- Template inline por defecto; `templateUrl` solo si crece mucho (como `shell`).
+- **Plantilla inline hasta ~150 líneas; a partir de ahí, `templateUrl`.** La regla anterior
+  ("inline por defecto, `templateUrl` solo si crece mucho") se escribió cuando una vista cabía
+  en pantalla, y ha producido ficheros de 2.300 líneas donde lógica y markup se pisan
+  (`grupo-crear-partida.ts`: 947 líneas de plantilla dentro del `.ts`). El umbral lo vigila
+  `npm run arch` (regla `inline-template-size`).
 
 ## UI kit y estilos
 
@@ -250,8 +470,8 @@ Cuando se acuerde uno, documentarlo aquí y borrar la línea de pendientes.
 - **Una skin es solo CSS, sin excepciones.** Si para cambiar de tema hace falta tocar markup,
   el que está mal es el markup. Hubo una excepción declarada —`NfWindow` consultaba el tema
   por un token `NF_THEME` para decidir si pintaba una barra de ventana retro— y se resolvió
-  borrando la barra, no ampliando la excepción. `ui/` no importa de `core/`, y ahora tampoco
-  por interfaz.
+  borrando la barra, no ampliando la excepción. `ui/` ya no importa de `core/` en ningún sitio,
+  y `npm run arch` (regla `layers`) lo mantiene así.
 - **Copy en frase normal, siempre.** Ni MAYÚSCULAS ni glifos decorativos en las plantillas ni
   en constantes de TS. Ningún componente transforma el texto que recibe: lo que escribes es
   lo que se pinta. Ojo al distinguir copy de valores de dominio: los enums del backend
@@ -270,13 +490,55 @@ Cuando se acuerde uno, documentarlo aquí y borrar la línea de pendientes.
   (incluyendo loading/error/reintento y no-reentrada de escrituras). `*.spec.ts` junto al fichero.
 - No escribir tests de lógica placeholder (categoría desechable).
 
+## Reglas verificadas (`npm run arch`)
+
+Este documento tenía un problema: **decía la verdad y no la hacía cumplir**. El suelo de 11px
+llevaba 25 incumplimientos; "`ui/` no importa de `core/`" era falso; la regla de no engordar
+`views.scss` estaba escrita *dentro de un comentario de `grupo-detalle.scss`* y se ignoró quince
+veces. Una regla que nadie verifica es un comentario.
+
+`scripts/arch-check.mjs` es el equivalente a ArchUnit para este repo. Node puro, sin dependencias,
+corre en <1s, y CI lo ejecuta en cada PR (`.github/workflows/ci.yml`). Comprueba:
+
+| regla | qué vigila |
+|---|---|
+| `layers` | `features → core\|ui\|shared`, `core → shared`, `ui`/`shared` hojas |
+| `feature-internals` | una feature no importa internals de otra |
+| `api-url` | `environment.apiUrl` solo en `*-api.ts` (infra de `core/http`, `core/auth` y `app.config.ts` exentas por diseño) |
+| `views-scss-size` | `views.scss` no crece **nunca** |
+| `dead-css` | clases de **cualquier** hoja de `app/` que ningún `.ts`/`.html` referencia |
+| `css-total-size` | CSS total del proyecto (mover del monolito al componente es neutro; borrar, no) |
+| `inline-template-size` | plantilla inline > 150 líneas |
+| `font-floor` | `font-size` < 11px |
+| `font-size-raw` | `font-size` en px crudos en vez de la escala `--fs-*` |
+| `viewport-units` | `100vh`/`100vw` a pelo (el zoom de `:root` los desvía un 10%) |
+
+**Es un trinquete, no un muro.** La deuda actual está anotada en `scripts/arch-budgets.json`; el
+check falla solo si una regla **empeora**. Así se adopta con el repo como está, sin big-bang.
+
+- Si lo rompes: **arregla el código**. Subir un presupuesto es hacer trampa y se ve en el diff.
+- Si lo mejoras (borras CSS muerto, sacas una plantilla): `npm run arch:fix` baja el presupuesto y
+  lo commiteas. El número solo baja; eso es lo que hace que el repo converja.
+- Añadir una regla nueva a este documento significa añadirla al script. Si no se puede verificar,
+  escríbela igual pero sabiendo que es una recomendación, no una regla.
+
 ## Deuda conocida (no la propagues)
 
-- `grupo-crear-partida.ts` (~1800 líneas) y `grupo-sala.ts` (~1100): vistas gigantes cuya lógica
-  de negocio es placeholder del backend. No añadir más lógica ahí; tampoco refactorizarlas por
-  gusto — se adelgazarán solas al migrar matchmaking/MMR/resultados a endpoints.
+- `views.scss`: quedan ~4.000 líneas, y son las que **deben** quedar (bloques compartidos por
+  varios componentes). Sigue congelado: cero líneas nuevas. Ver § "Organización de ficheros".
+- `features/shell/views/`: ficheros planos sin agrupar por dominio (`cross/`, `match-history/` y
+  `profile/` sí lo están; el resto no).
+- Vistas gigantes: `grupo-crear-partida.ts` (2.327 líneas, 947 de plantilla inline),
+  `grupo-sala.ts` (1.473/826), `grupo-ranking.ts` (1.417/714), `perfil.ts` (1.402/846). Su lógica
+  de negocio es placeholder del backend: **no la refactorices** — se adelgazará sola al migrar
+  matchmaking/MMR/resultados a endpoints. Pero sacar **plantilla y CSS** de ahí no es refactorizar
+  negocio: es gratis, es mecánico y sobrevive a la migración. Hazlo cuando toques la vista.
 - Duplicados pendientes de unificar en `shared/`: resolución de `:id`→grupo (repetida en 8
-  vistas), `avatarBg(hue)`, bloque 404, modales ad-hoc (falta un `NfModal`).
+  vistas), `avatarBg(hue)`, bloque 404.
+- **CSS ad-hoc que duplica primitivas que ya existen**: `.modal*` en 6 vistas pese a `NfModal`,
+  `.tabs*`/`.seg*` en 5 pese a `NfSegmented`. Al desmontar `views.scss`, esos bloques no se
+  mueven: se borran y se usa la primitiva. `.field*` (9 vistas) sí es candidato a primitiva nueva
+  (`NfField`), no existe todavía.
 - Rutas huérfanas: `crear.ts` y `partidas.ts` no están en `app.routes.ts`. Ya no caen en el
   login: el wildcard interno del shell pinta `no-encontrado`. (`campeones.ts` se renombró a
   `tierlist.ts` y sí tiene ruta.)
@@ -288,5 +550,7 @@ Cuando se acuerde uno, documentarlo aquí y borrar la línea de pendientes.
   `provideZonelessChangeDetection` explícito. El objetivo es activarlos — no escribas código
   nuevo que lo impida.
 - `environment.prod.ts` tiene `apiBaseUrl` placeholder (`TODO`).
-- Advertencia de bundle budget en producción (`Initial total exceeded maximum budget: ~841 kB vs 500 kB`):
-  temporal por albergar generadores y semillas deterministas en frontend (Fase 0/1); se reducirá al migrar a endpoints reales y borrar los placeholders en la Fase 6.
+- Advertencia de bundle budget en producción: `Initial total 745,93 kB vs 500 kB`. Bajó desde
+  891,62 kB al sacar el CSS del monolito global a los chunks lazy; lo que queda es sobre todo
+  generadores y semillas deterministas del frontend (Fase 0/1), que se borran al migrar a
+  endpoints reales en la Fase 6.

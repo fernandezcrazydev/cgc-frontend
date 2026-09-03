@@ -137,14 +137,14 @@
   background: var(--nf-surface);
   border: 1px solid var(--nf-border);
 }
-.gd-standing__label { font-size: 11px; color: var(--nf-text-dim); }
+.gd-standing__label { font-size: var(--fs-label); color: var(--nf-text-dim); }
 .gd-standing__rank {
-  font-size: 30px;
+  font-size: var(--fs-h1);
   font-weight: var(--fw-bold);
   line-height: 1;
   color: var(--nf-text);
 }
-.gd-standing__lp { font-size: 14px; color: var(--nf-primary); }
+.gd-standing__lp { font-size: var(--fs-body); color: var(--nf-primary); }
 .gd-standing__sub { font-size: 12px; color: var(--nf-text-dim); }
 /* Ni cero ni un guion: cuando no hay puesto se dice por qué y se ofrece a dónde ir. Un `0`
    en este hueco se lee como «vas último», que es un dato falso. */
@@ -207,4 +207,257 @@
   border: 1px solid color-mix(in srgb, var(--nf-warning) 45%, transparent);
   font-size: 11.5px;
   color: var(--nf-text);
+}
+
+/* ============ DETALLE DE GRUPO (real): miembros + invitar ============ */
+
+.gd-members {
+  display: flex;
+  flex-direction: column;
+}
+
+.gd-member {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--nf-border);
+}
+
+.gd-member:last-child {
+  border-bottom: none;
+}
+
+.gd-member__avatar {
+  width: 38px;
+  height: 38px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 11px;
+  overflow: hidden;
+  font-family: var(--nf-mono);
+  font-size: 13px;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+.gd-member__avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.gd-member__meta {
+  min-width: 0;
+  flex: 1;
+}
+
+.gd-member__name {
+  font-size: 13px;
+  color: var(--nf-text);
+}
+
+.gd-member__you {
+  color: var(--nf-secondary);
+}
+
+.gd-member__role {
+  margin-top: 3px;
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+}
+
+.gd-member__actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* Semáforo de vinculación de Riot: gris = sin cuenta, rojo = escrita sin prueba (DECLARED),
+   ámbar = emparejada desde el cliente sin verificar (PAIRED), verde = verificada (VERIFIED). */
+
+.gd-member__riot {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 3px;
+  font-size: var(--fs-label);
+  color: var(--nf-text-mid);
+}
+
+.gd-member__riot-id--none {
+  color: var(--nf-text-dim);
+}
+
+.gd-member__riot-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--nf-text-dim);
+}
+
+.gd-member__riot-dot--none {
+  background: var(--nf-text-dim);
+}
+
+.gd-member__riot-dot--declared {
+  background: var(--nf-danger);
+}
+
+.gd-member__riot-dot--paired {
+  background: var(--nf-warning);
+}
+
+.gd-member__riot-dot--verified {
+  background: var(--nf-success);
+}
+
+.gd-invite {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.gd-invite__hint {
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+}
+
+.gd-invite__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  border-top: 1px solid var(--nf-border);
+}
+
+.gd-invite__name {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  color: var(--nf-text);
+}
+
+/* Motivo por el que el botón de la fila está apagado: quien lee la lista tiene que poder
+   distinguir "no puedo invitarle" de "la app está rota". */
+
+.gd-invite__closed {
+  display: block;
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+}
+
+.gd-confirm {
+  font-size: var(--fs-body);
+  line-height: 1.5;
+  color: var(--nf-text);
+  margin: 0 0 20px;
+}
+
+/* Barra de estado de la ventana: aloja el paginador del roster pegado al borde inferior,
+   como el status bar de una ventana de escritorio. Solo se pinta si hay más de una página. */
+
+.gd-statusbar {
+  display: flex;
+  justify-content: center;
+  padding: 10px 16px;
+  background: var(--nf-inset);
+  border-top: var(--bw-hair) solid var(--nf-border);
+}
+
+/* El paginador nace suelto en una página (de ahí su margen superior) y aquí va empotrado:
+   se le quita el margen y se compactan los botones para que quepan en la barra. */
+
+.gd-statusbar nf-pagination {
+  /* Se ajusta por las custom properties que expone `nf-pagination.scss`, no con un
+     selector hacia sus hijos internos: eso no cruzaría la encapsulación de esta hoja. */
+  --nf-pager-width: 100%;
+  --nf-pager-margin-top: 0;
+  --nf-pager-btn-size: 30px;
+}
+
+.gd-invites-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 40px 16px;
+  text-align: center;
+}
+
+.gd-invites-empty__text {
+  font-size: 12px;
+  color: var(--nf-text-dim);
+}
+
+/* ---- grupo detalle: hero + members ---- */
+
+.group-hero {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 22px;
+  margin-bottom: 26px;
+  border-radius: 10px;
+  border: 1.5px solid color-mix(in srgb, var(--grp-c1) 40%, var(--nf-border));
+  background:
+    linear-gradient(120deg, color-mix(in srgb, var(--grp-c1) 26%, transparent), transparent 60%),
+    var(--nf-surface-2);
+}
+
+.group-hero__avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  flex: none;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--grp-c1), var(--grp-c2));
+  border: 2px solid color-mix(in srgb, var(--grp-c1) 60%, #fff);
+  overflow: hidden;
+  font-family: var(--nf-mono);
+  font-weight: 700;
+  font-size: 22px;
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.group-hero__avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.group-hero__meta {
+  min-width: 0;
+}
+
+.group-hero__tag {
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+}
+
+.group-hero__name {
+  margin: 6px 0 10px;
+  font-weight: 800;
+  font-size: clamp(22px, 5vw, 30px);
+  color: #fff;
+  letter-spacing: -0.5px;
+}
+
+.group-hero__badges {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.group-hero__count {
+  font-size: var(--fs-label);
+  color: var(--nf-secondary);
 }

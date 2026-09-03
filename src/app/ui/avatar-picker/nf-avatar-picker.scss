@@ -44,7 +44,7 @@
   align-items: center;
   justify-content: center;
   padding: 9px 16px;
-  font-size: 11px;
+  font-size: var(--fs-label);
   font-weight: var(--fw-bold);
   color: var(--nf-text);
   background: var(--nf-inset);
@@ -74,11 +74,11 @@
 }
 
 .nf-avatarpicker__hint {
-  font-size: 11px;
+  font-size: var(--fs-label);
   color: var(--nf-text-dim);
 }
 
 .nf-avatarpicker__error {
-  font-size: 11px;
+  font-size: var(--fs-label);
   color: var(--nf-primary);
 }

@@ -41,7 +41,7 @@
 }
 
 .boot__text {
-  font-size: 11px;
+  font-size: var(--fs-label);
   color: var(--nf-text-dim);
 }
 

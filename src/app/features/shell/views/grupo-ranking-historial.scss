@@ -1,0 +1,535 @@
+/* Cajon de historial del jugador, desplegable desde una fila del ranking. Hoja aparte
+   de `grupo-ranking.scss` por el presupuesto `anyComponentStyle`; ver ese fichero. */
+
+/* Cajon de historial del jugador, desplegable desde una fila del ranking. Hoja aparte
+   de `grupo-ranking.scss` por el presupuesto `anyComponentStyle`; ver ese fichero. */
+
+.rk-lp-gain {
+  color: var(--nf-success);
+}
+
+.rk-lp-loss {
+  color: var(--nf-danger);
+}
+
+/* ---- Cajón: historial del jugador ---- */
+
+@keyframes rk-drawer-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.rk-drawer {
+  padding: 14px 16px 16px;
+  background: var(--nf-inset);
+  border-top: 1px solid var(--nf-border);
+  box-shadow: var(--nf-edge-light);
+  animation: rk-drawer-in 0.18s ease;
+}
+
+.rk-drawer__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--nf-border);
+}
+
+.rk-drawer__tab {
+  padding: 7px 2px 9px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--nf-text-dim);
+}
+
+.rk-drawer__tab.is-active {
+  color: var(--nf-text);
+  box-shadow: inset 0 -2px 0 var(--nf-secondary);
+}
+
+.rk-drawer__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.rk-drawer__btn {
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--nf-secondary) 50%, var(--nf-border));
+  background: color-mix(in srgb, var(--nf-secondary) 14%, transparent);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--nf-text);
+  text-decoration: none;
+  transition:
+    background 0.14s ease,
+    border-color 0.14s ease;
+}
+
+.rk-drawer__btn:hover {
+  background: color-mix(in srgb, var(--nf-secondary) 24%, transparent);
+  border-color: var(--nf-secondary);
+}
+
+.rk-drawer__btn--opgg {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: color-mix(in srgb, var(--nf-primary) 14%, transparent);
+  border-color: color-mix(in srgb, var(--nf-primary) 45%, var(--nf-border));
+}
+
+.rk-drawer__btn--opgg:hover {
+  background: color-mix(in srgb, var(--nf-primary) 24%, transparent);
+  border-color: var(--nf-primary);
+}
+
+.rk-drawer__ext {
+  font-size: var(--fs-label);
+  line-height: 1;
+}
+
+.rk-matches {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.rk-match {
+  --side: var(--nf-text-dim);
+  display: grid;
+  /* Ocho zonas. Eran nueve: la novena (14px) era el galón de "pulsa aquí", que se
+     retiró al dejar de ser un enlace (ver el BACKEND NOTE de `grupo-ranking.ts`). */
+  grid-template-columns:
+    minmax(96px, 118px) 22px minmax(116px, max-content) 30px
+    minmax(170px, 1fr) minmax(140px, max-content) max-content 76px;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--nf-border);
+  border-left: 3px solid var(--side);
+  background: var(--nf-surface-2);
+  color: inherit;
+}
+
+.rk-match.is-win {
+  --side: var(--nf-success);
+}
+
+.rk-match.is-loss {
+  --side: var(--nf-danger);
+}
+
+.rk-match__result {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.rk-match__verdict {
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--side);
+}
+
+.rk-match__meta {
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+}
+
+.rk-match__lane {
+  font-size: 19px;
+  justify-self: center;
+}
+
+/* Modo espejo del enfrentamiento.
+   El template emite los dos lados igual —[campeón][hechizos][runas]—; el lado
+   del jugador lo invierte con `row-reverse`, así que la lectura desde el VS
+   hacia fuera es idéntica en ambos:
+
+     [runas][hechizos][campeón]  VS  [campeón][hechizos][runas]
+
+   Los `justify-self` opuestos pegan los dos bloques al VS en vez de dejarlos
+   flotando en su columna, que es lo que rompía la simetría cuando el nombre del
+   rival era largo. */
+
+.rk-match__side {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.rk-match__side--mine {
+  flex-direction: row-reverse;
+  justify-self: end;
+}
+
+.rk-match__side--foe {
+  justify-self: start;
+}
+
+.rk-match__vs {
+  justify-self: center;
+  font-size: var(--fs-label);
+  font-weight: 800;
+  color: var(--nf-text-dim);
+  letter-spacing: 0.5px;
+}
+
+.rk-match__foe-name {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  margin-left: 2px;
+}
+
+.rk-match__foe-nick {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--nf-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rk-match__foe-tag {
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+}
+
+.rk-match__kda {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.rk-match__kda-line {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--nf-text);
+}
+
+.rk-match__deaths {
+  color: var(--nf-danger);
+}
+
+.rk-match__kda-sub {
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+}
+
+.rk-match__build {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.rk-item {
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  border: 1px solid var(--nf-border);
+  flex-shrink: 0;
+}
+
+.rk-item--empty {
+  background: var(--nf-inset);
+  opacity: 0.55;
+}
+
+.rk-item--trinket {
+  border-radius: 50%;
+  margin-left: 6px;
+}
+
+.rk-match__lp {
+  text-align: right;
+  font-size: var(--fs-body);
+  font-weight: 800;
+  color: var(--nf-danger);
+}
+
+.rk-match__lp.is-gain {
+  color: var(--nf-success);
+}
+
+@media (max-width: 1180px) {
+.rk-match {
+    grid-template-columns:
+      minmax(92px, 110px) 20px max-content 26px minmax(126px, 1fr)
+      max-content max-content 68px 14px;
+  }
+}
+
+@media (max-width: 1000px) {
+/* Se oculta la línea: quedan 8 zonas, así que 8 columnas. */
+.rk-match {
+    grid-template-columns:
+      minmax(88px, 104px) max-content 24px minmax(110px, 1fr)
+      max-content max-content 60px 14px;
+  }
+/* Los hechizos caen en LOS DOS lados: recortar solo el del rival dejaba el
+     bloque descuadrado respecto al VS, que es justo lo que arregla el espejo. */
+.rk-match__lane {
+    display: none;
+  }
+}
+
+@media (max-width: 760px) {
+/* ---- Cajón de Historial Móvil (Match Ticket Card en 2 Niveles) ---- */
+.rk-drawer {
+    padding: 12px 10px 14px;
+    background: var(--nf-inset);
+    border-top: 1px solid var(--nf-border);
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+  }
+.rk-drawer__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--nf-border);
+  }
+.rk-drawer__tab {
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--nf-text);
+  }
+.rk-drawer__btn {
+    padding: 5px 10px;
+    font-size: var(--fs-label);
+    border-radius: 6px;
+  }
+.rk-matches {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+.rk-match {
+    display: grid;
+    grid-template-columns: auto auto auto auto 1fr;
+    grid-template-rows: auto auto auto;
+    grid-template-areas:
+      "result result result result lp"
+      "lane   mine   vs     foe    kda"
+      "build  build  build  build  build";
+    align-items: center;
+    gap: 6px 8px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--nf-border);
+    border-left: 4px solid var(--side);
+    background: var(--nf-surface-2);
+    text-decoration: none;
+    color: inherit;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+    transition:
+      background 0.14s ease,
+      border-color 0.14s ease;
+  }
+.rk-match.is-win {
+    --side: var(--nf-success);
+    background: linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--nf-success) 8%, var(--nf-surface-2)),
+      var(--nf-surface-2)
+    );
+  }
+.rk-match.is-loss {
+    --side: var(--nf-danger);
+    background: linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--nf-danger) 8%, var(--nf-surface-2)),
+      var(--nf-surface-2)
+    );
+  }
+/* Fila 1 - Izquierda: Estado de la partida */
+.rk-match__result {
+    grid-area: result;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+  }
+.rk-match__verdict {
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--side);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+.rk-match__meta {
+    font-size: var(--fs-label);
+    color: var(--nf-text-dim);
+    white-space: nowrap;
+  }
+/* Fila 1 - Derecha: Ganancia / Pérdida de LP */
+.rk-match__lp {
+    grid-area: lp;
+    text-align: right;
+    font-size: 13.5px;
+    font-weight: 800;
+    color: var(--nf-danger);
+    justify-self: end;
+  }
+.rk-match__lp.is-gain {
+    color: var(--nf-success);
+  }
+/* Fila 2 - Icono de Posición / Rol a la izquierda del campeón jugado */
+.rk-match__lane {
+    grid-area: lane;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    font-size: 19px;
+    flex-shrink: 0;
+    margin-right: 2px;
+  }
+.rk-match__side--mine {
+    grid-area: mine;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-self: start;
+    gap: 4px;
+    min-width: 0;
+  }
+.rk-match__side--mine nf-avatar,
+  .rk-match__side--mine .nf-avatar {
+    width: 32px !important;
+    height: 32px !important;
+    font-size: 12px !important;
+    border-radius: 6px;
+    flex-shrink: 0;
+  }
+.rk-match__vs {
+    grid-area: vs;
+    font-size: 10px;
+    font-weight: 800;
+    color: var(--nf-text-dim);
+    padding: 0 3px;
+    justify-self: center;
+  }
+.rk-match__side--foe {
+    grid-area: foe;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-self: start;
+    gap: 5px;
+    min-width: 0;
+  }
+.rk-match__side--foe nf-avatar,
+  .rk-match__side--foe .nf-avatar {
+    width: 28px !important;
+    height: 28px !important;
+    font-size: var(--fs-label) !important;
+    border-radius: 6px;
+    opacity: 0.9;
+    flex-shrink: 0;
+  }
+.rk-match__side--foe .rk-match__foe-tag {
+    display: none;
+  }
+.rk-match__side--foe .rk-match__foe-name {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    max-width: 60px;
+    overflow: hidden;
+  }
+.rk-match__side--foe .rk-match__foe-nick {
+    font-size: var(--fs-label);
+    font-weight: 600;
+    color: var(--nf-text-mid);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+/* Fila 2 - Derecha: KDA y Rendimiento */
+.rk-match__kda {
+    grid-area: kda;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 2px;
+    text-align: right;
+    min-width: 0;
+    justify-self: end;
+  }
+.rk-match__kda-line {
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--nf-text);
+    white-space: nowrap;
+  }
+.rk-match__deaths {
+    color: var(--nf-danger);
+    font-weight: 800;
+  }
+.rk-match__kda-sub {
+    font-size: 10px;
+    color: var(--nf-text-dim);
+    white-space: nowrap;
+  }
+/* Fila 3 - Tira de Objetos + Trinket */
+.rk-match__build {
+    grid-area: build;
+    display: flex !important;
+    align-items: center;
+    gap: 4px;
+    padding-top: 6px;
+    margin-top: 2px;
+    border-top: 1px dashed color-mix(in srgb, var(--nf-border) 70%, transparent);
+    width: 100%;
+    box-sizing: border-box;
+  }
+.rk-match__build .rk-item {
+    width: 22px;
+    height: 22px;
+    border-radius: 5px;
+    border: 1px solid var(--nf-border);
+    flex-shrink: 0;
+  }
+.rk-match__build .rk-item--empty {
+    background: var(--nf-inset);
+    opacity: 0.55;
+  }
+.rk-match__build .rk-item--trinket {
+    border-radius: 50%;
+    margin-left: 6px;
+    border-color: color-mix(in srgb, var(--nf-secondary) 50%, var(--nf-border));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+.rk-drawer {
+    animation: none;
+  }
+.rk-match:hover {
+    transform: none;
+  }
+}

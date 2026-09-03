@@ -22,6 +22,7 @@ const PER_PAGE = 4;
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterLink, NfButton, NfIconButton],
+  styleUrl: './profile-groups-card.component.scss',
   template: `
     <section class="pf-card pf-group-card">
       <div class="pf-card__header">

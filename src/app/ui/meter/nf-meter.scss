@@ -19,13 +19,13 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 11px;
+  font-size: var(--fs-label);
   color: var(--nf-text-dim);
 }
 
 .nf-meter__value {
   flex: none;
-  font-size: 11px;
+  font-size: var(--fs-label);
   color: var(--nf-text-mid);
   font-variant-numeric: tabular-nums;
 }
@@ -72,7 +72,7 @@
 }
 
 .nf-meter--compact .nf-meter__value {
-  font-size: 11px;
+  font-size: var(--fs-label);
 }
 
 /* Quien prefiera no ver movimiento no lo ve; el ancho sigue siendo correcto. */
