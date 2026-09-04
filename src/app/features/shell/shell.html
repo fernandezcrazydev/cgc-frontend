@@ -19,15 +19,19 @@
         >
           <div class="shell__logo"><span class="shell__diamond"></span></div>
         </button>
-        <div class="shell__brand-text">
+        <div class="shell__brand-text shell__collapsible">
           <div class="shell__wordmark">Sale Custom</div>
         </div>
+        <!-- Plegado, este control se difumina en vez de desaparecer (`display: none` no se
+             anima), así que hay que sacarlo del tabulador a mano: invisible pero enfocable
+             es una trampa. Desplegar sigue estando a un clic en el botón del logo. -->
         <button
           type="button"
-          class="shell__railtoggle"
+          class="shell__railtoggle shell__collapsible"
           [class.is-railed]="railed()"
           aria-controls="shell-nav"
           [attr.aria-expanded]="!railed()"
+          [attr.tabindex]="railed() ? -1 : null"
           [attr.aria-label]="railed() ? 'Desplegar el menú' : 'Plegar el menú'"
           [attr.title]="railed() ? 'Desplegar el menú' : 'Plegar el menú'"
           (click)="toggleRail()"
@@ -54,7 +58,7 @@
                 <polyline points="9 22 9 12 15 12 15 22" />
               </svg>
             </span>
-            <span class="shell__nav-label">Inicio</span>
+            <span class="shell__nav-label shell__collapsible">Inicio</span>
           </a>
 
           <!-- Historial -->
@@ -70,7 +74,7 @@
                 <polyline points="12 6 12 12 16 14" />
               </svg>
             </span>
-            <span class="shell__nav-label">Historial</span>
+            <span class="shell__nav-label shell__collapsible">Historial</span>
           </a>
 
           <!-- Lista de grupos siempre presente (un único grupo abierto a la vez) -->
@@ -78,7 +82,7 @@
             @for (g of orderedGroups(); track g.id) {
               <div
                 class="shell__group"
-                [class.is-open]="isExpandedGroup(g.id) || (railed() && g.id === groups.selectedId())"
+                [class.is-open]="isExpandedGroup(g.id)"
                 [class.is-current]="currentRouteGroup()?.id === g.id"
                 draggable="true"
                 (dragstart)="onGroupDragStart($event, g.id)"
@@ -117,7 +121,7 @@
                       <span class="shell__group-live-dot" title="Sala en vivo"></span>
                     }
                   </span>
-                  <span class="shell__groupitem-meta">
+                  <span class="shell__groupitem-meta shell__collapsible">
                     <span class="shell__groupitem-name">{{ g.name }}</span>
                     <span class="shell__groupitem-sub nf-mono">
                       {{ g.region ?? 'Sin región' }} &#9642; {{ roleLabel(g.role) }}
@@ -125,8 +129,11 @@
                   </span>
                 </div>
 
-                <!-- Desplegada: las secciones cuelgan SOLO del grupo activo en modo expandido -->
-                @if (isExpandedGroup(g.id)) {
+                <!-- Secciones del grupo. SIEMPRE montadas: con un `@if`, plegar borraba el
+                     nodo en el fotograma 0 y el cierre no tenía nada que animar. Y son las
+                     mismas en rail (el rail tenía su lista aparte, que es justo por lo que
+                     al plegar la barra una desaparecía y otra aparecía de golpe). -->
+                <div class="shell__sections-wrap" [class.is-open]="isExpandedGroup(g.id)">
                   <div class="shell__sections">
                     @for (item of sectionsOf(g); track item.path) {
                       <a
@@ -138,6 +145,7 @@
                         [routerLinkActiveOptions]="{ exact: item.path === '' }"
                         #activeLink="routerLinkActive"
                         [attr.aria-current]="activeLink.isActive ? 'page' : null"
+                        [attr.title]="railed() ? sectionLabel(g.id, item) : null"
                       >
                         <span class="shell__section-glyph" aria-hidden="true">
                           @if (item.path === 'crear-partida') {
@@ -194,92 +202,16 @@
                             </svg>
                           }
                         </span>
-                        <span class="shell__section-label">
-                          {{ item.path === 'crear-partida' ? roomActionLabel(g.id) : item.label }}
+                        <span class="shell__section-label shell__collapsible">
+                          {{ sectionLabel(g.id, item) }}
                         </span>
                       </a>
                     }
                   </div>
-                }
-
-                <!-- En modo rail: las opciones de Ranking, Estadísticas, etc. del grupo activo SE MUESTRAN DIRECTAMENTE en el rail -->
-                @if (railed() && g.id === groups.selectedId()) {
-                  <div class="shell__rail-sections">
-                    @for (item of sectionsOf(g); track item.path) {
-                      <a
-                        class="shell__rail-section-item"
-                        [class.is-primary]="item.primary"
-                        [class.is-live-room]="item.path === 'crear-partida' && !!activeRoomForGroup(g.id)"
-                        [routerLink]="sectionLink(g.id, item)"
-                        routerLinkActive="is-active"
-                        [routerLinkActiveOptions]="{ exact: item.path === '' }"
-                        #railActiveLink="routerLinkActive"
-                        [attr.aria-current]="railActiveLink.isActive ? 'page' : null"
-                        [attr.title]="item.path === 'crear-partida' ? roomActionLabel(g.id) : item.label"
-                        [attr.aria-label]="item.path === 'crear-partida' ? roomActionLabel(g.id) : item.label"
-                      >
-                        <span class="shell__section-glyph" aria-hidden="true">
-                          @if (item.path === 'crear-partida') {
-                            @if (activeRoomForGroup(g.id)) {
-                              <span class="shell__live-pulse"></span>
-                            } @else {
-                              <svg class="shell__section-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-                              </svg>
-                            }
-                          } @else if (item.path === '') {
-                            <svg class="shell__section-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                              <rect x="3" y="3" width="7" height="7" rx="1" />
-                              <rect x="14" y="3" width="7" height="7" rx="1" />
-                              <rect x="14" y="14" width="7" height="7" rx="1" />
-                              <rect x="3" y="14" width="7" height="7" rx="1" />
-                            </svg>
-                          } @else if (item.path === 'ranking') {
-                            <svg class="shell__section-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                              <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
-                              <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
-                              <path d="M4 22h16" />
-                              <path d="M10 14.66V17c0 .55-.45 1-1 1H7c-.55 0-1-.45-1-1v-2.34" />
-                              <path d="M18 14.66V17c0 .55-.45 1-1 1h-2c-.55 0-1-.45-1-1v-2.34" />
-                              <path d="M6 4h12v7a6 6 0 0 1-12 0V4z" />
-                            </svg>
-                          } @else if (item.path === 'tierlist') {
-                            <svg class="shell__section-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                              <path d="M14.5 17.5 3 6V3h3l11.5 11.5" />
-                              <path d="m13 19 6 2 2-2-2-6" />
-                              <path d="m21 3-3.5 3.5" />
-                              <path d="M19 8l-3-3" />
-                              <path d="M6 18l-3 3" />
-                              <path d="M8 19l-3-3" />
-                            </svg>
-                          } @else if (item.path === 'estadisticas') {
-                            <svg class="shell__section-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                              <line x1="18" y1="20" x2="18" y2="10" />
-                              <line x1="12" y1="20" x2="12" y2="4" />
-                              <line x1="6" y1="20" x2="6" y2="14" />
-                            </svg>
-                          } @else if (item.path === 'historial') {
-                            <svg class="shell__section-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                              <path d="M8 6h13" />
-                              <path d="M8 12h13" />
-                              <path d="M8 18h13" />
-                              <path d="M3 6h.01" />
-                              <path d="M3 12h.01" />
-                              <path d="M3 18h.01" />
-                            </svg>
-                          } @else if (item.path === 'discord') {
-                            <svg class="shell__section-icon" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-                              <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994.021-.041.001-.09-.041-.106a13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.929 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.894.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z" />
-                            </svg>
-                          }
-                        </span>
-                      </a>
-                    }
-                  </div>
-                }
+                </div>
               </div>
             } @empty {
-              <div class="shell__grouplist-empty nf-mono">Sin grupos</div>
+              <div class="shell__grouplist-empty nf-mono shell__collapsible">Sin grupos</div>
             }
 
             <!-- Última opción de grupos: siempre el botón del MÁS (+) -->
@@ -290,7 +222,7 @@
               [attr.aria-label]="railed() ? 'Gestionar y buscar grupos' : null"
             >
               <span class="shell__grouplist-all-glyph" aria-hidden="true">＋</span>
-              <span class="shell__grouplist-all-label">Gestionar grupos</span>
+              <span class="shell__grouplist-all-label shell__collapsible">Gestionar grupos</span>
             </a>
           </div>
 
@@ -307,7 +239,7 @@
                 <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
               </svg>
             </span>
-            <span class="shell__nav-label">Ajustes</span>
+            <span class="shell__nav-label shell__collapsible">Ajustes</span>
           </a>
 
           @if (isAdmin()) {
@@ -323,7 +255,7 @@
                   <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                 </svg>
               </span>
-              <span class="shell__nav-label">Admin</span>
+              <span class="shell__nav-label shell__collapsible">Admin</span>
             </a>
           }
         </nav>
@@ -349,8 +281,8 @@
                 <path d="M2.8 12.9h10.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
               </svg>
             </span>
-            <span class="shell__nav-label">Descargar app</span>
-            <span class="shell__nav-caret" aria-hidden="true">▾</span>
+            <span class="shell__nav-label shell__collapsible">Descargar app</span>
+            <span class="shell__nav-caret shell__collapsible" aria-hidden="true">▾</span>
           </button>
 
         </div>
@@ -375,7 +307,7 @@
                   {{ session.initials() }}
                 }
               </div>
-              <div class="shell__user-meta">
+              <div class="shell__user-meta shell__collapsible">
                 <div class="shell__user-name">{{ me.discordUsername }}</div>
                 <div class="shell__profile-cta nf-mono">Ver perfil</div>
               </div>
@@ -384,7 +316,7 @@
             <!-- Solo se ve en el hueco entre un token renovado y la respuesta de /me. -->
             <div class="shell__profile shell__profile--loading" aria-hidden="true">
               <div class="shell__avatar shell__skeleton"></div>
-              <div class="shell__user-meta">
+              <div class="shell__user-meta shell__collapsible">
                 <div class="shell__skeleton shell__skeleton--name"></div>
                 <div class="shell__skeleton shell__skeleton--cta"></div>
               </div>
@@ -404,7 +336,7 @@
                 <line x1="21" y1="12" x2="9" y2="12" />
               </svg>
             </span>
-            <span class="shell__logout-label">Cerrar sesión</span>
+            <span class="shell__logout-label shell__collapsible">Cerrar sesión</span>
           </button>
         </div>
       </div>
@@ -765,7 +697,7 @@
                   {{ g.initials }}
                 }
               </span>
-              <span class="shell__groupitem-meta">
+              <span class="shell__groupitem-meta shell__collapsible">
                 <span class="shell__groupitem-name">{{ g.name }}</span>
                 <span class="shell__groupitem-sub nf-mono">
                   {{ g.region ?? 'Sin región' }} &#9642; {{ roleLabel(g.role) }}
@@ -791,13 +723,13 @@
                     (click)="closeGroupSheet()"
                   >
                     <span class="shell__section-glyph" aria-hidden="true">{{ item.glyph }}</span>
-                    <span class="shell__section-label">{{ item.label }}</span>
+                    <span class="shell__section-label shell__collapsible">{{ item.label }}</span>
                   </a>
                 }
               </div>
             }
           } @empty {
-            <div class="shell__grouplist-empty nf-mono">Sin grupos</div>
+            <div class="shell__grouplist-empty nf-mono shell__collapsible">Sin grupos</div>
           }
         </div>
         <a class="shell__sheet-all nf-mono" [routerLink]="['/app', 'grupos']" (click)="closeGroupSheet()">
