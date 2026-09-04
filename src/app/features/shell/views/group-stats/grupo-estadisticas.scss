@@ -1,0 +1,44 @@
+@use 'breakpoints' as *;
+
+/* Estadísticas del grupo — panel analítico con pestañas (§5.5.5).
+
+   Solo el armazón de la pantalla: cada bloque trae su propia hoja. El chrome de
+   tarjeta compartido está en `stats-card.scss`. */
+
+.gs-head {
+  gap: 20px;
+}
+
+.gs-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.gs-controls__season {
+  min-width: 190px;
+}
+
+.gs-tabs {
+  margin-bottom: 20px;
+}
+
+/* Los bloques de rendimiento se apilan a lo ancho: la pantalla es un informe que
+   se lee de arriba abajo, no un mosaico que obligue a saltar la vista. */
+.gs-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+@media (max-width: $bp-compact) {
+  .gs-controls {
+    width: 100%;
+  }
+
+  .gs-controls__season {
+    min-width: 0;
+    flex: 1 1 100%;
+  }
+}

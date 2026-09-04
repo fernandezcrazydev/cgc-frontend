@@ -1,0 +1,96 @@
+/* Menú de gestión del grupo en la barra superior.
+   Se dibuja con la gramática de los botones del sistema: mismo radio, mismo grosor de borde y
+   aspecto `ghost`, para que no cante al lado del resto de la cabecera. */
+
+.ga-more {
+  position: relative;
+  flex: none;
+}
+
+.ga-more__trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  background: transparent;
+  border: var(--bw-2) solid var(--nf-border);
+  border-radius: var(--nf-radius);
+  color: var(--nf-text-mid);
+  font-family: var(--nf-font);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.16s ease, color 0.16s ease, border-color 0.16s ease;
+}
+
+.ga-more__trigger:hover,
+.ga-more__trigger.is-open {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--nf-border-strong);
+  color: var(--nf-text);
+}
+
+.ga-more__trigger:focus-visible {
+  outline: 2px solid var(--nf-secondary);
+  outline-offset: 2px;
+}
+
+.ga-more__menu {
+  position: absolute;
+  z-index: 60;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 200px;
+  padding: 6px;
+  border-radius: var(--nf-radius-lg, 16px);
+  background: var(--nf-surface-2, rgba(28, 28, 30, 0.98));
+  border: 1px solid var(--nf-border-strong);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+}
+
+.ga-more__item {
+  display: block;
+  width: 100%;
+  padding: 9px 10px;
+  background: transparent;
+  border: none;
+  border-radius: var(--nf-radius-sm, 8px);
+  color: var(--nf-text-mid);
+  font-family: var(--nf-font);
+  font-size: 12.5px;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.14s, color 0.14s;
+}
+
+.ga-more__item:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--nf-text);
+}
+
+.ga-more__item:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Borrar y salir comparten menú con «Invitar», pero no pueden compartir aspecto: un destructivo
+   que se ve igual que lo demás se pulsa por inercia. */
+.ga-more__item--danger {
+  color: var(--nf-danger);
+}
+
+/* La raya solo separa si hay algo de lo que separarse: a un miembro normal el menú le trae una
+   única opción, y ahí una línea superior suelta se lee como un hueco vacío. */
+.ga-more__item + .ga-more__item--danger {
+  margin-top: 4px;
+  padding-top: 12px;
+  border-top: 1px solid var(--nf-border);
+  border-radius: 0 0 var(--nf-radius-sm, 8px) var(--nf-radius-sm, 8px);
+}
+
+.ga-more__item--danger:hover {
+  background: color-mix(in srgb, var(--nf-danger) 14%, transparent);
+  color: var(--nf-danger);
+}

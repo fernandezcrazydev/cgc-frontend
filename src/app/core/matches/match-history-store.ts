@@ -144,7 +144,23 @@ export class MatchHistoryStore {
 
   /** Partidas de un grupo específico. */
   matchesByGroup(groupId: string): Match[] {
-    return this.allMatches().filter((m) => m.groupId === groupId);
+    const target = (groupId || '').toLowerCase();
+    const isChiringuito =
+      target.includes('chiringuito') ||
+      target.includes('chatarra') ||
+      target === 'a0000000-0000-0000-0000-000000000001';
+
+    return this.allMatches().filter((m) => {
+      if (m.groupId === groupId) return true;
+      if (isChiringuito) {
+        return (
+          m.groupId === 'a0000000-0000-0000-0000-000000000001' ||
+          m.groupId === 'chiringuito-chatarra' ||
+          m.group.name.toLowerCase().includes('chiringuito')
+        );
+      }
+      return false;
+    });
   }
 
   /** Resumen de métricas de un grupo específico. */

@@ -1,0 +1,22 @@
+/* El dibujo llena el hueco que le den, y el tamaño lo decide quien lo coloca.
+
+   Hace falta esta hoja: con la encapsulación emulada de Angular, una regla del
+   padre como `.hof-medal__icon svg` NO alcanza al `<svg>`, porque ese elemento
+   pertenece a la plantilla de este componente y lleva su atributo, no el del
+   padre. Sin esto el SVG se pintaría al tamaño por defecto de un elemento
+   reemplazado —300x150— y reventaría la tarjeta. Los padres dimensionan
+   `app-medal-icon`. */
+
+:host {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}

@@ -1,0 +1,218 @@
+/* Detalle de medalla (§5.5.5). Vive dentro de `<nf-modal>`, así que aquí no hay
+   fondo ni cierre: solo el contenido. */
+
+.md {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.md__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.md__icon {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--nf-gold) 14%, transparent);
+  color: var(--nf-gold);
+}
+
+.md__icon app-medal-icon {
+  width: 23px;
+  height: 23px;
+}
+
+.md__description {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--nf-text-mid);
+}
+
+.md__label {
+  font-size: 11px;
+  color: var(--nf-text-dim);
+}
+
+/* ---- Líder ---- */
+
+.md__leader {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.md__leader-row {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 11px 12px;
+  border-radius: 10px;
+  background: linear-gradient(
+    140deg,
+    color-mix(in srgb, var(--nf-gold) 11%, var(--nf-surface-2)),
+    var(--nf-surface-2)
+  );
+  border: 1px solid color-mix(in srgb, var(--nf-gold) 28%, var(--nf-border));
+}
+
+.md__leader-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  margin-right: auto;
+}
+
+.md__leader-name {
+  font-size: 14px;
+  font-weight: var(--fw-semibold);
+  color: var(--nf-text);
+}
+
+.md__leader-tag {
+  font-size: 11px;
+  color: var(--nf-text-dim);
+}
+
+.md__leader-value {
+  font-size: 13px;
+  font-weight: var(--fw-semibold);
+  color: var(--nf-gold);
+  text-align: right;
+}
+
+/* ---- Podio ---- */
+
+.md__podium {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.md__podium-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.md__podium-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border-radius: 9px;
+  background: var(--nf-surface-2);
+  /* Los tres metales, como en el ranking del hub: mismo idioma en toda la app. */
+  border-left: 3px solid var(--nf-border-strong);
+}
+
+.md__podium-row[data-podium='1'] {
+  border-left-color: var(--nf-gold);
+}
+
+.md__podium-row[data-podium='2'] {
+  border-left-color: var(--nf-silver);
+}
+
+.md__podium-row[data-podium='3'] {
+  border-left-color: var(--nf-bronze);
+}
+
+.md__podium-rank {
+  width: 24px;
+  font-size: 11.5px;
+  color: var(--nf-text-dim);
+}
+
+.md__podium-name {
+  overflow: hidden;
+  margin-right: auto;
+  font-size: 13px;
+  color: var(--nf-text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.md__podium-value {
+  font-size: 12px;
+  color: var(--nf-text-mid);
+  text-align: right;
+}
+
+/* ---- Tu progreso ---- */
+
+.md__me {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 13px 14px;
+  border-radius: 10px;
+  background: var(--nf-inset);
+  border: 1px solid var(--nf-border);
+}
+
+.md__me-line {
+  margin: 0;
+  font-size: 14px;
+  font-weight: var(--fw-semibold);
+  color: var(--nf-text);
+}
+
+/* Barra propia y no `<nf-meter>`: aquel mide consumo sobre un límite y avisa al
+   llenarse, y aquí llenarse es justo lo bueno. */
+.md__bar {
+  overflow: hidden;
+  height: 10px;
+  border-radius: 5px;
+  background: var(--nf-surface-3);
+}
+
+.md__bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 5px;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--nf-gold) 55%, transparent),
+    var(--nf-gold)
+  );
+}
+
+.md__bar-text {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--nf-text-dim);
+}
+
+.md__me-gap {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--nf-text-mid);
+}
+
+.md__me-gap--first {
+  color: var(--nf-gold);
+}
+
+.md__vacant {
+  margin: 0;
+  padding: 14px 15px;
+  font-size: 13px;
+  color: var(--nf-text-dim);
+  background: var(--nf-surface-2);
+  border: 1px dashed var(--nf-border-strong);
+  border-radius: 10px;
+}

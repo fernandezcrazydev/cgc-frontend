@@ -41,13 +41,21 @@ const STEP_LABELS: readonly string[] = ['Servidor', 'Canal', 'Listo'];
         <a class="view-back nf-mono" [routerLink]="['/app', 'grupos', g.id]">
           <span class="view-back__arrow" aria-hidden="true">←</span> {{ g.name }}
         </a>
-        <div class="view__head">
-          <div class="view__eyebrow nf-mono">Discord</div>
-          <p class="view__lead">
-            Conecta este grupo con un canal de Discord y los avisos de las customs llegarán al móvil
-            de todo el mundo, sin que nadie tenga que pasar el enlace.
-          </p>
-        </div>
+        @if (g.role === 'MEMBER') {
+          <div class="view__head">
+            <div class="view__eyebrow nf-mono">Discord</div>
+            <p class="view__lead">
+              Solo los administradores o el propietario del grupo pueden gestionar la integración con Discord.
+            </p>
+          </div>
+        } @else {
+          <div class="view__head">
+            <div class="view__eyebrow nf-mono">Discord</div>
+            <p class="view__lead">
+              Conecta este grupo con un canal de Discord y los avisos de las customs llegarán al móvil
+              de todo el mundo, sin que nadie tenga que pasar el enlace.
+            </p>
+          </div>
 
         <!-- Los tres pasos siempre a la vista: cuántos quedan es lo primero que se pregunta
              cualquiera antes de empezar algo que le va a sacar de la aplicación. -->
@@ -322,7 +330,8 @@ const STEP_LABELS: readonly string[] = ['Servidor', 'Canal', 'Listo'];
             }
           }
         }
-      } @else if (groups.isReady()) {
+      }
+    } @else if (groups.isReady()) {
         <!-- La lista ya está cargada y este grupo no está en ella. Sin esta rama la pantalla se
              quedaba EN BLANCO, que es el peor de los dos: la persona no sabe si está cargando,
              si se ha roto algo o si el enlace es malo. -->

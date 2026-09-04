@@ -97,8 +97,15 @@ export interface CreateLobbyRequest {
   note?: string | null;
 }
 
-/** Tope de franjas por convocatoria. Espejo de `LobbyPolicy.MAX_SLOTS` en el backend. */
-export const MAX_SLOTS = 8;
+/**
+ * Tope de horas que se pueden proponer en una convocatoria, todas del MISMO día
+ * (§5.5.6). Con más, nadie se lee la lista y no se decide nada.
+ *
+ * BACKEND NOTE: el backend todavía admite 8 (`LobbyPolicy.MAX_SLOTS`). Aquí se aprieta
+ * a 6 porque el cliente solo puede ser más estricto, nunca más laxo; bajarlo también
+ * allí, junto con la regla de «un solo día», está anotado en `Roadmap.md` §Fase 6.
+ */
+export const MAX_SLOTS = 6;
 
 /** Longitud máxima de la nota. Espejo de `LobbyPolicy.MAX_NOTE_LENGTH`. */
 export const MAX_NOTE_LENGTH = 200;

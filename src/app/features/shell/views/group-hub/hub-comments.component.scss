@@ -1,0 +1,189 @@
+.hub-comments__pos {
+  font-size: 11px;
+  color: var(--nf-text-dim);
+}
+
+/* La tarjeta entera lleva a la partida comentada: no hay un botón suelto para eso. */
+.hub-comments__card {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-areas:
+    'quote text'
+    '.     author';
+  align-items: start;
+  gap: 4px 12px;
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 11px;
+  background: var(--nf-surface-2, rgba(255, 255, 255, 0.03));
+  border: 1px solid var(--nf-border);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.16s, background 0.16s, transform 0.16s;
+}
+
+.hub-comments__card:hover {
+  border-color: color-mix(in srgb, var(--nf-secondary) 55%, transparent);
+  background: color-mix(in srgb, var(--nf-secondary) 7%, var(--nf-surface-2, transparent));
+  transform: translateY(-1px);
+}
+
+.hub-comments__card:focus-visible {
+  outline: 2px solid var(--nf-secondary);
+  outline-offset: 2px;
+}
+
+/* La comilla ancla la frase y hace que se lea como una cita, no como un párrafo suelto. */
+.hub-comments__quote {
+  grid-area: quote;
+  font-size: 34px;
+  line-height: 0.9;
+  color: color-mix(in srgb, var(--nf-secondary) 55%, transparent);
+}
+
+/* La cita se cierra: la comilla final va pegada a la última palabra, no en su propia columna. */
+.hub-comments__quote-end {
+  margin-left: 2px;
+  color: color-mix(in srgb, var(--nf-secondary) 55%, transparent);
+  font-size: 22px;
+  line-height: 0;
+  vertical-align: -2px;
+}
+
+.hub-comments__text {
+  grid-area: text;
+  font-size: 15px;
+  line-height: 1.45;
+  color: var(--nf-text);
+}
+
+.hub-comments__author {
+  grid-area: author;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.hub-comments__name {
+  font-size: 12px;
+  color: var(--nf-text-mid);
+}
+
+/* Pista de a dónde lleva la tarjeta, sin ser un botón que compita con ella. */
+.hub-comments__match {
+  margin-left: auto;
+  padding: 3px 9px;
+  border-radius: var(--nf-radius-sm, 8px);
+  background: color-mix(in srgb, var(--nf-secondary) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--nf-secondary) 35%, transparent);
+  font-size: 11px;
+  color: var(--nf-secondary);
+}
+
+.hub-comments__card:hover .hub-comments__match {
+  background: color-mix(in srgb, var(--nf-secondary) 22%, transparent);
+}
+
+.hub-comments__reactions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Esquinas del sistema, no cápsulas: los chips de reacción son botones y se dibujan con el
+   mismo radio que el resto de botones y chips de la aplicación. */
+.hub-comments__reaction {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: var(--nf-radius-sm, 8px);
+  background: var(--nf-surface-2, rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--nf-border);
+  color: var(--nf-text-dim);
+  font-size: 12px;
+  cursor: pointer;
+  transition: border-color 0.14s, background 0.14s, color 0.14s;
+}
+
+.hub-comments__reaction:hover {
+  border-color: var(--nf-border-strong);
+  color: var(--nf-text);
+}
+
+/* La reacción propia se distingue a simple vista: si no, nadie sabe qué votó. */
+.hub-comments__reaction.is-mine {
+  background: color-mix(in srgb, var(--nf-primary) 18%, transparent);
+  border-color: var(--nf-primary);
+  color: var(--nf-text);
+}
+
+.hub-comments__reaction:focus-visible,
+.hub-comments__add:focus-visible {
+  outline: 2px solid var(--nf-secondary);
+  outline-offset: 2px;
+}
+
+.hub-comments__picker {
+  position: relative;
+  display: inline-flex;
+}
+
+.hub-comments__add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 26px;
+  padding: 0;
+  border-radius: var(--nf-radius-sm, 8px);
+  background: transparent;
+  border: 1px dashed var(--nf-border-strong);
+  color: var(--nf-text-dim);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  transition: border-color 0.14s, color 0.14s, background 0.14s;
+}
+
+.hub-comments__add:hover {
+  border-color: var(--nf-primary);
+  background: color-mix(in srgb, var(--nf-primary) 10%, transparent);
+  color: var(--nf-text);
+}
+
+.hub-comments__palette {
+  position: absolute;
+  z-index: 40;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px;
+  border-radius: 10px;
+  background: var(--nf-surface-2, rgba(28, 28, 30, 0.98));
+  border: 1px solid var(--nf-border-strong);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+}
+
+/* La barra de vida sustituye al botón de «siguiente»: marca cuánto queda del comentario. */
+.hub-comments__life {
+  height: 3px;
+  border-radius: 2px;
+  background: var(--nf-border);
+  overflow: hidden;
+}
+
+.hub-comments__life-fill {
+  display: block;
+  height: 100%;
+  background: var(--nf-primary);
+  transition: width 0.1s linear;
+}
+
+/* En pausa el color cambia: se ve que está detenida a propósito, no encasquillada. */
+.hub-comments__life.is-paused .hub-comments__life-fill {
+  background: var(--nf-text-dim);
+  transition: none;
+}

@@ -317,13 +317,14 @@
   z-index: 90;
 }
 /* Se abre hacia ARRIBA: está pegado al fondo del sidebar, así que desplegar hacia
-   abajo lo dejaría fuera de la pantalla. */
+   abajo lo dejaría fuera de la pantalla.
+
+   Va fijo a la ventana y colocado desde el componente, porque se pinta fuera del sidebar: dentro,
+   su `overflow` recortaba el panel en cuanto la barra estaba en modo rail. */
 .shell__download-menu {
-  position: absolute;
+  position: fixed;
   z-index: 91;
-  bottom: calc(100% - 6px);
-  left: 10px;
-  right: 10px;
+  width: 236px;
   padding: 6px;
   border-radius: 8px;
   background: var(--nf-surface-2, rgba(28, 28, 30, 0.98));
@@ -662,24 +663,15 @@
   margin: 0 auto;
 }
 
-/* El popover de descarga no cabe bajo un disparador de 48px: sale al lado */
-.shell__download-menu.is-rail {
-  left: calc(100% - 4px);
-  right: auto;
-  bottom: 6px;
-  width: 232px;
-}
+/* El popover de descarga NO se posiciona ya dentro de la barra.
 
-/* Un popover que sale al lado chocaba con el `overflow-x: hidden` del sidebar: en rail
-   quedaba recortado a los 68px y no se veía nada. `position: fixed` tampoco escapa,
-   porque el `backdrop-filter` del sidebar lo convierte en su bloque contenedor (misma
-   causa que la de los fondos de cierre, ver Shell.onDocumentClick). Se levanta el
-   recorte solo mientras hay un popover abierto: en ese momento no hay transición de
-   anchura en curso, que es lo único que el recorte estaba tapando. */
-.shell__sidebar.has-popover {
-  overflow-x: visible;
-}
-
+   Aquí vivían dos reglas —`.shell__download-menu.is-rail`, que lo sacaba al lado, y
+   `.shell__sidebar.has-popover`, que levantaba el `overflow-x: hidden` para que no
+   quedara recortado a los 68px del rail—. Las dos desaparecen porque el menú dejó de
+   colgar del sidebar: ahora se pinta como capa flotante fuera de él, anclada a la
+   posición real del botón (ver `shell.html`, `downloadAnchor()`). Esa vía resuelve
+   además el caso que el `overflow` no podía: el `backdrop-filter` del sidebar lo
+   convierte en bloque contenedor, así que ni `position: fixed` escapaba de él. */
 .shell__sidebar.is-rail .shell__profile { justify-content: center; padding: 6px 0; }
 .shell__sidebar.is-rail .shell__user-meta { display: none; }
 
@@ -784,6 +776,48 @@
   min-width: 0;
 }
 
+/* Ficha del grupo en la cabecera: región, #TAG, miembros y rol, más su menú de gestión.
+   Sustituye a la tarjeta que abría el hub, que repetía el icono y el nombre de aquí al lado. */
+.shell__groupmeta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.shell__groupmeta-chips {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.shell__groupmeta-chip {
+  padding: 3px 9px;
+  border-radius: var(--nf-radius-sm, 8px);
+  background: var(--nf-surface-2, rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--nf-border);
+  font-size: 11px;
+  color: var(--nf-text-dim);
+  white-space: nowrap;
+}
+
+/* El rol es lo único de la ficha que dice algo sobre TI, así que se distingue del resto. */
+.shell__groupmeta-chip.is-role {
+  border-color: color-mix(in srgb, var(--nf-primary) 40%, transparent);
+  background: color-mix(in srgb, var(--nf-primary) 12%, transparent);
+  color: var(--nf-primary);
+}
+
+/* En pantallas estrechas la cabecera ya lleva breadcrumb, buscador y acciones: las píldoras se
+   retiran y queda el menú, que es lo accionable. */
+@media (max-width: 1100px) {
+  .shell__groupmeta-chips {
+    display: none;
+  }
+}
+
 .shell__breadcrumb-group {
   display: inline-flex;
   align-items: center;
@@ -858,7 +892,187 @@
   text-overflow: ellipsis;
 }
 
-.shell__header-right { margin-left: auto; display: flex; align-items: center; gap: 14px; }
+/* ---- global player search [F5.5-01] ---- */
+.shell__search {
+  margin-left: auto;
+  width: 100%;
+  max-width: 290px;
+  position: relative;
+  flex: none;
+
+  .nf-typeahead__field {
+    height: 34px;
+    background: var(--nf-surface);
+    border-color: var(--nf-border);
+    padding: 0 10px;
+    border-radius: var(--nf-radius-sm);
+  }
+
+  .nf-typeahead__field:hover {
+    border-color: var(--nf-border-strong);
+  }
+
+  .nf-typeahead__field:focus-within {
+    border-color: var(--nf-primary);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--nf-primary) 35%, transparent);
+  }
+
+  .nf-typeahead__input {
+    height: 32px;
+    font-size: 12.5px;
+  }
+
+  .nf-typeahead__dropdown {
+    width: 320px;
+    max-width: 90vw;
+    right: 0;
+    left: auto;
+    border-radius: var(--nf-radius-sm);
+    border: 1px solid var(--nf-border-strong);
+    background: var(--nf-elevated);
+    box-shadow: var(--nf-shadow-pop, 0 8px 24px rgba(0, 0, 0, 0.4));
+    padding: 4px;
+  }
+}
+
+.shell__search-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 6px 8px;
+  border-radius: var(--nf-radius-xs, 4px);
+  cursor: pointer;
+  transition: background 0.12s;
+  box-sizing: border-box;
+
+  &.is-active,
+  &:hover {
+    background: var(--nf-surface-2);
+  }
+}
+
+.shell__search-avatar {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border-radius: 6px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--nf-font-mono, var(--nf-mono));
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.shell__search-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.shell__search-meta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.shell__search-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.shell__search-discord {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--nf-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.shell__search-common {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--nf-primary);
+  white-space: nowrap;
+  flex: none;
+}
+
+.shell__search-bottom {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--nf-text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.shell__search-riot {
+  color: var(--nf-text-mid);
+}
+
+.shell__search-sep {
+  opacity: 0.4;
+}
+
+.shell__search-rank-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.shell__search-rank-tag {
+  font-weight: 700;
+  color: var(--nf-text-dim);
+  font-size: 10.5px;
+}
+
+.shell__search-badge-type {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--nf-surface-3);
+  color: var(--nf-text-dim);
+  border: 1px solid var(--nf-border);
+  line-height: 1.2;
+  flex: none;
+}
+
+.shell__search-badge-type--member {
+  background: color-mix(in srgb, var(--nf-primary) 14%, var(--nf-surface));
+  color: var(--nf-primary);
+  border-color: color-mix(in srgb, var(--nf-primary) 35%, transparent);
+}
+
+@media (max-width: 760px) {
+  .shell__search {
+    max-width: 160px;
+
+    .nf-typeahead__shortcut {
+      display: none;
+    }
+
+    .nf-typeahead__dropdown {
+      width: 270px;
+      right: -30px;
+    }
+  }
+}
+
+.shell__header-right { flex: none; display: flex; align-items: center; gap: 14px; }
 /* El selector de tema ya no vive en el header: está en Ajustes (/app/ajustes). */
 /* ---- pending open-room banner (under the header) ---- */
 .shell__pending {
@@ -915,7 +1129,7 @@
   text-align: left;
 }
 
-/* ---- notification bell ---- */
+/* ---- notification bell [F5.5-02] ---- */
 .shell__bell {
   position: relative;
   display: flex;
@@ -928,12 +1142,23 @@
   color: var(--nf-text-dim);
   cursor: pointer;
   transition: color 0.14s, border-color 0.14s, background 0.14s, box-shadow 0.14s;
+
+  &:hover {
+    color: var(--nf-primary);
+    border-color: var(--nf-primary);
+  }
+
+  &.is-active {
+    color: var(--nf-primary);
+    border-color: var(--nf-primary);
+  }
+
+  &.has-critical {
+    color: var(--nf-crimson);
+    border-color: color-mix(in srgb, var(--nf-crimson) 50%, transparent);
+  }
 }
-.shell__bell:hover { color: var(--nf-primary); border-color: var(--nf-primary); }
-.shell__bell.is-active {
-  color: var(--nf-primary);
-  border-color: var(--nf-primary);
-}
+
 .shell__bell-badge {
   position: absolute;
   top: -7px;
@@ -943,12 +1168,50 @@
   padding: 0 4px;
   border-radius: 9px;
   background: var(--nf-primary);
-  color: var(--nf-void);
+  color: #fff;
   font-size: 11px;
   font-weight: 700;
   line-height: 17px;
   text-align: center;
   pointer-events: none;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+  transition: background 0.15s, transform 0.15s, box-shadow 0.15s;
+
+  &--critical {
+    background: var(--nf-crimson);
+    color: #fff;
+    box-shadow: 0 0 10px color-mix(in srgb, var(--nf-crimson) 75%, transparent);
+    animation: nf-bell-pulse 1.6s ease-in-out infinite;
+  }
+
+  &--achievement {
+    background: var(--nf-gold);
+    color: #1a1200;
+    box-shadow: 0 0 6px color-mix(in srgb, var(--nf-gold) 50%, transparent);
+  }
+
+  &--room {
+    background: var(--nf-emerald);
+    color: #001a08;
+    box-shadow: 0 0 6px color-mix(in srgb, var(--nf-emerald) 50%, transparent);
+  }
+
+  &--social {
+    background: var(--nf-primary);
+    color: #fff;
+    box-shadow: 0 0 6px color-mix(in srgb, var(--nf-primary) 50%, transparent);
+  }
+}
+
+@keyframes nf-bell-pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 6px color-mix(in srgb, var(--nf-crimson) 60%, transparent);
+  }
+  50% {
+    transform: scale(1.16);
+    box-shadow: 0 0 14px color-mix(in srgb, var(--nf-crimson) 95%, transparent);
+  }
 }
 
 /* ---- disparador de feedback / reporte de bug (discreto) ---- */
@@ -970,7 +1233,8 @@
   background: color-mix(in srgb, var(--nf-secondary) 8%, transparent);
 }
 
-/* ---- notification dropdown panel ---- */
+/* ---- notification dropdown panel [F5.5-02] ---- */
+/* ---- notification dropdown panel [F5.5-02] ---- */
 .shell__notif-overlay {
   position: fixed;
   inset: 0;
@@ -978,35 +1242,151 @@
 }
 .shell__notif {
   position: absolute;
-  top: 68px;
-  right: clamp(12px, 4vw, 30px);
-  width: 380px;
+  top: 64px;
+  right: clamp(12px, 3vw, 24px);
+  width: 350px;
   max-width: calc(var(--nf-vw) * 100 - 24px);
-  animation: nf-pop 0.18s ease both;
+  animation: nf-pop 0.16s ease both;
 }
 
-.shell__notif-sub {
+.shell__notif-box {
+  background: var(--nf-surface);
+  border: 1px solid var(--nf-border-strong, var(--nf-border));
+  border-radius: 7px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+}
+
+/* Barra ultrafina única */
+.shell__notif-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 16px;
+  height: 34px;
+  padding: 0 12px;
   border-bottom: 1px solid var(--nf-border);
+  background: rgba(0, 0, 0, 0.25);
 }
-.shell__notif-eyebrow { font-size: 11px; color: var(--nf-text-dim); }
-.shell__notif-clear {
+
+.shell__notif-bar-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--nf-text-mid);
+}
+
+.shell__notif-bar-clear {
   background: transparent;
   border: none;
-  font-size: 11px;
-  color: var(--nf-secondary);
+  font-size: 10.5px;
+  color: var(--nf-blue-semantic, #388bfd);
   cursor: pointer;
   padding: 0;
-}
-.shell__notif-clear:hover { color: var(--nf-text); }
+  transition: color 0.14s;
 
-.shell__notif-list {
-  max-height: min(var(--nf-vh) * 60, 380px);
+  &:hover {
+    color: #fff;
+    text-decoration: underline;
+  }
+}
+
+.shell__notif-scroll-area {
+  max-height: min(var(--nf-vh) * 65, 400px);
   overflow-y: auto;
 }
+
+/* Bloque compacto de avisos obligatorios (solo Sanción/Expulsión) */
+.shell__notif-section--mandatory {
+  background: color-mix(in srgb, var(--nf-crimson) 4%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--nf-crimson) 22%, transparent);
+  padding: 8px 10px;
+}
+
+.shell__notif-section-header--mandatory {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--nf-crimson);
+  margin-bottom: 6px;
+}
+
+.shell__notif-mandatory-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.shell__notif-mandatory-card {
+  position: relative;
+  padding: 8px 24px 8px 10px;
+  border-radius: 5px;
+  border: 1px solid color-mix(in srgb, var(--nf-crimson) 35%, transparent);
+  background: color-mix(in srgb, var(--nf-crimson) 8%, var(--nf-surface));
+
+  .shell__notif-msg {
+    margin-top: 3px;
+    font-size: 11px;
+    line-height: 1.38;
+    color: var(--nf-text-mid);
+  }
+}
+
+.shell__notif-mandatory-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.shell__notif-mandatory-title {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--nf-crimson);
+}
+
+.shell__notif-mandatory-actions {
+  margin-top: 7px;
+}
+
+.shell__notif-ack-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 4px 8px;
+  font-size: 10.5px;
+  font-weight: 700;
+  border-radius: 3px;
+  border: 1px solid color-mix(in srgb, var(--nf-crimson) 55%, transparent);
+  background: color-mix(in srgb, var(--nf-crimson) 22%, var(--nf-surface));
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.14s, border-color 0.14s;
+
+  &:hover {
+    background: var(--nf-crimson);
+    border-color: var(--nf-crimson);
+  }
+}
+
+.shell__notif-dot--critical {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--nf-crimson);
+  box-shadow: 0 0 5px color-mix(in srgb, var(--nf-crimson) 80%, transparent);
+}
+
+/* Flujo cronológico reciente compacto */
+.shell__notif-list {
+  display: flex;
+  flex-direction: column;
+}
+
 .shell__notif-item {
   width: 100%;
   text-align: left;
@@ -1014,103 +1394,154 @@
   appearance: none;
   display: flex;
   align-items: flex-start;
-  gap: 12px;
-  // Hueco reservado a la derecha para la × absoluta: sin él la primera línea del texto le pasa
-  // por debajo.
-  padding: 13px 34px 13px 16px;
+  gap: 9px;
+  padding: 8px 24px 8px 10px;
   border: none;
   border-bottom: 1px solid var(--nf-border);
+  border-left: 3px solid var(--notif-accent, var(--nf-border));
   background: transparent;
   cursor: default;
   transition: background 0.14s;
+
+  &.is-clickable {
+    cursor: pointer;
+    &:hover {
+      background: rgba(255, 255, 255, 0.04);
+    }
+  }
+
+  &.is-unread {
+    background: color-mix(in srgb, var(--notif-accent) 6%, transparent);
+  }
 }
-.shell__notif-item.is-clickable { cursor: pointer; }
-.shell__notif-item.is-clickable:hover { background: rgba(255, 255, 255, 0.05); }
-.shell__notif-cta {
-  margin-top: 6px;
-  font-size: 11px;
-  color: var(--notif-accent);
-}
+
 .shell__notif-actions {
-  // Por encima de la capa pulsable de la fila (`.shell__notif-open`): aceptar/rechazar son
-  // acciones propias, no "abrir la notificación".
   position: relative;
   z-index: 2;
-  margin-top: 9px;
+  margin-top: 6px;
   display: flex;
-  gap: 8px;
+  gap: 6px;
 }
+
+.shell__notif-invite-btn {
+  padding: 3px 8px;
+  font-size: 10.5px;
+  font-weight: 700;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background 0.14s, color 0.14s, border-color 0.14s;
+
+  &--ghost {
+    background: transparent;
+    border: 1px solid var(--nf-border);
+    color: var(--nf-text-dim);
+    &:hover {
+      color: var(--nf-text);
+      border-color: var(--nf-text-mid);
+    }
+  }
+
+  &--primary {
+    background: var(--nf-blue-semantic, #388bfd);
+    border: 1px solid var(--nf-blue-semantic, #388bfd);
+    color: #fff;
+    &:hover {
+      opacity: 0.9;
+    }
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+}
+
+.shell__notif-room-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  font-size: 10.5px;
+  font-weight: 700;
+  border-radius: 3px;
+  border: 1px solid color-mix(in srgb, var(--nf-emerald) 45%, transparent);
+  background: color-mix(in srgb, var(--nf-emerald) 18%, transparent);
+  color: var(--nf-emerald);
+  cursor: pointer;
+  transition: background 0.14s, color 0.14s;
+
+  &:hover {
+    background: var(--nf-emerald);
+    color: #001a08;
+  }
+}
+
 .shell__notif-resolved {
-  margin-top: 8px;
-  font-size: 11px;
+  margin-top: 5px;
+  font-size: 10px;
   color: var(--nf-text-dim);
   opacity: 0.7;
 }
-.shell__notif-item.is-unread {
-  background: color-mix(in srgb, var(--notif-accent) 6%, transparent);
-}
+
 .shell__notif-icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 22px;
+  height: 22px;
   flex: none;
   border-radius: 4px;
-  border: 1.5px solid color-mix(in srgb, var(--notif-accent) 30%, transparent);
+  border: 1px solid color-mix(in srgb, var(--notif-accent) 30%, transparent);
   background: color-mix(in srgb, var(--notif-accent) 10%, transparent);
   color: var(--notif-accent);
-  font-family: var(--nf-mono);
-  font-size: 13px;
 }
+
 .shell__notif-text { min-width: 0; flex: 1; }
 .shell__notif-text--skel {
   display: flex;
   flex-direction: column;
-  gap: 7px;
-  padding: 3px 0;
+  gap: 5px;
+  padding: 2px 0;
 }
+
 .shell__notif-title {
-  // El punto de no leído va aquí dentro, junto al antetítulo: en la esquina derecha competía
-  // por el mismo hueco que la × de descartar.
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 11px;
+  gap: 5px;
+  font-size: 10.5px;
+  font-weight: 600;
   color: var(--nf-text-mid);
 }
 .shell__notif-item.is-unread .shell__notif-title { color: var(--notif-accent); }
+
 .shell__notif-msg {
-  margin-top: 3px;
-  font-size: 12px;
-  line-height: 1.45;
+  margin-top: 2px;
+  font-size: 11px;
+  line-height: 1.38;
   color: var(--nf-text-dim);
-  // Los mensajes son frases enteras ("Se ha cancelado la partida de X"), así que a una línea
-  // se cortaban casi siempre. Dos líneas completas antes de recortar; el resto, elipsis.
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   line-clamp: 2;
   overflow: hidden;
-  // Un nombre de grupo largo sin espacios no debe desbordar la fila.
   overflow-wrap: anywhere;
 }
+
 .shell__notif-time {
-  margin-top: 5px;
-  font-size: 11px;
+  margin-top: 3px;
+  font-size: 10px;
   color: var(--nf-text-dim);
+  opacity: 0.75;
 }
+
 .shell__notif-dot {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
   flex: none;
   border-radius: 50%;
   background: var(--notif-accent);
 }
+
 .shell__notif-item { position: relative; }
-// Capa pulsable que cubre la fila entera de una notificación que lleva a algún sitio. Es un
-// <button> real (no un div con (click)) para que el tabulador la alcance y el lector de
-// pantalla la anuncie; va por debajo de la × y de las acciones, que siguen siendo suyas.
 .shell__notif-open {
   position: absolute;
   inset: 0;
@@ -1119,66 +1550,74 @@
   border: none;
   background: transparent;
   cursor: pointer;
+
+  &:focus-visible {
+    outline: 1px solid var(--notif-accent);
+    outline-offset: -2px;
+  }
 }
-.shell__notif-open:focus-visible {
-  outline: 1px solid var(--notif-accent);
-  outline-offset: -2px;
-}
+
 .shell__notif-dismiss {
   position: absolute;
   z-index: 2;
-  top: 7px;
-  right: 9px;
-  width: 20px;
-  height: 20px;
+  top: 5px;
+  right: 5px;
+  width: 18px;
+  height: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
   border: none;
-  border-radius: 4px;
+  border-radius: 3px;
   background: transparent;
   color: var(--nf-text-dim);
-  font-size: 15px;
+  font-size: 13px;
   line-height: 1;
   cursor: pointer;
-  opacity: 0.45;
+  opacity: 0.4;
   transition: opacity 0.14s, color 0.14s, background 0.14s;
+
+  &:hover {
+    opacity: 1;
+    color: var(--nf-text-mid);
+    background: rgba(255, 255, 255, 0.06);
+  }
 }
-.shell__notif-dismiss:hover {
-  opacity: 1;
-  color: var(--nf-text-mid);
-  background: rgba(255, 255, 255, 0.06);
-}
+
 .shell__notif-more {
   font: inherit;
-  font-size: 11px;
-  color: var(--nf-secondary);
+  font-size: 10.5px;
+  color: var(--nf-blue-semantic, var(--nf-secondary));
   background: transparent;
   border: none;
   cursor: pointer;
-}
-.shell__notif-more:disabled {
-  color: var(--nf-text-dim);
-  cursor: default;
+
+  &:disabled {
+    color: var(--nf-text-dim);
+    cursor: default;
+  }
 }
 
 .shell__notif-empty {
-  padding: 36px 16px;
+  padding: 28px 14px;
   text-align: center;
 }
-.shell__notif-empty-glyph { font-size: 22px; color: var(--nf-text-dim); margin-bottom: 12px; }
-.shell__notif-empty-label { font-size: 11px; color: var(--nf-text-dim); }
+.shell__notif-empty-glyph {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--nf-text-dim);
+  margin-bottom: 8px;
+}
+.shell__notif-empty-label { font-size: 10.5px; color: var(--nf-text-dim); }
 
 .shell__notif-foot {
-  padding: 12px 16px;
-  border-top: 1px solid var(--nf-border);
+  padding: 8px 12px;
   text-align: center;
+  border-top: 1px solid var(--nf-border);
+  background: rgba(0, 0, 0, 0.15);
 }
-.shell__notif-foot span {
-  font-size: 11px;
-  color: var(--nf-secondary);
-  cursor: pointer;
-}
+
 
 /* ---- mobile group switcher (bottom sheet) ---- */
 .shell__sheet-overlay {

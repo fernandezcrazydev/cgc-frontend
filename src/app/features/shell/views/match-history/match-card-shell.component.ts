@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input } from '@angular/core';
 import { Match } from '../../../../core/matches/models';
 import { formatMatchDate } from '../../../../shared/date-format';
 import { Viewport } from '../../../../shared/viewport';
@@ -41,8 +41,9 @@ let panelSeq = 0;
       [class.is-loss]="accent() === 'loss'"
       [class.is-neutral]="accent() === 'neutral'"
       [class.is-blue]="accent() === 'blue'"
-      [class.is-red]="accent() === 'red'"
       [class.is-expanded]="isExpanded()"
+      [class.has-focus-pulse]="isFocused()"
+      [attr.data-match-id]="match().id"
     >
       <div
         class="m-card__main"
@@ -139,6 +140,7 @@ let panelSeq = 0;
               [match]="match()"
               [returnTo]="returnTo()"
               [crossContext]="crossContext()"
+              [reactionScope]="reactionScope()"
             />
           </ng-content>
         </div>
@@ -153,6 +155,8 @@ export class MatchCardShellComponent {
   readonly returnTo = input<string | null>(null);
   readonly crossContext = input<{ playerId: string; relation: 'ally' | 'enemy' } | null>(null);
   readonly panelNoun = input('alineación');
+  /** Grupo bajo el que se reacciona a los jugadores; `null` en los historiales que no lo permiten. */
+  readonly reactionScope = input<string | null>(null);
 
   private readonly ui = inject(MatchHistoryUiState);
   private readonly viewport = inject(Viewport);
@@ -163,6 +167,17 @@ export class MatchCardShellComponent {
   protected readonly rowIsControl = computed(() => !this.viewport.isMobile());
 
   protected readonly isExpanded = computed(() => this.ui.isExpanded(this.match().id));
+  protected readonly isFocused = computed(() => this.ui.focusedId() === this.match().id);
+
+  constructor() {
+    effect(() => {
+      if (this.isFocused()) {
+        const timer = setTimeout(() => this.ui.clearFocusedId(), 2400);
+        return () => clearTimeout(timer);
+      }
+      return;
+    });
+  }
 
   protected readonly dateLabel = computed(() => formatMatchDate(this.match().decidedAt));
 

@@ -1,210 +1,116 @@
-/* Panel de control del grupo (Fase 2).
-   Va en su propia hoja de componente y no en `views.scss`, que arrastra 12 197 líneas para todas
+/* Hub del grupo — Esports Command Center 70/30 (Roadmap §5.5.4).
+   Va en su propia hoja de componente y no en `views.scss`, que arrastra 12 000 líneas para todas
    las vistas: lo nuevo se escribe donde se busca, y el monolito deja de crecer. */
 
-/* ── Menú de gestión, anclado al hero ─────────────────────────────────────── */
-.gd-more {
-  position: relative;
-  margin-left: auto;
-  align-self: flex-start;
-}
-.gd-more__trigger {
+/* ── Barra de secciones del grupo ─────────────────────────────────────────── */
+.gd-sections {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
-  padding: 0;
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: 8px;
-  color: var(--nf-text-dim);
-  font-size: 16px;
-  line-height: 1;
-  cursor: pointer;
-  transition: background 0.14s, color 0.14s, border-color 0.14s;
-}
-.gd-more__trigger:hover,
-.gd-more__trigger.is-open {
-  background: rgba(255, 255, 255, 0.07);
-  border-color: var(--nf-border);
-  color: var(--nf-text);
-}
-.gd-more__trigger:focus-visible {
-  outline: 2px solid var(--nf-secondary);
-  outline-offset: 2px;
-}
-.gd-more__menu {
-  position: absolute;
-  z-index: 40;
-  top: calc(100% + 6px);
-  right: 0;
-  min-width: 200px;
-  padding: 6px;
-  border-radius: 10px;
-  background: var(--nf-surface-2, rgba(28, 28, 30, 0.98));
-  border: 1px solid var(--nf-border-strong);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
-}
-.gd-more__item {
-  display: block;
+  gap: 4px;
   width: 100%;
-  padding: 9px 10px;
-  background: transparent;
-  border: none;
-  border-radius: 7px;
-  color: var(--nf-text-mid);
-  font-size: 13px;
-  text-align: left;
-  text-decoration: none;
-  cursor: pointer;
-  transition: background 0.14s, color 0.14s;
-}
-.gd-more__item:hover { background: rgba(255, 255, 255, 0.06); color: var(--nf-text); }
-.gd-more__item:disabled { opacity: 0.5; cursor: not-allowed; }
-/* Borrar y salir se separan del resto: comparten menú, pero no deben compartir aspecto con
-   «Invitar». Un destructivo que se ve igual que lo demás se pulsa por inercia. */
-.gd-more__item--danger {
-  margin-top: 4px;
-  border-top: 1px solid var(--nf-border);
-  border-radius: 0 0 7px 7px;
-  color: var(--nf-danger);
-}
-.gd-more__item--danger:hover {
-  background: color-mix(in srgb, var(--nf-danger) 14%, transparent);
-  color: var(--nf-danger);
-}
-
-/* ── Panel: acción central + estado competitivo ───────────────────────────── */
-.gd-panel {
-  display: grid;
-  grid-template-columns: 1.4fr 1fr;
-  gap: 14px;
-  margin: 18px 0 22px;
-}
-@media (max-width: 860px) {
-  .gd-panel { grid-template-columns: 1fr; }
-}
-
-/* «Crear partida» es la funcionalidad central de la app (prompt.md §3.A.2): ocupa la mayor
-   superficie del panel y no comparte fila con nada que compita por el clic. */
-.gd-cta {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 22px 24px;
-  border-radius: 14px;
-  text-decoration: none;
-  color: var(--nf-text);
-  background: linear-gradient(
-    135deg,
-    color-mix(in srgb, var(--nf-primary) 26%, transparent),
-    color-mix(in srgb, var(--nf-primary) 8%, transparent)
-  );
-  border: 1px solid color-mix(in srgb, var(--nf-primary) 45%, transparent);
-  transition: border-color 0.16s, transform 0.16s, box-shadow 0.16s;
-}
-.gd-cta:hover {
-  border-color: var(--nf-primary);
-  transform: translateY(-1px);
-  box-shadow: 0 8px 22px color-mix(in srgb, var(--nf-primary) 22%, transparent);
-}
-.gd-cta:focus-visible { outline: 2px solid var(--nf-secondary); outline-offset: 3px; }
-.gd-cta__glyph {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
-  flex: none;
-  border-radius: 12px;
-  background: var(--nf-primary);
-  color: var(--nf-void);
-  font-size: 22px;
-  line-height: 1;
-}
-.gd-cta__text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-.gd-cta__title { font-size: 17px; font-weight: var(--fw-bold); letter-spacing: var(--ls-tight); }
-.gd-cta__sub { font-size: 12.5px; color: var(--nf-text-dim); }
-
-.gd-standing {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  justify-content: center;
-  padding: 22px 24px;
-  border-radius: 14px;
+  padding: 3px;
+  margin: 0 0 14px;
+  border-radius: 10px;
   background: var(--nf-surface);
   border: 1px solid var(--nf-border);
 }
-.gd-standing__label { font-size: 11px; color: var(--nf-text-dim); }
-.gd-standing__rank {
-  font-size: 30px;
-  font-weight: var(--fw-bold);
-  line-height: 1;
-  color: var(--nf-text);
-}
-.gd-standing__lp { font-size: 14px; color: var(--nf-primary); }
-.gd-standing__sub { font-size: 12px; color: var(--nf-text-dim); }
-/* Ni cero ni un guion: cuando no hay puesto se dice por qué y se ofrece a dónde ir. Un `0`
-   en este hueco se lee como «vas último», que es un dato falso. */
-.gd-standing__none { font-size: 13px; color: var(--nf-text-mid); }
-.gd-standing__link { font-size: 12px; color: var(--nf-secondary); text-decoration: none; }
-.gd-standing__link:hover { text-decoration: underline; }
-
-/* ── Requiere tu atención ─────────────────────────────────────────────────── */
-.gd-attention {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 22px;
-}
-.gd-attention__row {
+/* Cada sección ocupa su hueco entero: al pasar el cursor se tiñe todo el espacio del botón, no
+   un recuadro dibujado dentro de él. Por eso no lleva borde propio. */
+.gd-sections__link {
   display: flex;
   align-items: center;
-  gap: 12px;
-  width: 100%;
-  padding: 13px 16px;
-  border-radius: 11px;
-  background: var(--nf-surface);
-  border: 1px solid color-mix(in srgb, var(--nf-warning) 35%, transparent);
-  color: var(--nf-text);
-  text-align: left;
-  cursor: pointer;
-  transition: border-color 0.14s, background 0.14s;
-}
-.gd-attention__row:hover {
-  border-color: var(--nf-warning);
-  background: color-mix(in srgb, var(--nf-warning) 8%, var(--nf-surface));
-}
-.gd-attention__row:focus-visible { outline: 2px solid var(--nf-secondary); outline-offset: 2px; }
-.gd-attention__pulse {
-  width: 8px;
-  height: 8px;
-  flex: none;
-  border-radius: 50%;
-  background: var(--nf-warning);
-  box-shadow: 0 0 0 0 color-mix(in srgb, var(--nf-warning) 60%, transparent);
-  animation: gd-pulse 2s ease-out infinite;
-}
-/* Quien prefiere no ver movimiento no lo ve: el punto sigue ahí, quieto. */
-@media (prefers-reduced-motion: reduce) {
-  .gd-attention__pulse { animation: none; }
-}
-@keyframes gd-pulse {
-  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--nf-warning) 55%, transparent); }
-  70% { box-shadow: 0 0 0 7px transparent; }
-  100% { box-shadow: 0 0 0 0 transparent; }
-}
-.gd-attention__text { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1; }
-.gd-attention__title { font-size: 12.5px; color: var(--nf-text); }
-.gd-attention__sub { font-size: 11.5px; color: var(--nf-text-dim); }
-.gd-attention__cta {
-  flex: none;
-  padding: 6px 13px;
+  justify-content: center;
+  flex: 1;
+  align-self: stretch;
+  padding: 9px 10px;
   border-radius: 7px;
-  background: color-mix(in srgb, var(--nf-warning) 18%, transparent);
-  border: 1px solid color-mix(in srgb, var(--nf-warning) 45%, transparent);
-  font-size: 11.5px;
+  color: var(--nf-text-mid);
+  font-size: 12px;
+  font-weight: var(--fw-medium, 500);
+  text-align: center;
+  text-decoration: none;
+  transition: color 0.14s, background 0.14s;
+}
+.gd-sections__link:hover {
+  background: color-mix(in srgb, var(--nf-secondary) 16%, transparent);
   color: var(--nf-text);
+}
+.gd-sections__link:focus-visible {
+  outline: 2px solid var(--nf-secondary);
+  outline-offset: 2px;
+}
+
+/* ── Rejilla del hub: 70 / 30 ─────────────────────────────────────────────── */
+.gd-hub {
+  display: grid;
+  grid-template-columns: minmax(0, 7fr) minmax(280px, 3fr);
+  gap: 14px;
+  align-items: start;
+  margin-bottom: 24px;
+}
+
+.gd-hub__main {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+/* Fila superior: gráfica de LP al 75% y vitrina de trofeos al 25%. */
+.gd-hub__row {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(190px, 1fr);
+  gap: 14px;
+  align-items: stretch;
+}
+
+.gd-hub__twins {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  align-items: stretch;
+}
+
+/* Los componentes del hub son bloques: sin esto la tarjeta no ocupa su celda. Se nombran por su
+   elemento y no con `.gd-hub__row > *`, que tiene la misma especificidad que `.gd-hub__row` y le
+   ganaba el `display: grid` por ir después: la fila de la gráfica se caía a una sola columna. */
+app-hub-lp-chart,
+app-hub-trophy-case,
+app-hub-live-room,
+app-hub-comments,
+app-hub-duels,
+app-hub-trivia,
+app-hub-roster-panel {
+  display: block;
+  min-width: 0;
+}
+
+.gd-hub__side {
+  position: sticky;
+  /* La columna acompaña al scroll del contenido principal, que es mucho más largo. */
+  top: 12px;
+  min-width: 0;
+}
+
+@media (max-width: 1100px) {
+  .gd-hub {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .gd-hub__side {
+    position: static;
+  }
+}
+
+@media (max-width: 860px) {
+  .gd-hub__row,
+  .gd-hub__twins {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  /* Seis secciones no caben en una línea de móvil: la barra se parte y cada botón conserva su
+     hueco completo. */
+  .gd-sections {
+    flex-wrap: wrap;
+  }
+  .gd-sections__link {
+    flex: 1 1 40%;
+  }
 }

@@ -1,96 +1,12 @@
-/* Shared styles for the app-shell views. */
+@use 'breakpoints' as *;
 
-/* ---- Breakpoints ----
-   Tres escalones, y el de en medio importa: el shell conmuta a su layout móvil a 760px
-   (`shell.ts`, matchMedia), así que todo lo que cambia MARKUP tiene que cambiar en ese
-   mismo píxel o el DOM y el CSS se contradicen. $bp-compact se conserva porque bajarlo a
-   760 dejaría la banda 761-860px con la rejilla de escritorio de la fila del historial
-   (~870px de mínimos), que ahí no cabe.
+/* Estilos compartidos de las vistas del shell.
 
-   Solo los bloques del historial están migrados a estas variables; el resto de vistas
-   conserva sus media queries literales hasta que les toque. */
-$bp-compact: 860px;
-$bp-mobile: 760px;
-$bp-narrow: 420px;
-
-/* Suelo de área táctil en móvil (44px = mínimo de Apple HIG; Material pide 48dp). Se
-   aplica solo dentro de los contenedores del historial, no en las primitivas nf-*, para
-   no cambiar el móvil del resto de la app. */
-$touch: 44px;
-
-.view { animation: nf-fade 0.3s ease-out; }
-
-.view__head {
-  margin-bottom: 26px;
-}
-.view__head--row {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-.view__eyebrow {
-  font-size: 12px;
-  color: var(--nf-secondary);
-  margin-bottom: 10px;
-}
-.view__title {
-  margin: 0 0 8px;
-  font-weight: 800;
-  font-size: clamp(24px, 5vw, 32px);
-  color: var(--nf-text);
-  letter-spacing: -0.5px;
-}
-.view__lead {
-  margin: 0;
-  color: var(--nf-text-mid);
-  font-size: 15px;
-  line-height: 1.6;
-}
-.view__label {
-  font-size: 12px;
-  color: var(--nf-text-dim);
-  margin-bottom: 12px;
-}
-.view__intro {
-  margin: 0 0 22px;
-  color: var(--nf-text-mid);
-  font-size: 14px;
-  line-height: 1.6;
-}
-
-/* back link / breadcrumb: sits above the head so "go back" is where users expect it */
-.view-back {
-  display: inline-flex;
-  align-items: center;
-  gap: 9px;
-  margin-bottom: 18px;
-  padding: 9px 16px 9px 13px;
-  font-size: 13px;
-  color: var(--nf-text-mid);
-  text-decoration: none;
-  background: var(--nf-surface-2);
-  border: 1px solid var(--nf-border);
-  border-radius: 6px;
-  transition:
-    color 0.14s,
-    border-color 0.14s,
-    background 0.14s;
-}
-.view-back:hover {
-  color: var(--nf-text);
-  border-color: var(--nf-border-strong);
-  background: color-mix(in srgb, var(--nf-secondary) 8%, var(--nf-surface-2));
-}
-.view-back__arrow {
-  font-size: 16px;
-  line-height: 1;
-  transition: transform 0.14s;
-}
-.view-back:hover .view-back__arrow {
-  transform: translateX(-3px);
-}
+   MONOLITO EN RETIRADA: este fichero se vacía sección a sección conforme la
+   Fase 5.5 rehace cada pantalla. Lo común de la aplicación (`.view*`,
+   `.view-back`, `.empty-state`, `.cards`) vive ahora en `src/styles/app.scss`,
+   y los puntos de corte en `src/styles/_breakpoints.scss`. No añadas nada
+   nuevo aquí: lo nuevo va en la hoja del componente que lo usa. */
 
 .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 30px; }
 .actions__count {
@@ -389,42 +305,6 @@ $touch: 44px;
     padding-left: 0;
     padding-top: 4px;
   }
-}
-
-/* ---- partidas cards ---- */
-.cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 16px;
-}
-.pm-head {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 14px;
-}
-.pm-avatar {
-  width: 44px;
-  height: 44px;
-  border-radius: 5px;
-  border: 1.5px solid var(--nf-border);
-  flex: none;
-}
-.pm-mode {
-  font-weight: 700;
-  font-size: 14px;
-  color: var(--nf-text);
-}
-.pm-players {
-  font-size: 11px;
-  color: var(--nf-text-dim);
-  margin-top: 3px;
-}
-.pm-foot {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
 }
 
 /* ---- champions grid ---- */
@@ -1504,9 +1384,13 @@ $touch: 44px;
 
 .m-summary {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 16px;
   margin-bottom: 20px;
+
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr;
+  }
 }
 
 .m-summary__stat-card {
@@ -1516,6 +1400,9 @@ $touch: 44px;
   border-radius: 8px;
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
+  min-height: 112px;
+  box-sizing: border-box;
   gap: 8px;
 }
 
@@ -2070,6 +1957,7 @@ $touch: 44px;
   border-left: 5px solid var(--nf-text-dim);
   border-radius: 8px;
   overflow: hidden;
+  box-sizing: border-box;
   transition: border-color 0.14s, box-shadow 0.14s, background 0.14s;
 
   &.is-win {
@@ -2107,6 +1995,28 @@ $touch: 44px;
     border-color: var(--nf-border-accent);
     box-shadow: 0 8px 24px rgba(0,0,0,0.35);
   }
+
+  &.has-focus-pulse {
+    animation: nf-focus-pulse 2.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+}
+
+@keyframes nf-focus-pulse {
+  0% {
+    outline: 2px solid var(--nf-primary);
+    outline-offset: 3px;
+    box-shadow: 0 0 16px color-mix(in srgb, var(--nf-primary) 70%, transparent);
+  }
+  35% {
+    outline: 2px solid color-mix(in srgb, var(--nf-primary) 90%, transparent);
+    outline-offset: 4px;
+    box-shadow: 0 0 24px color-mix(in srgb, var(--nf-primary) 85%, transparent);
+  }
+  100% {
+    outline: 2px solid transparent;
+    outline-offset: 0;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  }
 }
 
 .m-card--skeleton {
@@ -2114,7 +2024,8 @@ $touch: 44px;
   align-items: center;
   justify-content: space-between;
   min-height: 84px;
-  padding: 16px;
+  box-sizing: border-box;
+  padding: 12px 18px;
 }
 
 .m-card__skeleton-left {
@@ -2137,10 +2048,12 @@ $touch: 44px;
 
 .m-card__main {
   display: grid;
-  grid-template-columns: 110px minmax(180px, 1.3fr) 120px minmax(150px, 1fr) auto minmax(110px, max-content);
+  grid-template-columns: 100px minmax(160px, 1.2fr) 110px minmax(130px, 1fr) 112px 130px;
   align-items: center;
+  min-height: 84px;
+  box-sizing: border-box;
   gap: 16px;
-  padding: 14px 18px;
+  padding: 12px 18px;
   cursor: pointer;
   user-select: none;
   outline: none;
@@ -2150,18 +2063,21 @@ $touch: 44px;
   }
 }
 
-/* La rejilla de arriba esta medida para los seis bloques de la fila personal. La de grupo
-   proyecta cuatro mucho mas anchos, y compartirlas dejaba el bloque del MVP pegado a la tira
-   de campeones. El hueco entre columnas es aqui el que da el aire que faltaba. */
+/* La rejilla de grupo proyecta cuatro columnas más anchas y proporcionadas con min-height unificado */
 .m-card__main--group {
-  grid-template-columns: minmax(150px, max-content) minmax(300px, 1fr) minmax(160px, max-content) minmax(110px, max-content);
-  gap: 26px;
+  grid-template-columns: 130px 1fr 200px 130px;
+  align-items: center;
+  min-height: 84px;
+  box-sizing: border-box;
+  gap: 20px;
 }
 
 .m-card__result {
   display: flex;
   flex-direction: column;
+  justify-content: center;
   gap: 3px;
+  min-height: 48px;
 }
 
 /* El resultado no puede codificarse solo con verde/rojo: para un daltónico protán o deután
@@ -2196,6 +2112,7 @@ $touch: 44px;
   align-items: center;
   gap: 12px;
   min-width: 0;
+  min-height: 48px;
 }
 
 .m-card__avatar-wrap {
@@ -2256,7 +2173,9 @@ $touch: 44px;
 .m-card__kda {
   display: flex;
   flex-direction: column;
+  justify-content: center;
   gap: 3px;
+  min-height: 48px;
 }
 
 .m-card__kda-line {
@@ -2274,7 +2193,9 @@ $touch: 44px;
 .m-card__stats {
   display: flex;
   flex-direction: column;
+  justify-content: center;
   gap: 4px;
+  min-height: 48px;
 }
 
 .m-card__stat-item {
@@ -2317,6 +2238,14 @@ $touch: 44px;
   }
 }
 
+.m-card__items {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 108px;
+  min-height: 48px;
+}
+
 .m-card__items-grid {
   display: grid;
   grid-template-columns: repeat(4, 24px);
@@ -2342,14 +2271,18 @@ $touch: 44px;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 6px;
+  justify-content: center;
+  gap: 4px;
   text-align: right;
+  min-height: 48px;
 }
 
 .m-card__end-extra {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 8px;
+  min-height: 22px;
 }
 
 .m-card__date {
@@ -2381,7 +2314,9 @@ $touch: 44px;
 .m-card__group-summary {
   display: flex;
   flex-direction: column;
+  justify-content: center;
   gap: 4px;
+  min-height: 48px;
 }
 
 .m-card__winner-pill {
@@ -2407,7 +2342,9 @@ $touch: 44px;
 .m-card__vs-block {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 12px;
+  min-height: 48px;
 }
 
 .m-card__team-roster {
@@ -2514,7 +2451,9 @@ $touch: 44px;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 7px;
+  justify-content: center;
+  gap: 5px;
+  min-height: 48px;
 }
 
 /* Chip, no texto suelto: el MVP es una distinción, y como etiqueta se distingue del resto de
@@ -2557,13 +2496,24 @@ $touch: 44px;
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 4px 10px 4px 8px;
+  padding: 3px 8px;
   border-radius: 6px;
   background: var(--nf-inset);
   border-left: 3px solid var(--nf-border-strong);
+  min-height: 24px;
+  box-sizing: border-box;
 
   &.is-blue { border-left-color: var(--nf-team-blue); }
   &.is-red { border-left-color: var(--nf-team-red); }
+
+  &--none {
+    background: transparent;
+    border-left: none;
+    padding: 0 4px;
+    color: var(--nf-text-dim);
+    opacity: 0.6;
+    font-size: 11px;
+  }
 }
 
 .m-card__you-champ {
@@ -2654,91 +2604,189 @@ $touch: 44px;
 }
 
 .m-lineup {
-  padding: 14px 18px 12px;
+  padding: 16px 20px 14px;
 }
 
 .m-lineup__teams {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px 22px;
+  gap: 12px 20px;
 }
 
 .m-lineup__team {
   min-width: 0;
-  padding-left: 10px;
-  border-left: 3px solid var(--nf-border-strong);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 12px;
+  background: color-mix(in srgb, var(--nf-surface-2) 40%, var(--nf-surface));
+  border-radius: var(--nf-radius);
+  border: 1px solid var(--nf-border);
+  border-left: 4px solid var(--nf-border-strong);
 
-  &--blue { border-left-color: var(--nf-team-blue); }
-  &--red { border-left-color: var(--nf-team-red); }
+  &--blue {
+    border-left-color: var(--nf-team-blue);
+    background: color-mix(in srgb, var(--nf-team-blue) 4%, var(--nf-surface));
+  }
+  &--red {
+    border-left-color: var(--nf-team-red);
+    background: color-mix(in srgb, var(--nf-team-red) 4%, var(--nf-surface));
+  }
 }
 
 .m-lineup__team-head {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 8px;
-  padding-bottom: 6px;
+  padding-bottom: 8px;
   margin-bottom: 4px;
   border-bottom: 1px solid var(--nf-border);
 }
 
 .m-lineup__team-name {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: var(--fw-bold);
   color: var(--nf-text);
+  letter-spacing: 0.01em;
 }
 
 .m-lineup__team-outcome {
   font-size: 11px;
-  font-weight: var(--fw-bold);
+  font-weight: var(--fw-black);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px 8px;
+  border-radius: 4px;
 
-  &.is-win { color: var(--nf-success); }
-  &.is-loss { color: var(--nf-danger); }
+  &.is-win {
+    color: var(--nf-success);
+    background: color-mix(in srgb, var(--nf-success) 14%, transparent);
+  }
+  &.is-loss {
+    color: var(--nf-danger);
+    background: color-mix(in srgb, var(--nf-danger) 14%, transparent);
+  }
 }
 
 .m-lineup__team-kills {
   margin-left: auto;
-  font-size: 11px;
+  font-size: 12px;
+  font-weight: var(--fw-bold);
   color: var(--nf-text-dim);
 }
 
 .m-lineup__row {
-  display: flex;
+  display: grid;
+  /* El hueco de reacciones va entre el nombre y el KDA. Es `auto`: sin reacciones no ocupa nada. */
+  grid-template-columns: 18px 74px minmax(90px, 1fr) auto 78px 198px;
   align-items: center;
-  gap: 8px;
-  padding: 4px 6px 4px 0;
+  min-height: 44px;
+  box-sizing: border-box;
+  gap: 10px;
+  padding: 4px 8px;
   border-radius: var(--nf-radius-sm);
+  transition: background 0.12s;
 
-  /* La fila del usuario se marca con el color de marca, igual que en el resto de la app. */
+  &:hover {
+    background: color-mix(in srgb, var(--nf-surface-2) 65%, transparent);
+  }
+
   &.is-you {
     background: color-mix(in srgb, var(--nf-primary) 14%, transparent);
-    padding-left: 6px;
+    border-left: 3px solid var(--nf-primary);
+    padding-left: 5px;
   }
 }
 
 .m-lineup__lane {
-  flex: none;
   width: 16px;
   height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.m-lineup__champ-col {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.m-lineup__champ-link {
+  display: flex;
+  align-items: center;
+  line-height: 0;
 }
 
 .m-lineup__champ {
-  flex: none;
-  border-radius: var(--nf-radius-sm);
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.m-lineup__spells-col,
+.m-lineup__runes-col {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: center;
+  justify-content: center;
+}
+
+.m-lineup__spell-slot {
+  width: 16px;
+  height: 16px;
+  border-radius: 2px;
+  border: 1px solid var(--nf-border);
+  overflow: hidden;
+  flex-shrink: 0;
+  display: flex;
+}
+
+.m-lineup__rune-slot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--nf-inset);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+
+  &--secondary {
+    width: 14px;
+    height: 14px;
+    opacity: 0.85;
+  }
 }
 
 .m-lineup__who {
   display: flex;
   flex-direction: column;
   min-width: 0;
-  flex: 1;
+  gap: 1px;
+}
+
+.m-lineup__who-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
 }
 
 .m-lineup__player {
   font-size: 12px;
+  font-weight: var(--fw-bold);
   color: var(--nf-text);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  text-decoration: none;
+
+  &:hover {
+    color: var(--nf-primary);
+    text-decoration: underline;
+  }
 }
 
 .m-lineup__champ-name {
@@ -2747,34 +2795,176 @@ $touch: 44px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  text-decoration: none;
+
+  &:hover {
+    color: var(--nf-text);
+  }
 }
 
 .m-lineup__tag {
-  flex: none;
-  padding: 1px 6px;
+  padding: 1px 5px;
   border-radius: 3px;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: var(--fw-bold);
-  background: color-mix(in srgb, var(--nf-primary) 26%, transparent);
-  color: var(--nf-text);
+  background: color-mix(in srgb, var(--nf-primary) 28%, transparent);
+  color: var(--nf-primary);
+  line-height: 1.2;
 
   &--mvp {
-    background: color-mix(in srgb, var(--nf-warning) 26%, transparent);
+    background: color-mix(in srgb, var(--nf-warning) 28%, transparent);
     color: var(--nf-warning);
   }
 }
 
-.m-lineup__kda {
-  flex: none;
-  width: 62px;
-  text-align: right;
-  font-size: 12px;
+/* ── Reacciones sobre un jugador (historial del grupo) ───────────────────────
+   Caben tres; a partir de ahí, un «+N» que abre el panel con todas. Así una fila con dos
+   reacciones y otra con diez miden exactamente lo mismo. */
+.m-lineup__reactions {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  justify-content: flex-end;
+}
+
+.m-lineup__reaction {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 6px;
+  border-radius: var(--nf-radius-sm, 8px);
+  background: var(--nf-surface-2, rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--nf-border);
+  color: var(--nf-text-dim);
+  font-size: 11px;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: border-color 0.14s, background 0.14s, color 0.14s;
+}
+
+.m-lineup__reaction:hover {
+  border-color: var(--nf-border-strong);
   color: var(--nf-text);
 }
 
-.m-lineup__slash {
-  margin: 0 2px;
+/* La reacción propia se distingue a simple vista: si no, nadie sabe qué votó. */
+.m-lineup__reaction.is-mine {
+  background: color-mix(in srgb, var(--nf-primary) 18%, transparent);
+  border-color: var(--nf-primary);
+  color: var(--nf-text);
+}
+
+.m-lineup__reaction--more {
+  color: var(--nf-secondary);
+}
+
+.m-lineup__react-add {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 21px;
+  padding: 0;
+  border-radius: var(--nf-radius-sm, 8px);
+  background: transparent;
+  border: 1px dashed var(--nf-border);
   color: var(--nf-text-dim);
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.5;
+  transition: opacity 0.14s, border-color 0.14s, color 0.14s, background 0.14s;
+}
+
+/* Discreto hasta que la fila interesa: siempre está, pero no compite con los datos. */
+.m-lineup__row:hover .m-lineup__react-add,
+.m-lineup__react-add:focus-visible {
+  opacity: 1;
+}
+
+.m-lineup__react-add:hover {
+  border-color: var(--nf-primary);
+  background: color-mix(in srgb, var(--nf-primary) 10%, transparent);
+  color: var(--nf-text);
+}
+
+.m-lineup__reaction:focus-visible,
+.m-lineup__react-add:focus-visible {
+  outline: 2px solid var(--nf-secondary);
+  outline-offset: 1px;
+}
+
+.m-lineup__react-panel {
+  position: absolute;
+  z-index: 50;
+  top: calc(100% + 6px);
+  right: 0;
+  /* La tarjeta de la partida recorta su contenido para poder animar el desplegable, así que el
+     panel no puede pasarse de su borde: si no cabe entero, scrollea. */
+  max-height: 340px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border-radius: 10px;
+  background: var(--nf-surface-2, rgba(28, 28, 30, 0.98));
+  border: 1px solid var(--nf-border-strong);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+}
+
+/* En las dos últimas filas de cada equipo el panel se abre hacia ARRIBA: por debajo solo quedan
+   unas decenas de píxeles hasta el borde de la tarjeta, que recorta, y el panel salía cortado por
+   la mitad. Hacia arriba hay el alto de la alineación entera. */
+.m-lineup__row:nth-last-child(-n + 2) .m-lineup__react-panel {
+  top: auto;
+  bottom: calc(100% + 6px);
+}
+
+.m-lineup__react-panel-title {
+  font-size: 10.5px;
+  color: var(--nf-text-dim);
+}
+
+.m-lineup__react-panel-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  max-width: 232px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--nf-border);
+}
+
+/* Asomándose con el cursor no hay selector debajo, así que tampoco hace falta la raya que lo
+   separaba. */
+.m-lineup__react-panel-list.is-peek {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.m-lineup__kda-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  width: 78px;
+  min-height: 36px;
+  gap: 1px;
+}
+
+.m-lineup__kda {
+  font-size: 12px;
+  font-weight: var(--fw-bold);
+  color: var(--nf-text);
+  white-space: nowrap;
+}
+
+.m-lineup__slash {
+  margin: 0 1px;
+  color: var(--nf-text-dim);
+  font-weight: normal;
 }
 
 .m-lineup__deaths {
@@ -2782,11 +2972,66 @@ $touch: 44px;
 }
 
 .m-lineup__ratio {
-  flex: none;
-  width: 62px;
-  text-align: right;
   font-size: 11px;
   color: var(--nf-text-mid);
+  white-space: nowrap;
+}
+
+.m-lineup__items {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  width: 198px;
+  justify-content: flex-start;
+  flex-shrink: 0;
+}
+
+.m-lineup__item-slot {
+  width: 22px;
+  height: 22px;
+  border-radius: 3px;
+  border: 1px solid var(--nf-border);
+  background-size: cover;
+  flex-shrink: 0;
+  display: flex;
+
+  &--trinket {
+    margin-left: auto;
+    border-radius: 50%;
+  }
+
+  &--empty {
+    background: var(--nf-inset);
+    border-style: dashed;
+    opacity: 0.35;
+  }
+}
+
+@media (max-width: 1080px) {
+  .m-lineup__teams {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
+@media (max-width: 600px) {
+  .m-lineup__row {
+    grid-template-columns: 18px 74px minmax(0, 1fr) auto;
+    grid-template-areas:
+      'lane champ who kda'
+      'items items items items';
+    row-gap: 6px;
+  }
+
+  .m-lineup__lane { grid-area: lane; }
+  .m-lineup__champ-col { grid-area: champ; }
+  .m-lineup__who { grid-area: who; }
+  .m-lineup__kda-col { grid-area: kda; }
+  .m-lineup__items {
+    grid-area: items;
+    justify-content: flex-start;
+    padding-left: 26px;
+  }
 }
 
 .m-lineup__actions {
@@ -3191,8 +3436,8 @@ $touch: 44px;
 }
 
 .m-items-grid {
-  display: grid;
-  grid-template-columns: repeat(7, 20px);
+  display: flex;
+  align-items: center;
   gap: 2px;
 }
 
@@ -3515,10 +3760,9 @@ $touch: 44px;
   .m-card__champ-name { font-size: 15px; white-space: normal; }
   .m-card__group-link { white-space: normal; }
 
-  /* Los siete objetos dejan de ser cuadraditos de 24px fijos y reparten el ancho de la
-     fila. Es la única forma de que se distingan sin lupa. */
-  .m-card__items-grid { grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px; }
-  .m-card__item-slot { width: 100%; height: auto; aspect-ratio: 1; }
+  /* Los objetos (7 u 8 para ADC) se muestran con ancho uniforme sin romper la fila ni alterar la altura */
+  .m-card__items-grid { display: flex; align-items: center; gap: 5px; flex-wrap: nowrap; }
+  .m-card__item-slot { width: 26px; height: 26px; aspect-ratio: 1; flex-shrink: 0; }
 
   /* ---- Fila del historial de grupo ----
      Va DESPUÉS de `.m-card__main` a propósito: las dos tienen la misma especificidad, así
@@ -3614,8 +3858,8 @@ $touch: 44px;
 
   .m-player-row__champ-wrap nf-avatar { --nf-avatar-size-override: 44px; }
 
-  .m-items-grid { grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
-  .m-item-slot { width: 100%; height: auto; aspect-ratio: 1; }
+  .m-items-grid { display: flex; align-items: center; gap: 4px; }
+  .m-item-slot { width: 22px; height: 22px; aspect-ratio: 1; flex-shrink: 0; }
 
   /* Sin cabecera de tabla a la vista, tras cinco fichas se pierde de qué bando son. El
      filo del color del bando lo dice en cada una. `:not(.is-current-user)` porque la fila
@@ -4116,40 +4360,6 @@ $touch: 44px;
 }
 
 /* ============ RANKING / LEADERBOARD ============ */
-/* De la tabla anterior solo sobreviven estas dos reglas, que sigue usando
-   `grupo-estadisticas.ts` (avatar de líder y sparkline de leaderboard). El
-   resto del bloque `.lb-*` se borró: nada lo renderizaba. */
-.lb-avatar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  border: 1.5px solid var(--nf-border);
-  font-family: var(--nf-mono);
-  font-weight: 700;
-  font-size: 13px;
-  color: #fff;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-}
-
-.lb-spark {
-  width: 100%;
-  height: 32px;
-  overflow: visible;
-}
-.lb-spark polyline {
-  fill: none;
-  stroke: var(--nf-success);
-  stroke-width: 2;
-  stroke-linejoin: round;
-  stroke-linecap: round;
-}
-.lb-spark.is-down polyline {
-  stroke: var(--nf-danger);
-}
-
 /* Mobile sorting chips: hidden on desktop */
 .rk-mobile-sort {
   display: none;
@@ -5122,106 +5332,158 @@ $touch: 44px;
 .rk-matches {
   display: flex;
   flex-direction: column;
-  gap: 7px;
+  gap: 8px;
 }
 
 .rk-match {
   --side: var(--nf-text-dim);
   display: grid;
-  /* Ocho zonas. Eran nueve: la novena (14px) era el galón de "pulsa aquí", que se
-     retiró al dejar de ser un enlace (ver el BACKEND NOTE de `grupo-ranking.ts`). */
-  grid-template-columns:
-    minmax(96px, 118px) 22px minmax(116px, max-content) 30px
-    minmax(170px, 1fr) minmax(140px, max-content) max-content 76px;
+  grid-template-columns: 110px 20px 76px minmax(130px, 1fr) 90px 198px 68px;
   align-items: center;
+  min-height: 56px;
+  box-sizing: border-box;
   gap: 12px;
-  padding: 9px 12px;
-  border-radius: 10px;
+  padding: 8px 16px;
+  border-radius: 8px;
   border: 1px solid var(--nf-border);
   border-left: 3px solid var(--side);
   background: var(--nf-surface-2);
   color: inherit;
-}
-.rk-match.is-win {
-  --side: var(--nf-success);
-}
-.rk-match.is-loss {
-  --side: var(--nf-danger);
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, transform 0.12s;
+
+  &:hover {
+    background: color-mix(in srgb, var(--nf-surface-2) 75%, var(--nf-surface));
+    border-color: color-mix(in srgb, var(--side) 50%, var(--nf-border));
+    transform: translateY(-1px);
+  }
+
+  &.is-win {
+    --side: var(--nf-success);
+  }
+  &.is-loss {
+    --side: var(--nf-danger);
+  }
 }
 
 .rk-match__result {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
   min-width: 0;
 }
+
 .rk-match__verdict {
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 800;
   color: var(--side);
 }
+
 .rk-match__meta {
   font-size: 11px;
   color: var(--nf-text-dim);
 }
 
 .rk-match__lane {
-  font-size: 19px;
-  justify-self: center;
-}
-
-/* Modo espejo del enfrentamiento.
-   El template emite los dos lados igual —[campeón][hechizos][runas]—; el lado
-   del jugador lo invierte con `row-reverse`, así que la lectura desde el VS
-   hacia fuera es idéntica en ambos:
-
-     [runas][hechizos][campeón]  VS  [campeón][hechizos][runas]
-
-   Los `justify-self` opuestos pegan los dos bloques al VS en vez de dejarlos
-   flotando en su columna, que es lo que rompía la simetría cuando el nombre del
-   rival era largo. */
-.rk-match__side {
+  width: 18px;
+  height: 18px;
   display: flex;
   align-items: center;
-  gap: 6px;
-  min-width: 0;
+  justify-content: center;
 }
-.rk-match__side--mine {
-  flex-direction: row-reverse;
-  justify-self: end;
+
+.rk-match__loadout {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
 }
-.rk-match__side--foe {
-  justify-self: start;
+
+.rk-match__champ {
+  border-radius: 4px;
+  flex-shrink: 0;
 }
+
 .rk-match__spells,
-.rk-match__perks {
+.rk-match__runes {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
+  align-items: center;
+  justify-content: center;
+}
+
+.rk-match__spell-slot {
+  width: 16px;
+  height: 16px;
+  border-radius: 2px;
+  border: 1px solid var(--nf-border);
+  overflow: hidden;
+  flex-shrink: 0;
+  display: flex;
+}
+
+.rk-match__rune-slot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--nf-inset);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+
+  &--secondary {
+    width: 14px;
+    height: 14px;
+    opacity: 0.85;
+  }
+}
+
+.rk-match__vs-block {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
 }
 
 .rk-match__vs {
-  justify-self: center;
   font-size: 11px;
   font-weight: 800;
   color: var(--nf-text-dim);
   letter-spacing: 0.5px;
+  flex-shrink: 0;
+}
+
+.rk-match__foe {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.rk-match__foe-champ {
+  border-radius: 4px;
+  flex-shrink: 0;
 }
 
 .rk-match__foe-name {
   display: flex;
   flex-direction: column;
   min-width: 0;
-  margin-left: 2px;
 }
+
 .rk-match__foe-nick {
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--nf-text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
 .rk-match__foe-tag {
   font-size: 11px;
   color: var(--nf-text-dim);
@@ -5230,50 +5492,69 @@ $touch: 44px;
 .rk-match__kda {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  width: 90px;
+  gap: 1px;
 }
+
 .rk-match__kda-line {
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--nf-text);
+  white-space: nowrap;
 }
+
 .rk-match__deaths {
   color: var(--nf-danger);
 }
+
 .rk-match__kda-sub {
   font-size: 11px;
   color: var(--nf-text-dim);
+  white-space: nowrap;
 }
 
 .rk-match__build {
   display: flex;
   align-items: center;
-  gap: 3px;
+  gap: 2px;
+  width: 198px;
+  justify-content: flex-start;
+  flex-shrink: 0;
 }
+
 .rk-item {
   width: 22px;
   height: 22px;
-  border-radius: 5px;
+  border-radius: 3px;
   border: 1px solid var(--nf-border);
   flex-shrink: 0;
-}
-.rk-item--empty {
-  background: var(--nf-inset);
-  opacity: 0.55;
-}
-.rk-item--trinket {
-  border-radius: 50%;
-  margin-left: 6px;
+  display: flex;
+
+  &--empty {
+    background: var(--nf-inset);
+    opacity: 0.35;
+    border-style: dashed;
+  }
+
+  &--trinket {
+    border-radius: 50%;
+    margin-left: auto;
+  }
 }
 
 .rk-match__lp {
   text-align: right;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 800;
   color: var(--nf-danger);
-}
-.rk-match__lp.is-gain {
-  color: var(--nf-success);
+  white-space: nowrap;
+
+  &.is-gain {
+    color: var(--nf-success);
+  }
 }
 
 /* ---- Responsive ----
@@ -5285,12 +5566,9 @@ $touch: 44px;
       56px;
   }
   .rk-match {
-    grid-template-columns:
-      minmax(92px, 110px) 20px max-content 26px minmax(126px, 1fr)
-      max-content max-content 68px 14px;
-  }
-  .rk-match__perks {
-    display: none;
+    grid-template-columns: 100px 18px 74px minmax(110px, 1fr) 84px 190px 60px;
+    gap: 8px;
+    padding: 8px 12px;
   }
 }
 
@@ -5328,17 +5606,10 @@ $touch: 44px;
   .rk-row__summary .rk-cell--trend {
     display: none;
   }
-  /* Se oculta la línea: quedan 8 zonas, así que 8 columnas. */
   .rk-match {
-    grid-template-columns:
-      minmax(88px, 104px) max-content 24px minmax(110px, 1fr)
-      max-content max-content 60px 14px;
-  }
-  /* Los hechizos caen en LOS DOS lados: recortar solo el del rival dejaba el
-     bloque descuadrado respecto al VS, que es justo lo que arregla el espejo. */
-  .rk-match__lane,
-  .rk-match__spells {
-    display: none;
+    grid-template-columns: 90px 18px 74px minmax(90px, 1fr) 78px 180px 56px;
+    gap: 6px;
+    padding: 6px 10px;
   }
 }
 
@@ -6165,476 +6436,6 @@ $touch: 44px;
   .rk-match:hover {
     transform: none;
   }
-}
-
-/* ============ EMPTY STATE ============ */
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  text-align: center;
-  padding: 24px 12px;
-}
-.empty-state__icon {
-  font-size: 40px;
-  line-height: 1;
-  opacity: 0.85;
-}
-.empty-state__text {
-  font-size: 13px;
-  color: var(--nf-secondary);
-}
-.empty-state__hint {
-  max-width: 360px;
-  font-size: 13px;
-  color: var(--nf-text-dim);
-  margin: 0;
-}
-
-/* ============ ESTADÍSTICAS ============ */
-
-/* ---- Scope pill (NOCHE / TEMPORADA / HISTÓRICO) ---- */
-.seg {
-  display: inline-flex;
-  gap: 4px;
-  padding: 4px;
-  margin-bottom: 18px;
-  border-radius: 10px;
-  border: 1.5px solid var(--nf-border);
-  background: var(--nf-inset);
-}
-.seg__btn {
-  appearance: none;
-  border: none;
-  cursor: pointer;
-  padding: 7px 16px;
-  border-radius: 7px;
-  background: transparent;
-  color: var(--nf-text-dim);
-  font-size: 11px;
-  font-weight: 700;
-  transition:
-    color 0.14s,
-    background 0.14s;
-}
-.seg__btn:hover {
-  color: var(--nf-text-mid);
-}
-.seg__btn.is-active {
-  color: var(--nf-text);
-  background: var(--nf-elevated);
-}
-
-/* ---- Section tabs ---- */
-.tabs {
-  display: flex;
-  gap: 26px;
-  margin-bottom: 22px;
-  border-bottom: 1.5px solid var(--nf-border);
-}
-.tabs__btn {
-  appearance: none;
-  border: none;
-  cursor: pointer;
-  background: transparent;
-  color: var(--nf-text-dim);
-  font-size: 12px;
-  font-weight: 700;
-  padding: 0 2px 12px;
-  margin-bottom: -1.5px;
-  border-bottom: 2px solid transparent;
-  transition:
-    color 0.14s,
-    border-color 0.14s;
-}
-.tabs__btn:hover {
-  color: var(--nf-text-mid);
-}
-.tabs__btn.is-active {
-  color: var(--nf-secondary);
-  border-bottom-color: var(--nf-secondary);
-}
-
-/* ---- RESUMEN: highlight cards ---- */
-.hl-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 16px;
-  margin-bottom: 18px;
-}
-.hl {
-  --ac: var(--nf-secondary);
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 18px;
-  min-height: 150px;
-  border-radius: 12px;
-  border: 1px solid var(--nf-border);
-  border-top: 2px solid color-mix(in srgb, var(--ac) 60%, var(--nf-border));
-  background: var(--nf-surface-2);
-}
-.hl[data-accent='primary'] {
-  --ac: var(--nf-primary);
-}
-.hl[data-accent='secondary'] {
-  --ac: var(--nf-secondary);
-}
-.hl[data-accent='warning'] {
-  --ac: var(--nf-warning);
-}
-.hl__eyebrow {
-  font-size: 12px;
-  color: var(--ac);
-}
-.hl__hero {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-.hl__avatar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 52px;
-  height: 52px;
-  flex: none;
-  border-radius: 50%;
-  border: 1.5px solid var(--nf-border);
-  font-family: var(--nf-mono);
-  font-weight: 700;
-  font-size: 16px;
-  color: #fff;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-}
-.hl__avatar--sm {
-  width: 40px;
-  height: 40px;
-  font-size: 13px;
-}
-.hl__who {
-  min-width: 0;
-}
-.hl__name {
-  font-size: 19px;
-  font-weight: 800;
-  color: var(--nf-text);
-  line-height: 1.1;
-}
-.hl__name--sm {
-  font-size: 15px;
-  font-weight: 700;
-}
-.hl__blurb {
-  font-size: 13px;
-  color: var(--nf-text-dim);
-  margin-top: 4px;
-}
-.hl__score {
-  margin-top: auto;
-  align-self: flex-start;
-  padding: 5px 12px;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--nf-primary);
-  background: color-mix(in srgb, var(--nf-primary) 12%, transparent);
-  border: 1px solid var(--nf-border-accent);
-}
-.hl__duo {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.hl__plus {
-  font-size: 18px;
-  color: var(--nf-text-dim);
-  font-weight: 700;
-}
-.hl__big {
-  font-size: 52px;
-  font-weight: 800;
-  line-height: 1;
-  color: var(--nf-warning);
-}
-.hl__big-unit {
-  font-size: 22px;
-  margin-left: 2px;
-}
-
-/* ---- RESUMEN: totals strip ---- */
-.totals {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 1px;
-  margin-bottom: 26px;
-  border-radius: 10px;
-  border: 1.5px solid var(--nf-border);
-  background: var(--nf-border);
-  overflow: hidden;
-}
-.totals__item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding: 16px 8px;
-  background: var(--nf-surface-2);
-}
-.totals__val {
-  font-size: 26px;
-  font-weight: 800;
-  color: var(--nf-text);
-  line-height: 1;
-}
-.totals__lbl {
-  font-size: 12px;
-  color: var(--nf-text-dim);
-}
-@media (max-width: 560px) {
-  .totals {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-/* ---- RESUMEN: stat cards (mini-leaderboards) ---- */
-.sc-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 16px;
-}
-.sc {
-  --ac: var(--nf-secondary);
-  display: flex;
-  flex-direction: column;
-  padding: 16px 18px 18px;
-  border-radius: 12px;
-  border: 1px solid var(--nf-border);
-  border-top: 2px solid color-mix(in srgb, var(--ac) 60%, var(--nf-border));
-  background: var(--nf-surface-2);
-}
-.sc[data-accent='primary'] {
-  --ac: var(--nf-primary);
-}
-.sc[data-accent='secondary'] {
-  --ac: var(--nf-secondary);
-}
-.sc[data-accent='warning'] {
-  --ac: var(--nf-warning);
-}
-.sc__head {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  margin-bottom: 14px;
-}
-.sc__glyph {
-  font-size: 16px;
-  line-height: 1;
-}
-.sc__title {
-  font-size: 11px;
-  color: var(--ac);
-  font-weight: 700;
-}
-.sc__leader {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.sc__leader-meta {
-  flex: 1;
-  min-width: 0;
-}
-.sc__leader-name {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--nf-text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.sc__leader-sub {
-  font-size: 11px;
-  color: var(--nf-text-dim);
-  margin-top: 2px;
-}
-.sc__leader-val {
-  font-size: 24px;
-  font-weight: 800;
-  color: var(--nf-text);
-}
-.sc__spark {
-  height: 28px;
-  margin: 10px 0 4px;
-}
-.sc__row {
-  display: grid;
-  grid-template-columns: 16px 1fr auto auto;
-  align-items: center;
-  gap: 10px;
-  padding: 7px 0;
-  border-top: 1px solid var(--nf-border);
-  font-size: 12px;
-}
-.sc__row:first-of-type {
-  margin-top: 6px;
-}
-.sc__row-rank {
-  color: var(--nf-text-dim);
-  font-weight: 700;
-}
-.sc__row-name {
-  color: var(--nf-text-mid);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.sc__row-sub {
-  color: var(--nf-text-dim);
-  font-size: 11px;
-}
-.sc__row-val {
-  color: var(--nf-text);
-  font-weight: 700;
-}
-
-/* ---- JUGADORES ---- */
-.player-wr {
-  font-size: 16px;
-  font-weight: 800;
-  color: var(--nf-success);
-}
-.player-wr--lo {
-  color: var(--nf-danger);
-}
-.player-main {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  color: var(--nf-text-mid);
-}
-.ptiles {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-  gap: 10px;
-}
-.ptile {
-  padding: 12px;
-  border-radius: 8px;
-  border: 1px solid var(--nf-border);
-  background: var(--nf-inset);
-  text-align: center;
-}
-.ptile__val {
-  font-size: 20px;
-  font-weight: 800;
-  color: var(--nf-text);
-  line-height: 1;
-}
-.ptile__lbl {
-  font-size: 11px;
-  color: var(--nf-text-dim);
-  margin-top: 6px;
-}
-.ptile[data-accent='secondary'] .ptile__val {
-  color: var(--nf-secondary);
-}
-.ptile[data-accent='primary'] .ptile__val {
-  color: var(--nf-primary);
-}
-.ptile[data-accent='warning'] .ptile__val {
-  color: var(--nf-warning);
-}
-
-/* ---- PREMIOS: trophy wall ---- */
-.trophy-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 16px;
-}
-.trophy {
-  --tc: var(--nf-secondary);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  text-align: center;
-  padding: 22px 16px 18px;
-  border-radius: 12px;
-  border: 1.5px solid color-mix(in srgb, var(--tc) 35%, transparent);
-  background:
-    radial-gradient(
-      120% 80% at 50% -10%,
-      color-mix(in srgb, var(--tc) 16%, transparent),
-      transparent 70%
-    ),
-    var(--nf-surface-2);
-  transition:
-    transform 0.14s,
-    box-shadow 0.14s;
-}
-.trophy:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 26px color-mix(in srgb, var(--tc) 22%, transparent);
-}
-.trophy[data-color='primary'] {
-  --tc: var(--nf-primary);
-}
-.trophy[data-color='secondary'] {
-  --tc: var(--nf-secondary);
-}
-.trophy[data-color='warning'] {
-  --tc: var(--nf-warning);
-}
-.trophy[data-color='success'] {
-  --tc: var(--nf-success);
-}
-.trophy[data-color='tertiary'] {
-  --tc: var(--nf-tertiary);
-}
-.trophy[data-color='danger'] {
-  --tc: var(--nf-danger);
-}
-.trophy__glyph {
-  font-size: 38px;
-  line-height: 1;
-}
-.trophy__title {
-  font-size: 12px;
-  font-weight: 800;
-  color: var(--tc);
-}
-.trophy__winner {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.trophy__avatar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  border: 1.5px solid var(--nf-border);
-  font-family: var(--nf-mono);
-  font-weight: 700;
-  font-size: 11px;
-  color: #fff;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-}
-.trophy__name {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--nf-text);
-}
-.trophy__blurb {
-  font-size: 11px;
-  color: var(--nf-text-dim);
-  line-height: 1.4;
 }
 
 /* ============ CREAR PARTIDA — wizard ============ */
@@ -9181,69 +8982,6 @@ $touch: 44px;
 }
 
 /* ---- Paso 0 · mode select ---- */
-.cp-modes__lead {
-  margin: 0 0 18px;
-  font-size: 16px;
-  color: var(--nf-text-mid);
-}
-.cp-modes {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 18px;
-}
-.cp-mode {
-  --ac: var(--nf-secondary);
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 14px;
-  padding: 30px 26px;
-  text-align: left;
-  border-radius: 14px;
-  border: 1.5px solid var(--nf-border);
-  border-top: 3px solid color-mix(in srgb, var(--ac) 60%, var(--nf-border));
-  background: var(--nf-surface-2);
-  cursor: pointer;
-  transition:
-    transform 0.14s,
-    box-shadow 0.14s,
-    border-color 0.14s;
-}
-.cp-mode--primary {
-  --ac: var(--nf-primary);
-}
-.cp-mode:hover {
-  border-color: color-mix(in srgb, var(--ac) 70%, transparent);
-  box-shadow: var(--nf-shadow-card);
-}
-.cp-mode__glyph {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 58px;
-  height: 58px;
-  border-radius: 14px;
-  font-size: 28px;
-  background: color-mix(in srgb, var(--ac) 14%, transparent);
-  border: 1.5px solid color-mix(in srgb, var(--ac) 40%, transparent);
-}
-.cp-mode__title {
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--ac);
-}
-.cp-mode__desc {
-  margin: 0;
-  font-size: 14px;
-  line-height: 1.6;
-  color: var(--nf-text-mid);
-}
-.cp-mode__cta {
-  margin-top: auto;
-  padding-top: 8px;
-  font-size: 13px;
-  color: var(--ac);
-}
 
 /* ---- Sala abierta · waiting room ---- */
 .cp-room__bar {
@@ -11291,242 +11029,6 @@ $touch: 44px;
 /* ── Convocar: elegir horas ──────────────────────────────────────────────────
    El camino rápido son los chips de horas típicas; el selector libre queda
    plegado detrás de un <details> para quien necesite un finde por la tarde. */
-/* ── Convocar: elegir día y hora ─────────────────────────────────────────────
-   Dos pasos, como cualquier app de reservas: una tira de días que se desliza y
-   una rejilla de horas del día elegido. Sin inputs nativos de fecha, que se
-   pintan distinto en cada navegador y en un móvil abren un diálogo del sistema
-   en mitad del flujo. Todo con altura de dedo. */
-.dp-step__label {
-  margin: 18px 0 10px;
-  font-size: 12px;
-  text-transform: uppercase;
-  color: var(--nf-text-dim);
-}
-
-.dp-days {
-  display: flex;
-  gap: 8px;
-  overflow-x: auto;
-  padding-bottom: 6px;
-  scroll-snap-type: x proximity;
-  /* La barra nativa parte el diseño en escritorio y en móvil no se ve igualmente. */
-  scrollbar-width: none;
-  &::-webkit-scrollbar {
-    display: none;
-  }
-}
-
-.dp-day {
-  flex: 0 0 auto;
-  scroll-snap-align: start;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  width: 58px;
-  padding: 10px 0 8px;
-  border: 1px solid var(--nf-border);
-  border-radius: 14px;
-  background: var(--nf-surface-2);
-  color: var(--nf-text);
-  cursor: pointer;
-  transition:
-    border-color 0.15s,
-    background 0.15s,
-    transform 0.1s;
-}
-.dp-day:hover {
-  border-color: var(--nf-secondary);
-  transform: translateY(-1px);
-}
-.dp-day.is-active {
-  border-color: var(--nf-secondary);
-  background: color-mix(in srgb, var(--nf-secondary) 18%, transparent);
-}
-.dp-day__weekday {
-  font-size: 11px;
-  color: var(--nf-text-dim);
-}
-.dp-day.is-active .dp-day__weekday {
-  color: var(--nf-secondary);
-}
-.dp-day__number {
-  font-size: 19px;
-  font-weight: 600;
-  line-height: 1.1;
-}
-
-/* Los puntos dicen "aquí ya elegiste algo" sin tener que volver al día para comprobarlo. */
-.dp-day__dots {
-  display: flex;
-  gap: 3px;
-  height: 5px;
-  margin-top: 2px;
-}
-.dp-day__dots i {
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: var(--nf-primary);
-}
-
-.dp-hours {
-  display: grid;
-  /* Se refluye sola: cuatro por fila en escritorio, dos o tres en un móvil. */
-  grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
-  gap: 8px;
-}
-.dp-hour {
-  /* 44px es el mínimo cómodo para un dedo; por debajo se falla el toque. */
-  min-height: 44px;
-  border: 1px solid var(--nf-border);
-  border-radius: 12px;
-  background: var(--nf-surface-2);
-  color: var(--nf-text);
-  font-size: 14px;
-  font-variant-numeric: tabular-nums;
-  cursor: pointer;
-  transition:
-    border-color 0.15s,
-    background 0.15s,
-    color 0.15s,
-    transform 0.1s;
-}
-.dp-hour:hover:not(:disabled) {
-  border-color: var(--nf-secondary);
-  color: var(--nf-secondary);
-}
-.dp-hour.is-on {
-  border-color: var(--nf-primary);
-  background: color-mix(in srgb, var(--nf-primary) 22%, transparent);
-  color: var(--nf-primary);
-  font-weight: 600;
-}
-.dp-hour:disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
-}
-.dp-hours__empty {
-  padding: 14px;
-  border: 1px dashed var(--nf-border);
-  border-radius: 12px;
-  font-size: 12px;
-  color: var(--nf-text-dim);
-}
-
-/* Una hora fuera de la franja (un sábado por la mañana). Secundaria de verdad, no el camino
-   principal escondido: el día y las horas normales están arriba a la vista. */
-.dp-custom {
-  margin-top: 12px;
-}
-.dp-custom__toggle {
-  display: inline-block;
-  padding: 6px 0;
-  font-size: 11px;
-  color: var(--nf-text-dim);
-  cursor: pointer;
-  &:hover {
-    color: var(--nf-secondary);
-  }
-}
-.dp-custom__row {
-  display: flex;
-  gap: 10px;
-  margin-top: 8px;
-}
-.dp-custom__time {
-  flex: 0 0 140px;
-  color-scheme: dark;
-  font-variant-numeric: tabular-nums;
-}
-.dp-custom__add {
-  flex: 1;
-  min-height: 44px;
-  border: 1px solid var(--nf-secondary);
-  border-radius: 12px;
-  background: transparent;
-  color: var(--nf-secondary);
-  font-size: 11px;
-  cursor: pointer;
-}
-.dp-custom__add:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-/* El carrito: lo que se va a publicar. Siempre a la vista y siempre quitable de un toque. */
-.dp-cart {
-  margin-top: 18px;
-  padding-top: 16px;
-  border-top: 1px solid var(--nf-border);
-}
-.dp-cart__label {
-  margin-bottom: 10px;
-  font-size: 12px;
-  text-transform: uppercase;
-  color: var(--nf-text-dim);
-}
-.dp-cart__list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  min-height: 40px;
-}
-.dp-cart__item {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  min-height: 38px;
-  padding: 0 12px;
-  border: 1px solid var(--nf-primary);
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--nf-primary) 14%, transparent);
-  color: var(--nf-text);
-  font-size: 12.5px;
-  cursor: pointer;
-}
-.dp-cart__item:hover {
-  background: color-mix(in srgb, var(--nf-danger) 20%, transparent);
-}
-.dp-cart__x {
-  color: var(--nf-text-dim);
-  font-size: 11px;
-}
-.dp-cart__item:hover .dp-cart__x {
-  color: var(--nf-danger);
-}
-.dp-cart__empty {
-  font-size: 12px;
-  color: var(--nf-text-dim);
-}
-
-.qh-note {
-  margin-top: 16px;
-}
-
-@media (max-width: 560px) {
-  .dp-custom__row {
-    flex-direction: column;
-  }
-  .dp-custom__time {
-    flex-basis: auto;
-  }
-}
-
-@media (max-width: 560px) {
-  .lb-slot__head {
-    flex-wrap: wrap;
-  }
-  .lb-slot__when {
-    flex-basis: 100%;
-  }
-  /* La hora se lleva la primera fila entera, así que en la segunda el contador se queda
-     a la izquierda y el botón se va al borde derecho, igual que en escritorio. */
-  .lb-slot__cta {
-    margin-left: auto;
-  }
-}
-
 /* ============================================================
    CRUZADO — cara a cara entre dos jugadores
    Prefijo `.cx-`, siguiendo la convención por superficie del
@@ -11674,9 +11176,12 @@ $touch: 44px;
    es cómo os fue a los dos, así que ninguno de los dos lados manda. */
 .m-card__main--cross {
   display: grid;
-  grid-template-columns: 104px minmax(0, 1fr) auto minmax(0, 1fr) auto;
+  grid-template-columns: 100px minmax(0, 1fr) auto minmax(0, 1fr) 130px;
   align-items: center;
+  min-height: 84px;
+  box-sizing: border-box;
   gap: 16px;
+  padding: 12px 18px;
 }
 
 .cx-card__side {

@@ -1,0 +1,149 @@
+.hub-trivia {
+  height: 100%;
+}
+
+/* Cada familia de dato tiene su acento, para que al rotar se note que ha cambiado de tema. */
+.hub-trivia__body {
+  --trivia-accent: var(--nf-secondary);
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px;
+  border-radius: 11px;
+  background:
+    radial-gradient(
+      120% 80% at 100% 0%,
+      color-mix(in srgb, var(--trivia-accent) 16%, transparent),
+      transparent 60%
+    ),
+    var(--nf-surface-2, rgba(255, 255, 255, 0.03));
+  border: 1px solid color-mix(in srgb, var(--trivia-accent) 30%, var(--nf-border));
+}
+
+.hub-trivia__body[data-kind='tower'] {
+  --trivia-accent: var(--nf-primary);
+}
+.hub-trivia__body[data-kind='farm'] {
+  --trivia-accent: var(--nf-emerald, #3fb950);
+}
+.hub-trivia__body[data-kind='blood'] {
+  --trivia-accent: var(--nf-danger);
+}
+.hub-trivia__body[data-kind='dragon'] {
+  --trivia-accent: var(--nf-warning);
+}
+
+.hub-trivia__top {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.hub-trivia__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  flex: none;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--trivia-accent) 18%, transparent);
+  color: var(--trivia-accent);
+}
+
+.hub-trivia__icon svg {
+  width: 17px;
+  height: 17px;
+}
+
+.hub-trivia__kicker {
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--trivia-accent) 35%, transparent);
+  font-size: 11px;
+  color: var(--trivia-accent);
+}
+
+/* La cifra es el titular: se lee antes que ninguna otra cosa de la tarjeta. */
+.hub-trivia__value {
+  margin: 4px 0 0;
+  font-size: 30px;
+  font-weight: var(--fw-bold);
+  line-height: 1;
+  letter-spacing: var(--ls-tight);
+  color: var(--nf-text);
+}
+
+.hub-trivia__headline {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--nf-text-mid);
+}
+
+/* La barra da escala al número: un 78% y un 4 de 10 se comparan de un vistazo. */
+.hub-trivia__meter {
+  height: 5px;
+  margin-top: auto;
+  border-radius: 3px;
+  background: var(--nf-border);
+  overflow: hidden;
+}
+
+.hub-trivia__meter-fill {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--trivia-accent);
+}
+
+.hub-trivia__detail {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--nf-text-dim);
+}
+
+.hub-trivia__dots {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+}
+
+/* Cada rayita dice dos cosas: en cuál de los datos estás y cuánto le queda al de turno. */
+.hub-trivia__dot {
+  position: relative;
+  width: 26px;
+  height: 4px;
+  padding: 0;
+  border: none;
+  border-radius: 2px;
+  background: var(--nf-border);
+  overflow: hidden;
+  cursor: pointer;
+  transition: background 0.14s;
+}
+
+.hub-trivia__dot:hover {
+  background: var(--nf-border-strong);
+}
+
+.hub-trivia__dot-fill {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--nf-secondary);
+  transition: width 0.1s linear;
+}
+
+/* En pausa el relleno se apaga: se ve que la cuenta atrás está detenida a propósito. */
+.hub-trivia__dot.is-paused .hub-trivia__dot-fill {
+  background: var(--nf-text-dim);
+  transition: none;
+}
+
+.hub-trivia__dot:focus-visible {
+  outline: 2px solid var(--nf-secondary);
+  outline-offset: 2px;
+}

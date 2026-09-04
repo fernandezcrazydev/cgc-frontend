@@ -1,0 +1,261 @@
+@use 'breakpoints' as *;
+
+/* Tabla de líderes con filas desplegables (§5.5.5).
+
+   Las columnas se declaran una sola vez en `--ld-cols` y las heredan la cabecera y
+   todas las filas: si se declararan dos veces, un día la cabecera diría una cosa y
+   las filas otra, que es exactamente cómo se descuadran las tablas. */
+
+.ld-table {
+  --ld-cols: minmax(0, 2.2fr) 92px 78px 62px 88px 96px 26px;
+
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ld-head {
+  display: grid;
+  grid-template-columns: var(--ld-cols);
+  gap: 10px;
+  padding: 0 12px 8px;
+  font-size: 11px;
+  color: var(--nf-text-dim);
+  border-bottom: 1px solid var(--nf-border);
+}
+
+.ld-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ld-row {
+  border-radius: 9px;
+  border: 1px solid transparent;
+  transition:
+    background 0.14s,
+    border-color 0.14s;
+}
+
+.ld-row:hover {
+  background: var(--nf-surface-2);
+}
+
+.ld-row.is-open {
+  background: var(--nf-surface-2);
+  border-color: var(--nf-border);
+}
+
+.ld-row__btn {
+  display: grid;
+  grid-template-columns: var(--ld-cols);
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 12px;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+
+.ld-row__btn:focus-visible {
+  outline: var(--nf-focus-ring, 2px) solid var(--nf-focus);
+  outline-offset: -2px;
+  border-radius: 9px;
+}
+
+.ld-row__who {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.ld-row__rank {
+  width: 16px;
+  font-size: 11.5px;
+  color: var(--nf-text-dim);
+}
+
+.ld-row__name {
+  overflow: hidden;
+  font-size: 13px;
+  color: var(--nf-text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ld-row__cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 13px;
+  color: var(--nf-text);
+}
+
+.ld-row__cell small {
+  font-size: 11px;
+  color: var(--nf-text-dim);
+}
+
+.ld-row__cell small.is-low {
+  color: var(--nf-danger);
+}
+
+.ld-row__chevron {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--nf-text-dim);
+  transition: transform 0.16s ease;
+}
+
+.ld-row__chevron svg {
+  width: 15px;
+  height: 15px;
+}
+
+.ld-row.is-open .ld-row__chevron {
+  transform: rotate(180deg);
+}
+
+/* ---- Panel desplegado ---- */
+
+.ld-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 4px 12px 14px;
+  animation: ld-detail-in 0.18s ease-out;
+}
+
+@keyframes ld-detail-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ld-detail {
+    animation: none;
+  }
+
+  .ld-row__chevron {
+    transition: none;
+  }
+}
+
+.ld-detail__main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ld-detail__main-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 11.5px;
+  color: var(--nf-text-dim);
+}
+
+.ld-detail__champ {
+  font-size: 12.5px;
+  color: var(--nf-text-mid);
+}
+
+.ld-tiles {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ld-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 9px 10px;
+  border-radius: 8px;
+  background: var(--nf-surface);
+  border: 1px solid var(--nf-border);
+}
+
+.ld-tile__value {
+  font-size: 14px;
+  font-weight: var(--fw-semibold);
+  color: var(--nf-text);
+}
+
+.ld-tile[data-accent='primary'] .ld-tile__value {
+  color: var(--nf-primary);
+}
+
+.ld-tile[data-accent='secondary'] .ld-tile__value {
+  color: var(--nf-secondary);
+}
+
+.ld-tile[data-accent='warning'] .ld-tile__value {
+  color: var(--nf-gold);
+}
+
+.ld-tile__label {
+  font-size: 11px;
+  color: var(--nf-text-dim);
+}
+
+/* ---- Estrechos ----
+   Por debajo del salto la tabla deja de ser tabla: la cabecera desaparece y cada
+   fila se lee como una ficha, porque siete columnas en 600px no se leen. */
+/* Las columnas se ocultan por posición, y cabecera y fila comparten el mismo
+   orden (1 jugador, 2 KDA, 3 CS, 4 visión, 5 daño, 6 partidas, 7 chevron), así que
+   la misma regla vale para las dos y no pueden descuadrarse. */
+@media (max-width: $bp-compact) {
+  .ld-table {
+    --ld-cols: minmax(0, 1fr) 88px 74px 92px 26px;
+  }
+
+  .ld-head > :nth-child(4),
+  .ld-head > :nth-child(5),
+  .ld-row__btn > :nth-child(4),
+  .ld-row__btn > :nth-child(5) {
+    display: none;
+  }
+
+  .ld-tiles {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: $bp-mobile) {
+  .ld-table {
+    --ld-cols: minmax(0, 1fr) 92px 26px;
+  }
+
+  .ld-head {
+    display: none;
+  }
+
+  .ld-row__btn > :nth-child(2),
+  .ld-row__btn > :nth-child(3) {
+    display: none;
+  }
+
+  .ld-tiles {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

@@ -1,0 +1,100 @@
+@use 'breakpoints' as *;
+
+/* Récords históricos (§5.5.5). Tono oro: son los hitos, no la analítica diaria. */
+
+.rec-grid {
+  grid-template-columns: repeat(3, 1fr);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rec-card {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 14px 15px;
+  border-radius: 10px;
+  background: linear-gradient(
+    160deg,
+    color-mix(in srgb, var(--nf-gold) 7%, var(--nf-surface-2)),
+    var(--nf-surface-2)
+  );
+  border: 1px solid var(--nf-border);
+}
+
+.rec-card__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  margin-bottom: 3px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--nf-gold) 14%, transparent);
+  color: var(--nf-gold);
+}
+
+.rec-card__icon svg {
+  width: 17px;
+  height: 17px;
+}
+
+.rec-card__title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: var(--fw-semibold);
+  color: var(--nf-text-dim);
+}
+
+.rec-card__value {
+  margin: 0;
+  font-size: 19px;
+  font-weight: var(--fw-bold);
+  color: var(--nf-text);
+}
+
+.rec-card__detail {
+  margin: 0 0 10px;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--nf-text-mid);
+}
+
+/* El enlace se queda pegado abajo aunque las tres tarjetas tengan textos de
+   distinto largo: si no, los botones bailan de altura entre tarjeta y tarjeta. */
+.rec-card__link {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  justify-content: center;
+  margin-top: auto;
+  padding: 7px 13px;
+  font-size: 12px;
+  color: var(--nf-text-mid);
+  text-decoration: none;
+  background: var(--nf-surface);
+  border: 1px solid var(--nf-border);
+  border-radius: 7px;
+  transition:
+    color 0.14s,
+    border-color 0.14s,
+    background 0.14s;
+}
+
+.rec-card__link:hover {
+  color: var(--nf-text);
+  border-color: var(--nf-border-strong);
+  background: color-mix(in srgb, var(--nf-gold) 10%, var(--nf-surface));
+}
+
+.rec-card__link:focus-visible {
+  outline: var(--nf-focus-ring, 2px) solid var(--nf-focus);
+  outline-offset: var(--nf-focus-offset, 2px);
+}
+
+@media (max-width: $bp-compact) {
+  .rec-grid {
+    grid-template-columns: 1fr;
+  }
+}
