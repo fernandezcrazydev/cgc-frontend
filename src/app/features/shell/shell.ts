@@ -502,6 +502,14 @@ export class Shell {
     return inRoom ? `Ir a la sala (${count})` : `Unirme a la sala (${count})`;
   }
 
+  /**
+   * Rótulo de una sección del grupo. Es el texto de la fila y, con la barra plegada, también
+   * su `title`: en el rail solo se ve el icono, así que el nombre tiene que llegar por ahí.
+   */
+  sectionLabel(groupId: string, item: GroupNavItem): string {
+    return item.path === 'crear-partida' ? this.roomActionLabel(groupId) : item.label;
+  }
+
   /** Enlace dinámico para la acción de sala / crear partida. */
   roomActionLink(groupId: string): unknown[] {
     const room = this.activeRoomForGroup(groupId);
@@ -527,9 +535,14 @@ export class Shell {
 
   /**
    * ¿Se despliegan las secciones de este grupo bajo su fila?
+   *
+   * Ya no depende del plegado: rail y barra desplegada pintan LA MISMA lista, solo que en
+   * el rail se queda en columna de iconos (ver `shell-sidebar-nav.scss`). Cuando eran dos
+   * listas distintas, plegar la barra desmontaba una y montaba la otra, y por eso el
+   * despliegue de un grupo solo se animaba en rail.
    */
   isExpandedGroup(id: string): boolean {
-    return !this.railed() && this.groups.selectedId() === id;
+    return this.groups.selectedId() === id;
   }
 
   // ── Popover de secciones en rail ──────────────────────────────────

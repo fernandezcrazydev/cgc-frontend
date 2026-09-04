@@ -1,23 +1,18 @@
-/* Navegación de grupo de la barra lateral: el segundo nivel del acordeón y el popover del
-   rail (Fase 1).
+/* Navegación de grupo de la barra lateral: el segundo nivel del acordeón (Fase 1).
 
    Va en su propia hoja y no al final de `shell.scss` porque aquella ya rozaba el
    presupuesto de `anyComponentStyle` (24 kB) y añadir esto lo rebasaba. Separarlo también
    lo deja donde se busca: todo lo de las secciones del grupo, junto. */
-/* ── Segundo nivel del acordeón: las secciones del grupo activo ──────────────
-   La barra listaba los grupos pero no ofrecía nada de ellos, así que cambiar de sección dentro
-   de un grupo obligaba a volver al hub. Estas filas cuelgan del grupo activo y son las mismas
-   que sirve el popover del rail. */
-/* ── Segundo nivel del acordeón: las secciones del grupo activo ──────────────
-   La barra listaba los grupos pero no ofrecía nada de ellos, así que cambiar de sección dentro
-   de un grupo obligaba a volver al hub. Estas filas cuelgan del grupo activo y son las mismas
-   que sirve el popover del rail. */
 .shell__group {
   position: relative;
   user-select: none;
   -webkit-user-drag: element;
+  border-radius: 0 8px 8px 0;
+  transition:
+    opacity var(--nf-dur) var(--nf-ease-std),
+    transform var(--nf-dur) var(--nf-ease-std),
+    background var(--nf-dur-slow) var(--nf-ease-std);
   cursor: grab;
-  transition: opacity 0.16s ease, transform 0.16s ease;
 
   &:active {
     cursor: grabbing;
@@ -40,18 +35,71 @@
     box-shadow: 0 0 8px var(--nf-primary);
     z-index: 10;
   }
+
+  /* El filo azul del grupo abierto va en un pseudoelemento, no en un `border-left`.
+     Con borde, abrir un grupo le sumaba 3px de ancho a la fila y TODA la lista daba un
+     brinco lateral en el mismo instante en que empezaba a desplegarse: ese era buena parte
+     de lo que se veía "raro" al pulsar un grupo. Así el filo aparece fundiéndose y nada
+     cambia de sitio. */
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 3px;
+    border-radius: 0 2px 2px 0;
+    background: var(--nf-primary);
+    opacity: 0;
+    transition: opacity var(--nf-dur-slow) var(--nf-ease-std);
+    pointer-events: none;
+  }
+}
+
+/* ── Segundo nivel del acordeón: las secciones del grupo activo ──────────────
+   La barra listaba los grupos pero no ofrecía nada de ellos, así que cambiar de sección
+   dentro de un grupo obligaba a volver al hub.
+
+   El despliegue es un truco de grid (`0fr` → `1fr`): es la única forma de transicionar
+   hasta una altura `auto` sin medirla en JS ni fijar un `max-height` de mentira que
+   descuadra el tempo según cuántas secciones tenga el grupo. Y las secciones están SIEMPRE
+   montadas: con `@if`, plegar borraba el nodo en el fotograma 0 y el cierre no tenía nada
+   que animar — desplegar se veía bien y plegar era un corte seco. */
+.shell__sections-wrap {
+  display: grid;
+  grid-template-rows: 0fr;
+  /* `visibility` saca los enlaces plegados del orden de tabulación; el retardo la aguanta
+     visible hasta que termina el plegado. */
+  visibility: hidden;
+  transition:
+    grid-template-rows var(--nf-dur-slow) var(--nf-ease-std),
+    visibility 0s linear var(--nf-dur-slow);
+
+  &.is-open {
+    grid-template-rows: 1fr;
+    visibility: visible;
+    transition: grid-template-rows var(--nf-dur-slow) var(--nf-ease-out), visibility 0s;
+  }
 }
 
 .shell__sections {
   display: flex;
   flex-direction: column;
   gap: 1px;
-  margin: 2px 0 6px;
   /* Sangrado alineado con el avatar del grupo (28px + 10px de hueco), más una guía vertical:
-     sin ella, a 248px las secciones se leen como hermanas del grupo y no como sus hijas. */
-  padding-left: 19px;
+     sin ella, a 248px las secciones se leen como hermanas del grupo y no como sus hijas.
+     El aire va en `padding` y no en `margin` a propósito: el margen de un item de grid
+     sobrevive al track de `0fr` y dejaría 8px de hueco fantasma bajo cada grupo plegado. */
+  padding: 2px 0 6px 19px;
   margin-left: 18px;
   border-left: 1px solid var(--nf-border);
+  /* Como item del grid del acordeón: es lo que permite que el track lo aplaste a 0. */
+  min-height: 0;
+  overflow: hidden;
+  transition:
+    padding var(--nf-dur-slow) var(--nf-ease-std),
+    margin-left var(--nf-dur-slow) var(--nf-ease-std),
+    border-color var(--nf-dur) var(--nf-ease-std);
 }
 
 .shell__section {
@@ -63,7 +111,23 @@
   color: var(--nf-text-dim);
   text-decoration: none;
   font-weight: 600;
-  transition: background 0.14s, color 0.14s;
+  opacity: 0;
+  transform: translateX(-8px);
+  transition:
+    background var(--nf-dur) var(--nf-ease-std),
+    color var(--nf-dur) var(--nf-ease-std),
+    padding var(--nf-dur-slow) var(--nf-ease-std),
+    opacity var(--nf-dur) var(--nf-ease-out),
+    transform var(--nf-dur) var(--nf-ease-out);
+}
+
+/* Al abrir, las secciones entran escalonadas detrás del propio despliegue; al cerrar se
+   van todas a la vez (sin retardo), que es como se lee un bloque que se repliega. */
+.shell__sections-wrap.is-open .shell__section {
+  opacity: 1;
+  transform: none;
+
+  @for $i from 1 through 8 { &:nth-child(#{$i}) { transition-delay: #{60 + $i * 24}ms; } }
 }
 .shell__section:hover {
   background: rgba(255, 255, 255, 0.06);
@@ -152,30 +216,14 @@
   white-space: nowrap;
 }
 
-/* En la hoja móvil no hay guía vertical que seguir */
+/* En la hoja móvil no hay guía vertical que seguir, ni acordeón: la hoja ya se abre y
+   cierra ella sola, así que estas secciones se pintan visibles de entrada. */
 .shell__sections--sheet {
-  margin: 2px 0 10px;
-  padding-left: 8px;
+  padding: 2px 0 10px 8px;
   margin-left: 12px;
-}
-.shell__sections--sheet .shell__section { padding: 9px 8px; font-size: 13px; }
-
-/* ── Popover de secciones en rail ──────────────────────────────────────────── */
-
-.shell__sidebar.is-rail .shell__grouplist {
   overflow: visible;
-  width: 100%;
-  margin-left: 0;
-  padding: 4px 0 6px;
-  border-left: none;
-  gap: 2px;
 }
-.shell__sidebar.is-rail .shell__group {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-}
+.shell__sections--sheet .shell__section { padding: 9px 8px; font-size: 13px; opacity: 1; transform: none; }
 
 /* ── Realce del grupo ──────────────────────────────────────────────────────
    Con las secciones desplegadas, el azul envuelve el bloque ENTERO —avatar y opciones, hasta
@@ -183,9 +231,8 @@
    de nadie. Plegado, el azul se queda en el círculo y solo si estás dentro de ese grupo. */
 .shell__group.is-open {
   background: color-mix(in srgb, var(--nf-primary) 12%, transparent);
-  border-left: 3px solid var(--nf-primary);
-  border-radius: 0 8px 8px 0;
 }
+.shell__group.is-open::after { opacity: 1; }
 
 .shell__group.is-open .shell__groupitem,
 .shell__group.is-open .shell__groupitem.is-active {
@@ -206,57 +253,26 @@
   background: transparent;
   border-left-color: transparent;
 }
-.shell__sidebar.is-rail .shell__groupitem {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0;
-  width: 100%;
-  height: 40px;
-  min-height: 40px;
-  padding: 0;
-  box-sizing: border-box;
-  background: transparent;
-  border: none;
-  border-left: 3px solid transparent;
-  border-radius: 0 4px 4px 0;
-  cursor: pointer;
-  transition: background 0.14s, border-color 0.14s, color 0.14s;
 
-  &:hover {
-    background: rgba(255, 255, 255, 0.05);
-    color: #fff;
-  }
-
-  &.is-active {
-    background: color-mix(in srgb, var(--nf-primary) 14%, transparent);
-    border-left-color: var(--nf-primary);
-    color: #fff;
-  }
+/* ── Las mismas secciones, plegadas a columna de iconos ─────────────────────
+   El rail tenía su propia lista (`.shell__rail-sections`) con sus propios `@keyframes`, y
+   por eso al plegar/desplegar la barra una lista se desmontaba y la otra se montaba de
+   golpe: la animación bonita solo existía en el rail. Ahora es UNA lista que cambia de
+   forma, así que el mismo acordeón sirve en los dos anchos. */
+.shell__sidebar.is-rail .shell__sections {
+  padding-left: 0;
+  margin-left: 0;
+  border-left-color: transparent;
 }
-.shell__sidebar.is-rail .shell__groupitem-meta,
+
+/* 16px deja el glifo de 18px en la misma columna vertical que el resto de iconos del rail. */
+.shell__sidebar.is-rail .shell__section { padding-left: 16px; padding-right: 16px; }
+
 .shell__sidebar.is-rail .shell__groupitem-check {
   opacity: 0;
   max-width: 0;
   pointer-events: none;
 }
-.shell__sidebar.is-rail .shell__grouplist-all-label { display: none; }
-.shell__sidebar.is-rail .shell__grouplist-all {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 40px;
-  min-height: 40px;
-  margin: 0;
-  padding: 0;
-  border: none;
-  box-sizing: border-box;
-}
-.shell__sidebar.is-rail .shell__grouplist-all-glyph {
-  margin: 0 auto;
-}
-.shell__sidebar.is-rail .shell__grouplist-empty { display: none; }
 
 /* ── Botón Logo Clicable ────────────────────────────────────────────────────── */
 .shell__logo-btn {
@@ -291,7 +307,10 @@
   border-radius: 7px;
   color: var(--nf-text-dim);
   cursor: pointer;
-  transition: background 0.14s, color 0.14s, border-color 0.14s, opacity 0.16s;
+  transition:
+    background var(--nf-dur) var(--nf-ease-std),
+    color var(--nf-dur) var(--nf-ease-std),
+    border-color var(--nf-dur) var(--nf-ease-std);
 }
 .shell__railtoggle:hover {
   background: rgba(255, 255, 255, 0.06);
@@ -303,7 +322,7 @@
   outline-offset: 2px;
 }
 .shell__railtoggle-icon {
-  transition: transform 0.24s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform var(--nf-dur-slow) var(--nf-ease-std);
 }
 .shell__railtoggle.is-railed .shell__railtoggle-icon {
   transform: rotate(180deg);
@@ -321,34 +340,13 @@
   padding: 0 14px 0 16px;
   position: relative;
   flex: none;
+  transition: padding var(--nf-dur-slow) var(--nf-ease-std);
 }
 
 .shell__brand-text {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  min-width: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  opacity: 1;
-  max-width: 140px;
-  transition: opacity 0.16s ease, max-width 0.22s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.shell__sidebar.is-rail .shell__brand {
-  padding: 0;
-  gap: 0;
-  justify-content: center;
-}
-
-.shell__sidebar.is-rail .shell__brand-text {
-  opacity: 0;
-  max-width: 0;
-  pointer-events: none;
-}
-
-.shell__sidebar.is-rail .shell__railtoggle {
-  display: none;
 }
 
 /* ── Avatar del grupo con soporte de indicador en vivo ─────────────────────── */
@@ -359,84 +357,6 @@
   justify-content: center;
   flex: none;
   border-radius: 6px;
-}
-
-/* ── Opciones de grupo directamente visibles en modo rail ─────────────────── */
-.shell__rail-sections {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 3px;
-  margin: 3px 0 6px;
-  padding: 3px 0;
-  width: 100%;
-  overflow: hidden;
-  animation: shell-rail-expand 0.22s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-  transform-origin: top center;
-}
-
-@keyframes shell-rail-expand {
-  0% {
-    opacity: 0;
-    max-height: 0;
-    transform: translateY(-6px) scaleY(0.85);
-  }
-  100% {
-    opacity: 1;
-    max-height: 320px;
-    transform: translateY(0) scaleY(1);
-  }
-}
-
-.shell__rail-section-item {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 6px;
-  color: var(--nf-text-dim);
-  text-decoration: none;
-  cursor: pointer;
-  transition: background 0.14s, color 0.14s, transform 0.14s;
-  animation: shell-rail-item-in 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
-
-  @for $i from 1 through 8 {
-    &:nth-child(#{$i}) {
-      animation-delay: #{$i * 20}ms;
-    }
-  }
-
-  &:hover {
-    background: rgba(255, 255, 255, 0.08);
-    color: #fff;
-    transform: scale(1.05);
-  }
-
-  &.is-active {
-    background: color-mix(in srgb, var(--grp-c1, var(--nf-primary)) 20%, transparent);
-    color: var(--grp-c1, var(--nf-primary));
-    box-shadow: 0 0 0 1px color-mix(in srgb, var(--grp-c1, var(--nf-primary)) 45%, transparent);
-  }
-
-  &.is-primary {
-    color: var(--grp-c1, var(--nf-primary));
-  }
-
-  &.is-live-room {
-    color: #34d399;
-  }
-}
-
-@keyframes shell-rail-item-in {
-  0% {
-    opacity: 0;
-    transform: scale(0.6) translateY(-4px);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
 }
 
 /* ── Scroll seguro del sidebar (sin barra visual pero 100% funcional) ─────────── */

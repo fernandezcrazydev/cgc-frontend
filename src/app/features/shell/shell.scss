@@ -8,7 +8,14 @@
 
 /* ---- sidebar ---- */
 .shell__sidebar {
-  width: 248px;
+  /* Los dos anchos del menú viven aquí porque el plegado los necesita para centrar cada
+     glifo en el rail sin repetir el mismo número mágico en seis reglas. 71px no es
+     arbitrario: es el ancho al que la columna de iconos del menú desplegado (que empieza
+     en 25px y mide 20) cae justo en el centro del rail. Así, al plegar, los iconos NO se
+     mueven ni un píxel — solo desaparece el texto y se estrecha el panel. */
+  --nf-side-w: 248px;
+  --nf-rail-w: 71px;
+  width: var(--nf-side-w);
   flex: none;
   position: sticky;
   top: 0;
@@ -20,9 +27,49 @@
   background: rgba(20, 20, 22, 0.72);
   border-right: 1px solid var(--nf-border);
   backdrop-filter: blur(8px);
-  transition: width 0.24s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: width var(--nf-dur-slow) var(--nf-ease-std);
   overflow-x: hidden;
   will-change: width;
+}
+
+/* ── Texto que sobrevive al plegado ────────────────────────────────────────────
+   TODO lo que desaparece al plegar la barra pasa por aquí: etiquetas de navegación,
+   nombre del grupo, wordmark, perfil, "Cerrar sesión". Antes cada uno lo resolvía a su
+   manera —unos con `display: none` (que no se puede animar y por eso el plegado daba un
+   tirón) y otros con `opacity`+`max-width`—, así que la misma acción se veía de tres
+   formas distintas a la vez.
+
+   La clave es que los dos sentidos NO son simétricos, y ahí estaba el otro fallo:
+   - al PLEGAR el texto se va primero y deprisa, antes de que la caja se estreche. Si no,
+     el ancho lo alcanza y "Cerrar sesión" se parte en dos líneas mientras se encoge.
+   - al DESPLEGAR el texto entra con retardo, cuando el hueco ya existe. Nunca hay una
+     palabra buscando sitio en un panel que todavía mide 71px. */
+.shell__collapsible {
+  min-width: 0;
+  max-width: 160px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  opacity: 1;
+  transform: none;
+  /* `rotate` está en la lista por el caret del menú de descarga: es texto plegable y además
+     gira al abrirse. Gira con `rotate` y no con `transform` justo para no pelearse con el
+     `translateX` del plegado — son dos propiedades independientes, cada una con su tiempo. */
+  transition:
+    opacity var(--nf-dur) var(--nf-ease-out) 120ms,
+    transform var(--nf-dur) var(--nf-ease-out) 120ms,
+    max-width var(--nf-dur-slow) var(--nf-ease-std),
+    rotate var(--nf-dur) var(--nf-ease-std);
+}
+.shell__sidebar.is-rail .shell__collapsible {
+  opacity: 0;
+  max-width: 0;
+  transform: translateX(-6px);
+  pointer-events: none;
+  transition:
+    opacity var(--nf-dur-fast) var(--nf-ease-in),
+    transform var(--nf-dur-fast) var(--nf-ease-in),
+    max-width var(--nf-dur-slow) var(--nf-ease-std);
 }
 
 .shell__logo {
@@ -81,7 +128,7 @@
   cursor: pointer;
   text-align: left;
   text-decoration: none;
-  transition: color 0.15s, background 0.15s;
+  transition: color var(--nf-dur) var(--nf-ease-std), background var(--nf-dur) var(--nf-ease-std);
 }
 .shell__nav-item:hover { color: #fff; }
 .shell__nav-glyph {
@@ -103,14 +150,6 @@
   stroke-linejoin: round;
   display: block;
 }
-.shell__nav-label {
-  white-space: nowrap;
-  opacity: 1;
-  max-width: 160px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  transition: opacity 0.16s ease, max-width 0.22s cubic-bezier(0.4, 0, 0.2, 1);
-}
 .shell__nav-item.is-active {
   background: color-mix(in srgb, var(--nf-primary) 14%, transparent);
   border-left-color: var(--nf-primary);
@@ -123,7 +162,6 @@
   margin-left: auto;
   font-size: var(--fs-label);
   color: var(--nf-text-dim);
-  transition: transform 0.18s ease;
 }
 
 .shell__grouplist {
@@ -155,7 +193,11 @@
   text-align: left;
   user-select: none;
   -webkit-user-drag: element;
-  transition: background 0.14s, border-color 0.14s, color 0.14s;
+  transition:
+    background var(--nf-dur) var(--nf-ease-std),
+    border-color var(--nf-dur) var(--nf-ease-std),
+    color var(--nf-dur) var(--nf-ease-std),
+    padding var(--nf-dur-slow) var(--nf-ease-std);
 }
 .shell__groupitem:hover {
   background: rgba(255, 255, 255, 0.05);
@@ -190,15 +232,7 @@
   border-radius: 6px;
 }
 
-.shell__groupitem-meta {
-  min-width: 0;
-  flex: 1;
-  white-space: nowrap;
-  opacity: 1;
-  max-width: 160px;
-  overflow: hidden;
-  transition: opacity 0.16s ease, max-width 0.22s cubic-bezier(0.4, 0, 0.2, 1);
-}
+.shell__groupitem-meta { flex: 1; }
 .shell__groupitem-name {
   display: block;
   font-weight: 700;
@@ -234,7 +268,10 @@
   text-decoration: none;
   border-left: 3px solid transparent;
   border-radius: 0 4px 4px 0;
-  transition: background 0.14s, color 0.14s;
+  transition:
+    background var(--nf-dur) var(--nf-ease-std),
+    color var(--nf-dur) var(--nf-ease-std),
+    padding var(--nf-dur-slow) var(--nf-ease-std);
 }
 .shell__grouplist-all:hover {
   background: rgba(255, 255, 255, 0.05);
@@ -258,14 +295,6 @@
 .shell__grouplist-all:hover .shell__grouplist-all-glyph {
   border-color: var(--nf-secondary);
   background: color-mix(in srgb, var(--nf-secondary) 10%, transparent);
-}
-.shell__grouplist-all-label {
-  white-space: nowrap;
-  opacity: 1;
-  max-width: 160px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  transition: opacity 0.16s ease, max-width 0.22s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .shell__grouplist-empty {
   padding: 10px 9px;
@@ -295,7 +324,7 @@
   color: #fff;
 }
 .shell__download-trigger.is-open .shell__nav-caret {
-  transform: rotate(180deg);
+  rotate: 180deg;
 }
 
 /* Capa de cierre al pulsar fuera, igual que el panel de notificaciones. */
@@ -380,7 +409,10 @@
   border: 1px solid transparent;
   text-decoration: none;
   cursor: pointer;
-  transition: background 0.16s, border-color 0.16s;
+  transition:
+    background var(--nf-dur) var(--nf-ease-std),
+    border-color var(--nf-dur) var(--nf-ease-std),
+    padding var(--nf-dur-slow) var(--nf-ease-std);
 }
 .shell__profile:hover {
   background: rgba(255, 255, 255, 0.05);
@@ -471,7 +503,10 @@
   font-weight: 700;
   font-size: var(--fs-label);
   cursor: pointer;
-  transition: color 0.16s, border-color 0.16s;
+  transition:
+    color var(--nf-dur) var(--nf-ease-std),
+    border-color var(--nf-dur) var(--nf-ease-std),
+    gap var(--nf-dur-slow) var(--nf-ease-std);
 }
 .shell__logout:hover { color: var(--nf-secondary); border-color: var(--nf-border-strong); }
 
@@ -508,69 +543,55 @@
 
 /* ---- group invitation review modal ---- */
 
-/* ---- menú plegado en rail (solo escritorio) ---- */
+/* ---- menú plegado en rail (solo escritorio) ----
+
+   Lo que había aquí escondía el texto con `display: none !important`, que no es animable:
+   las etiquetas se esfumaban en el fotograma 0 mientras el ancho tardaba 240ms, y al
+   desplegar reaparecían de golpe dentro del panel ya estrecho, partiéndose en dos líneas
+   hasta que el ancho las alcanzaba. De ahí el tirón. Ahora todo eso lo hace
+   `.shell__collapsible`, y aquí solo queda el recentrado de los glifos. */
 .shell__sidebar.is-rail {
-  width: 68px;
+  width: var(--nf-rail-w);
 }
 
-.shell__sidebar.is-rail .shell__nav-label,
-.shell__sidebar.is-rail .shell__nav-caret {
-  display: none !important;
-  opacity: 0;
-  max-width: 0;
-  margin: 0 !important;
-  pointer-events: none;
-}
-.shell__sidebar.is-rail .shell__nav-item {
-  justify-content: center;
-  gap: 0;
-  height: 40px;
-  min-height: 40px;
-  padding: 0;
-  box-sizing: border-box;
-}
+/* Los glifos de navegación (20px) ya caen centrados en el rail sin tocar nada: ese es el
+   motivo de que el rail mida 71px. Solo sobra el padding derecho, que reservaba sitio
+   para un texto que ya no está. */
+.shell__sidebar.is-rail .shell__nav-item { padding-right: 0; }
 
-.shell__sidebar.is-rail .shell__download {
-  padding: 0;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 100%;
-}
-.shell__sidebar.is-rail .shell__download-trigger {
-  padding: 0;
-  margin: 0;
-  border-top: none;
-  height: 40px;
-  min-height: 40px;
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-.shell__sidebar.is-rail .shell__download-glyph {
-  margin: 0 auto;
-}
+/* Avatar de grupo y glifo de "Gestionar grupos" miden 28px, no 20: necesitan su propio
+   padding para caer en la MISMA columna vertical que los iconos de navegación. Se
+   transiciona (ver `.shell__groupitem`), así que se deslizan en vez de saltar. */
+.shell__sidebar.is-rail .shell__groupitem,
+.shell__sidebar.is-rail .shell__grouplist-all { padding: 0 8px; }
+
+.shell__sidebar.is-rail .shell__brand { padding-left: 17px; padding-right: 0; }
 
 /* El popover de descarga NO se posiciona ya dentro de la barra.
 
    Aquí vivían dos reglas —`.shell__download-menu.is-rail`, que lo sacaba al lado, y
    `.shell__sidebar.has-popover`, que levantaba el `overflow-x: hidden` para que no
-   quedara recortado a los 68px del rail—. Las dos desaparecen porque el menú dejó de
+   quedara recortado al ancho del rail—. Las dos desaparecen porque el menú dejó de
    colgar del sidebar: ahora se pinta como capa flotante fuera de él, anclada a la
    posición real del botón (ver `shell.html`, `downloadAnchor()`). Esa vía resuelve
    además el caso que el `overflow` no podía: el `backdrop-filter` del sidebar lo
    convierte en bloque contenedor, así que ni `position: fixed` escapaba de él. */
-.shell__sidebar.is-rail .shell__profile { justify-content: center; padding: 6px 0; }
-.shell__sidebar.is-rail .shell__user-meta { display: none; }
+.shell__sidebar.is-rail .shell__profile { padding-left: 4px; padding-right: 4px; }
 
-/* "Cerrar sesión" con texto no cabe en el rail; ahí va el icono */
-.shell__logout-icon { display: none; flex: none; }
-.shell__sidebar.is-rail .shell__logout-icon { display: block; }
-.shell__sidebar.is-rail .shell__logout-label { display: none; }
+/* El icono de "Cerrar sesión" ya no aparece solo al plegar: está siempre, y lo que se
+   pliega es el texto, como en cualquier otra fila. Un icono que se intercambia por otra
+   cosa es un salto; una etiqueta que se retira, no. */
+.shell__logout-icon { flex: none; }
+.shell__sidebar.is-rail .shell__logout { gap: 0; }
 
+/* Sin animación: el plegado sigue funcionando, pero cambia de estado sin recorrido.
+   Se apagan TODAS las piezas del acordeón, no solo el ancho: dejar el texto animándose
+   sobre un panel que salta es peor que no animar nada. */
 @media (prefers-reduced-motion: reduce) {
-  .shell__sidebar { transition: none; }
+  .shell__sidebar,
+  .shell__sidebar *,
+  .shell__sidebar *::before,
+  .shell__sidebar *::after { transition-duration: 1ms !important; transition-delay: 0s !important; }
 }
 
 /* ---- main column ---- */

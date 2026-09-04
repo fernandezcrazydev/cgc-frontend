@@ -36,6 +36,18 @@
      que separa una superficie "impresa" de una que parece tener grosor. */
   --nf-edge-light: inset 0 1px 0 rgba(255, 255, 255, 0.05);
 
+  /* ---- Movimiento ----
+     Una sola gramática para toda la app: lo que entra desacelera (`out`), lo que
+     se va acelera (`in`), y lo que cambia de tamaño usa la estándar. Sin esto cada
+     componente inventa su `cubic-bezier`, que es como el plegado de la barra lateral
+     acabó con cinco tempos distintos animando la misma acción. */
+  --nf-ease-std: cubic-bezier(0.4, 0, 0.2, 1);
+  --nf-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --nf-ease-in: cubic-bezier(0.55, 0, 1, 0.45);
+  --nf-dur-fast: 110ms;
+  --nf-dur: 180ms;
+  --nf-dur-slow: 280ms;
+
   /* ---- Escala de z-index ----
      Los valores ya eran razonables, pero vivían sueltos por 6 ficheros y
      no había forma de saber qué se apila sobre qué sin buscarlos todos. */
