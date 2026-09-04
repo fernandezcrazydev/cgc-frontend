@@ -1,25 +1,17 @@
 import { ChangeDetectionStrategy, Component, inject, linkedSignal, signal } from '@angular/core';
-import { NfButton, NfSelect, NfSkeleton, NfToggle, NfWindow } from '../../../ui';
+import { NfBadge, NfButton, NfSelect, NfSkeleton, NfToggle, NfWindow } from '../../../ui';
 import { errorMessage } from '../../../core/http';
 import { REGION_OPTIONS } from '../../../core/lobby';
 import { SettingsStore } from '../../../core/settings';
-import { DevicesStore } from '../../../core/devices';
+import { ActiveSession, SessionsStore, scopeLabels, sessionLabel } from '../../../core/sessions';
 import { THEMES, ThemeService } from '../../../core/theme';
 import { ToastService } from '../../../core/toast';
-
-/** "23 jul 2026" — la fecha en que se vinculó una sesión de escritorio. */
-const DEVICE_FMT = new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'short', year: 'numeric' });
-
-/** Copy amable de cada scope; un scope sin traducir se pinta tal cual (no rompe). */
-const SCOPE_LABELS: Record<string, string> = {
-  'profile:read': 'Leer perfil',
-  'matches:upload': 'Subir partidas',
-};
+import { formatRelativeTime } from '../../../shared/date-format';
 
 @Component({
   selector: 'app-ajustes',
   standalone: true,
-  imports: [NfWindow, NfToggle, NfSelect, NfSkeleton, NfButton],
+  imports: [NfWindow, NfToggle, NfSelect, NfSkeleton, NfButton, NfBadge],
   styleUrl: './ajustes.scss',
   template: `
     <div class="view max-520">
@@ -115,47 +107,56 @@ const SCOPE_LABELS: Record<string, string> = {
           </div>
         </nf-window>
 
-        <nf-window title="Dispositivos" bodyPadding="22px">
-          <div class="settings-eyebrow nf-mono">Dispositivos vinculados</div>
-          <div class="setting-sub setting-sub--help device-intro">
-            Sesiones de la app de escritorio con acceso a tu cuenta. Revoca la de una máquina que ya
-            no uses o que no reconozcas.
+        <nf-window title="Sesiones" bodyPadding="22px">
+          <div class="settings-eyebrow nf-mono">Sesiones activas</div>
+          <div class="setting-sub setting-sub--help session-intro">
+            Dónde tienes la sesión abierta ahora mismo: navegadores y la app de escritorio. Cierra
+            la de un dispositivo que ya no uses o que no reconozcas.
           </div>
 
-          <div [attr.aria-busy]="devices.isLoading() || null">
-            @switch (devices.status()) {
+          <div [attr.aria-busy]="sessions.isLoading() || null">
+            @switch (sessions.status()) {
               @case ('loading') {
                 <nf-skeleton width="100%" height="52px" />
                 <nf-skeleton width="100%" height="52px" />
               }
               @case ('error') {
                 <div class="setting-row setting-row--last">
-                  <div class="setting-sub">No se han podido cargar los dispositivos.</div>
-                  <button nfButton variant="ghost" size="sm" (click)="retryDevices()">Reintentar</button>
+                  <div class="setting-sub">No se han podido cargar las sesiones.</div>
+                  <button nfButton variant="ghost" size="sm" (click)="retrySessions()">Reintentar</button>
                 </div>
               }
               @default {
-                @if (devices.devices(); as list) {
+                @if (sessions.sessions(); as list) {
                   @if (list.length === 0) {
-                    <div class="device-empty nf-mono">
-                      No tienes ninguna sesión de escritorio vinculada.
-                    </div>
+                    <div class="session-empty nf-mono">No hay ninguna sesión abierta.</div>
                   } @else {
-                    @for (device of list; track device.id; let last = $last) {
+                    @for (session of list; track session.id; let last = $last) {
                       <div class="setting-row" [class.setting-row--last]="last">
                         <div>
-                          <div class="setting-title">Vinculado el {{ formatDeviceDate(device.linkedAt) }}</div>
-                          <div class="setting-sub nf-mono">{{ scopeLabels(device.scopes) }}</div>
+                          <div class="setting-title">
+                            {{ label(session) }}
+                            @if (session.current) {
+                              <nf-badge color="secondary">Este dispositivo</nf-badge>
+                            }
+                          </div>
+                          <div class="setting-sub nf-mono">{{ sessionMeta(session) }}</div>
                         </div>
-                        <button
-                          nfButton
-                          variant="danger"
-                          size="sm"
-                          [disabled]="devices.isRevoking(device.id)"
-                          (click)="revoke(device.id)"
-                        >
-                          Revocar
-                        </button>
+                        <!-- La sesión actual no ofrece el botón: el backend responde 409, y un
+                             botón que siempre falla es peor que no tenerlo. Salir de este
+                             dispositivo es "Cerrar sesión", que está en el menú de la cuenta. -->
+                        @if (!session.current) {
+                          <button
+                            nfButton
+                            variant="danger"
+                            size="sm"
+                            [disabled]="sessions.isClosing(session.id)"
+                            [attr.aria-label]="'Cerrar la sesión de ' + label(session)"
+                            (click)="closeSession(session)"
+                          >
+                            Cerrar
+                          </button>
+                        }
                       </div>
                     }
                   }
@@ -269,14 +270,15 @@ const SCOPE_LABELS: Record<string, string> = {
         line-height: 1.4;
       }
 
-      .device-intro {
+      .session-intro {
         margin: 6px 0 16px;
       }
-      .device-empty {
+      .session-empty {
         padding: 14px 2px 2px;
-        font-size: 12px;
+        font-size: var(--fs-caption);
         color: var(--nf-text-mid);
       }
+
     `,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -284,42 +286,52 @@ const SCOPE_LABELS: Record<string, string> = {
 export class Ajustes {
   readonly theme = inject(ThemeService);
   readonly settings = inject(SettingsStore);
-  readonly devices = inject(DevicesStore);
+  readonly sessions = inject(SessionsStore);
   private readonly toasts = inject(ToastService);
   readonly themes = THEMES;
   readonly regionOptions = REGION_OPTIONS;
 
   constructor() {
     void this.settings.ensureLoaded();
-    void this.devices.ensureLoaded();
+    void this.sessions.ensureLoaded();
   }
 
   retry(): void {
     void this.settings.reload();
   }
 
-  retryDevices(): void {
-    void this.devices.reload();
+  retrySessions(): void {
+    void this.sessions.reload();
   }
 
-  formatDeviceDate(iso: string): string {
-    return DEVICE_FMT.format(new Date(iso));
-  }
-
-  scopeLabels(scopes: string[]): string {
-    return scopes.map((scope) => SCOPE_LABELS[scope] ?? scope).join(' · ');
+  /** "Chrome en Windows". Delegado al dominio, que es donde está probado que un `null` no se rellena. */
+  label(session: ActiveSession): string {
+    return sessionLabel(session);
   }
 
   /**
-   * Revoca una sesión de escritorio. Pesimista: el store solo la quita de la lista cuando el
+   * La segunda línea de la fila: qué es, qué permisos tiene si es la app, y cuándo se usó por
+   * última vez. El último acceso va siempre, y va al final porque es el dato con el que de verdad
+   * se decide si una sesión es tuya.
+   */
+  sessionMeta(session: ActiveSession): string {
+    const parts: string[] = [];
+    if (session.kind === 'DESKTOP_APP') parts.push('App de escritorio');
+    if (session.scopes.length) parts.push(scopeLabels(session.scopes));
+    parts.push(`Último acceso ${formatRelativeTime(session.lastSeenAt)}`);
+    return parts.join(' · ');
+  }
+
+  /**
+   * Cierra la sesión de otro dispositivo. Pesimista: el store solo la quita de la lista cuando el
    * servidor confirma, y el botón queda deshabilitado mientras vuela (no reentrante). Un fallo se
    * traduce con `errorMessage()`; el 404 de "ya no estaba" el store lo trata como éxito.
    */
-  async revoke(id: string): Promise<void> {
-    if (this.devices.isRevoking(id)) return;
+  async closeSession(session: ActiveSession): Promise<void> {
+    if (this.sessions.isClosing(session.id)) return;
     try {
-      await this.devices.revoke(id);
-      this.toasts.success('Dispositivo desvinculado');
+      await this.sessions.close(session.id);
+      this.toasts.success('Sesión cerrada');
     } catch (e) {
       this.toasts.error(errorMessage(e));
     }
