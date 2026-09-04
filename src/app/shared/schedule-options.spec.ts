@@ -1,4 +1,4 @@
-import { buildDays, buildHours } from './grupo-crear-partida';
+import { buildDays, buildHours } from './schedule-options';
 
 /**
  * Las dos funciones puras del selector de día y hora. Reciben el instante en vez de leer el

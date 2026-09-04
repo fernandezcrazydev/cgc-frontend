@@ -1,0 +1,18 @@
+/* Columna de convocatorias (§5.5.6). */
+
+.sp__count {
+  padding: 2px 8px;
+  font-size: var(--fs-label);
+  color: var(--nf-text-mid);
+  background: var(--nf-surface-2);
+  border-radius: 999px;
+}
+
+.sp__list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}

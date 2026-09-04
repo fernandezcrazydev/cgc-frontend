@@ -1,4 +1,4 @@
-@use '../../../../styles/breakpoints' as *;
+@use 'breakpoints' as *;
 
 /* Detalle de una partida: hero, marcador y objetivos.
 
@@ -413,6 +413,10 @@
   .md-section { padding: 16px 14px; }
 .md-compare { gap: 16px; }
 .md-bar { grid-template-columns: 68px minmax(0, 1fr) 42px; gap: 8px; }
+/* ---- Rivalidades ----
+     Tres tarjetas de 150px de alto mínimo son 450px de scroll para doce datos. Como fila
+     dicen lo mismo en un tercio. */
+.hl-grid { grid-template-columns: minmax(0, 1fr); gap: 10px; }
 /* ---- Navegación entre partidas ----
      Ya se apilaba; lo que faltaba era altura. El enlace del centro («volver») queda el
      último, que es donde llega el pulgar sin recolocar la mano. */

@@ -1,0 +1,152 @@
+@use 'breakpoints' as *;
+
+/* Telemetría de mapa (§5.5.5). Los azul/rojo salen de `--nf-team-blue` y
+   `--nf-team-red`, que son dominio de LoL y no siguen al acento de la app: si
+   mañana el primario cambia de tono, los bandos tienen que seguir siendo los
+   bandos. */
+
+.tm-sides {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tm-sides__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.tm-sides__label {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 7px;
+  font-size: 12.5px;
+  color: var(--nf-text-mid);
+}
+
+.tm-sides__label strong {
+  font-size: 17px;
+  font-weight: var(--fw-bold);
+}
+
+.tm-sides__label--blue strong {
+  color: var(--nf-team-blue);
+}
+
+.tm-sides__label--red strong {
+  color: var(--nf-team-red);
+}
+
+.tm-sides__bar {
+  display: flex;
+  overflow: hidden;
+  height: 12px;
+  border-radius: 6px;
+  background: var(--nf-surface-3);
+}
+
+.tm-sides__fill {
+  height: 100%;
+}
+
+.tm-sides__fill--blue {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--nf-team-blue) 55%, transparent),
+    var(--nf-team-blue)
+  );
+}
+
+.tm-sides__fill--red {
+  background: linear-gradient(
+    90deg,
+    var(--nf-team-red),
+    color-mix(in srgb, var(--nf-team-red) 55%, transparent)
+  );
+}
+
+.tm-sides__foot {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--nf-text-dim);
+}
+
+/* ---- Los cuatro objetivos ---- */
+
+.tm-objectives {
+  grid-template-columns: repeat(4, 1fr);
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tm-objective {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 12px 13px;
+  border-radius: 10px;
+  background: var(--nf-surface-2);
+  /* El borde superior es el que lleva la lectura: cuanto más decisivo el
+     objetivo, más peso visual tiene su tarjeta. */
+  border: 1px solid var(--nf-border);
+  border-top: 2px solid var(--nf-border-strong);
+}
+
+.tm-objective[data-impact='Decisivo'] {
+  border-top-color: var(--nf-gold);
+}
+
+.tm-objective[data-impact='Alto'] {
+  border-top-color: var(--nf-emerald);
+}
+
+.tm-objective[data-impact='Medio'] {
+  border-top-color: var(--nf-secondary);
+}
+
+.tm-objective__label {
+  font-size: 11.5px;
+  color: var(--nf-text-dim);
+}
+
+.tm-objective__value {
+  font-size: 21px;
+  font-weight: var(--fw-bold);
+  color: var(--nf-text);
+}
+
+.tm-objective__sub {
+  font-size: 11.5px;
+  color: var(--nf-text-mid);
+}
+
+.tm-objective__impact {
+  margin-top: 4px;
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+}
+
+.tm-objective[data-impact='Decisivo'] .tm-objective__impact {
+  color: var(--nf-gold);
+}
+
+@media (max-width: $bp-compact) {
+  .tm-objectives {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: $bp-narrow) {
+  .tm-objectives {
+    grid-template-columns: 1fr;
+  }
+
+  .tm-sides__row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+}

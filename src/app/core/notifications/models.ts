@@ -33,7 +33,14 @@ export type NotificationType =
   | 'LOBBY_OPENED'
   | 'LOBBY_CONFIRMED'
   | 'LOBBY_PROMOTED'
-  | 'LOBBY_CANCELLED';
+  | 'LOBBY_CANCELLED'
+  | 'SANCTION_ISSUED'
+  | 'GROUP_KICKED'
+  | 'MVP_EARNED'
+  | 'TIER_PROMOTED';
+
+/** Nivel de severidad / categoría semántica para el semáforo de la campana [F5.5-02] */
+export type NotificationSemanticLevel = 'critical' | 'achievement' | 'room' | 'social';
 
 /**
  * Una entrada de la campana. `type` es el nombre del enum; `data` es un mapa de

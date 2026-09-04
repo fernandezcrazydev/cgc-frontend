@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  afterNextRender,
   computed,
   inject,
   signal,
@@ -13,6 +14,7 @@ import { GameDataStore } from '../../../core/game-data';
 import { GroupsStore } from '../../../core/groups';
 import { MatchHistoryStore } from '../../../core/matches/match-history-store';
 import { Lane, Match, MatchParticipant } from '../../../core/matches/models';
+import { ViewMemoryService } from '../../../shared/view-memory';
 import { NfAvatar, NfButton, NfLaneIcon } from '../../../ui';
 
 export type TierRank = 'S+' | 'S' | 'A' | 'B' | 'C';
@@ -577,9 +579,29 @@ export class Tierlist {
   /** Fila actualmente expandida con el cajón Deep-Dive (id del campeón o null). */
   readonly expandedChampId = signal<number | null>(null);
 
+  private readonly viewMemory = inject(ViewMemoryService);
+
   constructor() {
     void this.groups.ensureLoaded();
     void this.gameData.ensureLoaded();
+
+    afterNextRender(() => {
+      const key = this.group() ? `/app/grupos/${this.group()!.id}/tierlist` : '/app/tierlist';
+      // Scroll y fila desplegada describen dónde estabas: se recuperan solo al volver.
+      const returning = this.viewMemory.consumeReturn(key);
+      if (!returning) return;
+
+      const y = this.viewMemory.consumeScroll(key);
+      if (y !== null && y > 0) {
+        window.scrollTo({ top: y, behavior: 'instant' });
+      }
+      if (returning.expandedIds && returning.expandedIds.length > 0) {
+        const champId = Number(returning.expandedIds[0]);
+        if (!isNaN(champId)) {
+          this.expandedChampId.set(champId);
+        }
+      }
+    });
   }
 
   /**
@@ -895,7 +917,22 @@ export class Tierlist {
   }
 
   toggleExpand(championId: number): void {
-    this.expandedChampId.update((current) => (current === championId ? null : championId));
+    this.expandedChampId.update((current) => {
+      const next = current === championId ? null : championId;
+      const key = this.group() ? `/app/grupos/${this.group()!.id}/tierlist` : '/app/tierlist';
+      // La fotografía se arma aquí porque el cajón del campeón se abre en la propia tabla: no hay
+      // un clic de «ir al detalle» que armarla como en el historial. Así, si desde una fila
+      // abierta te vas a otra pantalla y vuelves, la tabla te devuelve donde estabas.
+      this.viewMemory.save(
+        key,
+        {
+          scrollY: typeof window !== 'undefined' ? window.scrollY : 0,
+          expandedIds: next ? [String(next)] : [],
+        },
+        !!next,
+      );
+      return next;
+    });
   }
 
   resetFilters(): void {

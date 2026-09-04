@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, ElementRef, computed, effect, inject, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, afterNextRender, computed, effect, inject, viewChild } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
@@ -10,6 +10,7 @@ import { filterGroupMatches, sortMatches } from '../../../core/matches/match-fil
 import { MatchStore } from '../../../core/match-store';
 import { GameDataStore } from '../../../core/game-data';
 import { Viewport } from '../../../shared/viewport';
+import { ViewMemoryService } from '../../../shared/view-memory';
 import { GroupMatchCardComponent } from './match-history/group-match-card.component';
 import { MatchFiltersComponent } from './match-history/match-filters.component';
 import { MatchHistoryUiState } from './match-history/match-history-ui';
@@ -267,6 +268,8 @@ export class GrupoHistorial {
     };
   });
 
+  private readonly viewMemory = inject(ViewMemoryService);
+
   constructor() {
     this.gameData.ensureLoaded();
     this.groupsStore.ensureLoaded();
@@ -274,6 +277,19 @@ export class GrupoHistorial {
       const id = this.id();
       if (id) {
         this.bridge.ensure(id);
+        this.ui.setContextKey('/app/grupos/' + id + '/historial');
+      }
+    });
+
+    afterNextRender(() => {
+      const id = this.id();
+      if (!id) return;
+      // Igual que en el historial personal: el scroll solo se restaura si esto es una vuelta.
+      const key = '/app/grupos/' + id + '/historial';
+      if (!this.viewMemory.consumeReturn(key)) return;
+      const y = this.viewMemory.consumeScroll(key);
+      if (y !== null && y > 0) {
+        window.scrollTo({ top: y, behavior: 'instant' });
       }
     });
   }

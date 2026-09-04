@@ -1,0 +1,311 @@
+/* Agendar una custom (§5.5.6). Vive dentro de `<nf-modal>`: aquí no hay fondo ni
+   cierre, solo el formulario.
+
+   Nada de inputs nativos de fecha: se pintan distinto en cada navegador y en un
+   móvil abren un diálogo del sistema en mitad del flujo. Una tira de días que se
+   desliza y una rejilla de horas, todo con altura de dedo. */
+
+.sm {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.sm__legend {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--nf-text-mid);
+}
+
+.sm__block {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.sm__label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0;
+  font-size: 12px;
+  font-weight: var(--fw-semibold);
+  color: var(--nf-text-dim);
+}
+
+.sm__count {
+  font-size: var(--fs-label);
+  font-weight: var(--fw-regular);
+  color: var(--nf-text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.sm__empty,
+.sm__hint {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--nf-text-dim);
+}
+
+/* ---- Día ---- */
+
+/* El mes encima de la tira: la tira cruza el cambio de mes sin avisar, y un "1"
+   suelto detrás de un "31" no dice nada. */
+.sm__month {
+  margin: 0;
+  font-size: 12px;
+  font-weight: var(--fw-semibold);
+  color: var(--nf-text-dim);
+}
+
+.sm__month::first-letter {
+  text-transform: uppercase;
+}
+
+.sm-days {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  scroll-snap-type: x proximity;
+  /* La barra nativa parte el diseño en escritorio y en móvil ni se ve. */
+  scrollbar-width: none;
+}
+
+.sm-days::-webkit-scrollbar {
+  display: none;
+}
+
+.sm-day {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: 54px;
+  padding: 9px 0;
+  scroll-snap-align: start;
+  background: var(--nf-surface-2);
+  border: 1px solid var(--nf-border);
+  border-radius: 10px;
+  color: var(--nf-text-mid);
+  font: inherit;
+  cursor: pointer;
+  transition:
+    border-color 0.14s,
+    background 0.14s,
+    color 0.14s;
+}
+
+/* El finde se distingue porque es cuando se juegan las customs: ahorra leer siete
+   abreviaturas para encontrar el sábado. */
+.sm-day.is-weekend .sm-day__weekday {
+  color: var(--nf-secondary);
+}
+
+.sm-day:hover {
+  border-color: var(--nf-border-strong);
+  color: var(--nf-text);
+}
+
+.sm-day.is-on {
+  background: color-mix(in srgb, var(--nf-primary) 16%, var(--nf-surface-2));
+  border-color: color-mix(in srgb, var(--nf-primary) 55%, var(--nf-border));
+  color: var(--nf-text);
+}
+
+.sm-day:focus-visible {
+  outline: var(--nf-focus-ring, 2px) solid var(--nf-focus);
+  outline-offset: 2px;
+}
+
+.sm-day__weekday {
+  font-size: var(--fs-label);
+}
+
+.sm-day__number {
+  font-size: 17px;
+  font-weight: var(--fw-bold);
+}
+
+/* El día elegido escrito entero: la confirmación de que has pulsado lo que creías. */
+/* Solo la primera letra: `capitalize` daba "Viernes, 4 De Septiembre", y el copy de
+   este proyecto va en frase normal. */
+.sm__chosen {
+  margin: 0;
+  font-size: 13px;
+  color: var(--nf-text);
+}
+
+.sm__chosen::first-letter {
+  text-transform: uppercase;
+}
+
+/* ---- Horas, en dos bandas ---- */
+
+.sm-band {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.sm-band + .sm-band {
+  margin-top: 12px;
+}
+
+.sm-band__label {
+  margin: 0;
+  font-size: var(--fs-label);
+  font-weight: var(--fw-semibold);
+  color: var(--nf-text-dim);
+}
+
+.sm-hours {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
+  gap: 7px;
+}
+
+.sm-hour {
+  padding: 10px 0;
+  background: var(--nf-surface-2);
+  border: 1px solid var(--nf-border);
+  border-radius: 9px;
+  color: var(--nf-text-mid);
+  font: inherit;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition:
+    border-color 0.14s,
+    background 0.14s,
+    color 0.14s;
+}
+
+.sm-hour:hover:not(:disabled) {
+  border-color: var(--nf-border-strong);
+  color: var(--nf-text);
+}
+
+.sm-hour.is-on {
+  background: color-mix(in srgb, var(--nf-emerald) 16%, var(--nf-surface-2));
+  border-color: color-mix(in srgb, var(--nf-emerald) 55%, var(--nf-border));
+  color: var(--nf-text);
+}
+
+/* Al llegar al tope las demás se apagan, en vez de dejar pulsar y no pasar nada. */
+.sm-hour:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.sm-hour:focus-visible {
+  outline: var(--nf-focus-ring, 2px) solid var(--nf-focus);
+  outline-offset: 2px;
+}
+
+/* ---- La propuesta que se está montando ---- */
+
+.sm-basket {
+  padding: 12px 13px;
+  border-radius: 10px;
+  background: var(--nf-inset);
+  border: 1px solid var(--nf-border);
+}
+
+.sm-basket.is-empty {
+  border-style: dashed;
+}
+
+.sm-basket__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sm-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 9px 6px 11px;
+  background: color-mix(in srgb, var(--nf-emerald) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--nf-emerald) 45%, transparent);
+  border-radius: 999px;
+  color: var(--nf-text);
+  font: inherit;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition:
+    background 0.14s,
+    border-color 0.14s;
+}
+
+.sm-chip:hover {
+  background: color-mix(in srgb, var(--nf-danger) 14%, transparent);
+  border-color: color-mix(in srgb, var(--nf-danger) 45%, transparent);
+}
+
+.sm-chip:focus-visible {
+  outline: var(--nf-focus-ring, 2px) solid var(--nf-focus);
+  outline-offset: 2px;
+}
+
+.sm-chip__x {
+  display: flex;
+  align-items: center;
+  color: var(--nf-text-dim);
+}
+
+.sm-chip:hover .sm-chip__x {
+  color: var(--nf-danger);
+}
+
+.sm-chip__x svg {
+  width: 13px;
+  height: 13px;
+}
+
+/* ---- Nota ---- */
+
+.sm__note {
+  width: 100%;
+  padding: 10px 12px;
+  background: var(--nf-inset);
+  border: 1px solid var(--nf-border);
+  border-radius: 9px;
+  color: var(--nf-text);
+  font: inherit;
+  font-size: 13px;
+}
+
+.sm__note::placeholder {
+  color: var(--nf-text-dim);
+}
+
+.sm__note:focus-visible {
+  outline: var(--nf-focus-ring, 2px) solid var(--nf-focus);
+  outline-offset: 1px;
+}
+
+/* ---- Pie ---- */
+
+.sm__foot {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 14px;
+  border-top: 1px solid var(--nf-border);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sm-day,
+  .sm-hour,
+  .sm-chip {
+    transition: none;
+  }
+}

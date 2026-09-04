@@ -1,4 +1,4 @@
-import { Component, DestroyRef, computed, effect, inject, linkedSignal, signal } from '@angular/core';
+import { Component, DestroyRef, computed, effect, inject, linkedSignal, signal, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { filter, map, startWith } from 'rxjs';
@@ -8,6 +8,7 @@ import {
   GroupNavItem,
   groupIdFromUrl,
   isGroupHubUrl,
+  isGroupMatchesUrl,
   pageTitleFor,
 } from './shell-nav';
 import { Auth, Session } from '../../core/auth';
@@ -22,16 +23,20 @@ import {
 import { LobbiesStore, LobbyDetailStore, LobbyResponse } from '../../core/lobbies';
 import { MatchStore, MatchRoom } from '../../core/match-store';
 import { MatchHistoryStore } from '../../core/matches';
-import { NotificationsStore, NotificationView, notificationView } from '../../core/notifications';
+import { NotificationsStore, NotificationView, notificationView, NotificationSemanticLevel, SEED_NOTIFICATIONS } from '../../core/notifications';
 import { RiotAccountStore } from '../../core/riot';
 import { DevicesStore } from '../../core/devices';
 import { DiscordStore } from '../../core/discord';
 import { PreferencesStore } from '../../core/preferences';
 import { ToastService } from '../../core/toast';
 import { RiotMetricsStore, RiotUsageStore } from '../../core/admin';
-import { NfAvatar, NfButton, NfSkeleton, NfToastHost, NfWindow } from '../../ui';
+import { NfAvatar, NfButton, NfRankEmblem, NfSkeleton, NfToastHost, NfTypeahead, NfWindow } from '../../ui';
+import { GlobalSearchItem, GroupSearchResultItem, PlayerSearchResult, PlayerSearchStore } from '../../core/players';
+// Desde el barrel, no desde `../feedback/feedback-dialog`: una feature usa la superficie
+// pública de otra, nunca sus internals (`npm run arch`, regla `feature-internals`).
 import { FeedbackDialog } from '../feedback';
 import { RiotUsageIndicator } from './riot-usage-indicator';
+import { GroupActionsMenuComponent } from './group-actions/group-actions-menu.component';
 import { wireRiotAccountRefresh } from './riot-account-refresh';
 
 /** Preferencia por dispositivo: ¿la navegación lateral arranca plegada en rail? */
@@ -46,7 +51,9 @@ function readRailed(): boolean {
 }
 
 /**
- * Sale Custom app shell — desktop sidebar + sticky header + mobile bottom nav,
+ * Modern SaaS Shell: clean, sleek, with sticky desktop sidebar and a bottom dock
+ * for mobile. Holds the active-group switcher, personal quick-links (Tierlist /
+ * Versus), global branding, and the current profile / disconnect at the bottom,
  * with a routed <router-outlet> for the five views. Port of the APP SHELL block
  * in Login.dc.html.
  */
@@ -64,6 +71,9 @@ function readRailed(): boolean {
     FeedbackDialog,
     RiotUsageIndicator,
     NfAvatar,
+    NfTypeahead,
+    NfRankEmblem,
+    GroupActionsMenuComponent,
   ],
   // Mismo idioma que nf-modal para cerrar con Escape. Es un no-op si el
   // desplegable de descarga no está abierto.
@@ -106,6 +116,51 @@ export class Shell {
   private readonly riotUsage = inject(RiotUsageStore);
   private readonly riotMetrics = inject(RiotMetricsStore);
 
+  // ── Buscador Global de Jugadores y Grupos ──────────────────────────
+  private readonly playerSearchStore = inject(PlayerSearchStore);
+  readonly searchTypeahead = viewChild<NfTypeahead<GlobalSearchItem>>('searchTypeahead');
+  readonly searchQuery = signal('');
+  readonly searchResults = computed<GlobalSearchItem[]>(() =>
+    this.playerSearchStore.search(this.searchQuery()),
+  );
+
+  isPlayer(item: GlobalSearchItem): item is PlayerSearchResult {
+    return item.type === 'player';
+  }
+
+  isGroup(item: GlobalSearchItem): item is GroupSearchResultItem {
+    return item.type === 'group';
+  }
+
+  playerAvatarBg(item: PlayerSearchResult): string {
+    return `radial-gradient(circle at 32% 26%, hsl(${item.hue},90%,64%), hsl(${item.hue},78%,30%))`;
+  }
+
+  groupAvatarBg(item: GroupSearchResultItem): string {
+    return `linear-gradient(135deg, ${item.c1}, ${item.c2})`;
+  }
+
+  onSelectSearchItem(item: GlobalSearchItem): void {
+    this.searchQuery.set('');
+    this.searchTypeahead()?.close();
+
+    if (item.type === 'group') {
+      void this.router.navigate(['/app', 'grupos', item.id]);
+      return;
+    }
+
+    const me = this.session.user();
+    if (
+      me &&
+      (item.userId === me.userId ||
+        item.discordUsername.toLowerCase() === me.discordUsername.toLowerCase())
+    ) {
+      void this.router.navigate(['/app', 'perfil']);
+    } else {
+      void this.router.navigate(['/app', 'perfil', item.riotId]);
+    }
+  }
+
   /** Racha actual del usuario (para el saludo en la barra superior en Inicio). */
   readonly userStreak = computed<{ count: number; type: 'W' | 'L'; label: string } | null>(() => {
     const matches = this.matchHistory.allPersonalMatches();
@@ -131,8 +186,71 @@ export class Shell {
     return { count, type, label: `${count}${letter}` };
   });
 
-  /** Vista de presentación de la bandeja: título/mensaje/tiempo en español por notificación. */
-  readonly notifViews = computed(() => this.notifs.notifications().map((n) => notificationView(n)));
+  // ── Semáforo y Notificaciones Semánticas [F5.5-02] ────────────────
+  readonly demoReadIds = signal<Set<string>>(new Set());
+  readonly demoDismissedIds = signal<Set<string>>(new Set());
+
+  /** Vista de presentación de la bandeja con categorización semántica y catálogo de demostración combinado. */
+  readonly notifViews = computed<NotificationView[]>(() => {
+    const backendNotifs = this.notifs.notifications();
+    const readSet = this.demoReadIds();
+    const dismissedSet = this.demoDismissedIds();
+
+    const backendMapped = backendNotifs
+      .filter((n) => !dismissedSet.has(n.id))
+      .map((n) => {
+        const isRead = n.read || readSet.has(n.id);
+        return notificationView({ ...n, read: isRead });
+      });
+
+    const demoMapped = SEED_NOTIFICATIONS
+      .filter((n) => !dismissedSet.has(n.id))
+      .map((n) => {
+        const isRead = n.read || readSet.has(n.id);
+        return notificationView({ ...n, read: isRead });
+      });
+
+    const seenIds = new Set<string>();
+    const combined: NotificationView[] = [];
+    for (const item of [...backendMapped, ...demoMapped]) {
+      if (!seenIds.has(item.id)) {
+        seenIds.add(item.id);
+        combined.push(item);
+      }
+    }
+    return combined;
+  });
+
+  /** Lista de notificaciones no leídas */
+  readonly unreadViews = computed(() => this.notifViews().filter((n) => !n.read));
+  /** Conteo global de no leídas para el badge de la campana */
+  readonly unreadNotifsCount = computed(() => this.unreadViews().length);
+
+  /**
+   * Precedencia de semáforo de 4 colores en la campana [F5.5-02]:
+   * Rojo (Crítico) > Amarillo (Logro) > Verde (Sala) > Azul (Social)
+   */
+  readonly bellSeverity = computed<NotificationSemanticLevel | null>(() => {
+    const unread = this.unreadViews();
+    if (unread.length === 0) return null;
+    if (unread.some((n) => n.semanticLevel === 'critical')) return 'critical';
+    if (unread.some((n) => n.semanticLevel === 'achievement')) return 'achievement';
+    if (unread.some((n) => n.semanticLevel === 'room')) return 'room';
+    return 'social';
+  });
+
+  readonly hasCriticalUnread = computed(() => this.bellSeverity() === 'critical');
+
+  /** Avisos obligatorios anclados arriba (críticos pendientes de confirmación) */
+  readonly mandatoryNotifs = computed(() =>
+    this.notifViews().filter((n) => n.isMandatory && !n.read)
+  );
+
+  /** Flujo reciente unificado en orden cronológico */
+  readonly recentNotifs = computed(() => {
+    const mandatoryIds = new Set(this.mandatoryNotifs().map((n) => n.id));
+    return this.notifViews().filter((n) => !mandatoryIds.has(n.id));
+  });
 
   /**
    * The selected group's open room still waiting for players, if any. Surfaced as
@@ -141,10 +259,12 @@ export class Shell {
   readonly pendingRoom = computed<LobbyResponse | null>(() => {
     const g = this.groups.selected();
     if (!g) return null;
-    // En el hub del grupo, no: desde la Fase 2 el panel de esa pantalla ya enseña la convocatoria
-    // en su sitio, y el banner encima repetía la misma frase dos veces seguidas. El banner existe
-    // para enterarte estando en OTRA pantalla; ahí sigue apareciendo.
-    if (isGroupHubUrl(this.currentUrl()) && groupIdFromUrl(this.currentUrl()) === g.id) return null;
+    // En el hub del grupo y en su panel de partidas, no: las dos pantallas ya enseñan la
+    // convocatoria en su sitio, y el banner encima repetía la misma frase dos veces seguidas.
+    // El banner existe para enterarte estando en OTRA pantalla; ahí sigue apareciendo.
+    const url = this.currentUrl();
+    const mine = groupIdFromUrl(url) === g.id;
+    if (mine && (isGroupHubUrl(url) || isGroupMatchesUrl(url))) return null;
     // La primera que sigue esperando gente. Una ya confirmada no va aquí: el banner es para
     // "falta gente, entra", no para recordarte una partida que ya tiene hora.
     return this.lobbies.open().find((lobby) => lobby.status === 'POLLING') ?? null;
@@ -172,9 +292,27 @@ export class Shell {
   // sistema por el user-agent (que falla, y en Linux no hay build que ofrecer).
   readonly showDownload = signal(false);
 
-  toggleDownload(): void {
+  /**
+   * Dónde plantar el menú de descarga, en coordenadas de ventana. El panel se pinta fuera del
+   * sidebar —que lo recortaba con su `overflow`— así que necesita saber dónde está su botón.
+   */
+  readonly downloadAnchor = signal<{ left: number; bottom: number } | null>(null);
+
+  toggleDownload(event: Event): void {
     this.railMenuFor.set(null);
-    this.showDownload.update((v) => !v);
+    const abrir = !this.showDownload();
+    if (abrir) {
+      const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+      // Se despliega hacia ARRIBA: está pegado al fondo de la barra y hacia abajo se saldría de
+      // la pantalla. En rail sale por el costado; con la barra desplegada, sobre el propio botón.
+      this.downloadAnchor.set({
+        left: this.railed() ? Math.round(rect.right + 8) : Math.round(rect.left),
+        bottom: Math.round(window.innerHeight - rect.top + 6),
+      });
+    } else {
+      this.downloadAnchor.set(null);
+    }
+    this.showDownload.set(abrir);
   }
 
   readonly isMobile = signal(false);
@@ -403,6 +541,17 @@ export class Shell {
   /** La URL activa, para que el banner de sala abierta sepa dónde está el usuario. */
   private readonly currentUrl = signal('');
 
+  /**
+   * Miembros del grupo de la ruta, o `null` mientras el detalle no esté cargado o sea de otro
+   * grupo. Nunca se pinta un número de relleno: la píldora simplemente no aparece.
+   */
+  readonly groupMemberCount = computed<number | null>(() => {
+    const routeId = this.routeGroupId();
+    if (!routeId || this.groupDetail.group()?.id !== routeId) return null;
+    const count = this.groupDetail.memberCount();
+    return count > 0 ? count : null;
+  });
+
   /** Grupo nombrado explícitamente en la URL activa (/app/grupos/:id/...). */
   readonly currentRouteGroup = computed<GroupView | null>(() => {
     const id = this.routeGroupId();
@@ -425,7 +574,9 @@ export class Shell {
   /** Cierra las capas flotantes sobre la barra. Lo usan Escape y cada navegación. */
   closeOverlays(): void {
     this.showDownload.set(false);
+    this.downloadAnchor.set(null);
     this.railMenuFor.set(null);
+    this.searchTypeahead()?.close();
   }
 
   onEscape(): void {
@@ -447,7 +598,14 @@ export class Shell {
   onDocumentClick(event: MouseEvent): void {
     if (!this.railMenuFor() && !this.showDownload()) return;
     const target = event.target as HTMLElement | null;
-    if (target?.closest('.shell__group') || target?.closest('.shell__download')) return;
+    // El menú de descarga ya no cuelga del botón en el DOM, así que hay que perdonarlo aparte.
+    if (
+      target?.closest('.shell__group') ||
+      target?.closest('.shell__download') ||
+      target?.closest('.shell__download-menu')
+    ) {
+      return;
+    }
     this.closeOverlays();
   }
 
@@ -501,10 +659,15 @@ export class Shell {
     this.showNotifications.set(false);
   }
 
-  /** Marca toda la bandeja como leída (limpia el badge). No hay borrado en el backend. */
+  /** Marca toda la bandeja como leída (limpia el badge). */
   markAllRead(event: Event): void {
     event.stopPropagation();
     void this.notifs.markAllRead();
+    this.demoReadIds.update((s) => {
+      const next = new Set(s);
+      for (const n of SEED_NOTIFICATIONS) next.add(n.id);
+      return next;
+    });
   }
 
   /** Reintenta la carga de la bandeja tras un error de red. */
@@ -517,6 +680,14 @@ export class Shell {
   dismissNotif(view: NotificationView, event: Event): void {
     event.stopPropagation();
     void this.notifs.remove(view.id);
+    this.demoDismissedIds.update((s) => new Set(s).add(view.id));
+  }
+
+  /** Confirmar lectura de un aviso obligatorio crítico [F5.5-02] */
+  acknowledgeNotice(view: NotificationView, event: Event): void {
+    event.stopPropagation();
+    void this.notifs.markRead(view.id);
+    this.demoReadIds.update((s) => new Set(s).add(view.id));
   }
 
   /** Trae la siguiente página de la bandeja. */
@@ -525,19 +696,14 @@ export class Shell {
   }
 
   /**
-   * Abre la notificación: navega a donde apunte, cierra el panel y la da por leída. Genérico
-   * a propósito (lee `view.link`, no el `type`): el siguiente tipo que lleve a algún sitio solo
-   * tiene que rellenar el enlace en `notificationView`, sin tocar la campana.
-   *
-   * Navega sin esperar al `markRead`: es una escritura de comodidad —optimista y con rollback
-   * dentro del store, nunca rechaza—, y una red lenta no debe retrasar el clic. Una ya leída
-   * la descarta el propio store.
+   * Abre la notificación: navega a donde apunte, cierra el panel y la da por leída.
    */
   openNotif(view: NotificationView): void {
     if (!view.link) return;
     this.closeNotifications();
     void this.router.navigate([...view.link]);
     void this.notifs.markRead(view.id);
+    this.demoReadIds.update((s) => new Set(s).add(view.id));
   }
 
   /**
@@ -559,10 +725,20 @@ export class Shell {
   async respondInvite(view: NotificationView, accept: boolean): Promise<void> {
     const invite = view.invite;
     if (!invite || this.invitations.isResponding(invite.invitationId)) return;
+
+    if (this.notifs.notifications().length === 0) {
+      this.demoReadIds.update((s) => new Set(s).add(view.id));
+      this.toasts.success(
+        accept ? `Te uniste a ${invite.groupName}` : `Invitación a ${invite.groupName} rechazada`,
+      );
+      return;
+    }
+
     try {
       if (accept) await this.invitations.accept(invite.invitationId);
       else await this.invitations.decline(invite.invitationId);
       await this.notifs.markRead(view.id);
+      this.demoReadIds.update((s) => new Set(s).add(view.id));
       // Al aceptar ya somos MEMBER en el backend: refetch de /me/groups para que el nuevo
       // grupo aparezca en la barra lateral sin que el usuario tenga que recargar la página.
       if (accept) await this.groups.reload();
@@ -627,12 +803,15 @@ export class Shell {
       if (g) void this.lobbies.ensureLoaded(g.id);
     });
 
-    // Alguien convocó o se apuntó: el banner se actualiza solo.
+    // Alguien convocó o se apuntó: el banner se actualiza solo. En SILENCIO: este
+    // efecto corre en todas las vistas, y `reload()` pone el store en `loading`, así
+    // que refrescar el banner tiraba a esqueletos cualquier pantalla que pinte
+    // convocatorias —el panel de partidas entero— y con ello el scroll al principio.
     effect(() => {
       const nudge = this.notifs.lastNudge();
       const g = this.groups.selected();
       if (nudge?.event === 'lobby' && g && nudge.data['groupId'] === g.id) {
-        void this.lobbies.reload();
+        void this.lobbies.refreshQuietly();
       }
     });
 
@@ -671,7 +850,12 @@ export class Shell {
         // desplegar sus secciones: solo el hub seleccionaba, porque solo el hub pasa por
         // `GroupDetailStore.load()`. Las rutas que no llevan grupo NO lo borran: es estado
         // pegajoso, e Inicio depende de que siga puesto.
-        this.routeGroupId.set(groupIdFromUrl(url ?? ''));
+        const routeGroup = groupIdFromUrl(url ?? '');
+        this.routeGroupId.set(routeGroup);
+        // La cabecera dice miembros y rol en TODAS las secciones del grupo, no solo en el hub,
+        // así que el detalle se pide aquí. `ensureLoaded` es idempotente: si la vista de destino
+        // también lo pide, la petición es una sola.
+        if (routeGroup) void this.groupDetail.ensureLoaded(routeGroup);
         this.currentUrl.set(url ?? '');
         // Cambiar de pantalla cierra cualquier capa abierta sobre la barra.
         this.closeOverlays();

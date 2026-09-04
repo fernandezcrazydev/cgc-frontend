@@ -1,0 +1,77 @@
+/* Chrome común del panel de convocatorias y partidas activas (§5.5.6).
+
+   Se comparte por `styleUrls`, como `group-hub/hub-card.scss`: cada componente
+   conserva sus estilos encapsulados y aun así las dos columnas son la misma tarjeta. */
+
+.mt-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 18px;
+  border-radius: 12px;
+  background: var(--nf-surface);
+  border: 1px solid var(--nf-border);
+}
+
+.mt-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 26px;
+}
+
+.mt-card__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 12px;
+  font-weight: var(--fw-bold);
+  color: var(--nf-text-dim);
+}
+
+.mt-card__empty {
+  margin: 0;
+  padding: 10px 0;
+  font-size: 12.5px;
+  color: var(--nf-text-dim);
+}
+
+/* Píldora «en vivo» con su punto: el mismo idioma que la tarjeta del hub. */
+.mt-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: var(--fw-semibold);
+  color: var(--nf-emerald);
+}
+
+.mt-live__pulse {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--nf-emerald);
+  animation: mt-pulse 2s ease-out infinite;
+}
+
+/* Aro que se expande y se desvanece, no un halo difuso: es el patrón de «esto está
+   vivo» que ya usan el hub y la sala. */
+@keyframes mt-pulse {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--nf-emerald) 55%, transparent);
+  }
+  70% {
+    box-shadow: 0 0 0 7px transparent;
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mt-live__pulse {
+    animation: none;
+  }
+}

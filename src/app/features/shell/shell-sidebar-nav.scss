@@ -176,6 +176,36 @@
   flex-direction: column;
   align-items: stretch;
 }
+
+/* ── Realce del grupo ──────────────────────────────────────────────────────
+   Con las secciones desplegadas, el azul envuelve el bloque ENTERO —avatar y opciones, hasta
+   Discord—: son una sola cosa, y teñir solo el círculo hacía que la lista de debajo pareciese
+   de nadie. Plegado, el azul se queda en el círculo y solo si estás dentro de ese grupo. */
+.shell__group.is-open {
+  background: color-mix(in srgb, var(--nf-primary) 12%, transparent);
+  border-left: 3px solid var(--nf-primary);
+  border-radius: 0 8px 8px 0;
+}
+
+.shell__group.is-open .shell__groupitem,
+.shell__group.is-open .shell__groupitem.is-active {
+  background: transparent;
+  border-left-color: transparent;
+}
+
+/* Plegado: el círculo se tiñe solo si la ruta actual vive dentro de ese grupo. */
+.shell__group.is-current:not(.is-open) .shell__groupitem {
+  background: color-mix(in srgb, var(--nf-primary) 14%, transparent);
+  border-left-color: var(--nf-primary);
+  color: #fff;
+}
+
+/* Un grupo seleccionado pero ni abierto ni activo no se pinta de azul: la selección es memoria
+   de la barra, no «estás aquí». */
+.shell__group:not(.is-open):not(.is-current) .shell__groupitem.is-active {
+  background: transparent;
+  border-left-color: transparent;
+}
 .shell__sidebar.is-rail .shell__groupitem {
   display: flex;
   align-items: center;

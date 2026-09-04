@@ -1,0 +1,87 @@
+@use 'breakpoints' as *;
+
+/* Metagame del grupo (§5.5.5): tres tableros de tres campeones. */
+
+.mg-boards {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.mg-board {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 13px 14px;
+  border-radius: 10px;
+  background: var(--nf-surface-2);
+  border: 1px solid var(--nf-border);
+}
+
+.mg-board__title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: var(--fw-semibold);
+  color: var(--nf-text);
+}
+
+.mg-board__note {
+  margin: 0 0 6px;
+  font-size: 11.5px;
+  color: var(--nf-text-dim);
+}
+
+.mg-board__list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: none;
+}
+
+.mg-entry {
+  display: grid;
+  grid-template-columns: 14px 30px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  padding: 5px 0;
+}
+
+.mg-entry__rank {
+  font-size: 11.5px;
+  color: var(--nf-text-dim);
+}
+
+.mg-entry__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.mg-entry__name {
+  overflow: hidden;
+  font-size: 12.5px;
+  color: var(--nf-text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mg-entry__sub {
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+}
+
+.mg-entry__value {
+  font-size: 12px;
+  font-weight: var(--fw-semibold);
+  color: var(--nf-secondary);
+  text-align: right;
+  white-space: nowrap;
+}
+
+@media (max-width: $bp-compact) {
+  .mg-boards {
+    grid-template-columns: 1fr;
+  }
+}

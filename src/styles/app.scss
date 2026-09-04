@@ -1,0 +1,152 @@
+@use 'breakpoints' as *;
+
+/* ============================================================
+   APP · lo general y común de la aplicación.
+   ------------------------------------------------------------
+   Chrome que comparten TODAS las vistas del shell: el marco de una
+   vista, su cabecera, el enlace de volver y el estado vacío. Nada
+   de esto pertenece a una pantalla concreta, y nada de esto es una
+   primitiva de interfaz: los estilos de un botón, una ventana o un
+   badge viven en su componente de `src/app/ui/`.
+
+   Va aquí y no en `views.scss` porque aquel fichero es un monolito
+   de doce mil líneas que se está vaciando sección a sección: lo
+   nuevo se escribe donde se busca. Y va aquí y no en
+   `src/app/app.scss` porque ese es el `styleUrl` del componente
+   `App`, con encapsulación emulada: lo que se declara allí no llega
+   a las vistas hijas.
+
+   Como toda hoja del proyecto, consume tokens `var(--nf-*)` y no
+   declara ninguno: eso solo pasa en `src/styles/tokens/`.
+   ============================================================ */
+
+/* ---- Marco de vista ---- */
+.view {
+  animation: nf-fade 0.3s ease-out;
+}
+
+.view__head {
+  margin-bottom: 26px;
+}
+.view__head--row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.view__eyebrow {
+  font-size: 12px;
+  color: var(--nf-secondary);
+  margin-bottom: 10px;
+}
+.view__title {
+  margin: 0 0 8px;
+  font-weight: 800;
+  font-size: clamp(24px, 5vw, 32px);
+  color: var(--nf-text);
+  letter-spacing: -0.5px;
+}
+.view__lead {
+  margin: 0;
+  color: var(--nf-text-mid);
+  font-size: 15px;
+  line-height: 1.6;
+}
+.view__label {
+  font-size: 12px;
+  color: var(--nf-text-dim);
+  margin-bottom: 12px;
+}
+.view__intro {
+  margin: 0 0 22px;
+  color: var(--nf-text-mid);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* ---- Enlace de volver ----
+   Va encima de la cabecera, que es donde el usuario lo busca. */
+.view-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 18px;
+  padding: 9px 16px 9px 13px;
+  font-size: 13px;
+  color: var(--nf-text-mid);
+  text-decoration: none;
+  background: var(--nf-surface-2);
+  border: 1px solid var(--nf-border);
+  border-radius: 6px;
+  transition:
+    color 0.14s,
+    border-color 0.14s,
+    background 0.14s;
+}
+.view-back:hover {
+  color: var(--nf-text);
+  border-color: var(--nf-border-strong);
+  background: color-mix(in srgb, var(--nf-secondary) 8%, var(--nf-surface-2));
+}
+.view-back__arrow {
+  font-size: 16px;
+  line-height: 1;
+  transition: transform 0.14s;
+}
+.view-back:hover .view-back__arrow {
+  transform: translateX(-3px);
+}
+
+/* ---- Estado vacío ----
+   Distinto de un error y distinto de un skeleton: aquí la petición fue
+   bien y la respuesta es que no hay nada que enseñar. */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+  padding: 24px 12px;
+}
+/* El `font-size` sostiene a las vistas que todavía pintan aquí un glifo; las
+   nuevas meten un SVG, que se dimensiona solo. Cuando no quede ningún glifo
+   (queda en `grupo-detalle` y `grupo-perfil`), esa línea se va. */
+.empty-state__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40px;
+  line-height: 1;
+  color: var(--nf-text-dim);
+  opacity: 0.85;
+}
+.empty-state__icon svg {
+  width: 34px;
+  height: 34px;
+}
+.empty-state__text {
+  font-size: 13px;
+  color: var(--nf-secondary);
+}
+.empty-state__hint {
+  max-width: 360px;
+  font-size: 13px;
+  color: var(--nf-text-dim);
+  margin: 0;
+}
+
+/* ---- Rejilla de tarjetas de anchura fluida ----
+   La usan varias vistas para listar tarjetas sin fijar el número de
+   columnas: caben las que quepan a partir de 260px. */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+@media (max-width: $bp-narrow) {
+  .cards {
+    grid-template-columns: 1fr;
+  }
+}

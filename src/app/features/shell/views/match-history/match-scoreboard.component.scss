@@ -1,4 +1,4 @@
-@use '../../../../../styles/breakpoints' as *;
+@use 'breakpoints' as *;
 
 /* Marcador completo de una partida (solo pagina de detalle): filas de jugador,
    enfrentamientos por linea, objetos y barras de dano.
@@ -367,8 +367,8 @@
 }
 
 .m-items-grid {
-  display: grid;
-  grid-template-columns: repeat(7, 20px);
+  display: flex;
+  align-items: center;
   gap: 2px;
 }
 
@@ -679,8 +679,8 @@
     gap: 5px;
   }
 .m-player-row__champ-wrap nf-avatar { --nf-avatar-size-override: 44px; }
-.m-items-grid { grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
-.m-item-slot { width: 100%; height: auto; aspect-ratio: 1; }
+.m-items-grid { display: flex; align-items: center; gap: 4px; }
+.m-item-slot { width: 22px; height: 22px; aspect-ratio: 1; flex-shrink: 0; }
 /* Sin cabecera de tabla a la vista, tras cinco fichas se pierde de qué bando son. El
      filo del color del bando lo dice en cada una. `:not(.is-current-user)` porque la fila
      del usuario ya usa ese filo para marcarse, y esa marca gana. */

@@ -1,0 +1,139 @@
+/* Ficha pública del grupo (Roadmap §5.5.4). */
+
+.gp-banner {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 26px 24px;
+  margin-bottom: 16px;
+  border-radius: 12px;
+  border: 1.5px solid color-mix(in srgb, var(--grp-c1) 40%, var(--nf-border));
+  background:
+    linear-gradient(120deg, color-mix(in srgb, var(--grp-c1) 30%, transparent), transparent 65%),
+    var(--nf-surface-2);
+}
+
+.gp-banner__avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 78px;
+  height: 78px;
+  flex: none;
+  border-radius: 16px;
+  overflow: hidden;
+  background: linear-gradient(135deg, var(--grp-c1), var(--grp-c2));
+  border: 2px solid color-mix(in srgb, var(--grp-c1) 60%, #fff);
+  font-family: var(--nf-mono);
+  font-weight: 700;
+  font-size: 26px;
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.gp-banner__avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.gp-banner__meta {
+  min-width: 0;
+}
+
+.gp-banner__name {
+  margin: 0 0 6px;
+  font-weight: 800;
+  font-size: clamp(22px, 5vw, 30px);
+  letter-spacing: -0.5px;
+  color: #fff;
+}
+
+.gp-banner__tagline {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: var(--nf-text-mid);
+}
+
+.gp-banner__badges {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.gp-banner__fact {
+  font-size: 11.5px;
+  color: var(--nf-text-dim);
+}
+
+.gp-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.gp-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  border-radius: 11px;
+  background: var(--nf-surface);
+  border: 1px solid var(--nf-border);
+}
+
+.gp-stat__value {
+  font-size: 19px;
+  font-weight: var(--fw-bold);
+  color: var(--nf-text);
+}
+
+.gp-stat__label {
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+}
+
+.gp-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.gp-text {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--nf-text-mid);
+}
+
+.gp-rules {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  margin: 0;
+  padding-left: 18px;
+}
+
+.gp-rule {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--nf-text-mid);
+}
+
+.gp-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+@media (max-width: 860px) {
+  .gp-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .gp-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

@@ -52,7 +52,6 @@ interface RoleFilter {
 }
 
 /** How the match is assembled: captain picks everyone, or players sign up. */
-type CreateMode = 'manual' | 'open';
 
 /** Step 3 rule types: same team, opposite teams, or a same-lane 1v1. */
 type RuleKind = 'together' | 'versus' | 'lane';
@@ -191,28 +190,6 @@ interface GeneratedTeams {
                 </div>
               </div>
             </nf-window>
-          } @else if (mode() === null) {
-            <!-- ===== PASO 0 · elección de modo ===== -->
-            <p class="cp-modes__lead">¿Cómo quieres montar la partida?</p>
-            <div class="cp-modes">
-              <button type="button" class="cp-mode" (click)="chooseMode('manual')">
-                <div class="cp-mode__glyph">✋</div>
-                <div class="cp-mode__title nf-mono">Partida manual</div>
-                <p class="cp-mode__desc">
-                  Eliges tú a los 10 jugadores ahora y configuras las restricciones de una sentada.
-                </p>
-                <span class="cp-mode__cta nf-mono">Elegir</span>
-              </button>
-              <button type="button" class="cp-mode cp-mode--primary" (click)="chooseMode('open')">
-                <div class="cp-mode__glyph">📣</div>
-                <div class="cp-mode__title nf-mono">Sala abierta</div>
-                <p class="cp-mode__desc">
-                  Publicas una sala y los jugadores del grupo se apuntan desde sus cuentas.
-                  Configuras las restricciones cuando se llena.
-                </p>
-                <span class="cp-mode__cta nf-mono">Elegir</span>
-              </button>
-            </div>
           } @else if (showStepWizard()) {
             <!-- ===== STEP WIZARD · manual, or open mode once the room is full ===== -->
             <div class="cp-steps">
@@ -903,151 +880,6 @@ interface GeneratedTeams {
                 >{{ step() === steps.length ? 'Lanzar partida' : 'Siguiente' }}</button>
               </div>
             }
-          } @else {
-            <!-- ===== MODO SALA ABIERTA · convocar proponiendo horas ===== -->
-            <nf-window title="Convocar" bodyPadding="0">
-              <div class="cp-room__bar">
-                <div class="cp-room__barmeta">
-                  <div class="cp-room__sub nf-mono">
-                    Propón una o varias horas · el grupo dirá a cuáles puede
-                  </div>
-                </div>
-                <nf-badge [color]="slotDrafts().length ? 'success' : 'warning'">
-                  {{ slotDrafts().length }}/{{ MAX_SLOTS }}
-                </nf-badge>
-              </div>
-
-              <div class="cp-pad">
-                <div class="cp-cover__legend nf-mono">
-                  La franja que junte {{ MAX }} jugadores se confirma sola y avisa a todos. Del
-                  {{ MAX + 1 }} en adelante quedan de <b>suplentes</b>, y si alguien se cae entran ellos.
-                </div>
-
-                <!-- Paso 1 · el día. Tira horizontal deslizable: en un móvil se recorren dos
-                     semanas con el pulgar sin abrir ningún calendario nativo. -->
-                <div class="dp-step__label nf-mono">1 · ¿Qué día?</div>
-                <div class="dp-days" role="tablist" aria-label="Elige el día">
-                  @for (d of days(); track d.value) {
-                    <button
-                      type="button"
-                      role="tab"
-                      class="dp-day"
-                      [class.is-active]="selectedDay() === d.value"
-                      [class.has-picks]="countForDay(d.value) > 0"
-                      [attr.aria-selected]="selectedDay() === d.value"
-                      (click)="selectedDay.set(d.value)"
-                    >
-                      <span class="dp-day__weekday nf-mono">{{ d.weekday }}</span>
-                      <span class="dp-day__number">{{ d.dayNumber }}</span>
-                      <!-- Cuántas horas llevas elegidas ESE día. Sin esto, al cambiar de día
-                           pierdes de vista lo que ya habías marcado en los otros. -->
-                      <span class="dp-day__dots" aria-hidden="true">
-                        @for (dot of dotsFor(d.value); track $index) {
-                          <i></i>
-                        }
-                      </span>
-                    </button>
-                  }
-                </div>
-
-                <!-- Paso 2 · las horas de ese día. Rejilla que se refluye sola: cuatro por fila
-                     en escritorio, dos o tres en un móvil, y todas con altura de dedo. -->
-                <div class="dp-step__label nf-mono">2 · ¿A qué hora?</div>
-                @if (hoursForSelectedDay().length) {
-                  <div class="dp-hours">
-                    @for (h of hoursForSelectedDay(); track h.value) {
-                      <button
-                        type="button"
-                        class="dp-hour nf-mono"
-                        [class.is-on]="slotDrafts().includes(h.value)"
-                        [disabled]="!slotDrafts().includes(h.value) && atSlotLimit()"
-                        [attr.aria-pressed]="slotDrafts().includes(h.value)"
-                        (click)="toggleQuick(h.value)"
-                      >{{ h.label }}</button>
-                    }
-                  </div>
-                } @else {
-                  <div class="dp-hours__empty nf-mono">
-                    Hoy ya no quedan horas. Elige otro día arriba.
-                  </div>
-                }
-
-                <details class="dp-custom">
-                  <summary class="dp-custom__toggle nf-mono">Otra hora distinta</summary>
-                  <div class="dp-custom__row">
-                    <input
-                      class="field__input dp-custom__time"
-                      type="time"
-                      step="300"
-                      [ngModel]="timeDraft()"
-                      (ngModelChange)="timeDraft.set($event)"
-                      aria-label="Hora concreta"
-                    />
-                    <button
-                      type="button"
-                      class="dp-custom__add nf-mono"
-                      [disabled]="!canAddSlot()"
-                      (click)="addSlot()"
-                    >Añadir a {{ selectedDayLabel() }}</button>
-                  </div>
-                </details>
-
-                @if (slotError(); as e) {
-                  <div class="cp-diag">
-                    <div class="cp-diag__item cp-diag__item--err nf-mono">✗ {{ e }}</div>
-                  </div>
-                }
-
-                <!-- El carrito: lo que se va a publicar, siempre visible y siempre quitable. -->
-                <div class="dp-cart">
-                  <div class="dp-cart__label nf-mono">
-                    Vas a proponer · {{ slotDrafts().length }}/{{ MAX_SLOTS }}
-                  </div>
-                  <div class="dp-cart__list">
-                    @for (slot of slotDrafts(); track slot) {
-                      <button
-                        type="button"
-                        class="dp-cart__item nf-mono"
-                        [attr.aria-label]="'Quitar ' + formatSlot(slot)"
-                        (click)="removeSlot(slot)"
-                      >
-                        <span>{{ formatSlot(slot) }}</span>
-                        <span class="dp-cart__x" aria-hidden="true">✕</span>
-                      </button>
-                    } @empty {
-                      <span class="dp-cart__empty nf-mono">
-                        Todavía nada. Toca una hora de arriba.
-                      </span>
-                    }
-                  </div>
-                </div>
-
-                <input
-                  class="field__input qh-note"
-                  type="text"
-                  placeholder="Nota para el grupo (opcional)"
-                  [maxlength]="MAX_NOTE_LENGTH"
-                  [ngModel]="note()"
-                  (ngModelChange)="note.set($event)"
-                />
-              </div>
-            </nf-window>
-
-            <div class="cp-foot">
-              <button nfButton variant="ghost" size="md" (click)="resetMode()">← Modo</button>
-              <div class="cp-foot__status nf-mono">
-                {{ slotDrafts().length }} hora{{ slotDrafts().length === 1 ? '' : 's' }} propuesta{{ slotDrafts().length === 1 ? '' : 's' }}
-              </div>
-              <button
-                nfButton
-                variant="primary"
-                size="md"
-                class="cp-cta"
-                [class.cp-cta--ready]="slotDrafts().length > 0"
-                [disabled]="!slotDrafts().length || lobbies.creating()"
-                (click)="publishLobby()"
-              >{{ lobbies.creating() ? 'Convocando…' : 'Convocar partida' }}</button>
-            </div>
           }
         </div>
 
@@ -1157,7 +989,15 @@ export class GrupoCrearPartida {
   });
 
   // --- Mode selection (Paso 0) ----------------------------------------------
-  readonly mode = signal<CreateMode | null>(null);
+  /**
+   * Esta pantalla ya solo monta la partida manual.
+   *
+   * El modo «sala abierta» —proponer horas y que el grupo diga a cuáles puede— se fue
+   * de aquí a un modal del panel de convocatorias (§5.5.6): era un formulario corto al
+   * que se llegaba tras dos saltos de página, y el paso 0 preguntaba qué querías hacer
+   * cuando ya lo habías dicho al pulsar el botón. Con un solo modo, ese paso sobra.
+   */
+  readonly mode = signal<'manual' | null>('manual');
 
   /**
    * Reconfigure mode (Vía 2 "con restricciones"): reached from the sala with
@@ -1178,139 +1018,21 @@ export class GrupoCrearPartida {
    */
   readonly showStepWizard = computed(() => this.mode() === 'manual');
 
-  chooseMode(m: CreateMode): void {
-    // Solo el modo MANUAL sigue creando una sala mock: es el wizard, que aún no está migrado.
-    // El modo abierto ya no crea nada al entrar — la convocatoria nace en el backend cuando se
-    // pulsa "Convocar", así que entrar a mirar el formulario y salirse no deja basura detrás.
-    if (m === 'manual') {
-      const g = this.group();
-      const captain = this.roster()[0];
-      if (g && captain) {
-        const room = this.matches.startDraft(g.id, captain);
-        this.roomId.set(room.id);
-        // Resuming an abandoned draft: rehydrate the wizard from its raw state.
-        if (room.draft?.raw.selectedTags.length) this.hydrateFromDraft(room.draft.raw);
-      }
-    }
-    this.mode.set(m);
-  }
-
-  // --- Modo abierto: convocar proponiendo horas -------------------------------
-  readonly MAX_SLOTS = MAX_SLOTS;
-  readonly MAX_NOTE_LENGTH = MAX_NOTE_LENGTH;
-
-  /** Horas propuestas, en el formato local de `datetime-local` ("2026-08-07T22:00"). */
-  readonly slotDrafts = signal<string[]>([]);
-  /** Hora del campo "otra hora distinta", para lo que se salga de la rejilla. */
-  readonly timeDraft = signal('22:00');
-  readonly note = signal('');
-  readonly slotError = signal<string | null>(null);
-
   /**
-   * Los días que se pueden proponer: dos semanas. Se calculan una vez al montar — nadie tiene
-   * este formulario abierto el tiempo suficiente para que "hoy" cambie de significado, y hacerlo
-   * reactivo al reloj costaría un temporizador a cambio de nada.
+   * Abre el borrador manual. Se llama en cuanto hay grupo y roster, porque ya no hay
+   * otro modo que elegir: entrar aquí ES empezar la partida manual.
    */
-  readonly days = signal<DayOption[]>(buildDays(new Date(), DAYS_AHEAD));
-
-  /** El día cuya rejilla de horas se está mirando. Arranca en hoy. */
-  readonly selectedDay = signal(this.days()[0].value);
-
-  readonly atSlotLimit = computed(() => this.slotDrafts().length >= MAX_SLOTS);
-
-  readonly canAddSlot = computed(() => !!this.timeDraft() && !this.atSlotLimit());
-
-  /**
-   * Las horas ofrecidas para el día elegido. Si es hoy, las que ya han pasado no aparecen:
-   * ofrecerlas sería ofrecer un 400 `SLOT_IN_THE_PAST`.
-   */
-  readonly hoursForSelectedDay = computed(() => buildHours(this.selectedDay(), new Date()));
-
-  /** "hoy" / "mañana" / "jue 6", para el botón de añadir una hora suelta. */
-  readonly selectedDayLabel = computed(() => {
-    const day = this.days().find((d) => d.value === this.selectedDay());
-    return day ? day.longLabel : '';
-  });
-
-  /** Cuántas horas llevas elegidas de ese día, para el indicador del chip. */
-  countForDay(dayValue: string): number {
-    return this.slotDrafts().filter((slot) => slot.startsWith(`${dayValue}T`)).length;
-  }
-
-  /** Los puntitos del chip de día, topados para que un día con seis no reviente el diseño. */
-  dotsFor(dayValue: string): number[] {
-    return Array.from({ length: Math.min(3, this.countForDay(dayValue)) }, (_, i) => i);
-  }
-
-  /** Un toque añade la hora; otro la quita. El chip es el estado, no un botón de "añadir". */
-  toggleQuick(value: string): void {
-    if (this.slotDrafts().includes(value)) {
-      this.removeSlot(value);
-      return;
-    }
-    if (this.atSlotLimit()) return;
-    this.slotError.set(null);
-    this.slotDrafts.update((slots) => [...slots, value].sort());
-  }
-
-  addSlot(): void {
-    if (!this.canAddSlot()) return;
-    // La hora suelta se pega al día que está seleccionado arriba y produce el MISMO formato que
-    // la rejilla, así que de aquí en adelante da igual por dónde entró: una sola lista.
-    const value = `${this.selectedDay()}T${this.timeDraft()}`;
-    if (new Date(value).getTime() <= Date.now()) {
-      this.slotError.set('Esa hora ya ha pasado. Elige una futura.');
-      return;
-    }
-    if (this.slotDrafts().includes(value)) {
-      this.slotError.set('Ya has propuesto esa hora.');
-      return;
-    }
-    this.slotError.set(null);
-    this.slotDrafts.update((slots) => [...slots, value].sort());
-  }
-
-  removeSlot(value: string): void {
-    this.slotDrafts.update((slots) => slots.filter((slot) => slot !== value));
-    this.slotError.set(null);
-  }
-
-  /** "2026-08-07T22:00" → "jue 7 ago, 22:00", en la zona de quien mira. */
-  formatSlot(value: string): string {
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return value;
-    return new Intl.DateTimeFormat('es-ES', {
-      weekday: 'short',
-      day: 'numeric',
-      month: 'short',
-      hour: '2-digit',
-      minute: '2-digit',
-    }).format(date);
-  }
-
-  /**
-   * Publica la convocatoria. PESIMISTA: espera la confirmación del backend antes de navegar,
-   * así nadie acaba en una sala que no llegó a existir. El botón queda bloqueado mientras
-   * (`lobbies.creating()`), de modo que un doble clic no convoca dos partidas.
-   */
-  async publishLobby(): Promise<void> {
+  private startManual(): void {
+    if (this.roomId()) return;
     const g = this.group();
-    if (!g || !this.slotDrafts().length || this.lobbies.creating()) return;
-    try {
-      const created = await this.lobbies.create(g.id, {
-        // El selector da hora local sin zona; el backend quiere instantes. La conversión la
-        // hace `Date`, que ya sabe en qué zona está este navegador.
-        slotStartTimes: this.slotDrafts().map((value) => new Date(value).toISOString()),
-        note: this.note().trim() || null,
-      });
-      this.toasts.success('Partida convocada. Ya puede apuntarse el grupo.');
-      this.router.navigate(['/app', 'grupos', g.id, 'partidas', created.id]);
-    } catch (error) {
-      this.toasts.error(errorMessage(error));
-    }
+    const captain = this.roster()[0];
+    if (!g || !captain) return;
+    const room = this.matches.startDraft(g.id, captain);
+    this.roomId.set(room.id);
+    // Resuming an abandoned draft: rehydrate the wizard from its raw state.
+    if (room.draft?.raw.selectedTags.length) this.hydrateFromDraft(room.draft.raw);
   }
 
-  /** Restore the wizard's signals from a persisted draft (resume after leaving). */
   private hydrateFromDraft(raw: DraftRaw): void {
     this.selected.set(new Set(raw.selectedTags));
     this.lineRoles.set({ ...raw.lineRoles });
@@ -1318,14 +1040,6 @@ export class GrupoCrearPartida {
     this.ruleSeq = raw.rules.reduce((max, r) => Math.max(max, r.id), 0);
     this.reserved.set({ ...raw.reserved });
     this.step.set(raw.step || 1);
-  }
-
-  resetMode(): void {
-    // El borrador manual se CONSERVA para poder retomarlo (se poda solo a las 24 h, ver
-    // MatchStore.startDraft). Del modo abierto no hay nada que deshacer: el formulario aún no
-    // ha creado nada en el backend.
-    this.roomId.set(null);
-    this.mode.set(null);
   }
 
   // --- Discard the in-progress draft (explicit, vs. leaving to resume later) --
@@ -1401,8 +1115,12 @@ export class GrupoCrearPartida {
       else this.step.update((s) => s - 1);
       return;
     }
+    // En el primer paso ya no hay paso 0 al que volver: se sale al grupo. El borrador
+    // manual se CONSERVA para poder retomarlo (se poda solo a las 24 h, ver
+    // MatchStore.startDraft).
     if (this.step() === 1) {
-      this.resetMode();
+      const g = this.group();
+      if (g) void this.router.navigate(['/app', 'grupos', g.id]);
       return;
     }
     this.step.update((s) => s - 1);
@@ -2201,6 +1919,14 @@ export class GrupoCrearPartida {
       if (id && this.groups.byId(id)) this.groups.select(id);
     });
 
+    // Sin paso 0 que elegir, entrar aquí ES empezar la partida manual. Se espera al
+    // roster porque el borrador necesita capitán, y `startManual` es idempotente.
+    effect(() => {
+      if (this.reconfigureRoomId()) return;
+      if (this.roster().length < this.MAX) return;
+      this.startManual();
+    });
+
     // Stream the manual draft live so non-admins can follow it in the room. (Skipped
     // in reconfigure mode, which has no draft room and roomId stays null.)
     effect(() => {
@@ -2233,96 +1959,4 @@ export class GrupoCrearPartida {
     this.mode.set('manual');
     this.step.set(2);
   }
-}
-
-/** Un día de la tira horizontal del selector. */
-export interface DayOption {
-  /** "2026-08-03". Es el prefijo con el que se agrupan las horas elegidas de ese día. */
-  value: string;
-  /** "HOY", "MAR"… lo que va arriba del chip. */
-  weekday: string;
-  /** "3". El número grande. */
-  dayNumber: string;
-  /** "hoy", "mañana", "jue 6": para frases dentro de un botón. */
-  longLabel: string;
-}
-
-/** Una hora ofrecida en la rejilla del día elegido. */
-export interface HourOption {
-  /** "2026-08-03T22:00", ya listo para la lista de propuestas. */
-  value: string;
-  /** "22:00". */
-  label: string;
-}
-
-/**
- * Cuántos días se pueden proponer. Dos semanas: cubre "este finde" y "el que viene", que es lo
- * más lejos que un grupo de amigos se organiza de verdad, y cabe en un par de gestos de pulgar.
- */
-const DAYS_AHEAD = 14;
-
-/**
- * La franja horaria que se ofrece en la rejilla. De la tarde a medianoche, en tramos de media
- * hora: es cuando se juegan las customs. Lo de fuera existe (un sábado por la mañana) y tiene su
- * campo de hora suelta, pero ofrecer las 24 horas en pastillas obligaría a buscar entre 48.
- */
-const HOUR_FROM = 17;
-const HOUR_TO = 23;
-
-/** Construye los días seleccionables desde `now`. Puro sobre `now`, para poder probarlo. */
-export function buildDays(now: Date, howMany: number): DayOption[] {
-  const days: DayOption[] = [];
-  for (let offset = 0; offset < howMany; offset++) {
-    const date = new Date(now);
-    date.setDate(date.getDate() + offset);
-    const weekday = new Intl.DateTimeFormat('es-ES', { weekday: 'short' })
-      .format(date)
-      .replace('.', '')
-      .toUpperCase();
-    days.push({
-      value: toLocalInputValue(date).slice(0, 10),
-      weekday: offset === 0 ? 'HOY' : offset === 1 ? 'MAÑ' : weekday,
-      dayNumber: String(date.getDate()),
-      longLabel:
-        offset === 0
-          ? 'hoy'
-          : offset === 1
-            ? 'mañana'
-            : `${weekday.toLowerCase()} ${date.getDate()}`,
-    });
-  }
-  return days;
-}
-
-/**
- * Las horas ofrecidas para un día. Si el día es hoy, las que ya han pasado se caen — ofrecerlas
- * sería ofrecer un 400 `SLOT_IN_THE_PAST`, y devolver la lista vacía es lo que hace que la vista
- * pueda decir "hoy ya no quedan horas" en vez de enseñar una rejilla muerta.
- */
-export function buildHours(dayValue: string, now: Date): HourOption[] {
-  const hours: HourOption[] = [];
-  for (let hour = HOUR_FROM; hour <= HOUR_TO; hour++) {
-    for (const minute of [0, 30]) {
-      const label = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
-      const at = new Date(`${dayValue}T${label}`);
-      if (Number.isNaN(at.getTime()) || at.getTime() <= now.getTime()) continue;
-      hours.push({ value: `${dayValue}T${label}`, label });
-    }
-  }
-  return hours;
-}
-
-/**
- * `Date` → el valor que entiende un `<input type="datetime-local">` ("2026-08-07T22:00").
- *
- * A mano y no con `toISOString()`: ese devuelve UTC, y el input interpreta lo que recibe como
- * hora LOCAL. Usarlo desplazaría el mínimo tantas horas como diga la zona del usuario, que en
- * España son una o dos — suficiente para dejar elegir una hora ya pasada.
- */
-function toLocalInputValue(date: Date): string {
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return (
-    `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +
-    `T${pad(date.getHours())}:${pad(date.getMinutes())}`
-  );
 }

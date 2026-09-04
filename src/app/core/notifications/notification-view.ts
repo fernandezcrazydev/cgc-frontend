@@ -1,4 +1,4 @@
-import { NotificationResponse } from './models';
+import { NotificationResponse, NotificationSemanticLevel } from './models';
 
 /**
  * Modelo de presentación de una notificación: lo que la campana y el panel del home
@@ -13,10 +13,14 @@ export interface NotificationView {
   message: string;
   /** Token de color `--nf-*` para icono, título y punto de no leído. */
   accent: string;
+  /** Categoría semántica para el semáforo y la precedencia [F5.5-02] */
+  semanticLevel: NotificationSemanticLevel;
   glyph: string;
   /** Tiempo relativo ya formateado, p. ej. "AHORA", "5 MIN", "3 H". */
   time: string;
   read: boolean;
+  /** Si es un aviso obligatorio crítico que se ancla en el bloque superior [F5.5-02] */
+  isMandatory?: boolean;
   /** Presente en `INVITED_TO_GROUP`: habilita las acciones aceptar/rechazar. */
   invite: InviteView | null;
   /**
@@ -25,6 +29,8 @@ export interface NotificationView {
    * codifica cada segmento, así que un id con `/` o `..` no puede reescribir la ruta.
    */
   link: readonly string[] | null;
+  /** Texto del botón CTA contextual si aplica (ej. "Unirme a la sala") */
+  ctaLabel?: string | null;
 }
 
 export interface InviteView {
@@ -60,6 +66,27 @@ function lobbyLink(n: NotificationResponse): readonly string[] | null {
   return groupId && lobbyId ? ['/app', 'grupos', groupId, 'partidas', lobbyId] : null;
 }
 
+function matchLink(n: NotificationResponse): readonly string[] | null {
+  const matchId = n.data['matchId'] ?? n.data['partidaId'] ?? 'partida-1';
+  return ['/app', 'historial', matchId];
+}
+
+function groupLink(n: NotificationResponse): readonly string[] | null {
+  const rawId = n.data['groupId'];
+  if (rawId) return ['/app', 'grupos', rawId];
+  const name = n.data['groupName'];
+  if (name) {
+    const slug = name
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+    if (slug) return ['/app', 'grupos', slug];
+  }
+  return ['/app', 'grupos'];
+}
+
 /**
  * Instante ISO-8601 → "jue 7, 22:00" en la zona del que lee. Formatear aquí y no en la plantilla
  * porque el texto de la notificación se compone entero en este fichero; el backend siempre manda
@@ -87,6 +114,78 @@ export function notificationView(n: NotificationResponse, now = Date.now()): Not
     link: null,
   };
   switch (n.type) {
+    case 'SANCTION_ISSUED': {
+      const groupName = n.data['groupName'];
+      return {
+        ...base,
+        title: 'Sanción aplicada',
+        message:
+          n.data['message'] ??
+          (groupName
+            ? `Has recibido un strike por abandono en "${groupName}".`
+            : 'Has recibido una sanción disciplinaria.'),
+        accent: 'var(--nf-crimson)',
+        semanticLevel: 'critical',
+        glyph: '🛡️',
+        isMandatory: true,
+        invite: null,
+        ctaLabel: 'Entendido',
+        link: groupLink(n),
+      };
+    }
+    case 'GROUP_KICKED': {
+      const groupName = n.data['groupName'];
+      return {
+        ...base,
+        title: 'Expulsión de grupo',
+        message:
+          n.data['message'] ??
+          (groupName
+            ? `Has sido expulsado de "${groupName}".`
+            : 'Has sido expulsado del grupo.'),
+        accent: 'var(--nf-crimson)',
+        semanticLevel: 'critical',
+        glyph: '⊘',
+        isMandatory: true,
+        invite: null,
+        ctaLabel: 'Entendido',
+        link: ['/app', 'grupos'],
+      };
+    }
+    case 'MVP_EARNED': {
+      const champ = n.data['champion'];
+      const kda = n.data['kda'];
+      return {
+        ...base,
+        title: '¡Nuevo MVP obtenido!',
+        message:
+          n.data['message'] ??
+          (champ
+            ? `Fuiste el MVP en la victoria con ${champ}${kda ? ' (' + kda + ').' : '.'}`
+            : 'Fuiste el MVP en la última partida.'),
+        accent: 'var(--nf-gold)',
+        semanticLevel: 'achievement',
+        glyph: '🏆',
+        invite: null,
+        link: matchLink(n),
+      };
+    }
+    case 'TIER_PROMOTED': {
+      const tier = n.data['tier'];
+      const groupId = n.data['groupId'];
+      return {
+        ...base,
+        title: 'Subida de división',
+        message:
+          n.data['message'] ??
+          (tier ? `Has ascendido a ${tier}.` : '¡Has subido de división!'),
+        accent: 'var(--nf-gold)',
+        semanticLevel: 'achievement',
+        glyph: '▲',
+        invite: null,
+        link: groupId ? ['/app', 'grupos', groupId, 'ranking'] : ['/app', 'perfil'],
+      };
+    }
     case 'INVITED_TO_GROUP': {
       const groupName = n.data['groupName'] ?? 'un grupo';
       const invitedByName = n.data['invitedByName'] ?? null;
@@ -96,7 +195,8 @@ export function notificationView(n: NotificationResponse, now = Date.now()): Not
         message: invitedByName
           ? `${invitedByName} te invitó a unirte a ${groupName}`
           : `Te invitaron a unirte a ${groupName}`,
-        accent: 'var(--nf-primary)',
+        accent: 'var(--nf-blue-semantic)',
+        semanticLevel: 'social',
         glyph: '►',
         invite: {
           invitationId: n.data['invitationId'] ?? '',
@@ -104,6 +204,7 @@ export function notificationView(n: NotificationResponse, now = Date.now()): Not
           groupName,
           invitedByName,
         },
+        link: groupLink(n),
       };
     }
     case 'RIOT_ACCOUNT_PAIRED': {
@@ -112,9 +213,11 @@ export function notificationView(n: NotificationResponse, now = Date.now()): Not
         ...base,
         title: 'Cuenta vinculada',
         message: `Vinculamos ${riotId} desde la app de escritorio`,
-        accent: 'var(--nf-secondary)',
+        accent: 'var(--nf-blue-semantic)',
+        semanticLevel: 'social',
         glyph: '↔',
         invite: null,
+        link: ['/app', 'perfil'],
       };
     }
     case 'RIOT_ACCOUNT_VERIFIED': {
@@ -123,9 +226,11 @@ export function notificationView(n: NotificationResponse, now = Date.now()): Not
         ...base,
         title: 'Cuenta verificada',
         message: `Comprobamos con Riot que ${riotId} es tuya`,
-        accent: 'var(--nf-success)',
+        accent: 'var(--nf-blue-semantic)',
+        semanticLevel: 'social',
         glyph: '✓',
         invite: null,
+        link: ['/app', 'perfil'],
       };
     }
     case 'RIOT_ACCOUNT_TAKEN_OVER': {
@@ -134,9 +239,12 @@ export function notificationView(n: NotificationResponse, now = Date.now()): Not
         ...base,
         title: 'Cuenta desvinculada',
         message: `Alguien demostró ser el dueño de ${riotId} y se ha desvinculado de tu perfil`,
-        accent: 'var(--nf-danger)',
+        accent: 'var(--nf-crimson)',
+        semanticLevel: 'critical',
         glyph: '⊘',
+        isMandatory: false,
         invite: null,
+        link: ['/app', 'perfil'],
       };
     }
     case 'FEEDBACK_SUBMITTED': {
@@ -147,7 +255,8 @@ export function notificationView(n: NotificationResponse, now = Date.now()): Not
         ...base,
         title: FEEDBACK_EYEBROW[n.data['kind'] ?? ''] ?? 'Nuevo reporte',
         message: n.data['title'] ?? 'Alguien ha enviado un reporte',
-        accent: 'var(--nf-tertiary)',
+        accent: 'var(--nf-blue-semantic)',
+        semanticLevel: 'social',
         glyph: '⚑',
         invite: null,
         // Sin id no hay detalle al que ir: mejor una fila que informa y no navega que un
@@ -158,14 +267,27 @@ export function notificationView(n: NotificationResponse, now = Date.now()): Not
     case 'LOBBY_OPENED': {
       const who = n.data['openedByName'] ?? 'Alguien';
       const groupName = n.data['groupName'] ?? 'tu grupo';
+      const slotsMissing = n.data['slotsMissing'];
+      const slotsOccupied = n.data['slotsOccupied'];
+      const slotsTotal = n.data['slotsTotal'] ?? '10';
+
+      const title = slotsMissing ? `Sala abierta: Solo faltan ${slotsMissing}` : 'Partida convocada';
+      const message =
+        n.data['message'] ??
+        (groupName && slotsOccupied
+          ? `"${groupName}" tiene ${slotsOccupied}/${slotsTotal} jugadores apuntados.`
+          : `${who} ha convocado una partida en ${groupName}. Di a qué horas puedes`);
+
       return {
         ...base,
-        title: 'Partida convocada',
-        message: `${who} ha convocado una partida en ${groupName}. Di a qué horas puedes`,
-        accent: 'var(--nf-secondary)',
+        title,
+        message,
+        accent: 'var(--nf-emerald)',
+        semanticLevel: 'room',
         glyph: '📣',
         invite: null,
         link: lobbyLink(n),
+        ctaLabel: 'Unirme a la sala',
       };
     }
     case 'LOBBY_CONFIRMED': {
@@ -177,10 +299,12 @@ export function notificationView(n: NotificationResponse, now = Date.now()): Not
         message: startsAt
           ? `Ya hay hora: ${formatKickoff(startsAt)}`
           : 'La partida ya tiene hora',
-        accent: 'var(--nf-success)',
+        accent: 'var(--nf-emerald)',
+        semanticLevel: 'room',
         glyph: '✓',
         invite: null,
         link: lobbyLink(n),
+        ctaLabel: 'Ver sala',
       };
     }
     case 'LOBBY_PROMOTED': {
@@ -193,10 +317,12 @@ export function notificationView(n: NotificationResponse, now = Date.now()): Not
         message: startsAt
           ? `Se ha caído alguien y entras tú: ${formatKickoff(startsAt)}`
           : 'Se ha caído alguien y entras tú',
-        accent: 'var(--nf-primary)',
+        accent: 'var(--nf-emerald)',
+        semanticLevel: 'room',
         glyph: '▲',
         invite: null,
         link: lobbyLink(n),
+        ctaLabel: 'Unirme a la sala',
       };
     }
     case 'LOBBY_CANCELLED': {
@@ -205,10 +331,11 @@ export function notificationView(n: NotificationResponse, now = Date.now()): Not
         ...base,
         title: 'Partida cancelada',
         message: `Se ha cancelado la partida de ${groupName}`,
-        accent: 'var(--nf-danger)',
+        accent: 'var(--nf-crimson)',
+        semanticLevel: 'critical',
         glyph: '⊘',
         invite: null,
-        // Sin enlace: la sala sigue existiendo pero no hay nada que hacer en ella.
+        link: groupLink(n),
       };
     }
     default:
@@ -217,7 +344,8 @@ export function notificationView(n: NotificationResponse, now = Date.now()): Not
         ...base,
         title: 'Notificación',
         message: '',
-        accent: 'var(--nf-warning)',
+        accent: 'var(--nf-blue-semantic)',
+        semanticLevel: 'social',
         glyph: '⊙',
         invite: null,
       };

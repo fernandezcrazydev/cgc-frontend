@@ -1,0 +1,150 @@
+/* Tarjeta táctica de la sala en directo (§5.5.6).
+
+   El aura vive en `--pod-aura`: el estado la define una vez y el borde, el fondo y
+   el resplandor la leen de ahí, así que no hay tres reglas por estado que puedan
+   quedarse desalineadas. */
+
+:host {
+  display: block;
+}
+
+.pod {
+  --pod-aura: var(--nf-border-strong);
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  height: 100%;
+  padding: 10px 8px 11px;
+  border-radius: 10px;
+  background: var(--nf-surface-2);
+  border: 1px solid color-mix(in srgb, var(--pod-aura) 55%, var(--nf-border));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--pod-aura) 9%, transparent);
+  color: inherit;
+  text-decoration: none;
+  transition:
+    border-color 0.14s,
+    box-shadow 0.14s,
+    transform 0.14s;
+}
+
+a.pod:hover,
+.pod--join:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--pod-aura) 18%, transparent);
+}
+
+a.pod:focus-visible,
+.pod--join:focus-visible {
+  outline: var(--nf-focus-ring, 2px) solid var(--nf-focus);
+  outline-offset: 2px;
+}
+
+/* Inscrito. Es la única lectura honesta que da el dominio: quien está, está. */
+.pod[data-state='starter'] {
+  --pod-aura: var(--nf-emerald);
+}
+
+/* En el banquillo: dentro de la convocatoria, fuera de los diez. */
+.pod[data-state='bench'] {
+  --pod-aura: var(--nf-gold);
+}
+
+.pod[data-state='free'] {
+  background: transparent;
+  border-style: dashed;
+  box-shadow: none;
+  /* Sin el `+` arriba, el hueco necesita repartir su contenido a lo alto para no
+     quedar pegado al borde superior de una tarjeta que sí lleva avatar y nombre. */
+  justify-content: center;
+  gap: 10px;
+}
+
+/* Hueco al que SÍ te puedes apuntar: se comporta como un botón y lo dice. */
+.pod--join {
+  --pod-aura: var(--nf-primary);
+
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.pod--join:hover:not(:disabled) {
+  border-style: solid;
+  background: color-mix(in srgb, var(--nf-primary) 8%, transparent);
+}
+
+.pod--join:hover:not(:disabled) .pod__plus,
+.pod--join:hover:not(:disabled) .pod__name {
+  color: var(--nf-primary);
+}
+
+.pod--join:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+/* El `+` va en todo hueco sin ocupar, se pueda pulsar o no: es lo que dice de un
+   vistazo cuántas plazas quedan por llenar. */
+.pod__plus {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  border: 1px dashed var(--nf-border-strong);
+  color: var(--nf-text-dim);
+  transition:
+    color 0.14s,
+    border-color 0.14s;
+}
+
+.pod--join:hover:not(:disabled) .pod__plus {
+  border-color: color-mix(in srgb, var(--nf-primary) 55%, transparent);
+}
+
+.pod__plus svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* Solo el puesto en la clasificación del grupo. El número de plaza se retiró: la
+   posición dentro de la parrilla no significa nada para quien mira. */
+.pod__top {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  width: 100%;
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+}
+
+.pod__name {
+  overflow: hidden;
+  max-width: 100%;
+  font-size: 11.5px;
+  color: var(--nf-text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pod__name--free {
+  color: var(--nf-text-dim);
+}
+
+.pod__champs {
+  display: flex;
+  gap: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pod {
+    transition: none;
+  }
+
+  a.pod:hover {
+    transform: none;
+  }
+}

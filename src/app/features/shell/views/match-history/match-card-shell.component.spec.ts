@@ -64,6 +64,8 @@ describe('MatchCardShellComponent · ranura del acordeón', () => {
           useValue: {
             status: signal('ready'),
             championById: signal(new Map()),
+            summonerSpellById: signal(new Map()),
+            perkById: signal(new Map()),
             ensureLoaded: () => {},
           },
         },

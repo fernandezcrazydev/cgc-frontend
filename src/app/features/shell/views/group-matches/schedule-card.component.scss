@@ -1,0 +1,128 @@
+/* Tarjeta de convocatoria (§5.5.6).
+
+   El marco es el que informa: azul si estás dentro, neutro si no. Es la única
+   diferencia que hace falta para recorrer la columna sin leer. */
+
+:host {
+  display: block;
+}
+
+.sc {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 13px 14px;
+  border-radius: 11px;
+  background: var(--nf-surface-2);
+  border: 1px solid var(--nf-border);
+}
+
+.sc.is-mine {
+  border-color: color-mix(in srgb, var(--nf-primary) 45%, var(--nf-border));
+  background: linear-gradient(
+    150deg,
+    color-mix(in srgb, var(--nf-primary) 10%, var(--nf-surface-2)),
+    var(--nf-surface-2)
+  );
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--nf-primary) 10%, transparent);
+}
+
+.sc__head {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.sc__when {
+  font-size: var(--fs-body);
+  font-weight: var(--fw-semibold);
+  color: var(--nf-text);
+}
+
+.sc__meta {
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+}
+
+/* ---- Ocupación ---- */
+
+.sc__fill {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.sc__bar {
+  overflow: hidden;
+  flex: 1;
+  height: 7px;
+  border-radius: 4px;
+  background: var(--nf-surface-3);
+}
+
+.sc__bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: var(--nf-emerald);
+}
+
+.sc__bar-text {
+  flex: none;
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+}
+
+.sc__people {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sc__bench {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-top: 8px;
+  border-top: 1px solid var(--nf-border);
+}
+
+.sc__people--bench {
+  opacity: 0.75;
+}
+
+.sc__bench-text {
+  font-size: var(--fs-label);
+  color: var(--nf-gold);
+}
+
+/* ---- Pie ---- */
+
+.sc__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-top: 9px;
+  border-top: 1px solid var(--nf-border);
+}
+
+.sc__badge {
+  font-size: 11.5px;
+  font-weight: var(--fw-semibold);
+  color: var(--nf-primary);
+}
+
+.sc__badge--bench {
+  color: var(--nf-gold);
+}
+
+.sc__badge--out {
+  font-weight: var(--fw-regular);
+  color: var(--nf-text-dim);
+}

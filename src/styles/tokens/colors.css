@@ -24,6 +24,7 @@
   --nf-inset: #101015;         /* hundido: inputs, raíles       */
   --nf-surface: #1b1b21;       /* cuerpo de panel / ventana     */
   --nf-surface-2: #26262e;     /* tarjeta o panel elevado       */
+  --nf-surface-3: #2c2c35;     /* raíl / pista de barra sobre 2 */
   --nf-elevated: #33333d;      /* hover / techo de gradiente    */
 
   /* ---- Paleta ----
@@ -37,6 +38,21 @@
   --nf-warning: #f0c419;        /* aviso                      */
   --nf-success: #35c759;        /* éxito                      */
   --nf-danger: #f04438;         /* peligro                    */
+
+  /* ---- Código Semántico de Notificaciones [F5.5-02] ---- */
+  --nf-crimson: #f85149;        /* 🔴 Crítico / Sanción / Moderación */
+  --nf-gold: #e3b341;           /* 🟡 Logro / LP / Podio / MVP       */
+  --nf-emerald: #3fb950;        /* 🟢 Sala abierta / Convocatoria    */
+  --nf-blue-semantic: #388bfd;  /* 🔵 Social / Invitación (azul puro)*/
+
+  /* ---- Metales del podio ----
+     El oro del podio es `--nf-gold`, el mismo del semáforo de logros. Plata y
+     bronce no tenían token y estaban copiados en cada pantalla que pintaba un
+     podio; con dos copias, la del ranking y la de las medallas acaban siendo
+     bronces distintos. Son colores de dominio (un podio es un podio), como los
+     bandos de LoL, así que no siguen al acento de la app. */
+  --nf-silver: #94a3b8;
+  --nf-bronze: #d97706;
 
   /* ---- Lados de equipo (semántico de dominio, no de tema) ----
      Literales a propósito: son los azul/rojo de LoL, no el acento de la

@@ -1,9 +1,6 @@
 /* Cajon de historial del jugador, desplegable desde una fila del ranking. Hoja aparte
    de `grupo-ranking.scss` por el presupuesto `anyComponentStyle`; ver ese fichero. */
 
-/* Cajon de historial del jugador, desplegable desde una fila del ranking. Hoja aparte
-   de `grupo-ranking.scss` por el presupuesto `anyComponentStyle`; ver ese fichero. */
-
 .rk-lp-gain {
   color: var(--nf-success);
 }
@@ -100,44 +97,50 @@
 .rk-matches {
   display: flex;
   flex-direction: column;
-  gap: 7px;
+  gap: 8px;
 }
 
 .rk-match {
   --side: var(--nf-text-dim);
   display: grid;
-  /* Ocho zonas. Eran nueve: la novena (14px) era el galón de "pulsa aquí", que se
-     retiró al dejar de ser un enlace (ver el BACKEND NOTE de `grupo-ranking.ts`). */
-  grid-template-columns:
-    minmax(96px, 118px) 22px minmax(116px, max-content) 30px
-    minmax(170px, 1fr) minmax(140px, max-content) max-content 76px;
+  grid-template-columns: 110px 20px 76px minmax(130px, 1fr) 90px 198px 68px;
   align-items: center;
+  min-height: 56px;
+  box-sizing: border-box;
   gap: 12px;
-  padding: 9px 12px;
-  border-radius: 10px;
+  padding: 8px 16px;
+  border-radius: 8px;
   border: 1px solid var(--nf-border);
   border-left: 3px solid var(--side);
   background: var(--nf-surface-2);
   color: inherit;
-}
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, transform 0.12s;
 
-.rk-match.is-win {
-  --side: var(--nf-success);
-}
+  &:hover {
+    background: color-mix(in srgb, var(--nf-surface-2) 75%, var(--nf-surface));
+    border-color: color-mix(in srgb, var(--side) 50%, var(--nf-border));
+    transform: translateY(-1px);
+  }
 
-.rk-match.is-loss {
-  --side: var(--nf-danger);
+  &.is-win {
+    --side: var(--nf-success);
+  }
+  &.is-loss {
+    --side: var(--nf-danger);
+  }
 }
 
 .rk-match__result {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
   min-width: 0;
 }
 
 .rk-match__verdict {
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 800;
   color: var(--side);
 }
@@ -148,54 +151,97 @@
 }
 
 .rk-match__lane {
-  font-size: 19px;
-  justify-self: center;
-}
-
-/* Modo espejo del enfrentamiento.
-   El template emite los dos lados igual —[campeón][hechizos][runas]—; el lado
-   del jugador lo invierte con `row-reverse`, así que la lectura desde el VS
-   hacia fuera es idéntica en ambos:
-
-     [runas][hechizos][campeón]  VS  [campeón][hechizos][runas]
-
-   Los `justify-self` opuestos pegan los dos bloques al VS en vez de dejarlos
-   flotando en su columna, que es lo que rompía la simetría cuando el nombre del
-   rival era largo. */
-
-.rk-match__side {
+  width: 18px;
+  height: 18px;
   display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
+}
+
+.rk-match__loadout {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+.rk-match__champ {
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.rk-match__spells,
+.rk-match__runes {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: center;
+  justify-content: center;
+}
+
+.rk-match__spell-slot {
+  width: 16px;
+  height: 16px;
+  border-radius: 2px;
+  border: 1px solid var(--nf-border);
+  overflow: hidden;
+  flex-shrink: 0;
+  display: flex;
+}
+
+.rk-match__rune-slot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--nf-inset);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+
+  &--secondary {
+    width: 14px;
+    height: 14px;
+    opacity: 0.85;
+  }
+}
+
+.rk-match__vs-block {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   min-width: 0;
 }
 
-.rk-match__side--mine {
-  flex-direction: row-reverse;
-  justify-self: end;
-}
-
-.rk-match__side--foe {
-  justify-self: start;
-}
-
 .rk-match__vs {
-  justify-self: center;
   font-size: var(--fs-label);
   font-weight: 800;
   color: var(--nf-text-dim);
   letter-spacing: 0.5px;
+  flex-shrink: 0;
+}
+
+.rk-match__foe {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.rk-match__foe-champ {
+  border-radius: 4px;
+  flex-shrink: 0;
 }
 
 .rk-match__foe-name {
   display: flex;
   flex-direction: column;
   min-width: 0;
-  margin-left: 2px;
 }
 
 .rk-match__foe-nick {
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--nf-text);
   white-space: nowrap;
@@ -211,13 +257,18 @@
 .rk-match__kda {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  width: 90px;
+  gap: 1px;
 }
 
 .rk-match__kda-line {
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--nf-text);
+  white-space: nowrap;
 }
 
 .rk-match__deaths {
@@ -227,62 +278,63 @@
 .rk-match__kda-sub {
   font-size: var(--fs-label);
   color: var(--nf-text-dim);
+  white-space: nowrap;
 }
 
 .rk-match__build {
   display: flex;
   align-items: center;
-  gap: 3px;
+  gap: 2px;
+  width: 198px;
+  justify-content: flex-start;
+  flex-shrink: 0;
 }
 
 .rk-item {
   width: 22px;
   height: 22px;
-  border-radius: 5px;
+  border-radius: 3px;
   border: 1px solid var(--nf-border);
   flex-shrink: 0;
-}
+  display: flex;
 
-.rk-item--empty {
-  background: var(--nf-inset);
-  opacity: 0.55;
-}
+  &--empty {
+    background: var(--nf-inset);
+    opacity: 0.35;
+    border-style: dashed;
+  }
 
-.rk-item--trinket {
-  border-radius: 50%;
-  margin-left: 6px;
+  &--trinket {
+    border-radius: 50%;
+    margin-left: auto;
+  }
 }
 
 .rk-match__lp {
   text-align: right;
-  font-size: var(--fs-body);
+  font-size: 13px;
   font-weight: 800;
   color: var(--nf-danger);
-}
+  white-space: nowrap;
 
-.rk-match__lp.is-gain {
-  color: var(--nf-success);
+  &.is-gain {
+    color: var(--nf-success);
+  }
 }
 
 @media (max-width: 1180px) {
 .rk-match {
-    grid-template-columns:
-      minmax(92px, 110px) 20px max-content 26px minmax(126px, 1fr)
-      max-content max-content 68px 14px;
+    grid-template-columns: 100px 18px 74px minmax(110px, 1fr) 84px 190px 60px;
+    gap: 8px;
+    padding: 8px 12px;
   }
 }
 
 @media (max-width: 1000px) {
-/* Se oculta la línea: quedan 8 zonas, así que 8 columnas. */
 .rk-match {
-    grid-template-columns:
-      minmax(88px, 104px) max-content 24px minmax(110px, 1fr)
-      max-content max-content 60px 14px;
-  }
-/* Los hechizos caen en LOS DOS lados: recortar solo el del rival dejaba el
-     bloque descuadrado respecto al VS, que es justo lo que arregla el espejo. */
-.rk-match__lane {
-    display: none;
+    grid-template-columns: 90px 18px 74px minmax(90px, 1fr) 78px 180px 56px;
+    gap: 6px;
+    padding: 6px 10px;
   }
 }
 
@@ -407,23 +459,6 @@
     flex-shrink: 0;
     margin-right: 2px;
   }
-.rk-match__side--mine {
-    grid-area: mine;
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-self: start;
-    gap: 4px;
-    min-width: 0;
-  }
-.rk-match__side--mine nf-avatar,
-  .rk-match__side--mine .nf-avatar {
-    width: 32px !important;
-    height: 32px !important;
-    font-size: 12px !important;
-    border-radius: 6px;
-    flex-shrink: 0;
-  }
 .rk-match__vs {
     grid-area: vs;
     font-size: 10px;
@@ -431,42 +466,6 @@
     color: var(--nf-text-dim);
     padding: 0 3px;
     justify-self: center;
-  }
-.rk-match__side--foe {
-    grid-area: foe;
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-self: start;
-    gap: 5px;
-    min-width: 0;
-  }
-.rk-match__side--foe nf-avatar,
-  .rk-match__side--foe .nf-avatar {
-    width: 28px !important;
-    height: 28px !important;
-    font-size: var(--fs-label) !important;
-    border-radius: 6px;
-    opacity: 0.9;
-    flex-shrink: 0;
-  }
-.rk-match__side--foe .rk-match__foe-tag {
-    display: none;
-  }
-.rk-match__side--foe .rk-match__foe-name {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-    max-width: 60px;
-    overflow: hidden;
-  }
-.rk-match__side--foe .rk-match__foe-nick {
-    font-size: var(--fs-label);
-    font-weight: 600;
-    color: var(--nf-text-mid);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
   }
 /* Fila 2 - Derecha: KDA y Rendimiento */
 .rk-match__kda {

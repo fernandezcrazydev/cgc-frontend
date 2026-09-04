@@ -1,89 +1,12 @@
-/* Shared styles for the app-shell views. */
+@use 'breakpoints' as *;
 
-/* ---- Breakpoints ----
-   Tres escalones, y el de en medio importa: el shell conmuta a su layout móvil a 760px
-   (`shell.ts`, matchMedia), así que todo lo que cambia MARKUP tiene que cambiar en ese
-   mismo píxel o el DOM y el CSS se contradicen. $bp-compact se conserva porque bajarlo a
-   760 dejaría la banda 761-860px con la rejilla de escritorio de la fila del historial
-   (~870px de mínimos), que ahí no cabe.
+/* Estilos compartidos de las vistas del shell.
 
-   Solo los bloques del historial están migrados a estas variables; el resto de vistas
-   conserva sus media queries literales hasta que les toque. */
-$bp-compact: 860px;
-$bp-mobile: 760px;
-$bp-narrow: 420px;
-
-/* Suelo de área táctil en móvil (44px = mínimo de Apple HIG; Material pide 48dp). Se
-   aplica solo dentro de los contenedores del historial, no en las primitivas nf-*, para
-   no cambiar el móvil del resto de la app. */
-$touch: 44px;
-
-.view { animation: nf-fade 0.3s ease-out; }
-
-.view__head {
-  margin-bottom: 26px;
-}
-.view__eyebrow {
-  font-size: 12px;
-  color: var(--nf-secondary);
-  margin-bottom: 10px;
-}
-.view__title {
-  margin: 0 0 8px;
-  font-weight: 800;
-  font-size: clamp(24px, 5vw, 32px);
-  color: var(--nf-text);
-  letter-spacing: -0.5px;
-}
-.view__lead {
-  margin: 0;
-  color: var(--nf-text-mid);
-  font-size: var(--fs-body-lg);
-  line-height: 1.6;
-}
-.view__label {
-  font-size: 12px;
-  color: var(--nf-text-dim);
-  margin-bottom: 12px;
-}
-.view__intro {
-  margin: 0 0 22px;
-  color: var(--nf-text-mid);
-  font-size: var(--fs-body);
-  line-height: 1.6;
-}
-
-/* back link / breadcrumb: sits above the head so "go back" is where users expect it */
-.view-back {
-  display: inline-flex;
-  align-items: center;
-  gap: 9px;
-  margin-bottom: 18px;
-  padding: 9px 16px 9px 13px;
-  font-size: 13px;
-  color: var(--nf-text-mid);
-  text-decoration: none;
-  background: var(--nf-surface-2);
-  border: 1px solid var(--nf-border);
-  border-radius: 6px;
-  transition:
-    color 0.14s,
-    border-color 0.14s,
-    background 0.14s;
-}
-.view-back:hover {
-  color: var(--nf-text);
-  border-color: var(--nf-border-strong);
-  background: color-mix(in srgb, var(--nf-secondary) 8%, var(--nf-surface-2));
-}
-.view-back__arrow {
-  font-size: 16px;
-  line-height: 1;
-  transition: transform 0.14s;
-}
-.view-back:hover .view-back__arrow {
-  transform: translateX(-3px);
-}
+   MONOLITO EN RETIRADA: este fichero se vacía sección a sección conforme la
+   Fase 5.5 rehace cada pantalla. Lo común de la aplicación (`.view*`,
+   `.view-back`, `.empty-state`, `.cards`) vive ahora en `src/styles/app.scss`,
+   y los puntos de corte en `src/styles/_breakpoints.scss`. No añadas nada
+   nuevo aquí: lo nuevo va en la hoja del componente que lo usa. */
 
 .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 30px; }
 
@@ -98,13 +21,6 @@ $touch: 44px;
 /* ---- REQUIERE TU ATENCIÓN (inicio): actionable notifications ---- */
 
 @media (max-width: 620px) {
-}
-
-/* ---- partidas cards ---- */
-.cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 16px;
 }
 
 /* ---- champions grid ---- */
@@ -302,14 +218,14 @@ $touch: 44px;
   padding-right: 0;
 }
 
-
+/* ---- grupo detalle: hero + members ---- */
 
 .members {
   display: flex;
   flex-direction: column;
 }
 
-
+/* roster row wrapper: header (clickable) + optional detail panel */
 
 .member {
   display: flex;
@@ -320,54 +236,7 @@ $touch: 44px;
 /* pending items keep their own separators (no .member-row wrapper) */
 
 /* clickable roster rows */
-.member-row > .member {
-  cursor: pointer;
-  transition: background 0.16s;
-}
-.member-row > .member:hover {
-  background: color-mix(in srgb, var(--nf-secondary) 7%, transparent);
-}
-.member-row > .member:focus-visible {
-  outline: none;
-  background: color-mix(in srgb, var(--nf-secondary) 9%, transparent);
-  box-shadow: inset 2px 0 0 var(--nf-secondary);
-}
-
-.member__chevron {
-  flex: none;
-  margin-left: auto;
-  font-size: var(--fs-label);
-  color: var(--nf-text-dim);
-  transition:
-    transform 0.2s,
-    color 0.16s;
-}
-.member-row > .member:hover .member__chevron {
-  color: var(--nf-secondary);
-}
-.member-row--open .member__chevron {
-  transform: rotate(180deg);
-  color: var(--nf-secondary);
-}
 /* when a chevron is present, badge/remove button shouldn't push to the edge via margin-auto */
-.member__chevron ~ .nf-badge {
-  margin-left: 0;
-}
-.member__avatar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  flex: none;
-  border-radius: 6px;
-  border: 1.5px solid var(--nf-border);
-  font-family: var(--nf-mono);
-  font-weight: 700;
-  font-size: var(--fs-label);
-  color: #fff;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-}
 .member__meta {
   flex: 1;
   min-width: 0;
@@ -430,39 +299,14 @@ $touch: 44px;
   --mbadge-c: var(--nf-danger);
 }
 
-/* ── expanded member detail panel ─────────────────────────────────────── */
-.member-detail {
-  padding: 16px;
-  background: color-mix(in srgb, var(--nf-bg) 55%, transparent);
-  border-top: 1px solid var(--nf-border);
-  animation: member-detail-in 0.18s ease;
-}
-@keyframes member-detail-in {
-  from {
-    opacity: 0;
-    transform: translateY(-4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-.member-detail__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 14px;
-}
-.member-detail__tag {
-  font-size: 16px;
-  font-weight: 700;
-  color: #fff;
-  letter-spacing: -0.3px;
-}
+
 
 /* Perks editor modal — toggleable chips grouped by tone */
-
+/* La caja (34px, borde) y el tinte de reserva ahora los da `nf-avatar`; el radio
+   (6px antes de la migración a iconos reales) se recupera aquí. */
+.champ-icon {
+  border-radius: var(--nf-radius-lg);
+}
 
 
 
@@ -580,9 +424,13 @@ $touch: 44px;
 
 .m-summary {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 16px;
   margin-bottom: 20px;
+
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr;
+  }
 }
 
 .m-summary__stat-card {
@@ -592,6 +440,9 @@ $touch: 44px;
   border-radius: 8px;
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
+  min-height: 112px;
+  box-sizing: border-box;
   gap: 8px;
 }
 
@@ -809,6 +660,7 @@ $touch: 44px;
   border-left: 5px solid var(--nf-text-dim);
   border-radius: 8px;
   overflow: hidden;
+  box-sizing: border-box;
   transition: border-color 0.14s, box-shadow 0.14s, background 0.14s;
 
   &.is-win {
@@ -846,6 +698,28 @@ $touch: 44px;
     border-color: var(--nf-border-accent);
     box-shadow: 0 8px 24px rgba(0,0,0,0.35);
   }
+
+  &.has-focus-pulse {
+    animation: nf-focus-pulse 2.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+}
+
+@keyframes nf-focus-pulse {
+  0% {
+    outline: 2px solid var(--nf-primary);
+    outline-offset: 3px;
+    box-shadow: 0 0 16px color-mix(in srgb, var(--nf-primary) 70%, transparent);
+  }
+  35% {
+    outline: 2px solid color-mix(in srgb, var(--nf-primary) 90%, transparent);
+    outline-offset: 4px;
+    box-shadow: 0 0 24px color-mix(in srgb, var(--nf-primary) 85%, transparent);
+  }
+  100% {
+    outline: 2px solid transparent;
+    outline-offset: 0;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  }
 }
 
 .m-card--skeleton {
@@ -853,7 +727,8 @@ $touch: 44px;
   align-items: center;
   justify-content: space-between;
   min-height: 84px;
-  padding: 16px;
+  box-sizing: border-box;
+  padding: 12px 18px;
 }
 
 .m-card__skeleton-left {
@@ -876,10 +751,12 @@ $touch: 44px;
 
 .m-card__main {
   display: grid;
-  grid-template-columns: 110px minmax(180px, 1.3fr) 120px minmax(150px, 1fr) auto minmax(110px, max-content);
+  grid-template-columns: 100px minmax(160px, 1.2fr) 110px minmax(130px, 1fr) 112px 130px;
   align-items: center;
+  min-height: 84px;
+  box-sizing: border-box;
   gap: 16px;
-  padding: 14px 18px;
+  padding: 12px 18px;
   cursor: pointer;
   user-select: none;
   outline: none;
@@ -889,18 +766,21 @@ $touch: 44px;
   }
 }
 
-/* La rejilla de arriba esta medida para los seis bloques de la fila personal. La de grupo
-   proyecta cuatro mucho mas anchos, y compartirlas dejaba el bloque del MVP pegado a la tira
-   de campeones. El hueco entre columnas es aqui el que da el aire que faltaba. */
+/* La rejilla de grupo proyecta cuatro columnas más anchas y proporcionadas con min-height unificado */
 .m-card__main--group {
-  grid-template-columns: minmax(150px, max-content) minmax(300px, 1fr) minmax(160px, max-content) minmax(110px, max-content);
-  gap: 26px;
+  grid-template-columns: 130px 1fr 200px 130px;
+  align-items: center;
+  min-height: 84px;
+  box-sizing: border-box;
+  gap: 20px;
 }
 
 .m-card__result {
   display: flex;
   flex-direction: column;
+  justify-content: center;
   gap: 3px;
+  min-height: 48px;
 }
 
 /* El resultado no puede codificarse solo con verde/rojo: para un daltónico protán o deután
@@ -935,6 +815,7 @@ $touch: 44px;
   align-items: center;
   gap: 12px;
   min-width: 0;
+  min-height: 48px;
 }
 
 .m-card__avatar-wrap {
@@ -995,7 +876,9 @@ $touch: 44px;
 .m-card__kda {
   display: flex;
   flex-direction: column;
+  justify-content: center;
   gap: 3px;
+  min-height: 48px;
 }
 
 .m-card__kda-line {
@@ -1013,7 +896,9 @@ $touch: 44px;
 .m-card__stats {
   display: flex;
   flex-direction: column;
+  justify-content: center;
   gap: 4px;
+  min-height: 48px;
 }
 
 .m-card__stat-item {
@@ -1047,6 +932,14 @@ $touch: 44px;
   }
 }
 
+.m-card__items {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 108px;
+  min-height: 48px;
+}
+
 .m-card__items-grid {
   display: grid;
   grid-template-columns: repeat(4, 24px);
@@ -1072,14 +965,18 @@ $touch: 44px;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 6px;
+  justify-content: center;
+  gap: 4px;
   text-align: right;
+  min-height: 48px;
 }
 
 .m-card__end-extra {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 8px;
+  min-height: 22px;
 }
 
 .m-card__date {
@@ -1111,7 +1008,9 @@ $touch: 44px;
 .m-card__group-summary {
   display: flex;
   flex-direction: column;
+  justify-content: center;
   gap: 4px;
+  min-height: 48px;
 }
 
 .m-card__winner-pill {
@@ -1137,7 +1036,9 @@ $touch: 44px;
 .m-card__vs-block {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 12px;
+  min-height: 48px;
 }
 
 .m-card__team-roster {
@@ -1244,7 +1145,9 @@ $touch: 44px;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 7px;
+  justify-content: center;
+  gap: 5px;
+  min-height: 48px;
 }
 
 /* Chip, no texto suelto: el MVP es una distinción, y como etiqueta se distingue del resto de
@@ -1287,13 +1190,24 @@ $touch: 44px;
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 4px 10px 4px 8px;
+  padding: 3px 8px;
   border-radius: 6px;
   background: var(--nf-inset);
   border-left: 3px solid var(--nf-border-strong);
+  min-height: 24px;
+  box-sizing: border-box;
 
   &.is-blue { border-left-color: var(--nf-team-blue); }
   &.is-red { border-left-color: var(--nf-team-red); }
+
+  &--none {
+    background: transparent;
+    border-left: none;
+    padding: 0 4px;
+    color: var(--nf-text-dim);
+    opacity: 0.6;
+    font-size: var(--fs-label);
+  }
 }
 
 .m-card__you-champ {
@@ -1338,91 +1252,189 @@ $touch: 44px;
 }
 
 .m-lineup {
-  padding: 14px 18px 12px;
+  padding: 16px 20px 14px;
 }
 
 .m-lineup__teams {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px 22px;
+  gap: 12px 20px;
 }
 
 .m-lineup__team {
   min-width: 0;
-  padding-left: 10px;
-  border-left: 3px solid var(--nf-border-strong);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 12px;
+  background: color-mix(in srgb, var(--nf-surface-2) 40%, var(--nf-surface));
+  border-radius: var(--nf-radius);
+  border: 1px solid var(--nf-border);
+  border-left: 4px solid var(--nf-border-strong);
 
-  &--blue { border-left-color: var(--nf-team-blue); }
-  &--red { border-left-color: var(--nf-team-red); }
+  &--blue {
+    border-left-color: var(--nf-team-blue);
+    background: color-mix(in srgb, var(--nf-team-blue) 4%, var(--nf-surface));
+  }
+  &--red {
+    border-left-color: var(--nf-team-red);
+    background: color-mix(in srgb, var(--nf-team-red) 4%, var(--nf-surface));
+  }
 }
 
 .m-lineup__team-head {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 8px;
-  padding-bottom: 6px;
+  padding-bottom: 8px;
   margin-bottom: 4px;
   border-bottom: 1px solid var(--nf-border);
 }
 
 .m-lineup__team-name {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: var(--fw-bold);
   color: var(--nf-text);
+  letter-spacing: 0.01em;
 }
 
 .m-lineup__team-outcome {
   font-size: var(--fs-label);
-  font-weight: var(--fw-bold);
+  font-weight: var(--fw-black);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px 8px;
+  border-radius: 4px;
 
-  &.is-win { color: var(--nf-success); }
-  &.is-loss { color: var(--nf-danger); }
+  &.is-win {
+    color: var(--nf-success);
+    background: color-mix(in srgb, var(--nf-success) 14%, transparent);
+  }
+  &.is-loss {
+    color: var(--nf-danger);
+    background: color-mix(in srgb, var(--nf-danger) 14%, transparent);
+  }
 }
 
 .m-lineup__team-kills {
   margin-left: auto;
-  font-size: var(--fs-label);
+  font-size: 12px;
+  font-weight: var(--fw-bold);
   color: var(--nf-text-dim);
 }
 
 .m-lineup__row {
-  display: flex;
+  display: grid;
+  /* El hueco de reacciones va entre el nombre y el KDA. Es `auto`: sin reacciones no ocupa nada. */
+  grid-template-columns: 18px 74px minmax(90px, 1fr) auto 78px 198px;
   align-items: center;
-  gap: 8px;
-  padding: 4px 6px 4px 0;
+  min-height: 44px;
+  box-sizing: border-box;
+  gap: 10px;
+  padding: 4px 8px;
   border-radius: var(--nf-radius-sm);
+  transition: background 0.12s;
 
-  /* La fila del usuario se marca con el color de marca, igual que en el resto de la app. */
+  &:hover {
+    background: color-mix(in srgb, var(--nf-surface-2) 65%, transparent);
+  }
+
   &.is-you {
     background: color-mix(in srgb, var(--nf-primary) 14%, transparent);
-    padding-left: 6px;
+    border-left: 3px solid var(--nf-primary);
+    padding-left: 5px;
   }
 }
 
 .m-lineup__lane {
-  flex: none;
   width: 16px;
   height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.m-lineup__champ-col {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.m-lineup__champ-link {
+  display: flex;
+  align-items: center;
+  line-height: 0;
 }
 
 .m-lineup__champ {
-  flex: none;
-  border-radius: var(--nf-radius-sm);
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.m-lineup__spells-col,
+.m-lineup__runes-col {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: center;
+  justify-content: center;
+}
+
+.m-lineup__spell-slot {
+  width: 16px;
+  height: 16px;
+  border-radius: 2px;
+  border: 1px solid var(--nf-border);
+  overflow: hidden;
+  flex-shrink: 0;
+  display: flex;
+}
+
+.m-lineup__rune-slot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--nf-inset);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+
+  &--secondary {
+    width: 14px;
+    height: 14px;
+    opacity: 0.85;
+  }
 }
 
 .m-lineup__who {
   display: flex;
   flex-direction: column;
   min-width: 0;
-  flex: 1;
+  gap: 1px;
+}
+
+.m-lineup__who-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
 }
 
 .m-lineup__player {
   font-size: 12px;
+  font-weight: var(--fw-bold);
   color: var(--nf-text);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  text-decoration: none;
+
+  &:hover {
+    color: var(--nf-primary);
+    text-decoration: underline;
+  }
 }
 
 .m-lineup__champ-name {
@@ -1431,34 +1443,176 @@ $touch: 44px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  text-decoration: none;
+
+  &:hover {
+    color: var(--nf-text);
+  }
 }
 
 .m-lineup__tag {
-  flex: none;
-  padding: 1px 6px;
+  padding: 1px 5px;
   border-radius: 3px;
-  font-size: var(--fs-label);
+  font-size: 10px;
   font-weight: var(--fw-bold);
-  background: color-mix(in srgb, var(--nf-primary) 26%, transparent);
-  color: var(--nf-text);
+  background: color-mix(in srgb, var(--nf-primary) 28%, transparent);
+  color: var(--nf-primary);
+  line-height: 1.2;
 
   &--mvp {
-    background: color-mix(in srgb, var(--nf-warning) 26%, transparent);
+    background: color-mix(in srgb, var(--nf-warning) 28%, transparent);
     color: var(--nf-warning);
   }
 }
 
-.m-lineup__kda {
-  flex: none;
-  width: 62px;
-  text-align: right;
-  font-size: 12px;
+/* ── Reacciones sobre un jugador (historial del grupo) ───────────────────────
+   Caben tres; a partir de ahí, un «+N» que abre el panel con todas. Así una fila con dos
+   reacciones y otra con diez miden exactamente lo mismo. */
+.m-lineup__reactions {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  justify-content: flex-end;
+}
+
+.m-lineup__reaction {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 6px;
+  border-radius: var(--nf-radius-sm, 8px);
+  background: var(--nf-surface-2, rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--nf-border);
+  color: var(--nf-text-dim);
+  font-size: var(--fs-label);
+  line-height: 1.4;
+  cursor: pointer;
+  transition: border-color 0.14s, background 0.14s, color 0.14s;
+}
+
+.m-lineup__reaction:hover {
+  border-color: var(--nf-border-strong);
   color: var(--nf-text);
 }
 
-.m-lineup__slash {
-  margin: 0 2px;
+/* La reacción propia se distingue a simple vista: si no, nadie sabe qué votó. */
+.m-lineup__reaction.is-mine {
+  background: color-mix(in srgb, var(--nf-primary) 18%, transparent);
+  border-color: var(--nf-primary);
+  color: var(--nf-text);
+}
+
+.m-lineup__reaction--more {
+  color: var(--nf-secondary);
+}
+
+.m-lineup__react-add {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 21px;
+  padding: 0;
+  border-radius: var(--nf-radius-sm, 8px);
+  background: transparent;
+  border: 1px dashed var(--nf-border);
   color: var(--nf-text-dim);
+  font-size: var(--fs-label);
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.5;
+  transition: opacity 0.14s, border-color 0.14s, color 0.14s, background 0.14s;
+}
+
+/* Discreto hasta que la fila interesa: siempre está, pero no compite con los datos. */
+.m-lineup__row:hover .m-lineup__react-add,
+.m-lineup__react-add:focus-visible {
+  opacity: 1;
+}
+
+.m-lineup__react-add:hover {
+  border-color: var(--nf-primary);
+  background: color-mix(in srgb, var(--nf-primary) 10%, transparent);
+  color: var(--nf-text);
+}
+
+.m-lineup__reaction:focus-visible,
+.m-lineup__react-add:focus-visible {
+  outline: 2px solid var(--nf-secondary);
+  outline-offset: 1px;
+}
+
+.m-lineup__react-panel {
+  position: absolute;
+  z-index: 50;
+  top: calc(100% + 6px);
+  right: 0;
+  /* La tarjeta de la partida recorta su contenido para poder animar el desplegable, así que el
+     panel no puede pasarse de su borde: si no cabe entero, scrollea. */
+  max-height: 340px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border-radius: 10px;
+  background: var(--nf-surface-2, rgba(28, 28, 30, 0.98));
+  border: 1px solid var(--nf-border-strong);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+}
+
+/* En las dos últimas filas de cada equipo el panel se abre hacia ARRIBA: por debajo solo quedan
+   unas decenas de píxeles hasta el borde de la tarjeta, que recorta, y el panel salía cortado por
+   la mitad. Hacia arriba hay el alto de la alineación entera. */
+.m-lineup__row:nth-last-child(-n + 2) .m-lineup__react-panel {
+  top: auto;
+  bottom: calc(100% + 6px);
+}
+
+.m-lineup__react-panel-title {
+  font-size: 10.5px;
+  color: var(--nf-text-dim);
+}
+
+.m-lineup__react-panel-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  max-width: 232px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--nf-border);
+}
+
+/* Asomándose con el cursor no hay selector debajo, así que tampoco hace falta la raya que lo
+   separaba. */
+.m-lineup__react-panel-list.is-peek {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.m-lineup__kda-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  width: 78px;
+  min-height: 36px;
+  gap: 1px;
+}
+
+.m-lineup__kda {
+  font-size: 12px;
+  font-weight: var(--fw-bold);
+  color: var(--nf-text);
+  white-space: nowrap;
+}
+
+.m-lineup__slash {
+  margin: 0 1px;
+  color: var(--nf-text-dim);
+  font-weight: normal;
 }
 
 .m-lineup__deaths {
@@ -1466,11 +1620,66 @@ $touch: 44px;
 }
 
 .m-lineup__ratio {
-  flex: none;
-  width: 62px;
-  text-align: right;
   font-size: var(--fs-label);
   color: var(--nf-text-mid);
+  white-space: nowrap;
+}
+
+.m-lineup__items {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  width: 198px;
+  justify-content: flex-start;
+  flex-shrink: 0;
+}
+
+.m-lineup__item-slot {
+  width: 22px;
+  height: 22px;
+  border-radius: 3px;
+  border: 1px solid var(--nf-border);
+  background-size: cover;
+  flex-shrink: 0;
+  display: flex;
+
+  &--trinket {
+    margin-left: auto;
+    border-radius: 50%;
+  }
+
+  &--empty {
+    background: var(--nf-inset);
+    border-style: dashed;
+    opacity: 0.35;
+  }
+}
+
+@media (max-width: 1080px) {
+  .m-lineup__teams {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
+@media (max-width: 600px) {
+  .m-lineup__row {
+    grid-template-columns: 18px 74px minmax(0, 1fr) auto;
+    grid-template-areas:
+      'lane champ who kda'
+      'items items items items';
+    row-gap: 6px;
+  }
+
+  .m-lineup__lane { grid-area: lane; }
+  .m-lineup__champ-col { grid-area: champ; }
+  .m-lineup__who { grid-area: who; }
+  .m-lineup__kda-col { grid-area: kda; }
+  .m-lineup__items {
+    grid-area: items;
+    justify-content: flex-start;
+    padding-left: 26px;
+  }
 }
 
 .m-lineup__actions {
@@ -1579,10 +1788,9 @@ $touch: 44px;
   .m-card__champ-name { font-size: var(--fs-body-lg); white-space: normal; }
   .m-card__group-link { white-space: normal; }
 
-  /* Los siete objetos dejan de ser cuadraditos de 24px fijos y reparten el ancho de la
-     fila. Es la única forma de que se distingan sin lupa. */
-  .m-card__items-grid { grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px; }
-  .m-card__item-slot { width: 100%; height: auto; aspect-ratio: 1; }
+  /* Los objetos (7 u 8 para ADC) se muestran con ancho uniforme sin romper la fila ni alterar la altura */
+  .m-card__items-grid { display: flex; align-items: center; gap: 5px; flex-wrap: nowrap; }
+  .m-card__item-slot { width: 26px; height: 26px; aspect-ratio: 1; flex-shrink: 0; }
 
   /* ---- Fila del historial de grupo ----
      Va DESPUÉS de `.m-card__main` a propósito: las dos tienen la misma especificidad, así
@@ -1731,10 +1939,7 @@ $touch: 44px;
     overflow: hidden;
   }
 
-  /* ---- Rivalidades ----
-     Tres tarjetas de 150px de alto mínimo son 450px de scroll para doce datos. Como fila
-     dicen lo mismo en un tercio. */
-  .hl-grid { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  
   .md-section .hl {
     min-height: 0;
     gap: 8px;
@@ -1771,267 +1976,6 @@ $touch: 44px;
 
 
 
-
-
-
-
-
-
-
-/* ============ EMPTY STATE ============ */
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  text-align: center;
-  padding: 24px 12px;
-}
-.empty-state__icon {
-  font-size: 40px;
-  line-height: 1;
-  opacity: 0.85;
-}
-.empty-state__text {
-  font-size: 13px;
-  color: var(--nf-secondary);
-}
-.empty-state__hint {
-  max-width: 360px;
-  font-size: 13px;
-  color: var(--nf-text-dim);
-  margin: 0;
-}
-
-/* ============ ESTADÍSTICAS ============ */
-
-/* ---- Scope pill (NOCHE / TEMPORADA / HISTÓRICO) ---- */
-.seg {
-  display: inline-flex;
-  gap: 4px;
-  padding: 4px;
-  margin-bottom: 18px;
-  border-radius: 10px;
-  border: 1.5px solid var(--nf-border);
-  background: var(--nf-inset);
-}
-.seg__btn {
-  appearance: none;
-  border: none;
-  cursor: pointer;
-  padding: 7px 16px;
-  border-radius: 7px;
-  background: transparent;
-  color: var(--nf-text-dim);
-  font-size: var(--fs-label);
-  font-weight: 700;
-  transition:
-    color 0.14s,
-    background 0.14s;
-}
-.seg__btn:hover {
-  color: var(--nf-text-mid);
-}
-.seg__btn.is-active {
-  color: var(--nf-text);
-  background: var(--nf-elevated);
-}
-
-/* ---- Section tabs ---- */
-.tabs {
-  display: flex;
-  gap: 26px;
-  margin-bottom: 22px;
-  border-bottom: 1.5px solid var(--nf-border);
-}
-.tabs__btn {
-  appearance: none;
-  border: none;
-  cursor: pointer;
-  background: transparent;
-  color: var(--nf-text-dim);
-  font-size: 12px;
-  font-weight: 700;
-  padding: 0 2px 12px;
-  margin-bottom: -1.5px;
-  border-bottom: 2px solid transparent;
-  transition:
-    color 0.14s,
-    border-color 0.14s;
-}
-.tabs__btn:hover {
-  color: var(--nf-text-mid);
-}
-.tabs__btn.is-active {
-  color: var(--nf-secondary);
-  border-bottom-color: var(--nf-secondary);
-}
-
-/* ---- RESUMEN: highlight cards ---- */
-.hl-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 16px;
-  margin-bottom: 18px;
-}
-.hl {
-  --ac: var(--nf-secondary);
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 18px;
-  min-height: 150px;
-  border-radius: 12px;
-  border: 1px solid var(--nf-border);
-  border-top: 2px solid color-mix(in srgb, var(--ac) 60%, var(--nf-border));
-  background: var(--nf-surface-2);
-}
-.hl[data-accent='primary'] {
-  --ac: var(--nf-primary);
-}
-.hl[data-accent='secondary'] {
-  --ac: var(--nf-secondary);
-}
-.hl[data-accent='warning'] {
-  --ac: var(--nf-warning);
-}
-.hl__eyebrow {
-  font-size: 12px;
-  color: var(--ac);
-}
-.hl__hero {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-.hl__avatar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 52px;
-  height: 52px;
-  flex: none;
-  border-radius: 50%;
-  border: 1.5px solid var(--nf-border);
-  font-family: var(--nf-mono);
-  font-weight: 700;
-  font-size: 16px;
-  color: #fff;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-}
-.hl__avatar--sm {
-  width: 40px;
-  height: 40px;
-  font-size: 13px;
-}
-.hl__who {
-  min-width: 0;
-}
-.hl__name {
-  font-size: 19px;
-  font-weight: 800;
-  color: var(--nf-text);
-  line-height: 1.1;
-}
-.hl__name--sm {
-  font-size: var(--fs-body-lg);
-  font-weight: 700;
-}
-.hl__blurb {
-  font-size: 13px;
-  color: var(--nf-text-dim);
-  margin-top: 4px;
-}
-.hl__score {
-  margin-top: auto;
-  align-self: flex-start;
-  padding: 5px 12px;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--nf-primary);
-  background: color-mix(in srgb, var(--nf-primary) 12%, transparent);
-  border: 1px solid var(--nf-border-accent);
-}
-.hl__duo {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.hl__plus {
-  font-size: var(--fs-h3);
-  color: var(--nf-text-dim);
-  font-weight: 700;
-}
-.hl__big {
-  font-size: 52px;
-  font-weight: 800;
-  line-height: 1;
-  color: var(--nf-warning);
-}
-.hl__big-unit {
-  font-size: 22px;
-  margin-left: 2px;
-}
-
-/* ---- RESUMEN: totals strip ---- */
-.totals {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 1px;
-  margin-bottom: 26px;
-  border-radius: 10px;
-  border: 1.5px solid var(--nf-border);
-  background: var(--nf-border);
-  overflow: hidden;
-}
-.totals__item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding: 16px 8px;
-  background: var(--nf-surface-2);
-}
-.totals__val {
-  font-size: 26px;
-  font-weight: 800;
-  color: var(--nf-text);
-  line-height: 1;
-}
-.totals__lbl {
-  font-size: 12px;
-  color: var(--nf-text-dim);
-}
-@media (max-width: 560px) {
-  .totals {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-
-
-/* ---- JUGADORES ---- */
-.player-wr {
-  font-size: 16px;
-  font-weight: 800;
-  color: var(--nf-success);
-}
-.player-wr--lo {
-  color: var(--nf-danger);
-}
-.player-main {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  color: var(--nf-text-mid);
-}
-.ptiles {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-  gap: 10px;
-}
 
 
 
@@ -2663,6 +2607,8 @@ $touch: 44px;
   min-height: 40px;
 }
 
+
+
 /* wizard footer nav — pinned to the bottom so "Siguiente" is always visible.
    Barra flotante, no una franja a sangre: se pega POR ENCIMA del borde inferior
    (`bottom: 16px`) y es una superficie con su propio borde y radio. Eso es lo que hace
@@ -2756,25 +2702,9 @@ $touch: 44px;
   min-height: 0;
 }
 
+/* ---- Paso 0 · mode select ---- */
 
 
-/* ---- Sala abierta · waiting room ---- */
-.cp-room__bar {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 20px 24px;
-  border-bottom: 1px solid var(--nf-border);
-  background: color-mix(in srgb, var(--nf-primary) 5%, transparent);
-}
-.cp-room__barmeta {
-  flex: 1;
-  min-width: 0;
-}
-.cp-room__sub {
-  font-size: var(--fs-label);
-  color: var(--nf-text-dim);
-}
 
 @keyframes cp-spin {
   to {
@@ -2790,41 +2720,6 @@ $touch: 44px;
   50% {
     opacity: 1;
   }
-}
-
-.cp-room__actions {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 0 24px 24px;
-}
-.cp-room__ready {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 16px 20px;
-  border-radius: 8px;
-  border: 1.5px solid color-mix(in srgb, var(--nf-success) 50%, var(--nf-border));
-  background: color-mix(in srgb, var(--nf-success) 12%, transparent);
-  color: var(--nf-success);
-  font-size: 12.5px;
-  transform-origin: left center;
-  animation:
-    cp-ready-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both,
-    cp-ready-glow 2s ease-in-out 0.5s infinite;
-}
-.cp-room__ready-glyph {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 26px;
-  flex: none;
-  border-radius: 50%;
-  border: 2px solid var(--nf-success);
-  background: color-mix(in srgb, var(--nf-success) 18%, transparent);
-  font-size: var(--fs-body);
-  animation: cp-ready-pop 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both;
 }
 @keyframes cp-ready-in {
   0% {
@@ -2879,21 +2774,6 @@ $touch: 44px;
 @keyframes cp-sweep {
   to {
     transform: translateX(110%);
-  }
-}
-
-
-
-@media (prefers-reduced-motion: reduce) {
-  .cp-seats.is-complete .cp-seat,
-  .cp-seats.is-complete::after,
-  .cp-room__ready,
-  .cp-room__ready-glyph,
-  .cp-cta--ready,
-  .cp-spinner,
-  .cp-seat--open,
-  .cp-dots i {
-    animation: none;
   }
 }
 
@@ -3587,20 +3467,44 @@ $touch: 44px;
 
 
 
+/* Semáforo de vinculación de Riot: gris = sin cuenta, rojo = escrita sin prueba (DECLARED),
+   ámbar = emparejada desde el cliente sin verificar (PAIRED), verde = verificada (VERIFIED). */
 
-
-
-
-
-
-/* ── Convocatorias: franjas horarias, apuntados y banquillo ──────────────────
-   La sala de una convocatoria. Cada bloque es una hora candidata con su gente;
-   al confirmarse solo queda una y se marca con `is-confirmed`. */
-.cp-room__note {
-  margin-top: 4px;
-  font-size: 12px;
+.gd-invite {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.gd-invite__hint {
+  font-size: var(--fs-label);
   color: var(--nf-text-dim);
 }
+.gd-invite__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  border-top: 1px solid var(--nf-border);
+}
+.gd-invite__name {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  color: var(--nf-text);
+}
+/* Motivo por el que el botón de la fila está apagado: quien lee la lista tiene que poder
+   distinguir "no puedo invitarle" de "la app está rota". */
+.gd-invite__closed {
+  display: block;
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+}
+
+/* Barra de estado de la ventana: aloja el paginador del roster pegado al borde inferior,
+   como el status bar de una ventana de escritorio. Solo se pinta si hay más de una página. */
+
+
+
 
 
 
@@ -3609,18 +3513,6 @@ $touch: 44px;
 /* ── Convocar: elegir horas ──────────────────────────────────────────────────
    El camino rápido son los chips de horas típicas; el selector libre queda
    plegado detrás de un <details> para quien necesite un finde por la tarde. */
-
-
-
-
-
-
-
-
-.qh-note {
-  margin-top: 16px;
-}
-
 
 
 /* Los dos lados del cruce tienen un color fijo en toda la sección: el tuyo es
@@ -3666,9 +3558,12 @@ $touch: 44px;
    es cómo os fue a los dos, así que ninguno de los dos lados manda. */
 .m-card__main--cross {
   display: grid;
-  grid-template-columns: 104px minmax(0, 1fr) auto minmax(0, 1fr) auto;
+  grid-template-columns: 100px minmax(0, 1fr) auto minmax(0, 1fr) 130px;
   align-items: center;
+  min-height: 84px;
+  box-sizing: border-box;
   gap: 16px;
+  padding: 12px 18px;
 }
 
 .cx-card__side {

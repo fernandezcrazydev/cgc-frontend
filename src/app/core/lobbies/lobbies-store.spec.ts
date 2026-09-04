@@ -42,6 +42,20 @@ class ApiStub {
     this.createCalls++;
     return this.createImpl();
   }
+
+  signUpImpl: () => Observable<LobbyResponse> = () => of(lobby('a'));
+  withdrawImpl: () => Observable<LobbyResponse> = () => of(lobby('a'));
+  signUpCalls: { lobbyId: string; slotId: string }[] = [];
+  withdrawCalls: { lobbyId: string; slotId: string }[] = [];
+
+  signUp(lobbyId: string, slotId: string): Observable<LobbyResponse> {
+    this.signUpCalls.push({ lobbyId, slotId });
+    return this.signUpImpl();
+  }
+  withdraw(lobbyId: string, slotId: string): Observable<LobbyResponse> {
+    this.withdrawCalls.push({ lobbyId, slotId });
+    return this.withdrawImpl();
+  }
 }
 
 describe('LobbiesStore', () => {
@@ -141,5 +155,127 @@ describe('LobbiesStore', () => {
     expect(store.status()).toBe('idle');
     expect(store.lobbies()).toEqual([]);
     expect(store.totalElements()).toBe(0);
+  });
+
+  // ── Apuntarse y borrarse desde el panel (§5.5.6) ──────────────────
+
+  it('apuntarse a una franja refresca la lista en vez de recolocarla a mano', async () => {
+    await store.ensureLoaded('g1');
+    const listCallsBefore = api.listCalls;
+
+    await store.signUp('a', 's1');
+
+    expect(api.signUpCalls).toEqual([{ lobbyId: 'a', slotId: 's1' }]);
+    // El reparto titulares/suplentes lo decide el servidor: se vuelve a pedir.
+    expect(api.listCalls).toBe(listCallsBefore + 1);
+  });
+
+  it('borrarse de una franja también refresca la lista', async () => {
+    await store.ensureLoaded('g1');
+    const listCallsBefore = api.listCalls;
+
+    await store.withdraw('a', 's1');
+
+    expect(api.withdrawCalls).toEqual([{ lobbyId: 'a', slotId: 's1' }]);
+    expect(api.listCalls).toBe(listCallsBefore + 1);
+  });
+
+  it('no reentra: un segundo clic en la misma franja no manda otra petición', async () => {
+    await store.ensureLoaded('g1');
+
+    let resolve: ((value: LobbyResponse) => void) | null = null;
+    api.signUpImpl = () =>
+      new Observable<LobbyResponse>((subscriber) => {
+        resolve = (value) => {
+          subscriber.next(value);
+          subscriber.complete();
+        };
+      });
+
+    const first = store.signUp('a', 's1');
+    expect(store.isActing('s1')).toBe(true);
+
+    // Mientras la primera viaja, la segunda se descarta sin tocar la red.
+    await store.signUp('a', 's1');
+    expect(api.signUpCalls).toHaveLength(1);
+
+    resolve!(lobby('a'));
+    await first;
+    expect(store.isActing('s1')).toBe(false);
+  });
+
+  it('una franja en vuelo no bloquea a las demás', async () => {
+    await store.ensureLoaded('g1');
+
+    api.signUpImpl = () => new Observable<LobbyResponse>(() => undefined);
+    void store.signUp('a', 's1');
+
+    expect(store.isActing('s1')).toBe(true);
+    expect(store.isActing('s2')).toBe(false);
+  });
+
+  it('propaga el error para que la vista pinte el mensaje, y libera la franja', async () => {
+    await store.ensureLoaded('g1');
+    api.signUpImpl = () => throwError(() => new HttpErrorResponse({ status: 409 }));
+
+    await expect(store.signUp('a', 's1')).rejects.toBeInstanceOf(HttpErrorResponse);
+    expect(store.isActing('s1')).toBe(false);
+  });
+
+  // ── El refresco de después de escribir no vacía la pantalla ───────
+
+  it('apuntarse no pasa por «cargando»: la vista no se cae a esqueletos', async () => {
+    await store.ensureLoaded('g1');
+
+    const vistos: string[] = [];
+    api.listImpl = () => {
+      vistos.push(store.status());
+      return of(page([lobby('a')]));
+    };
+
+    await store.signUp('a', 's1');
+
+    // Se refetchea, pero el estado nunca abandona 'ready': sin eso el panel
+    // parpadeaba entero por cambiar una cifra de una tarjeta.
+    expect(vistos).toEqual(['ready']);
+    expect(store.status()).toBe('ready');
+  });
+
+  it('si el refresco silencioso falla, se conserva lo que ya había en pantalla', async () => {
+    await store.ensureLoaded('g1');
+    api.listImpl = () => throwError(() => new HttpErrorResponse({ status: 500 }));
+
+    await store.signUp('a', 's1');
+
+    // Lo que se ve sigue siendo válido, solo un poco viejo. Marcarlo como error y
+    // borrarlo sería peor que mantenerlo.
+    expect(store.status()).toBe('ready');
+    expect(store.lobbies()).toHaveLength(1);
+  });
+
+  it('el reintento explícito sí pasa por «cargando», que es lo que se espera de él', async () => {
+    await store.ensureLoaded('g1');
+
+    const vistos: string[] = [];
+    api.listImpl = () => {
+      vistos.push(store.status());
+      return of(page([lobby('a')]));
+    };
+
+    await store.reload();
+
+    expect(vistos).toEqual(['loading']);
+  });
+
+  it('guardar la disponibilidad manda todos los cambios y refresca una sola vez', async () => {
+    await store.ensureLoaded('g1');
+    const listCallsBefore = api.listCalls;
+
+    await store.setAvailability('a', ['s1', 's2'], ['s3']);
+
+    expect(api.signUpCalls.map((c) => c.slotId)).toEqual(['s1', 's2']);
+    expect(api.withdrawCalls.map((c) => c.slotId)).toEqual(['s3']);
+    // Tres peticiones, UNA recarga: con una por cambio la lista saltaba tres veces.
+    expect(api.listCalls).toBe(listCallsBefore + 1);
   });
 });

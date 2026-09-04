@@ -923,6 +923,27 @@
   }
 }
 
+/* ---- Sala abierta · waiting room ---- */
+
+.cp-room__bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--nf-border);
+  background: color-mix(in srgb, var(--nf-primary) 5%, transparent);
+}
+
+.cp-room__barmeta {
+  flex: 1;
+  min-width: 0;
+}
+
+.cp-room__sub {
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+}
+
 .cp-seats {
   position: relative;
   display: grid;
@@ -1073,6 +1094,13 @@
   background: color-mix(in srgb, var(--nf-danger) 14%, transparent);
 }
 
+.cp-room__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0 24px 24px;
+}
+
 .cp-sim {
   align-self: flex-start;
   padding: 11px 18px;
@@ -1095,6 +1123,36 @@
 .cp-sim:disabled {
   opacity: 0.45;
   cursor: default;
+}
+
+.cp-room__ready {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  border-radius: 8px;
+  border: 1.5px solid color-mix(in srgb, var(--nf-success) 50%, var(--nf-border));
+  background: color-mix(in srgb, var(--nf-success) 12%, transparent);
+  color: var(--nf-success);
+  font-size: 12.5px;
+  transform-origin: left center;
+  animation:
+    cp-ready-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both,
+    cp-ready-glow 2s ease-in-out 0.5s infinite;
+}
+
+.cp-room__ready-glyph {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  flex: none;
+  border-radius: 50%;
+  border: 2px solid var(--nf-success);
+  background: color-mix(in srgb, var(--nf-success) 18%, transparent);
+  font-size: var(--fs-body);
+  animation: cp-ready-pop 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both;
 }
 
 /* ---- "sala completa" celebration: seat lock-in wave + light sweep ---- */
@@ -1156,6 +1214,34 @@
   );
   transform: translateX(-110%);
   animation: cp-sweep 0.9s ease-out 0.2s 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cp-seats.is-complete .cp-seat,
+
+  .cp-seats.is-complete::after,
+
+  .cp-room__ready,
+
+  .cp-room__ready-glyph,
+
+  .cp-spinner,
+
+  .cp-seat--open,
+
+  .cp-dots i {
+    animation: none;
+  }
+}
+
+/* ── Convocatorias: franjas horarias, apuntados y banquillo ──────────────────
+   La sala de una convocatoria. Cada bloque es una hora candidata con su gente;
+   al confirmarse solo queda una y se marca con `is-confirmed`. */
+
+.cp-room__note {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--nf-text-dim);
 }
 
 .lb-slot {
@@ -1284,18 +1370,4 @@
   padding-left: 4px;
   font-size: var(--fs-label);
   color: var(--nf-text-dim);
-}
-
-@media (max-width: 560px) {
-  .lb-slot__head {
-    flex-wrap: wrap;
-  }
-  .lb-slot__when {
-    flex-basis: 100%;
-  }
-  /* La hora se lleva la primera fila entera, así que en la segunda el contador se queda
-     a la izquierda y el botón se va al borde derecho, igual que en escritorio. */
-  .lb-slot__cta {
-    margin-left: auto;
-  }
 }

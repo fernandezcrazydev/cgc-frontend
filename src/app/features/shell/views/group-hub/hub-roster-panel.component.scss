@@ -1,0 +1,384 @@
+/* Altura fija y cero salto: ambas pestañas (Miembros y Ranking) comparten exactamente el mismo tamaño (600px) */
+.hub-roster {
+  display: flex;
+  flex-direction: column;
+  height: 600px;
+  max-height: 600px;
+  padding: 0;
+  overflow: hidden;
+}
+
+.hub-roster__search {
+  display: block;
+  padding: 10px 12px 0;
+}
+
+.hub-roster__search-input {
+  width: 100%;
+  padding: 8px 11px;
+  background: var(--nf-surface-2, rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--nf-border);
+  border-radius: 8px;
+  color: var(--nf-text);
+  font-family: inherit;
+  font-size: 12.5px;
+}
+
+.hub-roster__search-input::placeholder {
+  color: var(--nf-text-dim);
+}
+
+.hub-roster__search-input:focus-visible {
+  outline: 2px solid var(--nf-secondary);
+  outline-offset: 1px;
+}
+
+/* La lista scrollea dentro de la tarjeta con slider interno estético. */
+.hub-roster__list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 4px 6px 6px 12px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--nf-border-strong) transparent;
+}
+
+.hub-roster__list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.hub-roster__list::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 999px;
+}
+
+.hub-roster__list::-webkit-scrollbar-thumb {
+  background: var(--nf-border);
+  border-radius: 999px;
+  transition: background 0.16s;
+}
+
+.hub-roster__list::-webkit-scrollbar-thumb:hover {
+  background: var(--nf-border-strong);
+}
+
+.hub-roster__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 6px 8px 0;
+  border-bottom: 1px solid var(--nf-border);
+  text-decoration: none;
+  color: inherit;
+}
+
+.hub-roster__row:last-child {
+  border-bottom: none;
+}
+
+.hub-roster__row--rank:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.hub-roster__link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  text-decoration: none;
+  color: inherit;
+}
+
+.hub-roster__link:hover .hub-roster__name {
+  color: var(--nf-secondary);
+}
+
+.hub-roster__row-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.hub-roster__name {
+  font-size: 12.5px;
+  color: var(--nf-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hub-roster__you {
+  color: var(--nf-secondary);
+}
+
+.hub-roster__sub {
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hub-roster__pos {
+  flex: none;
+  width: 26px;
+  font-size: 12px;
+  color: var(--nf-text-dim);
+}
+
+/* ── Podio: oro, plata y bronce ───────────────────────────────────────────
+   Los tres primeros se distinguen por su metal, con los mismos acentos que las tarjetas del
+   podio de `/app/grupos/:id/ranking`: el color no es decoración, es la medalla. El puesto no se
+   deja solo al color —sigue diciendo «1.º», «2.º» y «3.º»— porque quien no distingue los tonos
+   necesita leerlo igual. */
+.hub-roster__row--rank[data-podium] {
+  position: relative;
+  border-left: 3px solid var(--podium-accent);
+  padding-left: 9px;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--podium-accent) 12%, transparent),
+    transparent 55%
+  );
+}
+
+/* Los tres metales salen de los tokens: el podio del ranking y el de las
+   medallas del Hall of Fame tienen que ser el mismo bronce. */
+.hub-roster__row--rank[data-podium='1'] {
+  --podium-accent: var(--nf-gold);
+}
+
+.hub-roster__row--rank[data-podium='2'] {
+  --podium-accent: var(--nf-silver);
+}
+
+.hub-roster__row--rank[data-podium='3'] {
+  --podium-accent: var(--nf-bronze);
+}
+
+.hub-roster__row--rank[data-podium]:hover {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--podium-accent) 20%, transparent),
+    transparent 60%
+  );
+}
+
+.hub-roster__row--rank[data-podium] .hub-roster__pos {
+  color: var(--podium-accent);
+  font-weight: var(--fw-bold, 700);
+}
+
+.hub-roster__pos.is-podium {
+  color: var(--nf-warning);
+}
+
+/* En la clasificación el bloque de nombre y LP se estira, de modo que el escudo de elo y el
+   trofeo quedan alineados contra el borde derecho de la columna. */
+.hub-roster__row--rank .hub-roster__row-meta {
+  flex: 1;
+}
+
+/* El trofeo cierra la fila por la derecha, con el brillo de su metal. */
+.hub-roster__trophy {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--podium-accent) 55%, transparent));
+}
+
+/* ── Menú de tres puntos por miembro ─────────────────────────────────────── */
+.hub-roster__more {
+  position: relative;
+  flex: none;
+  z-index: 5;
+}
+
+.hub-roster__more:has(.hub-roster__more-trigger.is-open) {
+  z-index: 50;
+}
+
+.hub-roster__more-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  color: var(--nf-text-dim);
+  font-size: var(--fs-body-lg);
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.14s, color 0.14s, border-color 0.14s;
+}
+
+.hub-roster__more-trigger:hover,
+.hub-roster__more-trigger.is-open {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: var(--nf-border);
+  color: var(--nf-text);
+}
+
+.hub-roster__more-trigger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.hub-roster__more-trigger:focus-visible {
+  outline: 2px solid var(--nf-secondary);
+  outline-offset: 2px;
+}
+
+.hub-roster__more-menu {
+  position: absolute;
+  z-index: 60;
+  top: calc(100% + 6px);
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  min-width: 186px;
+  padding: 6px;
+  border-radius: 10px;
+  background: var(--nf-surface-2, rgba(28, 28, 30, 0.98));
+  border: 1px solid var(--nf-border-strong);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+}
+
+/* Cuando es el último o penúltimo jugador, abrir hacia arriba para evitar corte de opciones */
+.hub-roster__more-menu.is-up,
+.hub-roster__row:nth-last-child(-n+2) .hub-roster__more-menu {
+  top: auto;
+  bottom: calc(100% + 6px);
+}
+
+.hub-roster__more-item {
+  padding: 8px 10px;
+  background: transparent;
+  border: none;
+  border-radius: 7px;
+  color: var(--nf-text-mid);
+  font-size: 12.5px;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.14s, color 0.14s;
+}
+
+.hub-roster__more-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--nf-text);
+}
+
+/* Expulsar comparte menú con el resto, pero no puede compartir aspecto: se pulsaría por inercia. */
+.hub-roster__more-item.is-danger {
+  margin-top: 4px;
+  border-top: 1px solid var(--nf-border);
+  border-radius: 0 0 7px 7px;
+  color: var(--nf-danger);
+}
+
+.hub-roster__more-item.is-danger:hover {
+  background: color-mix(in srgb, var(--nf-danger) 14%, transparent);
+  color: var(--nf-danger);
+}
+
+/* ── Pie ─────────────────────────────────────────────────────────────────── */
+.hub-roster__foot {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border-top: 1px solid var(--nf-border);
+  background: var(--nf-surface);
+}
+
+.hub-roster__foot-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  width: 100%;
+}
+
+.hub-roster__action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  height: 34px;
+  padding: 0 10px;
+  border-radius: 8px;
+  background: var(--nf-surface-2, rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--nf-border);
+  color: var(--nf-text);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: var(--fw-medium, 500);
+  cursor: pointer;
+  transition: background 0.16s, border-color 0.16s, color 0.16s, transform 0.12s;
+}
+
+.hub-roster__action-btn:hover {
+  background: color-mix(in srgb, var(--nf-primary) 12%, var(--nf-surface-2, transparent));
+  border-color: color-mix(in srgb, var(--nf-primary) 40%, var(--nf-border));
+  color: var(--nf-primary);
+  transform: translateY(-1px);
+}
+
+.hub-roster__action-btn:active {
+  transform: translateY(0);
+}
+
+.hub-roster__action-btn:focus-visible {
+  outline: 2px solid var(--nf-primary);
+  outline-offset: 1px;
+}
+
+.hub-roster__action-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--nf-primary) 20%, transparent);
+  border: 1px solid color-mix(in srgb, var(--nf-primary) 40%, transparent);
+  color: var(--nf-primary);
+  font-size: var(--fs-label);
+  font-weight: var(--fw-bold, 700);
+  line-height: 1;
+}
+
+.hub-roster__action-btn:hover .hub-roster__action-badge {
+  background: var(--nf-primary);
+  border-color: var(--nf-primary);
+  color: var(--nf-bg, #121214);
+}
+
+.hub-roster__standing {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--nf-text-mid);
+}
+
+.hub-roster__standing.is-leader {
+  color: var(--nf-warning);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

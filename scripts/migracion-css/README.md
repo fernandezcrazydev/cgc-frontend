@@ -49,18 +49,25 @@ separada por comas se poda solo la parte muerta.
 `npm run arch` lista las candidatas (regla `dead-css`). Confirma siempre con un grep sobre todo
 `src/` antes de borrar.
 
-## `verificar-vs-head.mjs [--todas]`
+## `verificar-vs-head.mjs [--todas] [--cambios]`
 
-**El que da la confianza.** Compara el CSS de HEAD con el actual regla a regla y solo aprueba si
-toda regla que existía sigue existiendo con el mismo cuerpo, salvo las borradas a propósito.
-Detecta lo que un build en verde no ve: reglas mutiladas, cuerpos alterados, selectores perdidos
-al mover un bloque.
+**El que da la confianza.** Compara el CSS de una referencia con el actual regla a regla y solo
+falla si desaparece una regla cuyas clases siguen todas vivas. Detecta lo que un build en verde
+no ve: reglas mutiladas, cuerpos alterados, selectores perdidos al mover un bloque.
 
-Limitación conocida: indexa por selector, así que si una clase tenía **dos** reglas en HEAD
-(p. ej. `.cx-view` suelta y dentro de una lista compartida) reporta un falso "cuerpo cambiado".
-Comprueba a mano esos casos.
+Resuelve el anidamiento de SCSS (`.a { .b {} }`, `&:hover`) y las at-rules (`@media`). No es un
+detalle: sin eso era ciego a 225 reglas de `shell.scss`, `inicio.scss` y las hojas del ranking,
+justo donde más se anida.
 
-## Cuatro trampas que ya costaron una pasada cada una
+```bash
+REF=origin/main node scripts/migracion-css/verificar-vs-head.mjs   # tras un merge
+```
+
+Los "cuerpos cambiados" no hacen fallar el check: una sustitución de tokens
+(`11px` → `var(--fs-label)`) los mueve todos y es legítima. Míralos con `--cambios` cuando el
+cambio debiera haber sido puramente mecánico.
+
+## Cinco trampas que ya costaron una pasada cada una
 
 1. **Reformatear el fichero de origen** hace el diff irrevisable (1.040 inserciones antes de
    cortar por offsets). El origen solo debe perder líneas.
@@ -72,3 +79,13 @@ Comprueba a mano esos casos.
    lista que lleve un comentario dentro.
 4. **Un `@use` al principio del fichero** sin `;` tratado como frontera hacía que el parser
    tomara la primera regla por at-rule. Un `;` a nivel cero cierra una at-rule sin bloque.
+5. **El anidamiento de SCSS** no se resolvía, así que el verificador daba OK sin haber mirado
+   las reglas internas de las hojas que anidan. "Verificado" y "verificado del todo" no son lo
+   mismo: comprueba el recuento de reglas de la referencia, no solo el veredicto.
+
+## Al integrar `main`
+
+La migración es **reproducible**, y ese es el motivo de que estas herramientas se commitearan.
+Cuando `main` toca `views.scss`, no pelees los conflictos a mano: quédate con el CSS de `main`
+(`git checkout --theirs`), borra las hojas extraídas, y **reejecuta el ciclo entero encima**.
+Luego `REF=origin/main` en el verificador para comprobar que no se ha perdido nada de `main`.

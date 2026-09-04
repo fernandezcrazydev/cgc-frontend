@@ -26,6 +26,7 @@ import { MatchCardShellComponent } from './match-card-shell.component';
       [match]="match()"
       [accent]="match().winningTeam"
       [returnTo]="returnTo()"
+      [reactionScope]="match().groupId"
       variant="group"
     >
       <!-- Quién ganó -->
@@ -143,6 +144,10 @@ import { MatchCardShellComponent } from './match-card-shell.component';
                 {{ u.lpDelta > 0 ? '+' : '' }}{{ u.lpDelta }} LP
               </span>
             }
+          </div>
+        } @else {
+          <div class="m-card__you-stats m-card__you-stats--none nf-mono">
+            <span class="m-card__you-none">Sin participación</span>
           </div>
         }
       </div>

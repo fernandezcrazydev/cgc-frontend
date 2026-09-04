@@ -45,6 +45,12 @@ export const routes: Routes = [
           import('./features/shell/views/grupo-detalle').then((m) => m.GrupoDetalle),
       },
       {
+        path: 'grupos/:id/perfil',
+        title: 'Perfil del grupo · Sale Custom',
+        loadComponent: () =>
+          import('./features/shell/views/grupo-perfil').then((m) => m.GrupoPerfil),
+      },
+      {
         path: 'grupos/:id/crear-partida',
         title: 'Crear partida · Sale Custom',
         loadComponent: () =>
@@ -54,7 +60,9 @@ export const routes: Routes = [
         path: 'grupos/:id/partidas',
         title: 'Partidas activas · Sale Custom',
         loadComponent: () =>
-          import('./features/shell/views/grupo-partidas').then((m) => m.GrupoPartidas),
+          import('./features/shell/views/group-matches/grupo-partidas').then(
+            (m) => m.GrupoPartidas,
+          ),
       },
       {
         path: 'grupos/:id/partidas/:roomId',
@@ -77,7 +85,9 @@ export const routes: Routes = [
         path: 'grupos/:id/estadisticas',
         title: 'Estadísticas · Sale Custom',
         loadComponent: () =>
-          import('./features/shell/views/grupo-estadisticas').then((m) => m.GrupoEstadisticas),
+          import('./features/shell/views/group-stats/grupo-estadisticas').then(
+            (m) => m.GrupoEstadisticas,
+          ),
       },
       {
         path: 'grupos/:id/discord',

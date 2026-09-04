@@ -1,19 +1,32 @@
-/* Escalones responsive compartidos por las hojas de componente.
-   Partial de SCSS (`@use`), no un fichero de tokens CSS: las media queries necesitan un
-   valor en tiempo de compilación, y una custom property no sirve dentro de `@media`.
+/* ============================================================
+   Puntos de corte compartidos.
+   ------------------------------------------------------------
+   Una sola declaración para toda la aplicación: hojas globales y
+   hojas de componente la consumen con `@use 'breakpoints' as *;`
+   (funciona desde cualquier profundidad gracias al `includePaths`
+   de `angular.json`). Duplicar estos números en cada hoja es
+   justo lo que hace que dos ventanas dejen de estar alineadas.
 
-   Tres escalones, y el de en medio importa: el shell conmuta a su layout móvil a 760px
-   (`shell.ts`, matchMedia), así que todo lo que cambia MARKUP tiene que cambiar en ese
-   mismo píxel o el DOM y el CSS se contradicen. `$bp-compact` se conserva porque bajarlo
-   a 760 dejaría la banda 761-860px con la rejilla de escritorio de la fila del historial
-   (~870px de mínimos), que ahí no cabe.
+   Es un partial de SCSS y no un token CSS a propósito: `@media`
+   necesita un valor en tiempo de compilación, y una custom
+   property no sirve ahí dentro.
 
-   Los breakpoints quedan fuera de la zona escalada por `--nf-zoom` a propósito: las media
-   queries miden el viewport sin escalar. */
+   Tres escalones, y el de en medio importa: el shell conmuta a su
+   layout móvil a 760px (`shell.ts`, matchMedia), así que todo lo que
+   cambia MARKUP tiene que cambiar en ese mismo píxel o el DOM y el
+   CSS se contradicen. $bp-compact se conserva porque bajarlo a 760
+   dejaría la banda 761-860px con la rejilla de escritorio de la fila
+   del historial (~870px de mínimos), que ahí no cabe.
+
+   Quedan fuera de la zona escalada por `--nf-zoom` a propósito: las
+   media queries miden el viewport sin escalar.
+   ============================================================ */
 
 $bp-compact: 860px;
 $bp-mobile: 760px;
 $bp-narrow: 420px;
 
-/* Suelo de área táctil en móvil (44px = mínimo de Apple HIG; Material pide 48dp). */
+/* Suelo de área táctil en móvil (44px = mínimo de Apple HIG; Material pide
+   48dp). Se aplica solo dentro de los contenedores que ya lo tenían, no en las
+   primitivas nf-*, para no cambiar el móvil del resto de la app. */
 $touch: 44px;

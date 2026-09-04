@@ -125,22 +125,25 @@ migradas que sirven de molde: `grupo-detalle.scss`, `grupos.scss`, `inicio.scss`
 
 ### Estado: hecho
 
-La migración está ejecutada. Resultado medido:
+La migración está ejecutada. Medido contra `main` justo antes de integrarla (ya con la Fase 5.5):
 
-| | antes | después |
+| | main | después |
 |---|---|---|
-| `views.scss` | 12.312 líneas | **4.011** |
-| CSS real del proyecto | 17.833 líneas | **16.633** (−1.200 borradas) |
-| clases muertas | 187 | **0** |
-| `styles.css` (bundle) | 209,00 kB | **69,56 kB** (−67%) |
-| transferencia | 26,97 kB | **11,02 kB** |
-| bundle inicial | 891,62 kB | **747,74 kB** |
+| `views.scss` | 11.817 líneas | **3.906** |
+| clases muertas | 222 | **0** |
+| `styles.css` (bundle) | 204,50 kB | **70,65 kB** (−65%) |
+| transferencia | 26,43 kB | **11,20 kB** |
+| bundle inicial | 976,88 kB | **838,94 kB** |
 | violaciones de capas | 4 | **0** |
-| `font-size` en px crudos | 750 | **390** |
 
-21 hojas de componente nuevas. El CSS de cada vista viaja ahora en su chunk lazy: solo lo paga
-quien abre esa vista. El aviso de `shell.scss exceeded budget` desapareció solo al podar sus 36
-reglas muertas.
+Una veintena de hojas de componente nuevas. El CSS de cada vista viaja ahora en su chunk lazy:
+solo lo paga quien abre esa vista. El aviso de `shell.scss exceeded budget` desapareció solo al
+podar sus reglas muertas.
+
+**La migración es reproducible por script** (`scripts/migracion-css/`), y eso no es un detalle:
+cuando la Fase 5.5 aterrizó en `main` con 1.735 líneas nuevas en `views.scss`, el merge se
+resolvió quedándose con el CSS de `main` y **reejecutando la extracción entera encima**, en vez
+de pelear 6 conflictos a mano. Si vuelve a pasar, ese es el camino.
 
 ### Lo que queda global, y por qué
 
@@ -150,8 +153,8 @@ alcanzaría:
 
 | bloque | reglas | lo escriben |
 |---|---|---|
-| `m-card` | 108 | 7 componentes (la fila de partida, en historial, cruzado y perfil) |
-| `m-lineup` | 34 | 4 |
+| `m-card` | 109 | 7 componentes (la fila de partida, en historial, cruzado y perfil) |
+| `m-lineup` | 67 | 4 |
 | `m-summary` | 30 | 2 |
 | `cp-tray`, `cp-pchip`, `cp-balance`, `cp-pick`… | ~100 | crear-partida + sala |
 | `pf-hero-compact`, `pf-champ-tile`, `pf-mini-champ`… | ~90 | perfil + perfil-miembro |
@@ -218,9 +221,29 @@ las custom properties sí heredan a través de la frontera de encapsulación. Ya
 }
 ```
 
-Nunca `::ng-deep`, que es API muerta. En toda la migración solo aparecieron 13 casos: 9 eran
-clase host (seguros), 2 se resolvieron con custom properties, y 2 (`.nf-game-icon`) apuntaban a
-un componente **que no existe en el repo** — CSS muerto que se borró.
+Nunca `::ng-deep`, que es API muerta.
+
+**Esto no es teórico y ya ha pasado dos veces.** Comprueba en el bundle si dudas: Angular pega el
+`_ngcontent` al ÚLTIMO selector, así que `.shell__search .nf-typeahead__field` se compila como
+
+```
+.shell__search[_ngcontent-%COMP%]   .nf-typeahead__field[_ngcontent-%COMP%]{ … }
+```
+
+y ese `<div>` vive en la plantilla de `NfTypeahead`, no en la del shell: **no lleva ese atributo
+y la regla no casa con nada**. Así llegó el buscador global de la Fase 5.5, con 7 reglas de
+estilo que no pintaban. Se arregló exponiendo `--nf-ta-*` en `nf-typeahead.scss` y fijándolas
+sobre `nf-typeahead` (el host sí lo alcanza la hoja de la vista). Grep para auditarlo:
+
+```bash
+grep -ohE "[^{]*\.nf-[a-z][^{]*\[_ngcontent[^]]*\]\{" dist/cgc-frontend/browser/*.js
+```
+
+Lo que salga apuntando a un hijo interno (`__algo`) está muerto. Lo que apunte a una clase host
+(`.nf-avatar` a secas) está bien.
+
+En toda la migración aparecieron 13 casos: 9 eran clase host (seguros), 2 se resolvieron con
+custom properties, y 2 (`.nf-game-icon`) apuntaban a un componente **que no existe en el repo**.
 
 **Tamaño de hoja**: Angular avisa a 24 kB y falla a 32 por hoja de componente
 (`anyComponentStyle` en `angular.json`). Una vista-página no es un componente del tamaño que
@@ -550,7 +573,15 @@ check falla solo si una regla **empeora**. Así se adopta con el repo como está
   `provideZonelessChangeDetection` explícito. El objetivo es activarlos — no escribas código
   nuevo que lo impida.
 - `environment.prod.ts` tiene `apiBaseUrl` placeholder (`TODO`).
-- Advertencia de bundle budget en producción: `Initial total 745,93 kB vs 500 kB`. Bajó desde
-  891,62 kB al sacar el CSS del monolito global a los chunks lazy; lo que queda es sobre todo
+- Advertencia de bundle budget en producción: `Initial total 838,94 kB vs 500 kB`. Bajó desde
+  976,88 kB al sacar el CSS del monolito global a los chunks lazy; lo que queda es sobre todo
   generadores y semillas deterministas del frontend (Fase 0/1), que se borran al migrar a
   endpoints reales en la Fase 6.
+- **Deuda heredada de la Fase 5.5**, anotada en `scripts/arch-budgets.json` al integrarla y
+  pendiente de pagar. No la metió la migración del CSS; venía en el código nuevo:
+  - `font-floor` +19 (23 → 42): declaraciones nuevas por debajo de 11px, sobre todo en la barra
+    de notificaciones y el buscador del shell. El suelo no es una recomendación (§ "UI kit").
+  - `font-size-raw` +71 (390 → 461): `font-size` en px crudos en vez de la escala `--fs-*`.
+  - `inline-template-size` +1 (21 → 22).
+  No se corrigieron aquí a propósito: subir esos textos cambia el aspecto de features recién
+  revisadas, y esa es una decisión visual, no mecánica.
