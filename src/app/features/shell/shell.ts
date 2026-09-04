@@ -25,7 +25,7 @@ import { MatchStore, MatchRoom } from '../../core/match-store';
 import { MatchHistoryStore } from '../../core/matches';
 import { NotificationsStore, NotificationView, notificationView, NotificationSemanticLevel, SEED_NOTIFICATIONS } from '../../core/notifications';
 import { RiotAccountStore } from '../../core/riot';
-import { DevicesStore } from '../../core/devices';
+import { SessionsStore } from '../../core/sessions';
 import { DiscordStore } from '../../core/discord';
 import { PreferencesStore } from '../../core/preferences';
 import { ToastService } from '../../core/toast';
@@ -107,7 +107,7 @@ export class Shell {
   private readonly lobbies = inject(LobbiesStore);
   private readonly lobbyDetail = inject(LobbyDetailStore);
   private readonly riot = inject(RiotAccountStore);
-  private readonly devices = inject(DevicesStore);
+  private readonly sessions = inject(SessionsStore);
   private readonly prefs = inject(PreferencesStore);
   private readonly discord = inject(DiscordStore);
   /** Público: la plantilla lo cablea a `<nf-toast-host>`, que ya no lo inyecta. */
@@ -903,7 +903,7 @@ export class Shell {
     this.lobbies.clear();
     this.lobbyDetail.clear();
     this.riot.clear();
-    this.devices.clear();
+    this.sessions.clear();
     this.prefs.clear();
     // El canal de Discord de un grupo del usuario anterior es exactamente el tipo de dato que
     // pasaría por bueno al siguiente: un nombre de canal plausible en una pantalla que ya conoce.

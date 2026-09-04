@@ -64,7 +64,8 @@ const MESSAGES_BY_CODE: Record<string, string> = {
   ALREADY_MEMBER: 'Este usuario ya es miembro del grupo.',
   CANNOT_SANCTION_PLAYER: 'Solo puedes sancionar a jugadores por debajo de ti en el grupo.',
   CHAMPION_NOT_FOUND: 'No se ha encontrado ese campeón.',
-  DEVICE_NOT_FOUND: 'Ese dispositivo ya no estaba vinculado.',
+  CURRENT_SESSION_NOT_REVOCABLE:
+    'Esta es la sesión que estás usando ahora mismo. Para salir de este dispositivo, usa cerrar sesión.',
   DISCORD_API_UNAVAILABLE: 'No hemos podido hablar con Discord ahora mismo. Prueba en un minuto.',
   DISCORD_AUTH_CANCELLED: 'Has cancelado en Discord, así que no se ha conectado nada.',
   DISCORD_AUTH_FAILED: 'Discord no ha confirmado la autorización. Vuelve a intentarlo.',
@@ -121,6 +122,7 @@ const MESSAGES_BY_CODE: Record<string, string> = {
     'Esa fecha de fin ya ha pasado, así que la sanción nacería caducada. Elige una futura, o déjala indefinida.',
   SECURITY_AUDIT_EVENT_NOT_FOUND:
     'Ese evento ya no está en el registro. Puede que se haya borrado por antigüedad: solo se guardan 90 días.',
+  SESSION_NOT_FOUND: 'Esa sesión ya no estaba abierta.',
   SLOT_IN_THE_PAST: 'Esa hora ya ha pasado. Elige una futura.',
   UNSORTABLE_AUDIT_FIELD: 'El registro de seguridad solo se puede ordenar por fecha.',
   UNSUPPORTED_IMAGE: 'Ese formato de imagen no es válido. Usa JPEG o PNG.',
