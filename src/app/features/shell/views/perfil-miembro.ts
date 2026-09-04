@@ -42,6 +42,7 @@ type MiembroTab = (typeof MIEMBRO_TABS)[number];
     ProfileStreakCard,
     ProfileGroupsCard,
   ],
+  styleUrl: './perfil-miembro.scss',
   template: `
     <div class="view pf-view">
       <a class="view-back nf-mono" [routerLink]="['/app', 'historial']">

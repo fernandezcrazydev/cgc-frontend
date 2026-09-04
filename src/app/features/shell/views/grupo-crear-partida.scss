@@ -1,0 +1,1251 @@
+/* Asistente de creacion de partida: pasos, restricciones de linea, reglas de relacion,
+   campeones reservados y previsualizacion de equipos.
+
+   Extraida de `views.scss` (el monolito global) a la hoja de su componente. Con
+   encapsulacion emulada estos estilos mueren con la vista y viajan en su chunk lazy,
+   en vez de lastrar todas las rutas.
+
+   No escribas aqui selectores hacia hijos internos de un `nf-*`: la encapsulacion no
+   los alcanza. Si necesitas ajustar el interior de una primitiva, expon una custom
+   property en ella y fijala sobre el host (ver `nf-pagination.scss`). Nunca `::ng-deep`. */
+
+/* ── expanded member detail panel ─────────────────────────────────────── */
+
+.member-detail {
+  padding: 16px;
+  background: color-mix(in srgb, var(--nf-bg) 55%, transparent);
+  border-top: 1px solid var(--nf-border);
+  animation: member-detail-in 0.18s ease;
+}
+
+@keyframes member-detail-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.cp-discard {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 14px;
+  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, var(--nf-danger) 35%, var(--nf-border));
+  background: color-mix(in srgb, var(--nf-danger) 8%, transparent);
+  color: var(--nf-danger);
+  font-size: var(--fs-label);
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background 0.14s,
+    border-color 0.14s;
+}
+
+.cp-discard:hover {
+  background: color-mix(in srgb, var(--nf-danger) 16%, transparent);
+  border-color: var(--nf-danger);
+}
+
+/* breadcrumb / step rail */
+
+.cp-steps {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+  margin-bottom: 24px;
+}
+
+.cp-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 11px;
+  padding: 12px 18px;
+  border-radius: 11px;
+  border: 1.5px solid var(--nf-border);
+  background: var(--nf-surface-2);
+  color: var(--nf-text-dim);
+  cursor: pointer;
+  transition:
+    color 0.14s,
+    border-color 0.14s,
+    background 0.14s;
+}
+
+.cp-step:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.cp-step:not(:disabled):hover {
+  color: var(--nf-text-mid);
+  border-color: var(--nf-border-strong);
+}
+
+.cp-step.is-done {
+  color: var(--nf-text-mid);
+  border-color: color-mix(in srgb, var(--nf-success) 40%, var(--nf-border));
+}
+
+.cp-step.is-active {
+  color: var(--nf-text);
+  border-color: var(--nf-secondary);
+  background: color-mix(in srgb, var(--nf-secondary) 12%, var(--nf-surface-2));
+}
+
+.cp-step__n {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  flex: none;
+  border-radius: 50%;
+  font-family: var(--nf-mono);
+  font-weight: 700;
+  font-size: var(--fs-body);
+  color: var(--nf-text-dim);
+  border: 1.5px solid var(--nf-border);
+}
+
+.cp-step.is-active .cp-step__n {
+  color: var(--nf-void);
+  background: var(--nf-secondary);
+  border-color: var(--nf-secondary);
+}
+
+.cp-step.is-done .cp-step__n {
+  color: var(--nf-void);
+  background: var(--nf-success);
+  border-color: var(--nf-success);
+}
+
+.cp-step__label {
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+.cp-step__sep {
+  color: var(--nf-text-dim);
+  font-size: 12px;
+}
+
+@media (max-width: 720px) {
+  .cp-step__label {
+    display: none;
+  }
+  .cp-step {
+    padding: 11px;
+  }
+  .cp-step__sep {
+    display: none;
+  }
+}
+
+/* ---- Aviso de rigidez (restricciones vs equilibrio) ----
+   Disclosure: la cabecera (titular + condiciones + medidor) es la misma abierto y
+   plegado, y plegar solo quita el párrafo. Nada se recoloca al plegar, que es lo que
+   hacía que el estado plegado pareciese otro componente.
+   Un solo bloque para los tres niveles: `data-level` cambia el token de acento
+   (`--cp-rigid-accent`) y todo lo demás se pinta a partir de él. El nivel no viaja
+   solo en el color: hay icono, titular y cifra diciendo lo mismo. */
+
+.cp-rigid {
+  --cp-rigid-accent: var(--nf-secondary);
+  margin-bottom: 24px;
+  border-radius: var(--nf-radius-lg);
+  border: 1px solid var(--nf-border);
+  border-left: 3px solid var(--cp-rigid-accent);
+  background: color-mix(in srgb, var(--cp-rigid-accent) 6%, var(--nf-surface));
+}
+
+.cp-rigid[data-level='warn'] {
+  --cp-rigid-accent: var(--nf-warning);
+}
+
+.cp-rigid[data-level='danger'] {
+  --cp-rigid-accent: var(--nf-danger);
+}
+
+/* 14 + 30 + 14 = 58px de alto mínimo, muy por encima del objetivo táctil exigible. */
+
+.cp-rigid__head {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  border-radius: calc(var(--nf-radius-lg) - 1px);
+  transition: background 0.14s;
+}
+
+.cp-rigid__head:hover {
+  background: color-mix(in srgb, var(--cp-rigid-accent) 7%, transparent);
+}
+
+.cp-rigid.is-open .cp-rigid__head {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+/* El anillo de foco tiene que rodear lo que de verdad se pulsa (la fila entera),
+   no la caja del botón, que es solo la columna de texto. `-2px` lo dibuja hacia
+   dentro para que no lo corte el radio de la tarjeta. */
+
+@supports selector(:has(*)) {
+  .cp-rigid__toggle:focus-visible {
+    outline: none;
+  }
+  .cp-rigid__head:has(.cp-rigid__toggle:focus-visible) {
+    outline: var(--nf-focus-ring) solid var(--nf-focus);
+    outline-offset: -2px;
+  }
+}
+
+.cp-rigid__ico {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--cp-rigid-accent) 18%, transparent);
+  color: var(--cp-rigid-accent);
+  font-size: var(--fs-body-lg);
+  line-height: 1;
+}
+
+.cp-rigid__toggle {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+/* Estira el objetivo de clic a toda la cabecera sin envolver al medidor. */
+
+.cp-rigid__toggle::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+.cp-rigid__title {
+  font-size: var(--fs-body-lg);
+  font-weight: 700;
+  color: var(--cp-rigid-accent);
+}
+
+.cp-rigid__counts {
+  font-size: 12px;
+  color: var(--nf-text-dim);
+}
+
+/* El separador es decoración: el `/ ''` lo deja fuera del texto accesible. */
+
+.cp-rigid__counts span + span::before {
+  content: '·' / '';
+  margin: 0 8px;
+  opacity: 0.55;
+}
+
+.cp-rigid__counts b {
+  color: var(--nf-text-mid);
+  font-weight: 700;
+}
+
+/* `nf-meter` no fija display en su host: sin esto el ancho no aplicaría. */
+
+.cp-rigid__meter {
+  flex: none;
+  display: block;
+  width: 132px;
+}
+
+/* Es el único indicador de que la fila se despliega, así que tiene que verse: a 12px y
+   en text-dim quedaba en una mota. Ancho fijo para que el giro no descoloque la fila. */
+
+.cp-rigid__chev {
+  flex: none;
+  width: 20px;
+  margin-left: 2px;
+  font-size: 17px;
+  line-height: 1;
+  text-align: center;
+  color: var(--nf-text-mid);
+  transition: transform 0.2s ease;
+}
+
+.cp-rigid__head:hover .cp-rigid__chev {
+  color: var(--nf-text);
+}
+
+.cp-rigid.is-open .cp-rigid__chev {
+  transform: rotate(180deg);
+}
+
+/* `0fr → 1fr` es lo que permite animar una altura automática sin fijarla a mano. */
+
+.cp-rigid__more {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.22s ease;
+}
+
+.cp-rigid.is-open .cp-rigid__more {
+  grid-template-rows: 1fr;
+}
+
+.cp-rigid__more-inner {
+  overflow: hidden;
+}
+
+.cp-rigid__text {
+  /* 18 + 30 + 14 = 62px: el párrafo arranca justo bajo el titular, no bajo el icono. */
+  margin: 0;
+  padding: 2px 18px 16px 62px;
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: var(--nf-text-mid);
+  max-width: 78ch;
+}
+
+@media (max-width: 720px) {
+  .cp-rigid__head {
+    flex-wrap: wrap;
+    gap: 12px 14px;
+    padding: 14px;
+  }
+  .cp-rigid__ico {
+    order: 1;
+  }
+  /* Sin tocar el `flex: 1` (base 0) de arriba: con base `auto` el ancho hipotético del
+     texto desborda la línea, el navegador manda el botón entero a la siguiente y el icono
+     se queda solo en una fila para él. */
+  .cp-rigid__toggle {
+    order: 2;
+  }
+  .cp-rigid__chev {
+    order: 3;
+  }
+  .cp-rigid__meter {
+    order: 4;
+    width: 100%;
+  }
+  .cp-rigid__text {
+    padding: 2px 14px 14px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cp-rigid__head,
+  .cp-rigid__chev,
+  .cp-rigid__more {
+    transition: none;
+  }
+}
+
+/* toolbar: search + role chips */
+
+.cp-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding: 22px 24px;
+  border-bottom: 1px solid var(--nf-border);
+}
+
+.cp-search {
+  flex: 1;
+  min-width: 280px;
+  padding: 14px 18px;
+  font-size: var(--fs-body-lg);
+}
+
+.cp-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+
+.cp-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 17px;
+  border-radius: 999px;
+  border: 1.5px solid var(--nf-border);
+  background: var(--nf-inset);
+  color: var(--nf-text-dim);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    color 0.14s,
+    border-color 0.14s,
+    background 0.14s;
+}
+
+.cp-chip:hover {
+  color: var(--nf-text-mid);
+  border-color: var(--nf-border-strong);
+}
+
+.cp-chip.is-active {
+  color: var(--nf-void);
+  border-color: var(--nf-secondary);
+  background: var(--nf-secondary);
+}
+
+/* El icono de línea se dimensiona en 1em: aquí se sube por encima del texto del chip
+   para que el dibujo se lea. Va en `mode="original"`, o sea con su dorado de origen,
+   que sobre el fondo hundido del chip contrasta de sobra. */
+
+.cp-chip__ico {
+  font-size: 17px;
+}
+
+/* Salvo cuando el chip está activo: ahí el fondo es `--nf-secondary` (azul claro) y
+   el dorado se pierde encima. Se pasa a negro, que es justo el color con el que ya
+   se pinta la etiqueta del chip activo (`--nf-void`). */
+
+.cp-chip.is-active .cp-chip__ico {
+  filter: brightness(0);
+}
+
+/* pick list — responsive card grid that fills the row width */
+
+.cp-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 12px;
+  padding: 20px 24px;
+  max-height: min(var(--nf-vh) * 46, 460px);
+  overflow-y: auto;
+}
+
+.cp-empty {
+  grid-column: 1 / -1;
+  padding: 36px 16px;
+  font-size: 13px;
+  color: var(--nf-text-dim);
+  text-align: center;
+}
+
+/* ---- Paso 2 · restricciones de líneas ---- */
+
+.cp-cover {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--nf-border);
+  background: color-mix(in srgb, var(--nf-secondary) 4%, transparent);
+}
+
+.cp-cover__head {
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+}
+
+.cp-cover__roles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.cp-cover__role {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 15px;
+  border-radius: 9px;
+  border: 1.5px solid color-mix(in srgb, var(--nf-success) 45%, var(--nf-border));
+  background: color-mix(in srgb, var(--nf-success) 8%, transparent);
+}
+
+.cp-cover__role.is-tight {
+  border-color: color-mix(in srgb, var(--nf-warning) 50%, var(--nf-border));
+  background: color-mix(in srgb, var(--nf-warning) 8%, transparent);
+}
+
+.cp-cover__role.is-bad {
+  border-color: color-mix(in srgb, var(--nf-danger) 55%, var(--nf-border));
+  background: color-mix(in srgb, var(--nf-danger) 10%, transparent);
+}
+
+.cp-cover__rolelabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--nf-text);
+}
+
+.cp-cover__roleico {
+  font-size: var(--fs-h3);
+}
+
+.cp-cover__count {
+  font-size: 12px;
+  color: var(--nf-success);
+}
+
+.cp-cover__role.is-tight .cp-cover__count {
+  color: var(--nf-warning);
+}
+
+.cp-cover__role.is-bad .cp-cover__count {
+  color: var(--nf-danger);
+}
+
+.cp-cover__legend {
+  font-size: var(--fs-label);
+  line-height: 1.6;
+  color: var(--nf-text-dim);
+}
+
+.cp-cover__legend b {
+  color: var(--nf-text-mid);
+  font-weight: 700;
+}
+
+.cp-cover__note {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 10px 12px;
+  border-radius: 7px;
+  border: 1px solid color-mix(in srgb, var(--nf-secondary) 26%, var(--nf-border));
+  background: color-mix(in srgb, var(--nf-secondary) 7%, transparent);
+  font-size: var(--fs-label);
+  line-height: 1.55;
+  color: var(--nf-text-mid);
+}
+
+.cp-cover__note b {
+  color: var(--nf-text);
+  font-weight: 700;
+}
+
+.cp-cover__note-ico {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--nf-secondary) 18%, transparent);
+  color: var(--nf-secondary);
+  font-size: var(--fs-label);
+}
+
+.cp-diag {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--nf-border);
+}
+
+.cp-diag__item {
+  padding: 11px 14px;
+  border-radius: 8px;
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+
+.cp-diag__item--err {
+  color: var(--nf-danger);
+  border: 1.5px solid color-mix(in srgb, var(--nf-danger) 50%, var(--nf-border));
+  background: color-mix(in srgb, var(--nf-danger) 11%, transparent);
+}
+
+.cp-diag__item--warn {
+  color: var(--nf-warning);
+  border: 1.5px solid color-mix(in srgb, var(--nf-warning) 45%, var(--nf-border));
+  background: color-mix(in srgb, var(--nf-warning) 9%, transparent);
+}
+
+.cp-lines {
+  display: flex;
+  flex-direction: column;
+}
+
+/* fixed columns: avatar · name+state (flex) · 5 role chips · reset slot */
+
+.cp-line {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 24px;
+  border-bottom: 1px solid var(--nf-border);
+}
+
+.cp-line:last-child {
+  border-bottom: none;
+}
+
+.cp-line.is-bad {
+  background: color-mix(in srgb, var(--nf-danger) 8%, transparent);
+  box-shadow: inset 3px 0 0 var(--nf-danger);
+}
+
+.cp-line__meta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cp-line__state {
+  display: inline-flex;
+  align-self: flex-start;
+  font-size: var(--fs-label);
+  font-weight: 700;
+  color: var(--nf-text-dim);
+}
+
+.cp-line__state.is-custom {
+  color: var(--nf-secondary);
+}
+
+/* fixed 5-column grid so toggling never reflows the chips */
+
+.cp-line__roles {
+  flex: none;
+  display: grid;
+  grid-template-columns: repeat(5, 62px);
+  gap: 7px;
+}
+
+.cp-rolechip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 9px 4px;
+  border-radius: 8px;
+  border: 1.5px solid var(--nf-border);
+  background: var(--nf-inset);
+  color: var(--nf-text-dim);
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    color 0.14s,
+    border-color 0.14s,
+    background 0.14s;
+}
+
+.cp-rolechip:hover {
+  color: var(--nf-text-mid);
+  border-color: var(--nf-border-strong);
+}
+
+.cp-rolechip.is-on {
+  color: var(--nf-void);
+  border-color: var(--nf-secondary);
+  background: var(--nf-secondary);
+}
+
+.cp-rolechip__ico {
+  font-size: 16px;
+}
+
+/* Mismo caso que el chip de filtro: encendido el fondo es azul claro y el dorado no se lee. */
+
+.cp-rolechip.is-on .cp-rolechip__ico {
+  filter: brightness(0);
+}
+
+/* reset always occupies its slot (visibility, not display) so the row never shifts */
+
+.cp-line__reset {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1.5px solid var(--nf-border);
+  background: var(--nf-inset);
+  color: var(--nf-text-dim);
+  font-size: var(--fs-body-lg);
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    color 0.14s,
+    border-color 0.14s,
+    background 0.14s;
+}
+
+.cp-line__reset:not(.is-shown) {
+  visibility: hidden;
+}
+
+.cp-line__reset:hover {
+  color: var(--nf-primary);
+  border-color: var(--nf-primary);
+  background: color-mix(in srgb, var(--nf-primary) 12%, transparent);
+}
+
+@media (max-width: 620px) {
+  .cp-line {
+    flex-wrap: wrap;
+  }
+  .cp-line__roles {
+    grid-template-columns: repeat(5, 1fr);
+    width: 100%;
+    order: 3;
+  }
+}
+
+/* ---- Paso 3 · reglas de relación (duos/tríos/vs) ---- */
+
+.cp-rb {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 22px 24px;
+  border-bottom: 1px solid var(--nf-border);
+}
+
+.cp-rb__types {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.cp-rb__type {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 11px 18px;
+  border-radius: 10px;
+  border: 1.5px solid var(--nf-border);
+  background: var(--nf-inset);
+  color: var(--nf-text-dim);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    color 0.14s,
+    border-color 0.14s,
+    background 0.14s;
+}
+
+.cp-rb__type-ico {
+  font-size: var(--fs-body-lg);
+}
+
+.cp-rb__type:hover {
+  color: var(--nf-text-mid);
+  border-color: var(--nf-border-strong);
+}
+
+.cp-rb__type.is-active {
+  color: var(--nf-text);
+  border-color: var(--nf-secondary);
+  background: color-mix(in srgb, var(--nf-secondary) 14%, var(--nf-surface-2));
+}
+
+.cp-rb__hint {
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--nf-text-dim);
+}
+
+.cp-rb__sides {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.cp-rb__side {
+  padding: 6px 13px;
+  border-radius: 999px;
+  font-size: var(--fs-label);
+  font-weight: 700;
+  border: 1.5px solid var(--nf-border);
+}
+
+.cp-rb__side--a {
+  color: var(--nf-secondary);
+  border-color: color-mix(in srgb, var(--nf-secondary) 45%, var(--nf-border));
+  background: color-mix(in srgb, var(--nf-secondary) 9%, transparent);
+}
+
+.cp-rb__side--b {
+  color: var(--nf-danger);
+  border-color: color-mix(in srgb, var(--nf-danger) 45%, var(--nf-border));
+  background: color-mix(in srgb, var(--nf-danger) 9%, transparent);
+}
+
+.cp-rb__vs {
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+}
+
+.cp-rb__players {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+
+.cp-side {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  border: 1.5px solid var(--nf-border);
+  background: var(--nf-inset);
+  color: var(--nf-text-dim);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    color 0.14s,
+    border-color 0.14s,
+    background 0.14s;
+}
+
+.cp-side:hover:not(:disabled) {
+  border-color: var(--nf-border-strong);
+  color: var(--nf-text-mid);
+}
+
+.cp-side:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.cp-side--a.is-on {
+  color: var(--nf-void);
+  border-color: var(--nf-secondary);
+  background: var(--nf-secondary);
+}
+
+.cp-side--b.is-on {
+  color: var(--nf-void);
+  border-color: var(--nf-danger);
+  background: var(--nf-danger);
+}
+
+.cp-rb__add {
+  align-self: flex-start;
+  padding: 11px 20px;
+  border-radius: 9px;
+  border: 1.5px solid var(--nf-secondary);
+  background: color-mix(in srgb, var(--nf-secondary) 14%, transparent);
+  color: var(--nf-secondary);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background 0.14s,
+    opacity 0.14s;
+}
+
+.cp-rb__add:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--nf-secondary) 22%, transparent);
+}
+
+.cp-rb__add:disabled {
+  opacity: 0.4;
+  cursor: default;
+  border-color: var(--nf-border);
+  color: var(--nf-text-dim);
+  background: var(--nf-inset);
+}
+
+.cp-rules {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 18px 24px;
+}
+
+.cp-rules__empty {
+  padding: 14px 0;
+  font-size: 12.5px;
+  color: var(--nf-text-dim);
+  text-align: center;
+}
+
+.cp-rule {
+  --rc: var(--nf-secondary);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 13px 16px;
+  border-radius: 11px;
+  border: 1.5px solid var(--nf-border);
+  border-left: 3px solid var(--rc);
+  background: var(--nf-surface-2);
+}
+
+.cp-rule[data-kind='together'] {
+  --rc: var(--nf-success);
+}
+
+.cp-rule[data-kind='versus'] {
+  --rc: var(--nf-primary);
+}
+
+.cp-rule[data-kind='lane'] {
+  --rc: var(--nf-warning);
+}
+
+.cp-rule__ico {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex: none;
+  border-radius: 9px;
+  font-size: 17px;
+  background: color-mix(in srgb, var(--rc) 14%, transparent);
+  border: 1.5px solid color-mix(in srgb, var(--rc) 35%, transparent);
+}
+
+.cp-rule__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.cp-rule__label {
+  font-size: var(--fs-label);
+  font-weight: 700;
+  color: var(--rc);
+}
+
+.cp-rule__tag {
+  color: var(--nf-text-dim);
+  font-weight: 600;
+}
+
+.cp-rule__players {
+  font-size: var(--fs-body);
+  font-weight: 700;
+  color: var(--nf-text);
+}
+
+.cp-rule__del {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  border: 1.5px solid var(--nf-border);
+  background: var(--nf-inset);
+  color: var(--nf-text-dim);
+  font-size: var(--fs-body);
+  cursor: pointer;
+  transition:
+    color 0.14s,
+    border-color 0.14s,
+    background 0.14s;
+}
+
+.cp-rule__del:hover {
+  color: var(--nf-danger);
+  border-color: var(--nf-danger);
+  background: color-mix(in srgb, var(--nf-danger) 14%, transparent);
+}
+
+/* ---- Paso 4 · campeones reservados (OTP / no baneable) ---- */
+
+.cp-champs {
+  display: flex;
+  flex-direction: column;
+}
+
+.cp-champrow {
+  border-bottom: 1px solid var(--nf-border);
+}
+
+.cp-champrow:last-child {
+  border-bottom: none;
+}
+
+.cp-champrow.is-open {
+  background: color-mix(in srgb, var(--nf-secondary) 4%, transparent);
+}
+
+.cp-champrow__head {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 14px 24px;
+}
+
+.cp-champrow__name {
+  flex: 1;
+  min-width: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--nf-text);
+}
+
+.cp-champrow__add {
+  padding: 10px 16px;
+  border-radius: 9px;
+  border: 1.5px dashed color-mix(in srgb, var(--nf-secondary) 40%, var(--nf-border));
+  background: color-mix(in srgb, var(--nf-secondary) 6%, transparent);
+  color: var(--nf-secondary);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background 0.14s,
+    border-color 0.14s;
+}
+
+.cp-champrow__add:hover {
+  background: color-mix(in srgb, var(--nf-secondary) 13%, transparent);
+  border-color: var(--nf-secondary);
+}
+
+/* reserved champion pill */
+
+.cp-reserved {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 14px 6px 6px;
+  border-radius: 999px;
+  border: 1.5px solid var(--nf-secondary);
+  background: color-mix(in srgb, var(--nf-secondary) 12%, var(--nf-surface-2));
+  cursor: pointer;
+  transition: background 0.14s;
+}
+
+.cp-reserved:hover {
+  background: color-mix(in srgb, var(--nf-secondary) 18%, var(--nf-surface-2));
+}
+
+/* La caja (30px) ahora la da `nf-avatar`; el radio (7px) se recupera aquí. */
+
+.cp-reserved__icon {
+  border-radius: 7px;
+}
+
+.cp-reserved__name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--nf-text);
+}
+
+.cp-reserved__role {
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+}
+
+.cp-reserved__clear {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  border: 1.5px solid var(--nf-border);
+  background: var(--nf-inset);
+  color: var(--nf-text-dim);
+  font-size: 13px;
+  cursor: pointer;
+  transition:
+    color 0.14s,
+    border-color 0.14s,
+    background 0.14s;
+}
+
+.cp-reserved__clear:hover {
+  color: var(--nf-danger);
+  border-color: var(--nf-danger);
+  background: color-mix(in srgb, var(--nf-danger) 14%, transparent);
+}
+
+/* inline champion picker */
+
+.cp-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 4px 24px 20px;
+}
+
+.cp-picker__search {
+  padding: 11px 14px;
+}
+
+.cp-picker__label {
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+}
+
+.cp-picker__hint {
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+}
+
+.cp-picker__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 9px;
+}
+
+.cp-champ-opt {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 9px 11px;
+  border-radius: 10px;
+  border: 1.5px solid var(--nf-border);
+  background: var(--nf-surface-2);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 0.14s,
+    background 0.14s,
+    transform 0.14s;
+}
+
+.cp-champ-opt:hover {
+  transform: translateY(-1px);
+  border-color: var(--nf-secondary);
+  background: color-mix(in srgb, var(--nf-secondary) 8%, var(--nf-surface-2));
+}
+
+/* La caja (38px) ahora la da `nf-avatar`; el radio (8px) se recupera aquí. */
+
+.cp-champ-opt__icon {
+  border-radius: 8px;
+}
+
+.cp-champ-opt__meta {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.cp-champ-opt__name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--nf-text);
+}
+
+.cp-champ-opt__role {
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+}
+
+/* ---- Paso 5 · preview de equipos + lanzar ---- */
+
+.cp-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 22px;
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--nf-border);
+  background: color-mix(in srgb, var(--nf-secondary) 4%, transparent);
+}
+
+.cp-summary__item {
+  font-size: 12px;
+  color: var(--nf-text-dim);
+}
+
+.cp-summary__item b {
+  color: var(--nf-text);
+  font-weight: 800;
+  font-size: var(--fs-body);
+  margin-right: 2px;
+}
+
+@keyframes cp-line-in {
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.cp-addall {
+  width: 100%;
+  padding: 16px;
+  border: none;
+  border-top: 1px solid var(--nf-border);
+  background: color-mix(in srgb, var(--nf-secondary) 6%, transparent);
+  color: var(--nf-secondary);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.14s;
+}
+
+.cp-addall:hover {
+  background: color-mix(in srgb, var(--nf-secondary) 12%, transparent);
+}
+
+/* stub panel for not-yet-built steps */
+
+.cp-stub {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  text-align: center;
+}
+
+.cp-stub__glyph {
+  font-size: 52px;
+  line-height: 1;
+  opacity: 0.8;
+}
+
+.cp-stub__title {
+  font-size: var(--fs-body-lg);
+  color: var(--nf-secondary);
+}
+
+.cp-stub__hint {
+  margin: 0;
+  max-width: 460px;
+  font-size: var(--fs-body-lg);
+  line-height: 1.6;
+  color: var(--nf-text-dim);
+}
+
+.cp-stub__roster {
+  margin-top: 14px;
+  font-size: 12px;
+  color: var(--nf-text-dim);
+}
+
+/* continue button draws the eye once the room is full */
+
+@keyframes cp-cta-pulse {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--nf-primary) 45%, transparent);
+  }
+  70%,
+  100% {
+    box-shadow: 0 0 0 8px transparent;
+  }
+}

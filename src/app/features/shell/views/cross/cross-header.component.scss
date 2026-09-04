@@ -41,14 +41,14 @@
 }
 
 .cx-topbar__arrow {
-  font-size: 14px;
+  font-size: var(--fs-body);
 }
 
 .cx-topbar__context {
   color: var(--nf-text-dim);
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  font-size: 11px;
+  font-size: var(--fs-label);
 }
 
 /* Arena 1v1 Centrada y Simétrica */
@@ -126,7 +126,7 @@
 }
 
 .cx-fighter__summoner {
-  font-size: 18px;
+  font-size: var(--fs-h3);
   font-weight: 800;
   color: #ffffff;
   text-decoration: none;
@@ -178,7 +178,7 @@
 }
 
 .cx-vs-badge__count {
-  font-size: 11px;
+  font-size: var(--fs-label);
   font-weight: 600;
   color: var(--nf-text-dim);
   white-space: nowrap;
@@ -242,7 +242,7 @@
 }
 
 .cx-nav-tab__count {
-  font-size: 11px;
+  font-size: var(--fs-label);
   font-weight: 700;
   color: var(--nf-text-dim);
   padding: 2px 8px;

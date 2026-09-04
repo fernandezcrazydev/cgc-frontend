@@ -36,7 +36,7 @@
 }
 
 .sm__count {
-  font-size: 11px;
+  font-size: var(--fs-label);
   font-weight: var(--fw-regular);
   color: var(--nf-text-dim);
   font-variant-numeric: tabular-nums;
@@ -122,7 +122,7 @@
 }
 
 .sm-day__weekday {
-  font-size: 11px;
+  font-size: var(--fs-label);
 }
 
 .sm-day__number {
@@ -157,7 +157,7 @@
 
 .sm-band__label {
   margin: 0;
-  font-size: 11px;
+  font-size: var(--fs-label);
   font-weight: var(--fw-semibold);
   color: var(--nf-text-dim);
 }

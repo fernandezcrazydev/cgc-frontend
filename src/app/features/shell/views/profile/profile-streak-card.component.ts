@@ -14,6 +14,7 @@ import { PlayerRecentMatch, StreakType, streakLabel } from '../../../../core/pla
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterLink],
+  styleUrl: './profile-streak-card.component.scss',
   template: `
     <section class="pf-card pf-form-card">
       <div class="pf-card__header">

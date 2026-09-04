@@ -38,7 +38,7 @@
 }
 
 .md__label {
-  font-size: 11px;
+  font-size: var(--fs-label);
   color: var(--nf-text-dim);
 }
 
@@ -73,13 +73,13 @@
 }
 
 .md__leader-name {
-  font-size: 14px;
+  font-size: var(--fs-body);
   font-weight: var(--fw-semibold);
   color: var(--nf-text);
 }
 
 .md__leader-tag {
-  font-size: 11px;
+  font-size: var(--fs-label);
   color: var(--nf-text-dim);
 }
 
@@ -165,7 +165,7 @@
 
 .md__me-line {
   margin: 0;
-  font-size: 14px;
+  font-size: var(--fs-body);
   font-weight: var(--fw-semibold);
   color: var(--nf-text);
 }

@@ -1,0 +1,142 @@
+/* Tarjeta de racha del perfil: cadena de forma y resumen.
+
+   Extraida de `views.scss` (el monolito global) a la hoja de su componente. Con
+   encapsulacion emulada estos estilos mueren con la vista y viajan en su chunk lazy,
+   en vez de lastrar todas las rutas.
+
+   No escribas aqui selectores hacia hijos internos de un `nf-*`: la encapsulacion no
+   los alcanza. Si necesitas ajustar el interior de una primitiva, expon una custom
+   property en ella y fijala sobre el host (ver `nf-pagination.scss`). Nunca `::ng-deep`. */
+
+/* ── Forma Reciente & Racha ────────────────────────────────────────── */
+
+.pf-streak-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 6px;
+  font-size: var(--fs-label);
+  font-weight: 800;
+  color: var(--nf-success);
+  background: color-mix(in srgb, var(--nf-success) 12%, var(--nf-surface));
+  border: 1px solid color-mix(in srgb, var(--nf-success) 35%, transparent);
+}
+
+.pf-streak-badge--lose {
+  color: var(--nf-danger);
+  background: color-mix(in srgb, var(--nf-danger) 12%, var(--nf-surface));
+  border-color: color-mix(in srgb, var(--nf-danger) 35%, transparent);
+}
+
+.pf-form-chain {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.pf-match-node {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 0.12s, box-shadow 0.12s, outline-color 0.12s;
+}
+
+.pf-match-node:hover {
+  transform: translateY(-2px) scale(1.1);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+/* La partida elegida se marca con un aro exterior en vez de con más brillo: el
+   color del nodo ya significa victoria o derrota, y teñirlo para indicar
+   selección haría que dos cosas distintas compitieran por el mismo canal. */
+
+.pf-match-node--on {
+  outline: var(--bw-2) solid var(--nf-text);
+  outline-offset: 2px;
+}
+
+.pf-match-node--win {
+  color: var(--nf-success);
+  background: color-mix(in srgb, var(--nf-success) 16%, var(--nf-surface));
+  border: 1px solid color-mix(in srgb, var(--nf-success) 45%, transparent);
+}
+
+.pf-match-node--loss {
+  color: var(--nf-danger);
+  background: color-mix(in srgb, var(--nf-danger) 14%, var(--nf-surface));
+  border: 1px solid color-mix(in srgb, var(--nf-danger) 40%, transparent);
+}
+
+.pf-match-node--mvp {
+  border-color: var(--nf-warning) !important;
+  box-shadow: 0 0 6px color-mix(in srgb, var(--nf-warning) 40%, transparent);
+}
+
+/* Excepción consciente al suelo de 11px: no es copy, es un adorno. La estrella
+   marca el MVP y va `aria-hidden`; lo que comunica el dato es el nombre
+   accesible del nodo, que sí dice "MVP" con todas las letras. Agrandarla la
+   sacaría del nodo de 28px sin añadir ninguna información. */
+
+.pf-match-node__crown {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  font-size: 9px;
+  color: var(--nf-warning);
+}
+
+/* Desglose de la partida seleccionada. Antes era un tooltip flotante que se
+   montaba y desmontaba con el ratón; ahora es un bloque fijo de la tarjeta que
+   solo cambia de contenido, así que no lleva animación de entrada: lo que se
+   anima al elegir otra partida es el texto, y hacerlo aparecer de nuevo cada vez
+   parpadearía. */
+
+.pf-streak-summary {
+  padding: 9px 12px;
+  border-radius: 7px;
+  border: var(--bw-1) solid var(--nf-border);
+  background: var(--nf-inset);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: var(--fs-label);
+}
+
+.pf-streak-summary--clickable {
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color 0.14s ease, background 0.14s ease, transform 0.14s ease;
+}
+
+.pf-streak-summary--clickable:hover {
+  border-color: var(--nf-border-strong);
+  background: var(--nf-surface-2);
+  transform: translateY(-1px);
+}
+
+.pf-streak-summary__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.pf-streak-summary__time {
+  color: var(--nf-text-dim);
+}
+
+.pf-streak-summary__row--sub {
+  color: var(--nf-text-mid);
+}

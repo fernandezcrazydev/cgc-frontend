@@ -2,7 +2,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 11px;
+  font-size: var(--fs-label);
   color: var(--nf-emerald, #3fb950);
 }
 
@@ -71,7 +71,7 @@
 
 .hub-room__name {
   max-width: 100%;
-  font-size: 11px;
+  font-size: var(--fs-label);
   color: var(--nf-text-dim);
   overflow: hidden;
   text-overflow: ellipsis;

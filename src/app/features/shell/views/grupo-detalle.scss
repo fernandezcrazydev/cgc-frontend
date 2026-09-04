@@ -114,3 +114,69 @@ app-hub-roster-panel {
     flex: 1 1 40%;
   }
 }
+
+/* ============ DETALLE DE GRUPO (real): miembros + invitar ============ */
+
+.gd-members {
+  display: flex;
+  flex-direction: column;
+}
+
+.gd-member {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--nf-border);
+}
+
+.gd-member:last-child {
+  border-bottom: none;
+}
+
+.gd-member__meta {
+  min-width: 0;
+  flex: 1;
+}
+
+.gd-member__name {
+  font-size: 13px;
+  color: var(--nf-text);
+}
+
+.gd-member__role {
+  margin-top: 3px;
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+}
+
+.gd-member__actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.gd-confirm {
+  font-size: var(--fs-body);
+  line-height: 1.5;
+  color: var(--nf-text);
+  margin: 0 0 20px;
+}
+
+/* El paginador nace suelto en una página (de ahí su margen superior) y aquí va empotrado:
+   se le quita el margen y se compactan los botones para que quepan en la barra. */
+
+.gd-invites-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 40px 16px;
+  text-align: center;
+}
+
+.gd-invites-empty__text {
+  font-size: 12px;
+  color: var(--nf-text-dim);
+}

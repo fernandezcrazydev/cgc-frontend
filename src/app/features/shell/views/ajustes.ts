@@ -20,6 +20,7 @@ const SCOPE_LABELS: Record<string, string> = {
   selector: 'app-ajustes',
   standalone: true,
   imports: [NfWindow, NfToggle, NfSelect, NfSkeleton, NfButton],
+  styleUrl: './ajustes.scss',
   template: `
     <div class="view max-520">
       <div class="view__head">

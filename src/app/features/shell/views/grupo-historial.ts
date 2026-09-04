@@ -29,6 +29,7 @@ import { MatchHistoryUiState } from './match-history/match-history-ui';
     GroupMatchCardComponent,
     MatchFiltersComponent,
   ],
+  styleUrl: './grupo-historial.scss',
   template: `
     <div class="view">
       @if (group(); as g) {

@@ -42,6 +42,7 @@ interface RivalryCard {
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterLink, NfBadge, NfAvatar, NfSkeleton, MatchScoreboardComponent],
+  styleUrl: './partida-detalle.scss',
   template: `
     <div class="view">
       @if (match(); as m) {

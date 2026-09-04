@@ -81,6 +81,7 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
     ProfileStreakCard,
     ProfileGroupsCard,
   ],
+  styleUrl: './perfil.scss',
   template: `
     <div class="view pf-view">
       <!--

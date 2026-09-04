@@ -1,0 +1,92 @@
+@use 'breakpoints' as *;
+
+/* Historial del grupo. Solo lo propio de esta vista: la fila de partida vive en
+   `m-card`, que sigue siendo global por compartirla siete componentes.
+
+   Extraida de `views.scss` (el monolito global) a la hoja de su componente. Con
+   encapsulacion emulada estos estilos mueren con la vista y viajan en su chunk lazy,
+   en vez de lastrar todas las rutas.
+
+   No escribas aqui selectores hacia hijos internos de un `nf-*`: la encapsulacion no
+   los alcanza. Si necesitas ajustar el interior de una primitiva, expon una custom
+   property en ella y fijala sobre el host (ver `nf-pagination.scss`). Nunca `::ng-deep`. */
+
+.live-match-banner__tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--nf-danger);
+
+  &::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--nf-danger);
+  }
+}
+
+@media (max-width: $bp-mobile) {
+/* ---- Banner de partida en directo ----
+     Era una fila de tres sin `flex-wrap`: el texto y el enlace se estrujaban. */
+.live-match-banner { flex-wrap: wrap; padding: 12px 14px; }
+.live-match-banner__meta { flex-direction: column; gap: 2px; }
+.live-match-banner__link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: $touch;
+    border: var(--bw-1) solid color-mix(in srgb, var(--nf-primary) 45%, transparent);
+    border-radius: var(--nf-radius);
+  }
+}
+
+/* Banner de Partida en Vivo */
+
+.live-match-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 18px;
+  background: color-mix(in srgb, var(--nf-primary) 12%, var(--nf-surface));
+  border: 1px solid color-mix(in srgb, var(--nf-primary) 40%, transparent);
+  border-radius: 8px;
+  margin-bottom: 18px;
+  box-shadow: 0 0 16px color-mix(in srgb, var(--nf-primary) 15%, transparent);
+}
+
+.live-match-banner__pulse {
+  width: 10px;
+  height: 10px;
+  background: var(--nf-primary);
+  border-radius: 50%;
+  box-shadow: 0 0 10px var(--nf-primary);
+  animation: live-pulse 1.5s infinite;
+}
+
+.live-match-banner__meta {
+  display: flex;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--nf-text);
+  flex: 1;
+
+  strong {
+    color: var(--nf-primary);
+    letter-spacing: 0.04em;
+  }
+}
+
+.live-match-banner__link {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--nf-primary);
+  text-decoration: none;
+  transition: opacity 0.14s;
+
+  &:hover {
+    text-decoration: underline;
+    opacity: 0.85;
+  }
+}

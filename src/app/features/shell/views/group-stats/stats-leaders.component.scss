@@ -19,7 +19,7 @@
   grid-template-columns: var(--ld-cols);
   gap: 10px;
   padding: 0 12px 8px;
-  font-size: 11px;
+  font-size: var(--fs-label);
   color: var(--nf-text-dim);
   border-bottom: 1px solid var(--nf-border);
 }
@@ -101,7 +101,7 @@
 }
 
 .ld-row__cell small {
-  font-size: 11px;
+  font-size: var(--fs-label);
   color: var(--nf-text-dim);
 }
 
@@ -196,7 +196,7 @@
 }
 
 .ld-tile__value {
-  font-size: 14px;
+  font-size: var(--fs-body);
   font-weight: var(--fw-semibold);
   color: var(--nf-text);
 }
@@ -214,7 +214,7 @@
 }
 
 .ld-tile__label {
-  font-size: 11px;
+  font-size: var(--fs-label);
   color: var(--nf-text-dim);
 }
 

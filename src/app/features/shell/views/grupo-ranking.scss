@@ -1,0 +1,1006 @@
+/* Ranking / leaderboard del grupo: cabecera de liga, countdown, tabla y filtros.
+
+   Extraida de `views.scss` (el monolito global) a la hoja de su componente. Con
+   encapsulacion emulada estos estilos mueren con la vista y viajan en su chunk lazy,
+   en vez de lastrar todas las rutas.
+
+   No escribas aqui selectores hacia hijos internos de un `nf-*`: la encapsulacion no
+   los alcanza. Si necesitas ajustar el interior de una primitiva, expon una custom
+   property en ella y fijala sobre el host (ver `nf-pagination.scss`). Nunca `::ng-deep`.
+
+   Va en tres ficheros (`-podio`, `-historial`) porque el presupuesto `anyComponentStyle`
+   de Angular avisa a 24 kB y falla a 32: una vista-pagina no es un componente del tamano
+   que asume ese umbral. Partir por bloques es mejor respuesta que subir el presupuesto.
+   Mismo patron que `shell.ts` con `shell-sidebar-nav.scss`.
+
+   Los `.nf-avatar` de estas hojas apuntan a la clase HOST de `<nf-avatar>`
+   (`host: { class: 'nf-avatar' }`), que si recibe el `_ngcontent` de la plantilla. */
+
+/* Mobile sorting chips: hidden on desktop */
+
+.rk-mobile-sort {
+  display: none;
+}
+
+/* ---- Header de Liga y Countdown Dinámico ---- */
+
+.rk-league-header {
+  margin-bottom: 24px;
+}
+
+.rk-league-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+  padding: 6px 0 10px;
+}
+
+.rk-league-title-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.rk-league-eyebrow {
+  font-size: var(--fs-label);
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: var(--nf-secondary);
+  text-transform: uppercase;
+}
+
+.rk-league-title {
+  margin: 0;
+  font-size: clamp(24px, 4vw, 36px);
+  font-weight: 900;
+  letter-spacing: -0.8px;
+  color: var(--nf-text);
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+}
+
+.rk-countdown {
+  display: inline-flex;
+  align-items: center;
+  gap: 16px;
+  padding: 6px 18px;
+  border-radius: 999px;
+  background: var(--nf-surface-2);
+  border: 1.5px solid var(--nf-border);
+  box-shadow: var(--nf-shadow-card);
+}
+
+.rk-countdown__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: var(--fs-label);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.rk-countdown__badge--success {
+  background: color-mix(in srgb, var(--nf-success) 16%, transparent);
+  color: var(--nf-success);
+  border: 1px solid color-mix(in srgb, var(--nf-success) 40%, transparent);
+}
+
+.rk-countdown__badge--warning {
+  background: color-mix(in srgb, var(--nf-warning) 16%, transparent);
+  color: var(--nf-warning);
+  border: 1px solid color-mix(in srgb, var(--nf-warning) 40%, transparent);
+}
+
+.rk-countdown__badge--danger {
+  background: color-mix(in srgb, var(--nf-danger) 16%, transparent);
+  color: var(--nf-danger);
+  border: 1px solid color-mix(in srgb, var(--nf-danger) 40%, transparent);
+}
+
+.rk-countdown__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 8px currentColor;
+}
+
+.rk-countdown__timer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-variant-numeric: tabular-nums;
+  font-size: 13.5px;
+  font-weight: 800;
+  color: var(--nf-text);
+}
+
+.rk-countdown__unit {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+}
+
+.rk-countdown__val {
+  font-weight: 800;
+}
+
+.rk-countdown__lbl {
+  font-size: 10px;
+  color: var(--nf-text-dim);
+  font-weight: 600;
+}
+
+.rk-countdown__sep {
+  color: var(--nf-text-dim);
+  opacity: 0.5;
+}
+
+.rk-countdown__expired {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--nf-danger);
+}
+
+/* ---- Clasificación ---- */
+
+.rk-list {
+  --rk-cols: 52px minmax(190px, 1.2fr) 96px 104px minmax(148px, 1.2fr) minmax(104px, 1fr) 96px 52px
+    62px;
+  display: flex;
+  flex-direction: column;
+  border-radius: 12px;
+  border: 1.5px solid var(--nf-border);
+  background: var(--nf-surface-2);
+  box-shadow: var(--nf-shadow-card);
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+
+.rk-list__head {
+  display: grid;
+  grid-template-columns: var(--rk-cols);
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px;
+  background: var(--nf-inset);
+  border-bottom: 1.5px solid var(--nf-border);
+}
+
+.rk-th {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 11px 0;
+  font-size: 11.5px;
+  font-weight: 700;
+  text-align: center;
+  color: var(--nf-text-dim);
+}
+
+.rk-th--start {
+  justify-content: flex-start;
+  text-align: left;
+}
+
+/* Fin de temporada: la clasificación de debajo sigue siendo válida, pero ya es un resultado
+   cerrado y no una tabla viva. El aviso lo dice antes de que el usuario empiece a leerla. */
+
+.rk-season-over {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+  padding: 14px 18px;
+  border-radius: 12px;
+  border: 1px solid var(--nf-border-strong);
+  background: color-mix(in srgb, var(--nf-warning) 8%, var(--nf-surface-1));
+}
+
+.rk-season-over__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.rk-season-over__trophy {
+  font-size: 26px;
+  line-height: 1;
+}
+
+.rk-season-over__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.rk-season-over__title {
+  margin: 0;
+  font-weight: 700;
+  color: var(--nf-text);
+}
+
+.rk-season-over__champ {
+  margin: 0;
+  font-size: 13px;
+  color: var(--nf-text-dim);
+}
+
+.rk-season-over__hint {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--nf-text-dim);
+}
+
+/* Cabecera de una columna que todavía no tiene fuente de datos. Se atenúa para que se lea como
+   "aún no", pero se conserva: cuando el dato llegue, la tabla no cambia de forma. */
+
+.rk-th--muted {
+  opacity: 0.55;
+  cursor: help;
+}
+
+/* El marcador de "sin datos" de una celda.
+   NO es un skeleton, y la diferencia importa: un skeleton promete que el dato viene de camino, y
+   este dice que todavía no existe. Confundirlos deja una tabla cargando para siempre. Tampoco es
+   un cero ni un guion largo suelto: es un valor atenuado con `title` que lo explica. */
+
+.rk-nodata {
+  color: var(--nf-text-dim);
+  opacity: 0.6;
+  cursor: help;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Cabecera de Jugador con Buscador Predictivo */
+
+.rk-th--user-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+}
+
+.rk-th__title {
+  flex-shrink: 0;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--nf-text-dim);
+}
+
+.rk-search-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  max-width: 140px;
+}
+
+.rk-search-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.rk-search-name {
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rk-search-tag {
+  font-size: 10.5px;
+  color: var(--nf-text-dim);
+  margin-left: 2px;
+}
+
+.rk-search-meta {
+  font-size: 10.5px;
+  color: var(--nf-secondary);
+  font-weight: 600;
+}
+
+.rk-th--btn {
+  appearance: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  border-radius: 6px;
+  transition: color 0.14s ease;
+}
+
+.rk-th--btn:hover {
+  color: var(--nf-text);
+}
+
+.rk-th--btn:focus-visible {
+  outline: 2px solid var(--nf-primary);
+  outline-offset: 2px;
+}
+
+.rk-th__arrow {
+  font-size: 9px;
+  opacity: 0.55;
+}
+
+.rk-th--btn:hover .rk-th__arrow {
+  opacity: 1;
+}
+
+.rk-th--btn[aria-sort='ascending'],
+.rk-th--btn[aria-sort='descending'] {
+  color: var(--nf-secondary);
+}
+
+.rk-th--btn[aria-sort='ascending'] .rk-th__arrow,
+.rk-th--btn[aria-sort='descending'] .rk-th__arrow {
+  opacity: 1;
+}
+
+.rk-row {
+  border-bottom: 1px solid var(--nf-border);
+  position: relative;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.rk-row:last-child {
+  border-bottom: none;
+}
+
+@keyframes rk-row-glow {
+  0% {
+    box-shadow: inset 0 0 0 2px var(--nf-primary), 0 0 24px color-mix(in srgb, var(--nf-primary) 50%, transparent);
+    background: color-mix(in srgb, var(--nf-primary) 18%, var(--nf-surface-2));
+  }
+  50% {
+    box-shadow: inset 0 0 0 1.5px var(--nf-primary), 0 0 16px color-mix(in srgb, var(--nf-primary) 30%, transparent);
+    background: color-mix(in srgb, var(--nf-primary) 10%, var(--nf-surface-2));
+  }
+  100% {
+    box-shadow: inset 0 0 0 0 transparent, 0 0 0 transparent;
+    background: var(--nf-surface-2);
+  }
+}
+
+.rk-row.is-highlighted {
+  animation: rk-row-glow 2.5s ease-out forwards;
+  z-index: 3;
+}
+
+.rk-row__summary {
+  position: relative;
+  width: 100%;
+  display: grid;
+  grid-template-columns: var(--rk-cols);
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  transition: background 0.14s ease;
+}
+
+.rk-row__summary:hover {
+  background: color-mix(in srgb, var(--nf-secondary) 8%, transparent);
+}
+
+.rk-row.is-open .rk-row__summary {
+  background: color-mix(in srgb, var(--nf-secondary) 11%, transparent);
+}
+
+@supports selector(:has(*)) {
+  .rk-row__toggle:focus-visible {
+    outline: none;
+  }
+  .rk-row__summary:has(.rk-row__toggle:focus-visible) {
+    outline: 2px solid var(--nf-primary);
+    outline-offset: -2px;
+  }
+}
+
+.rk-cell {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.rk-cell--pos {
+  justify-content: center;
+  font-size: var(--fs-body);
+  font-weight: 700;
+  color: var(--nf-text-dim);
+}
+
+.rk-cell--user {
+  gap: 10px;
+}
+
+.rk-user-meta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 2px;
+}
+
+.rk-user-meta__top {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.rk-user-name {
+  position: relative;
+  z-index: 1;
+  font-weight: 700;
+  font-size: var(--fs-body);
+  color: var(--nf-text);
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color 0.14s ease;
+}
+
+.rk-user-name:hover {
+  color: var(--nf-primary);
+  text-decoration: none;
+}
+
+.rk-user-name:focus-visible {
+  outline: 2px solid var(--nf-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.rk-user-riot {
+  font-size: 11.5px;
+  color: var(--nf-text-dim);
+}
+
+.rk-ban {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--nf-danger) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--nf-danger) 42%, transparent);
+  cursor: help;
+}
+
+.rk-ban__lbl {
+  font-size: var(--fs-label);
+  font-weight: 700;
+  color: var(--nf-danger);
+}
+
+.rk-row.is-banned {
+  background: color-mix(in srgb, var(--nf-danger) 6%, transparent);
+}
+
+.rk-row.is-banned .rk-row__summary {
+  opacity: 0.7;
+}
+
+.rk-row.is-banned .rk-row__summary:hover,
+.rk-row.is-banned.is-open .rk-row__summary {
+  opacity: 1;
+}
+
+.rk-row.is-banned .rk-user-name {
+  color: color-mix(in srgb, var(--nf-danger) 55%, var(--nf-text));
+}
+
+.rk-row.is-banned .rk-ban {
+  opacity: 1;
+}
+
+.rk-cell--lane {
+  justify-content: center;
+  gap: 7px;
+  font-size: 12px;
+  color: var(--nf-text-mid);
+}
+
+.rk-cell--lp {
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--nf-text);
+}
+
+.rk-cell--wr {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 5px;
+}
+
+.rk-wr-text {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 9px;
+}
+
+.rk-wr-pct {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--nf-text);
+}
+
+.rk-wr-counts {
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+}
+
+.rk-wr-bar {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  height: 5px;
+  border-radius: 3px;
+  overflow: hidden;
+  background: var(--nf-inset);
+}
+
+.rk-wr-bar__w {
+  background: var(--nf-success);
+}
+
+.rk-wr-bar__l {
+  background: color-mix(in srgb, var(--nf-danger) 65%, transparent);
+}
+
+.rk-spark {
+  width: 100%;
+  height: 28px;
+  overflow: visible;
+}
+
+.rk-spark polyline {
+  fill: none;
+  stroke: var(--nf-success);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.rk-spark.is-down polyline {
+  stroke: var(--nf-danger);
+}
+
+.rk-cell--avg-lp {
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+.rk-cell--main {
+  justify-content: center;
+}
+
+.rk-row__toggle {
+  appearance: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+
+.rk-row__toggle::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+.rk-row__chev {
+  font-size: 13px;
+  color: var(--nf-text-dim);
+  transition:
+    transform 0.2s ease,
+    color 0.14s ease;
+}
+
+.rk-row.is-open .rk-row__chev {
+  transform: rotate(180deg);
+  color: var(--nf-secondary);
+}
+
+/* ---- Responsive ----
+   La fila de partida tiene nueve zonas: es un layout de escritorio. Se va
+   desmontando por tramos en vez de intentar encajarlo todo. */
+
+@media (max-width: 1180px) {
+  .rk-list {
+    --rk-cols: 48px minmax(158px, 1fr) 88px 96px minmax(136px, 1.2fr) minmax(92px, 1fr) 88px 48px
+      56px;
+  }
+}
+
+@media (max-width: 1000px) {
+
+  .rk-list {
+    --rk-cols: 44px minmax(150px, 1fr) 88px 92px minmax(122px, 1.2fr) 76px 44px 52px;
+  }
+  .rk-list__head .rk-th:nth-child(6),
+  .rk-row__summary .rk-cell--trend {
+    display: none;
+  }
+}
+
+@media (max-width: 760px) {
+  /* ---- Barra de Ordenación Móvil (Chips) ---- */
+  .rk-mobile-sort {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+    padding: 2px 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .rk-mobile-sort__label {
+    font-size: var(--fs-label);
+    color: var(--nf-text-dim);
+    flex-shrink: 0;
+  }
+  .rk-mobile-sort__chips {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  .rk-sort-chip {
+    appearance: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 12px;
+    border-radius: 7px;
+    font-family: var(--nf-mono);
+    font-size: var(--fs-label);
+    font-weight: 700;
+    border: 1.5px solid var(--nf-border);
+    background: var(--nf-surface-2);
+    color: var(--nf-text-dim);
+    cursor: pointer;
+    transition:
+      background 0.14s ease,
+      border-color 0.14s ease,
+      color 0.14s ease;
+  }
+  .rk-sort-chip:hover {
+    color: var(--nf-text);
+    border-color: var(--nf-border-strong);
+  }
+  .rk-sort-chip.is-active {
+    background: color-mix(in srgb, var(--nf-secondary) 14%, var(--nf-surface-2));
+    border-color: var(--nf-secondary);
+    color: var(--nf-secondary);
+  }
+  /* Ordenar por una columna vacía no significa nada. El control se queda a la vista, apagado,
+     porque vuelve solo en cuanto la columna tenga dato. */
+  .rk-sort-chip:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+  .rk-sort-chip:disabled:hover {
+    color: var(--nf-text-dim);
+    border-color: var(--nf-border);
+  }
+  .rk-sort-chip__arrow {
+    font-size: 9px;
+    opacity: 0.85;
+  }
+
+  
+
+  
+
+  
+
+  /* ---- Clasificación Móvil: Tarjetas de 2 Niveles Limpias ---- */
+  .rk-list {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    gap: 8px;
+    margin-bottom: 16px;
+    overflow: visible;
+  }
+
+  .rk-list__head {
+    display: none;
+  }
+
+  .rk-row {
+    border-radius: 12px;
+    border: 1px solid var(--nf-border);
+    background: var(--nf-surface-2);
+    box-shadow: var(--nf-shadow-card);
+    overflow: hidden;
+  }
+
+  .rk-row__summary {
+    display: grid;
+    grid-template-columns: 28px minmax(0, 1fr) auto auto 24px;
+    grid-template-rows: auto auto;
+    grid-template-areas:
+      "pos  user  lane  lp    toggle"
+      "pos  wr    trend avg   main";
+    align-items: center;
+    gap: 8px 10px;
+    padding: 11px 13px;
+  }
+
+  .rk-cell--pos {
+    grid-area: pos;
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--nf-text-dim);
+    align-self: center;
+    justify-content: center;
+  }
+
+  .rk-cell--user {
+    grid-area: user;
+    min-width: 0;
+    gap: 8px;
+  }
+  .rk-cell--user nf-avatar,
+  .rk-cell--user .nf-avatar {
+    width: 34px !important;
+    height: 34px !important;
+    font-size: 13px !important;
+    flex-shrink: 0;
+  }
+  .rk-user-meta {
+    gap: 1px;
+  }
+  .rk-user-name {
+    font-size: 13.5px;
+    font-weight: 700;
+  }
+  .rk-user-riot {
+    font-size: 10.5px;
+    color: var(--nf-text-dim);
+  }
+
+  .rk-cell--lane {
+    grid-area: lane;
+    font-size: var(--fs-h3);
+    justify-content: center;
+  }
+
+  .rk-cell--lp {
+    grid-area: lp;
+    font-size: var(--fs-body-lg);
+    font-weight: 800;
+    justify-content: flex-end;
+    color: var(--nf-text);
+  }
+
+  .rk-row__toggle {
+    grid-area: toggle;
+    justify-self: center;
+  }
+
+  .rk-cell--wr {
+    grid-area: wr;
+    min-width: 0;
+    gap: 3px;
+  }
+  .rk-wr-text {
+    justify-content: flex-start;
+    gap: 6px;
+  }
+  .rk-wr-pct {
+    font-size: 11.5px;
+    font-weight: 800;
+  }
+  .rk-wr-counts {
+    font-size: 10px;
+    color: var(--nf-text-dim);
+  }
+  .rk-wr-bar {
+    height: 4px;
+  }
+
+  .rk-cell--trend {
+    grid-area: trend;
+    width: 44px;
+    height: 18px;
+    justify-self: center;
+  }
+  .rk-spark {
+    height: 18px;
+  }
+
+  .rk-cell--avg-lp {
+    grid-area: avg;
+    font-size: 10.5px;
+    gap: 1px;
+    justify-self: center;
+  }
+
+  .rk-cell--main {
+    grid-area: main;
+    justify-self: center;
+  }
+  .rk-cell--main nf-avatar,
+  .rk-cell--main .nf-avatar {
+    width: 24px !important;
+    height: 24px !important;
+    font-size: 9px !important;
+    border-radius: 5px;
+  }
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rk-top-card,
+  .rk-top-card__trophy,
+  .rk-match,
+  .rk-row__chev {
+    transition: none;
+  }
+}
+
+/* Por encima de `.rk-row__toggle::after`, que es una capa invisible a `inset: 0` con la que la
+   fila entera despliega el cajón. Sin este z-index, pulsar los tres puntos abría el cajón en vez
+   del menú: el clic no llegaba al botón. */
+
+.rk-actions { position: relative; z-index: 2; display: inline-flex; align-items: center; }
+
+.rk-actions__trigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  color: var(--nf-text-dim);
+  font-size: var(--fs-body-lg);
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.14s, color 0.14s, border-color 0.14s;
+}
+
+.rk-actions__trigger:hover,
+.rk-actions__trigger.is-open {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: var(--nf-border);
+  color: var(--nf-text);
+}
+
+.rk-actions__trigger:focus-visible { outline: 2px solid var(--nf-secondary); outline-offset: 2px; }
+
+.rk-actions__trigger:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.rk-actions__menu {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 6px);
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  min-width: 190px;
+  padding: 6px;
+  border-radius: 10px;
+  background: var(--nf-surface-2, rgba(28, 28, 30, 0.98));
+  border: 1px solid var(--nf-border-strong);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+}
+
+.rk-actions__item {
+  padding: 9px 10px;
+  background: transparent;
+  border: none;
+  border-radius: 7px;
+  color: var(--nf-text-mid);
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.14s, color 0.14s;
+}
+
+.rk-actions__item:hover { background: rgba(255, 255, 255, 0.06); color: var(--nf-text); }
+
+.rk-actions__item:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.rk-actions__item--danger {
+  margin-top: 4px;
+  border-top: 1px solid var(--nf-border);
+  border-radius: 0 0 7px 7px;
+  color: var(--nf-danger);
+}
+
+.rk-actions__item--danger:hover { background: color-mix(in srgb, var(--nf-danger) 14%, transparent); }
+
+.rk-sanction { display: flex; flex-direction: column; gap: 6px; }
+
+.rk-sanction__lead { margin: 0 0 8px; font-size: 13.5px; color: var(--nf-text-mid); line-height: 1.5; }
+
+.rk-sanction__hint { margin: 0 0 8px; font-size: var(--fs-label); color: var(--nf-text-dim); }
+
+/* Los dos controles de la fila (menú de gestión y desplegar) comparten la última celda de la
+   rejilla. Meter una columna nueva para el menú habría descolocado la cabecera, que usa el
+   mismo `--rk-cols`; ensanchar la celda existente no toca nada más. */
+
+.rk-rowend {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+}
+
+/* La fila con el menú abierto se eleva por encima de las demás.
+   Sin esto el menú quedaba tapado por la fila siguiente: `.rk-actions` lleva `z-index: 2` para
+   ganar a la capa invisible que hace pulsable la fila, y eso crea un CONTEXTO DE APILAMIENTO.
+   El `z-index: 30` del menú solo compite dentro de ese contexto, así que a fuera sigue valiendo
+   2 — y la fila de abajo, posterior en el DOM y también con 2, gana el empate y pinta encima. */
+
+.rk-row.has-menu {
+  position: relative;
+  z-index: 40;
+}
+
+/* Selector de temporada, bajo el nombre de la liga. */
+
+.rk-season {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.rk-season__label { font-size: var(--fs-label); color: var(--nf-text-dim); }
+
+/* Mirar una temporada cerrada no es lo mismo que mirar la de ahora: si no se dice, los números
+   se leen como el estado actual del grupo. */
+
+.rk-season__past {
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--nf-warning) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--nf-warning) 38%, transparent);
+  font-size: var(--fs-label);
+  color: var(--nf-text-mid);
+}

@@ -12,7 +12,7 @@
 }
 
 .hub-lp__meta-lp {
-  font-size: 15px;
+  font-size: var(--fs-body-lg);
   font-weight: var(--fw-bold);
   color: var(--nf-text);
 }
@@ -49,7 +49,7 @@
 
 .hub-lp__axis {
   fill: var(--nf-text-dim);
-  font-size: 11px;
+  font-size: var(--fs-label);
 }
 
 .hub-lp__area {
@@ -102,7 +102,7 @@
 }
 
 .hub-lp__tooltip-date {
-  font-size: 11px;
+  font-size: var(--fs-label);
   color: var(--nf-text-dim);
 }
 
@@ -113,7 +113,7 @@
 }
 
 .hub-lp__tooltip-delta {
-  font-size: 11px;
+  font-size: var(--fs-label);
   color: var(--nf-emerald, #3fb950);
 }
 
@@ -124,7 +124,7 @@
 .hub-lp__scale {
   display: flex;
   justify-content: space-between;
-  font-size: 11px;
+  font-size: var(--fs-label);
   color: var(--nf-text-dim);
 }
 

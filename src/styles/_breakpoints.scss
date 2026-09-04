@@ -7,12 +7,19 @@
    de `angular.json`). Duplicar estos números en cada hoja es
    justo lo que hace que dos ventanas dejen de estar alineadas.
 
+   Es un partial de SCSS y no un token CSS a propósito: `@media`
+   necesita un valor en tiempo de compilación, y una custom
+   property no sirve ahí dentro.
+
    Tres escalones, y el de en medio importa: el shell conmuta a su
    layout móvil a 760px (`shell.ts`, matchMedia), así que todo lo que
    cambia MARKUP tiene que cambiar en ese mismo píxel o el DOM y el
    CSS se contradicen. $bp-compact se conserva porque bajarlo a 760
    dejaría la banda 761-860px con la rejilla de escritorio de la fila
    del historial (~870px de mínimos), que ahí no cabe.
+
+   Quedan fuera de la zona escalada por `--nf-zoom` a propósito: las
+   media queries miden el viewport sin escalar.
    ============================================================ */
 
 $bp-compact: 860px;

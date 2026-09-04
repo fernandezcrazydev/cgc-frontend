@@ -1,0 +1,534 @@
+/* Cajon de historial del jugador, desplegable desde una fila del ranking. Hoja aparte
+   de `grupo-ranking.scss` por el presupuesto `anyComponentStyle`; ver ese fichero. */
+
+.rk-lp-gain {
+  color: var(--nf-success);
+}
+
+.rk-lp-loss {
+  color: var(--nf-danger);
+}
+
+/* ---- Cajón: historial del jugador ---- */
+
+@keyframes rk-drawer-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.rk-drawer {
+  padding: 14px 16px 16px;
+  background: var(--nf-inset);
+  border-top: 1px solid var(--nf-border);
+  box-shadow: var(--nf-edge-light);
+  animation: rk-drawer-in 0.18s ease;
+}
+
+.rk-drawer__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--nf-border);
+}
+
+.rk-drawer__tab {
+  padding: 7px 2px 9px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--nf-text-dim);
+}
+
+.rk-drawer__tab.is-active {
+  color: var(--nf-text);
+  box-shadow: inset 0 -2px 0 var(--nf-secondary);
+}
+
+.rk-drawer__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.rk-drawer__btn {
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--nf-secondary) 50%, var(--nf-border));
+  background: color-mix(in srgb, var(--nf-secondary) 14%, transparent);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--nf-text);
+  text-decoration: none;
+  transition:
+    background 0.14s ease,
+    border-color 0.14s ease;
+}
+
+.rk-drawer__btn:hover {
+  background: color-mix(in srgb, var(--nf-secondary) 24%, transparent);
+  border-color: var(--nf-secondary);
+}
+
+.rk-drawer__btn--opgg {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: color-mix(in srgb, var(--nf-primary) 14%, transparent);
+  border-color: color-mix(in srgb, var(--nf-primary) 45%, var(--nf-border));
+}
+
+.rk-drawer__btn--opgg:hover {
+  background: color-mix(in srgb, var(--nf-primary) 24%, transparent);
+  border-color: var(--nf-primary);
+}
+
+.rk-drawer__ext {
+  font-size: var(--fs-label);
+  line-height: 1;
+}
+
+.rk-matches {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rk-match {
+  --side: var(--nf-text-dim);
+  display: grid;
+  grid-template-columns: 110px 20px 76px minmax(130px, 1fr) 90px 198px 68px;
+  align-items: center;
+  min-height: 56px;
+  box-sizing: border-box;
+  gap: 12px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--nf-border);
+  border-left: 3px solid var(--side);
+  background: var(--nf-surface-2);
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, transform 0.12s;
+
+  &:hover {
+    background: color-mix(in srgb, var(--nf-surface-2) 75%, var(--nf-surface));
+    border-color: color-mix(in srgb, var(--side) 50%, var(--nf-border));
+    transform: translateY(-1px);
+  }
+
+  &.is-win {
+    --side: var(--nf-success);
+  }
+  &.is-loss {
+    --side: var(--nf-danger);
+  }
+}
+
+.rk-match__result {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.rk-match__verdict {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--side);
+}
+
+.rk-match__meta {
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+}
+
+.rk-match__lane {
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rk-match__loadout {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+.rk-match__champ {
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.rk-match__spells,
+.rk-match__runes {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: center;
+  justify-content: center;
+}
+
+.rk-match__spell-slot {
+  width: 16px;
+  height: 16px;
+  border-radius: 2px;
+  border: 1px solid var(--nf-border);
+  overflow: hidden;
+  flex-shrink: 0;
+  display: flex;
+}
+
+.rk-match__rune-slot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--nf-inset);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+
+  &--secondary {
+    width: 14px;
+    height: 14px;
+    opacity: 0.85;
+  }
+}
+
+.rk-match__vs-block {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.rk-match__vs {
+  font-size: var(--fs-label);
+  font-weight: 800;
+  color: var(--nf-text-dim);
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+}
+
+.rk-match__foe {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.rk-match__foe-champ {
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.rk-match__foe-name {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.rk-match__foe-nick {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--nf-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rk-match__foe-tag {
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+}
+
+.rk-match__kda {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  width: 90px;
+  gap: 1px;
+}
+
+.rk-match__kda-line {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--nf-text);
+  white-space: nowrap;
+}
+
+.rk-match__deaths {
+  color: var(--nf-danger);
+}
+
+.rk-match__kda-sub {
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+  white-space: nowrap;
+}
+
+.rk-match__build {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  width: 198px;
+  justify-content: flex-start;
+  flex-shrink: 0;
+}
+
+.rk-item {
+  width: 22px;
+  height: 22px;
+  border-radius: 3px;
+  border: 1px solid var(--nf-border);
+  flex-shrink: 0;
+  display: flex;
+
+  &--empty {
+    background: var(--nf-inset);
+    opacity: 0.35;
+    border-style: dashed;
+  }
+
+  &--trinket {
+    border-radius: 50%;
+    margin-left: auto;
+  }
+}
+
+.rk-match__lp {
+  text-align: right;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--nf-danger);
+  white-space: nowrap;
+
+  &.is-gain {
+    color: var(--nf-success);
+  }
+}
+
+@media (max-width: 1180px) {
+.rk-match {
+    grid-template-columns: 100px 18px 74px minmax(110px, 1fr) 84px 190px 60px;
+    gap: 8px;
+    padding: 8px 12px;
+  }
+}
+
+@media (max-width: 1000px) {
+.rk-match {
+    grid-template-columns: 90px 18px 74px minmax(90px, 1fr) 78px 180px 56px;
+    gap: 6px;
+    padding: 6px 10px;
+  }
+}
+
+@media (max-width: 760px) {
+/* ---- Cajón de Historial Móvil (Match Ticket Card en 2 Niveles) ---- */
+.rk-drawer {
+    padding: 12px 10px 14px;
+    background: var(--nf-inset);
+    border-top: 1px solid var(--nf-border);
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+  }
+.rk-drawer__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--nf-border);
+  }
+.rk-drawer__tab {
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--nf-text);
+  }
+.rk-drawer__btn {
+    padding: 5px 10px;
+    font-size: var(--fs-label);
+    border-radius: 6px;
+  }
+.rk-matches {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+.rk-match {
+    display: grid;
+    grid-template-columns: auto auto auto auto 1fr;
+    grid-template-rows: auto auto auto;
+    grid-template-areas:
+      "result result result result lp"
+      "lane   mine   vs     foe    kda"
+      "build  build  build  build  build";
+    align-items: center;
+    gap: 6px 8px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--nf-border);
+    border-left: 4px solid var(--side);
+    background: var(--nf-surface-2);
+    text-decoration: none;
+    color: inherit;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+    transition:
+      background 0.14s ease,
+      border-color 0.14s ease;
+  }
+.rk-match.is-win {
+    --side: var(--nf-success);
+    background: linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--nf-success) 8%, var(--nf-surface-2)),
+      var(--nf-surface-2)
+    );
+  }
+.rk-match.is-loss {
+    --side: var(--nf-danger);
+    background: linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--nf-danger) 8%, var(--nf-surface-2)),
+      var(--nf-surface-2)
+    );
+  }
+/* Fila 1 - Izquierda: Estado de la partida */
+.rk-match__result {
+    grid-area: result;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+  }
+.rk-match__verdict {
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--side);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+.rk-match__meta {
+    font-size: var(--fs-label);
+    color: var(--nf-text-dim);
+    white-space: nowrap;
+  }
+/* Fila 1 - Derecha: Ganancia / Pérdida de LP */
+.rk-match__lp {
+    grid-area: lp;
+    text-align: right;
+    font-size: 13.5px;
+    font-weight: 800;
+    color: var(--nf-danger);
+    justify-self: end;
+  }
+.rk-match__lp.is-gain {
+    color: var(--nf-success);
+  }
+/* Fila 2 - Icono de Posición / Rol a la izquierda del campeón jugado */
+.rk-match__lane {
+    grid-area: lane;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    font-size: 19px;
+    flex-shrink: 0;
+    margin-right: 2px;
+  }
+.rk-match__vs {
+    grid-area: vs;
+    font-size: 10px;
+    font-weight: 800;
+    color: var(--nf-text-dim);
+    padding: 0 3px;
+    justify-self: center;
+  }
+/* Fila 2 - Derecha: KDA y Rendimiento */
+.rk-match__kda {
+    grid-area: kda;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 2px;
+    text-align: right;
+    min-width: 0;
+    justify-self: end;
+  }
+.rk-match__kda-line {
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--nf-text);
+    white-space: nowrap;
+  }
+.rk-match__deaths {
+    color: var(--nf-danger);
+    font-weight: 800;
+  }
+.rk-match__kda-sub {
+    font-size: 10px;
+    color: var(--nf-text-dim);
+    white-space: nowrap;
+  }
+/* Fila 3 - Tira de Objetos + Trinket */
+.rk-match__build {
+    grid-area: build;
+    display: flex !important;
+    align-items: center;
+    gap: 4px;
+    padding-top: 6px;
+    margin-top: 2px;
+    border-top: 1px dashed color-mix(in srgb, var(--nf-border) 70%, transparent);
+    width: 100%;
+    box-sizing: border-box;
+  }
+.rk-match__build .rk-item {
+    width: 22px;
+    height: 22px;
+    border-radius: 5px;
+    border: 1px solid var(--nf-border);
+    flex-shrink: 0;
+  }
+.rk-match__build .rk-item--empty {
+    background: var(--nf-inset);
+    opacity: 0.55;
+  }
+.rk-match__build .rk-item--trinket {
+    border-radius: 50%;
+    margin-left: 6px;
+    border-color: color-mix(in srgb, var(--nf-secondary) 50%, var(--nf-border));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+.rk-drawer {
+    animation: none;
+  }
+.rk-match:hover {
+    transform: none;
+  }
+}

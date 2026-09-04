@@ -22,6 +22,7 @@ import { nameOf } from './cross-player';
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterLink, NfAvatar, NfLaneIcon, NfSkeleton],
+  styleUrl: './cross-breakdown.component.scss',
   template: `
     <div class="cx-breakdown">
       <div class="cx-breakdown__head">

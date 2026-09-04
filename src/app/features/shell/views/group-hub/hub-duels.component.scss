@@ -5,7 +5,7 @@
 .hub-duel__pos {
   align-self: center;
   margin-right: 4px;
-  font-size: 11px;
+  font-size: var(--fs-label);
   color: var(--nf-text-dim);
 }
 
@@ -88,7 +88,7 @@
 }
 
 .hub-duel__score-label {
-  font-size: 11px;
+  font-size: var(--fs-label);
   color: var(--nf-text-dim);
 }
 

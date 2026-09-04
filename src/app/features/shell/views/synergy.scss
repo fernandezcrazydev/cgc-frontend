@@ -54,7 +54,7 @@
 }
 
 .syn-panel__joint-impact {
-  font-size: 11px;
+  font-size: var(--fs-label);
   font-weight: 700;
   color: var(--nf-primary);
   background: color-mix(in srgb, var(--nf-primary) 12%, transparent);
@@ -186,7 +186,7 @@
 }
 
 .syn-tier-badge {
-  font-size: 11px;
+  font-size: var(--fs-label);
   font-weight: 800;
   letter-spacing: 0.05em;
   padding: 2px 8px;
@@ -244,14 +244,14 @@
 }
 
 .syn-ring__val {
-  font-size: 18px;
+  font-size: var(--fs-h3);
   font-weight: 800;
   color: var(--nf-text);
   line-height: 1;
 }
 
 .syn-ring__lbl {
-  font-size: 11px;
+  font-size: var(--fs-label);
   font-weight: 700;
   color: var(--nf-text-dim);
 }
@@ -288,7 +288,7 @@
 }
 
 .syn-streak-pill {
-  font-size: 11px;
+  font-size: var(--fs-label);
   font-weight: 700;
   color: #ff9f1c;
   background: color-mix(in srgb, #ff9f1c 12%, transparent);

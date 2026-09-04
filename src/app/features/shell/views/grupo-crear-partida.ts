@@ -130,6 +130,7 @@ interface GeneratedTeams {
     NfMeter,
     NfSkeleton,
   ],
+  styleUrl: './grupo-crear-partida.scss',
   template: `
     <div class="view">
       @if (loading()) {

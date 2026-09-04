@@ -35,6 +35,7 @@ import { nameOf } from './cross-player';
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterLink, NfAvatar, NfButton, NfSkeleton],
+  styleUrl: './cross-match-detail.scss',
   template: `
     <div class="view cx-view">
       @if (state.loading()) {

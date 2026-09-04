@@ -26,6 +26,7 @@ import { CrossViewState } from './cross-view-state';
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterLink, NfAvatar, NfButton, NfSkeleton],
+  styleUrl: './cross-stats.component.scss',
   template: `
     <div class="cx-stats">
       <!--

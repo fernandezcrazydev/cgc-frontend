@@ -114,7 +114,7 @@
 }
 
 .hub-roster__sub {
-  font-size: 11px;
+  font-size: var(--fs-label);
   color: var(--nf-text-dim);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -212,7 +212,7 @@
   border: 1px solid transparent;
   border-radius: 7px;
   color: var(--nf-text-dim);
-  font-size: 15px;
+  font-size: var(--fs-body-lg);
   line-height: 1;
   cursor: pointer;
   transition: background 0.14s, color 0.14s, border-color 0.14s;
@@ -350,7 +350,7 @@
   background: color-mix(in srgb, var(--nf-primary) 20%, transparent);
   border: 1px solid color-mix(in srgb, var(--nf-primary) 40%, transparent);
   color: var(--nf-primary);
-  font-size: 11px;
+  font-size: var(--fs-label);
   font-weight: var(--fw-bold, 700);
   line-height: 1;
 }

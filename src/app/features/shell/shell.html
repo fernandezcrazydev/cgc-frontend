@@ -1016,7 +1016,15 @@
   }
 
   <!-- transient toasts -->
-  <nf-toast-host />
+  <!-- `NfToastHost` es presentacional y no inyecta el servicio (`ui/` no importa de
+       `core/`): el cableado con `ToastService` se hace aquí. -->
+  <nf-toast-host
+    [toasts]="toasts.toasts()"
+    [paused]="toasts.paused()"
+    (dismiss)="toasts.dismiss($event)"
+    (pause)="toasts.pause()"
+    (resume)="toasts.resume()"
+  />
 
   <!-- logout confirmation modal -->
   @if (confirmLogout()) {

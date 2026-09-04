@@ -84,14 +84,14 @@
 }
 
 .vs-ring__val {
-  font-size: 18px;
+  font-size: var(--fs-h3);
   font-weight: 800;
   color: var(--nf-text);
   line-height: 1;
 }
 
 .vs-ring__lbl {
-  font-size: 11px;
+  font-size: var(--fs-label);
   font-weight: 700;
   color: var(--nf-text-dim);
 }

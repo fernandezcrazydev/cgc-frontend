@@ -1,7 +1,17 @@
-/* Segmented control (global, ViewEncapsulation.None) */
+/* Segmented control (global, ViewEncapsulation.None)
+
+   Puntos de extension como custom properties. Una vista NO puede estilar los hijos
+   internos de esta primitiva: su hoja encapsulada marca `_ngcontent` en el elemento
+   `<nf-segmented>`, pero no en los `<button>` de dentro. Las custom properties si
+   heredan a traves de esa frontera, asi que el punto de ajuste se expone aqui y la
+   vista solo lo fija sobre el host:
+
+     .mi-barra--movil nf-segmented { --nf-seg-display: flex; --nf-seg-btn-flex: 1; }
+
+   Nunca `::ng-deep`, que es API muerta. */
 
 .nf-seg {
-  display: inline-flex;
+  display: var(--nf-seg-display, inline-flex);
   gap: 2px;
   padding: 2px;
   background: var(--nf-inset);
@@ -19,7 +29,8 @@
   font-weight: var(--fw-medium);
   letter-spacing: var(--ls-wide);
   color: var(--nf-text-mid);
-  padding: 5px 14px;
+  flex: var(--nf-seg-btn-flex, 0 1 auto);
+  padding: var(--nf-seg-btn-padding, 5px 14px);
   border-radius: calc(var(--nf-radius) - 2px);
   transition: background 0.18s, color 0.18s;
 }

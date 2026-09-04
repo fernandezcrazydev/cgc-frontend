@@ -32,7 +32,9 @@ import { ToastService } from '../../core/toast';
 import { RiotMetricsStore, RiotUsageStore } from '../../core/admin';
 import { NfAvatar, NfButton, NfRankEmblem, NfSkeleton, NfToastHost, NfTypeahead, NfWindow } from '../../ui';
 import { GlobalSearchItem, GroupSearchResultItem, PlayerSearchResult, PlayerSearchStore } from '../../core/players';
-import { FeedbackDialog } from '../feedback/feedback-dialog';
+// Desde el barrel, no desde `../feedback/feedback-dialog`: una feature usa la superficie
+// pública de otra, nunca sus internals (`npm run arch`, regla `feature-internals`).
+import { FeedbackDialog } from '../feedback';
 import { RiotUsageIndicator } from './riot-usage-indicator';
 import { GroupActionsMenuComponent } from './group-actions/group-actions-menu.component';
 import { wireRiotAccountRefresh } from './riot-account-refresh';
@@ -108,7 +110,8 @@ export class Shell {
   private readonly devices = inject(DevicesStore);
   private readonly prefs = inject(PreferencesStore);
   private readonly discord = inject(DiscordStore);
-  private readonly toasts = inject(ToastService);
+  /** Público: la plantilla lo cablea a `<nf-toast-host>`, que ya no lo inyecta. */
+  readonly toasts = inject(ToastService);
   /** Solo para poder pararlos y vaciarlos al cerrar sesión; el indicador se arranca solo. */
   private readonly riotUsage = inject(RiotUsageStore);
   private readonly riotMetrics = inject(RiotMetricsStore);

@@ -149,7 +149,7 @@
 }
 
 .grp-card__create-title {
-  font-size: 15px;
+  font-size: var(--fs-body-lg);
   font-weight: var(--fw-bold);
   color: var(--nf-text);
   transition: color 0.16s ease;
@@ -160,7 +160,7 @@
 }
 
 .grp-card__create-sub {
-  font-size: 11px;
+  font-size: var(--fs-label);
   color: var(--nf-text-dim);
 }
 
@@ -183,7 +183,7 @@
   background: linear-gradient(135deg, var(--grp-c1, var(--nf-primary)), var(--grp-c2, var(--nf-secondary)));
   color: #ffffff;
   font-weight: var(--fw-bold);
-  font-size: 15px;
+  font-size: var(--fs-body-lg);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
   overflow: hidden;
 }
@@ -224,7 +224,7 @@
   align-items: center;
   flex-wrap: wrap;
   gap: 4px;
-  font-size: 11px;
+  font-size: var(--fs-label);
   color: var(--nf-text-dim);
 }
 
@@ -334,7 +334,7 @@
 }
 
 .grp-card__badge-icon {
-  font-size: 14px;
+  font-size: var(--fs-body);
   flex: none;
 }
 
@@ -366,7 +366,7 @@
   gap: 3px;
   padding: 1px 6px;
   border-radius: var(--nf-radius-xs, 4px);
-  font-size: 11px;
+  font-size: var(--fs-label);
   font-weight: var(--fw-bold, 700);
   color: var(--nf-success, #3ec289);
   background: rgba(62, 194, 137, 0.12);
@@ -442,7 +442,7 @@
 
 .grp-widget__title {
   margin: 0;
-  font-size: 15px;
+  font-size: var(--fs-body-lg);
   font-weight: var(--fw-bold);
   color: var(--nf-text);
 }
@@ -451,16 +451,9 @@
   padding: 2px 7px;
   background: var(--nf-primary);
   color: #ffffff;
-  font-size: 11px;
+  font-size: var(--fs-label);
   font-weight: var(--fw-bold);
   border-radius: 999px;
-}
-
-.grp-widget__desc {
-  margin: 0;
-  font-size: 12px;
-  line-height: 1.45;
-  color: var(--nf-text-dim);
 }
 
 .grp-widget__search {
@@ -501,12 +494,12 @@
 
 .grp-search-item__tag {
   color: var(--nf-primary);
-  font-size: 11px;
+  font-size: var(--fs-label);
   margin-left: 3px;
 }
 
 .grp-search-item__meta {
-  font-size: 11px;
+  font-size: var(--fs-label);
   color: var(--nf-text-dim);
 }
 
@@ -527,7 +520,7 @@
   justify-content: center;
   width: 24px;
   height: 24px;
-  font-size: 14px;
+  font-size: var(--fs-body);
   border-radius: var(--nf-radius-sm);
   background: var(--nf-surface-2);
   border: var(--bw-1) solid var(--nf-border);
@@ -579,7 +572,7 @@
 .grp-widget__more-btn {
   width: 100%;
   padding: 7px 10px;
-  font-size: 11px;
+  font-size: var(--fs-label);
   font-weight: var(--fw-bold);
   color: var(--nf-primary);
   background: rgba(99, 102, 241, 0.08);
@@ -625,19 +618,19 @@
 
 .grp-req-card__tag {
   color: var(--nf-primary);
-  font-size: 11px;
+  font-size: var(--fs-label);
   margin-left: 2px;
 }
 
 .grp-req-card__status {
-  font-size: 11px;
+  font-size: var(--fs-label);
   color: var(--nf-warning, #f5a623);
 }
 
 .grp-req-card__cancel-btn {
   flex: none;
   padding: 3px 8px;
-  font-size: 11px;
+  font-size: var(--fs-label);
   border: var(--bw-1) solid var(--nf-border);
   border-radius: var(--nf-radius-sm);
   background: transparent;
@@ -702,19 +695,19 @@
 
 .grp-sugg-card__tag {
   color: var(--nf-primary);
-  font-size: 11px;
+  font-size: var(--fs-label);
   margin-left: 2px;
 }
 
 .grp-sugg-card__meta {
-  font-size: 11px;
+  font-size: var(--fs-label);
   color: var(--nf-text-dim);
 }
 
 .grp-btn-join {
   flex: none;
   padding: 4px 10px;
-  font-size: 11px;
+  font-size: var(--fs-label);
   font-weight: var(--fw-bold);
   border: none;
   border-radius: var(--nf-radius-sm);
@@ -763,7 +756,7 @@
 
 .field__tag-prefix {
   color: var(--nf-primary);
-  font-size: 14px;
+  font-size: var(--fs-body);
   font-weight: var(--fw-bold);
   margin-right: 4px;
 }
@@ -777,7 +770,7 @@
 
 .field__preview {
   margin-top: 4px;
-  font-size: 11px;
+  font-size: var(--fs-label);
   color: var(--nf-text-dim);
 }
 

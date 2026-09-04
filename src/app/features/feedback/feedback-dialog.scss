@@ -7,37 +7,12 @@
 }
 
 .fb__eyebrow {
-  font-size: 11px;
+  font-size: var(--fs-label);
   letter-spacing: var(--ls-eyebrow);
   color: var(--nf-secondary);
 }
 
 /* ---- aviso: el formulario es solo visual (placeholder) ---- */
-.fb__notice {
-  display: flex;
-  gap: 10px;
-  align-items: flex-start;
-  padding: 11px 13px;
-  background: color-mix(in srgb, var(--nf-warning) 12%, transparent);
-  border: var(--bw-hair) solid color-mix(in srgb, var(--nf-warning) 45%, transparent);
-  border-radius: var(--nf-radius);
-}
-
-.fb__notice-glyph {
-  flex: none;
-  font-size: 15px;
-  line-height: 1.4;
-  color: var(--nf-warning);
-}
-
-.fb__notice-text {
-  margin: 0;
-  font-size: 12.5px;
-  line-height: 1.45;
-  color: var(--nf-text-mid);
-
-  strong { color: var(--nf-text); font-weight: var(--fw-bold); }
-}
 
 /* ---- selector de tipo: tres tarjetas radio ---- */
 .fb__kinds {
@@ -89,7 +64,7 @@
 }
 
 .fb__kind-hint {
-  font-size: 11px;
+  font-size: var(--fs-label);
   line-height: 1.35;
   color: var(--nf-text-mid);
 }
@@ -120,7 +95,7 @@
   display: flex;
   align-items: baseline;
   gap: 6px;
-  font-size: 11px;
+  font-size: var(--fs-label);
   letter-spacing: var(--ls-wide);
   color: var(--nf-text-mid);
 }
@@ -135,7 +110,7 @@
 
 .fb__count {
   margin-left: auto;
-  font-size: 11px;
+  font-size: var(--fs-label);
   color: var(--nf-text-dim);
 }
 
@@ -177,7 +152,7 @@
 
 .fb__ctx-sum {
   cursor: pointer;
-  font-size: 11px;
+  font-size: var(--fs-label);
   letter-spacing: var(--ls-wide);
   color: var(--nf-text-dim);
 
@@ -192,7 +167,7 @@
   display: flex;
   flex-direction: column;
   gap: 5px;
-  font-size: 11px;
+  font-size: var(--fs-label);
   color: var(--nf-text-dim);
 
   span { color: var(--nf-text-mid); }
@@ -218,7 +193,7 @@
 .fb__hint {
   margin: -6px 0 0;
   text-align: right;
-  font-size: 11px;
+  font-size: var(--fs-label);
   color: var(--nf-text-dim);
 }
 

@@ -27,6 +27,12 @@ jobs:
 
       - run: npm ci
 
+      # Reglas de arquitectura de CLAUDE.md que el compilador no ve (capas, localidad del CSS,
+      # tamano de plantillas, suelo tipografico). Es un trinquete: falla solo si algo EMPEORA
+      # respecto a scripts/arch-budgets.json. Va antes que los tests porque es instantaneo.
+      - name: Arquitectura
+        run: npm run arch
+
       # --watch=false no es opcional: sin el, vitest se queda esperando cambios y el job se cuelga
       # hasta que GitHub lo mata a las 6 horas.
       - name: Tests

@@ -11,37 +11,6 @@
 }
 
 /* ── Cabecera ──────────────────────────────────────────────────────────────── */
-.tierlist-head {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.tierlist-eyebrow {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  color: var(--nf-text-dim);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-.tierlist-title-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 12px;
-}
-
-.tierlist-title {
-  margin: 0;
-  font-size: 24px;
-  font-weight: 700;
-  color: var(--nf-text);
-  letter-spacing: -0.02em;
-}
 
 .tierlist-meta-count {
   display: inline-flex;
@@ -110,7 +79,7 @@
   background: transparent;
   border: none;
   color: var(--nf-text-dim);
-  font-size: 14px;
+  font-size: var(--fs-body);
   cursor: pointer;
   padding: 4px;
   display: flex;
@@ -388,7 +357,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
+  font-size: var(--fs-label);
   color: var(--nf-text-dim);
   font-weight: 600;
   flex-shrink: 0;
@@ -407,7 +376,7 @@
 }
 
 .tierlist-champ-title {
-  font-size: 11px;
+  font-size: var(--fs-label);
   color: var(--nf-text-dim);
 }
 
@@ -433,7 +402,7 @@
 }
 
 .tierlist-games-pickrate {
-  font-size: 11px;
+  font-size: var(--fs-label);
   color: var(--nf-text-dim);
 }
 
@@ -465,7 +434,7 @@
 }
 
 .tierlist-record {
-  font-size: 11px;
+  font-size: var(--fs-label);
   color: var(--nf-text-dim);
 }
 
@@ -506,7 +475,7 @@
 }
 
 .tierlist-kda-split {
-  font-size: 11px;
+  font-size: var(--fs-label);
   color: var(--nf-text-dim);
 }
 
@@ -524,7 +493,7 @@
 }
 
 .tierlist-damage-unit {
-  font-size: 11px;
+  font-size: var(--fs-label);
   color: var(--nf-text-dim);
 }
 
@@ -533,22 +502,6 @@
   display: flex;
   align-items: center;
   gap: 8px;
-}
-
-.tierlist-specialist-avatar {
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  background: var(--nf-surface-3);
-  border: 1px solid var(--nf-border);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--nf-text);
-  overflow: hidden;
-  flex-shrink: 0;
 }
 
 .tierlist-specialist-info {
@@ -564,7 +517,7 @@
 }
 
 .tierlist-specialist-stat {
-  font-size: 11px;
+  font-size: var(--fs-label);
   color: var(--nf-text-dim);
 }
 
@@ -630,7 +583,7 @@
 }
 
 .drawer-card-icon {
-  font-size: 14px;
+  font-size: var(--fs-body);
 }
 
 .drawer-card-title {
@@ -688,20 +641,6 @@
   background: rgba(255, 255, 255, 0.02);
 }
 
-.drawer-player-avatar {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: var(--nf-surface-3);
-  font-size: 9.5px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--nf-text);
-  flex-shrink: 0;
-}
-
 .drawer-player-meta {
   display: flex;
   flex-direction: column;
@@ -724,7 +663,7 @@
 }
 
 .drawer-player-badge {
-  font-size: 11px;
+  font-size: var(--fs-label);
   font-weight: 600;
   color: var(--nf-text-mid);
   white-space: nowrap;
@@ -761,7 +700,7 @@
 
 .tierlist-empty__title {
   margin: 0;
-  font-size: 18px;
+  font-size: var(--fs-h3);
   font-weight: 600;
   color: var(--nf-text);
 }

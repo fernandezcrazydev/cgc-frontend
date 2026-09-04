@@ -6,6 +6,12 @@ import { ChangeDetectionStrategy, Component, ViewEncapsulation, computed, input,
  * capas de `CLAUDE.md`). Si esas claves cambian en el dominio, este tipo hay
  * que actualizarlo a mano.
  */
+/**
+ * Líneas que sabe pintar este icono. Es una copia deliberada de `Lane`
+ * (`core/matches/models.ts`): `ui/` no importa de `core/`, y al ser uniones de string
+ * idénticas TypeScript las acepta indistintamente. La versión de `core/` es la que manda
+ * si el dominio cambia.
+ */
 export type NfLane = 'TOP' | 'JUNGLA' | 'MID' | 'ADC' | 'SUPPORT';
 
 /**

@@ -1,4 +1,18 @@
-/* Typeahead (global, ViewEncapsulation.None) */
+/* Typeahead (global, ViewEncapsulation.None)
+
+   Puntos de extensión como custom properties. Una vista NO puede estilar los hijos
+   internos de esta primitiva con un selector descendente: Angular le pega el
+   `_ngcontent` de la vista al último selector, y `.nf-typeahead__field` vive en la
+   plantilla de ESTE componente, así que no lo lleva. Las custom properties sí heredan a
+   través de esa frontera, de modo que el punto de ajuste se expone aquí y la vista solo
+   lo fija sobre el host:
+
+     .shell__search nf-typeahead {
+       --nf-ta-field-height: 34px;
+       --nf-ta-input-font-size: 12.5px;
+     }
+
+   Nunca `::ng-deep`, que es API muerta. */
 
 .nf-typeahead {
   position: relative;
@@ -10,19 +24,21 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 0 12px;
-  background: var(--nf-inset);
-  border: var(--bw-1) solid var(--nf-border);
-  border-radius: var(--nf-radius);
+  height: var(--nf-ta-field-height, auto);
+  padding: var(--nf-ta-field-padding, 0 12px);
+  background: var(--nf-ta-field-bg, var(--nf-inset));
+  border: var(--bw-1) solid var(--nf-ta-field-border, var(--nf-border));
+  border-radius: var(--nf-ta-radius, var(--nf-radius));
   transition: border-color 0.16s, box-shadow 0.16s;
 }
 
 .nf-typeahead__field:hover {
-  border-color: var(--nf-border-strong);
+  border-color: var(--nf-ta-field-border-hover, var(--nf-border-strong));
 }
 
 .nf-typeahead__field:focus-within {
   border-color: var(--nf-primary);
+  box-shadow: var(--nf-ta-field-focus-shadow, none);
 }
 
 .nf-typeahead__field--open {
@@ -40,8 +56,8 @@
 }
 
 .nf-typeahead__shortcut {
+  display: var(--nf-ta-shortcut-display, inline-flex);
   flex: none;
-  display: inline-flex;
   align-items: center;
   justify-content: center;
   padding: 2px 6px;
@@ -49,7 +65,7 @@
   background: var(--nf-surface);
   border: var(--bw-1) solid var(--nf-border);
   font-family: var(--nf-font-mono, var(--nf-mono));
-  font-size: 11px;
+  font-size: var(--fs-label);
   color: var(--nf-text-dim);
   line-height: 1;
   pointer-events: none;
@@ -59,12 +75,12 @@
 .nf-typeahead__input {
   flex: 1;
   min-width: 0;
-  height: 36px;
+  height: var(--nf-ta-input-height, 36px);
   padding: 0;
   border: none;
   background: transparent;
   font-family: var(--nf-font);
-  font-size: 13px;
+  font-size: var(--nf-ta-input-font-size, 13px);
   color: var(--nf-text);
   outline: none;
 }
@@ -75,7 +91,7 @@
 
 .nf-typeahead__spinner {
   flex: none;
-  font-size: 14px;
+  font-size: var(--fs-body);
   color: var(--nf-primary);
   animation: nf-spin 0.8s linear infinite;
 }
@@ -96,7 +112,7 @@
   border-radius: var(--nf-radius-sm);
   background: transparent;
   color: var(--nf-text-dim);
-  font-size: 11px;
+  font-size: var(--fs-label);
   cursor: pointer;
   transition: background 0.14s, color 0.14s;
 }
@@ -110,17 +126,21 @@
   position: absolute;
   z-index: var(--z-overlay);
   top: 100%;
-  left: 0;
-  right: 0;
+  left: var(--nf-ta-dropdown-left, 0);
+  right: var(--nf-ta-dropdown-right, 0);
+  width: var(--nf-ta-dropdown-width, auto);
+  max-width: var(--nf-ta-dropdown-max-width, none);
   margin: 0;
   padding: 4px;
   list-style: none;
   max-height: 280px;
   overflow-y: auto;
   background: var(--nf-elevated);
-  border: var(--bw-1) solid var(--nf-primary);
-  border-top: none;
-  border-radius: 0 0 var(--nf-radius) var(--nf-radius);
+  border: var(--bw-1) solid var(--nf-ta-dropdown-border, var(--nf-primary));
+  border-top: var(--nf-ta-dropdown-border-top, none);
+  /* Por defecto el desplegable cuelga pegado al campo (esquinas de arriba a escuadra).
+     Una vista que lo separe puede redondearlo entero con `--nf-ta-dropdown-radius`. */
+  border-radius: var(--nf-ta-dropdown-radius, 0 0 var(--nf-radius) var(--nf-radius));
   box-shadow: var(--nf-shadow-pop);
 }
 

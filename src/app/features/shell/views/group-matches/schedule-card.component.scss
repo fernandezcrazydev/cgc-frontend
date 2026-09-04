@@ -34,13 +34,13 @@
 }
 
 .sc__when {
-  font-size: 14px;
+  font-size: var(--fs-body);
   font-weight: var(--fw-semibold);
   color: var(--nf-text);
 }
 
 .sc__meta {
-  font-size: 11px;
+  font-size: var(--fs-label);
   color: var(--nf-text-dim);
 }
 
@@ -69,7 +69,7 @@
 
 .sc__bar-text {
   flex: none;
-  font-size: 11px;
+  font-size: var(--fs-label);
   color: var(--nf-text-dim);
 }
 
@@ -96,7 +96,7 @@
 }
 
 .sc__bench-text {
-  font-size: 11px;
+  font-size: var(--fs-label);
   color: var(--nf-gold);
 }
 

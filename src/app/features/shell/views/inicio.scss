@@ -47,7 +47,7 @@
   background: linear-gradient(135deg, var(--grp-c1, var(--nf-primary, #3b82f6)), var(--grp-c2, var(--nf-secondary, #60a5fa)));
   color: #fff;
   font-weight: 800;
-  font-size: 14px;
+  font-size: var(--fs-body);
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
   flex-shrink: 0;
 }
@@ -66,7 +66,7 @@
 }
 
 .ini-topbar__meta {
-  font-size: 11px;
+  font-size: var(--fs-label);
   color: #8b949e;
   display: flex;
   align-items: center;
@@ -133,7 +133,7 @@
 }
 
 .ini-stepper__count {
-  font-size: 11px;
+  font-size: var(--fs-label);
   color: #c9d1d9;
   padding: 0 4px;
 }
@@ -219,7 +219,7 @@
 }
 
 .ini-block-title {
-  font-size: 14px;
+  font-size: var(--fs-body);
   font-weight: 700;
   color: #f0f6fc;
   letter-spacing: -0.01em;
@@ -250,13 +250,6 @@
 
 .ini-icon--crimson {
   color: #f85149;
-}
-
-.ini-link-arrow {
-  width: 14px;
-  height: 14px;
-  color: #8b949e;
-  transition: all 0.15s ease;
 }
 
 /* ── Tarjetas Interactivas (Clickeables) ───────────────────────────────────── */
@@ -340,7 +333,7 @@
 }
 
 .ini-mvp-name {
-  font-size: 14px;
+  font-size: var(--fs-body);
   font-weight: 700;
   color: #f0f6fc;
   white-space: nowrap;
@@ -349,7 +342,7 @@
 }
 
 .ini-mvp-champ {
-  font-size: 11px;
+  font-size: var(--fs-label);
   color: #8b949e;
 }
 
@@ -359,7 +352,7 @@
   border-radius: 6px;
   background: #161b22;
   border: 1px solid #30363d;
-  font-size: 11px;
+  font-size: var(--fs-label);
   font-weight: 600;
   color: #52e396;
   white-space: nowrap;
@@ -381,7 +374,7 @@
 .ini-quote-mark {
   color: #e3b341;
   font-weight: 800;
-  font-size: 14px;
+  font-size: var(--fs-body);
   line-height: 1;
 }
 
@@ -404,7 +397,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 11px;
+  font-size: var(--fs-label);
   color: #c9d1d9;
 }
 
@@ -443,20 +436,15 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 11px;
+  font-size: var(--fs-label);
 }
 
 .ini-nemesis-wr {
   color: #8b949e;
 }
 
-.ini-nemesis-cta {
-  color: #58a6ff;
-  font-weight: 600;
-}
-
 .ini-nemesis-callout {
-  font-size: 11px;
+  font-size: var(--fs-label);
   color: #8b949e;
   padding: 6px 8px;
   background: #161b22;
@@ -571,7 +559,7 @@
 .pol-meta-val {
   color: #ffffff;
   font-weight: 700;
-  font-size: 15px;
+  font-size: var(--fs-body-lg);
 }
 
 .pol-meta-delta {
@@ -609,7 +597,7 @@
 }
 
 .pol-axis-text {
-  font-size: 11px;
+  font-size: var(--fs-label);
   fill: #6e7681;
   font-weight: 500;
   font-family: var(--nf-font-mono, monospace);
@@ -651,7 +639,7 @@
 }
 
 .pol-tooltip-date {
-  font-size: 11px;
+  font-size: var(--fs-label);
   color: #8b949e;
 }
 
@@ -681,7 +669,7 @@
 }
 
 .pol-tooltip-delta {
-  font-size: 11px;
+  font-size: var(--fs-label);
   font-weight: 600;
 
   &.is-up {
@@ -713,7 +701,7 @@
 }
 
 .pol-footer-val {
-  font-size: 15px;
+  font-size: var(--fs-body-lg);
   font-weight: 700;
   color: #f0f6fc;
 
@@ -805,7 +793,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
+  font-size: var(--fs-label);
   font-weight: 700;
   transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 
@@ -852,12 +840,12 @@
 }
 
 .ini-bench-slot__plus {
-  font-size: 14px;
+  font-size: var(--fs-body);
   line-height: 1;
 }
 
 .ini-lobby-msg {
-  font-size: 11px;
+  font-size: var(--fs-label);
   color: #8b949e;
   line-height: 1.4;
 
@@ -955,7 +943,7 @@
 
 .ini-ladder-row__rank {
   color: #8b949e;
-  font-size: 11px;
+  font-size: var(--fs-label);
   width: 22px;
 }
 
@@ -965,14 +953,14 @@
 
 .ini-ladder-row__lp {
   color: #8b949e;
-  font-size: 11px;
+  font-size: var(--fs-label);
 }
 
 .ini-rival-callout {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 11px;
+  font-size: var(--fs-label);
   color: #8b949e;
   background: #161b22;
   padding: 6px 8px;
@@ -1061,7 +1049,7 @@
 }
 
 .ini-highlight-tile__sublabel {
-  font-size: 11px;
+  font-size: var(--fs-label);
   color: #6e7681;
   margin-top: 1px;
   transition: color 0.15s ease;
