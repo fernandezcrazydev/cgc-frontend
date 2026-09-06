@@ -73,16 +73,6 @@ export function streakLabel(type: StreakType): 'V' | 'D' {
   return type === 'W' ? 'V' : 'D';
 }
 
-/**
- * Racha en palabras: "3 victorias seguidas", "1 derrota". El singular importa
- * porque una racha de 1 es el caso más frecuente y "1 derrotas" canta.
- */
-export function streakSentence(count: number, type: StreakType): string {
-  const noun = type === 'W' ? 'victoria' : 'derrota';
-  if (count <= 1) return `1 ${noun}`;
-  return `${count} ${noun}s seguidas`;
-}
-
 /** Telemetría de fase de líneas / Early Game */
 export interface PlayerLaneDna {
   wonLanePercentage: number;

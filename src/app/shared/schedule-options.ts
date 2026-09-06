@@ -107,7 +107,7 @@ export function buildHours(dayValue: string, now: Date): HourOption[] {
  * hora LOCAL. Usarlo desplazaría el mínimo tantas horas como diga la zona del usuario, que en
  * España son una o dos — suficiente para dejar elegir una hora ya pasada.
  */
-export function toLocalInputValue(date: Date): string {
+function toLocalInputValue(date: Date): string {
   const pad = (n: number) => String(n).padStart(2, '0');
   return (
     `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +

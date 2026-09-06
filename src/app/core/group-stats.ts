@@ -270,7 +270,7 @@ function impactOf(winrate: number): ObjectiveImpact['impact'] {
  * diez juegan la misma—, así que el total es la media de las de cada miembro y no
  * la suma, que contaría cada partida diez veces.
  */
-export function groupGamesOf(stats: readonly MemberStats[]): number {
+function groupGamesOf(stats: readonly MemberStats[]): number {
   if (!stats.length) return 0;
   return Math.round(stats.reduce((total, s) => total + s.games, 0) / stats.length);
 }

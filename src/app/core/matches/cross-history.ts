@@ -127,7 +127,7 @@ export function participantKey(p: MatchParticipant): string {
 }
 
 /** La misma normalización, aplicada al parámetro de ruta (que hoy es un tag). */
-export function normalizePlayerKey(raw: string): string {
+function normalizePlayerKey(raw: string): string {
   return (raw ?? '').trim().toLowerCase();
 }
 
@@ -231,11 +231,6 @@ export function bestAllyOf(partners: readonly CrossPartner[]): CrossPartner | nu
  */
 export function nemesisOf(partners: readonly CrossPartner[]): CrossPartner | null {
   return pick(partners, (p) => p.enemies, (a, b) => a.wr - b.wr || b.games - a.games);
-}
-
-/** El rival al que mejor se le gana: la némesis del otro, medida desde tu lado. */
-export function favoriteVictimOf(partners: readonly CrossPartner[]): CrossPartner | null {
-  return pick(partners, (p) => p.enemies, (a, b) => b.wr - a.wr || b.games - a.games);
 }
 
 interface Ranked {

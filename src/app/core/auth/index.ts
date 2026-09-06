@@ -5,4 +5,4 @@ export { Auth } from './auth';
 export { authGuard } from './auth-guard';
 export { adminGuard } from './admin-guard';
 export { Session, type SessionStatus } from './session';
-export { type CurrentUser, initialsOf } from './current-user';
+export { type CurrentUser } from './current-user';
