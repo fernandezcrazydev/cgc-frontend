@@ -25,61 +25,62 @@ export const routes: Routes = [
       {
         path: 'historial',
         title: 'Historial · Sale Custom',
-        loadComponent: () => import('./features/shell/views/historial').then((m) => m.Historial),
+        loadComponent: () => import('./features/shell/views/match-history/historial').then((m) => m.Historial),
       },
       {
         path: 'historial/:id',
         title: 'Partida · Sale Custom',
         loadComponent: () =>
-          import('./features/shell/views/partida-detalle').then((m) => m.PartidaDetalle),
+          import('./features/shell/views/match-history/partida-detalle').then((m) => m.PartidaDetalle),
       },
       {
         path: 'grupos',
         title: 'Grupos · Sale Custom',
-        loadComponent: () => import('./features/shell/views/grupos').then((m) => m.Grupos),
+        loadComponent: () => import('./features/shell/views/group/grupos').then((m) => m.Grupos),
       },
       {
         path: 'grupos/:id',
         title: 'Grupo · Sale Custom',
         loadComponent: () =>
-          import('./features/shell/views/grupo-detalle').then((m) => m.GrupoDetalle),
+          import('./features/shell/views/group/grupo-detalle').then((m) => m.GrupoDetalle),
       },
       {
         path: 'grupos/:id/perfil',
         title: 'Perfil del grupo · Sale Custom',
         loadComponent: () =>
-          import('./features/shell/views/grupo-perfil').then((m) => m.GrupoPerfil),
+          import('./features/shell/views/group/grupo-perfil').then((m) => m.GrupoPerfil),
       },
+      // La zona de juego, con un nivel por objeto del dominio (`FlujoJuego.md` §2): el
+      // tablón lista lo que hay, la convocatoria es la llamada a jugar, y la sala son los
+      // diez. Las tres rutas anteriores —`partidas`, `partidas/:roomId` y
+      // `crear-partida`— redirigen más abajo para no romper enlaces ya repartidos.
       {
-        path: 'grupos/:id/crear-partida',
-        title: 'Crear partida · Sale Custom',
+        path: 'grupos/:id/tablon',
+        title: 'Tablón · Sale Custom',
         loadComponent: () =>
-          import('./features/shell/views/grupo-crear-partida').then((m) => m.GrupoCrearPartida),
+          import('./features/shell/views/group-board/tablon').then((m) => m.Tablon),
       },
       {
-        path: 'grupos/:id/partidas',
-        title: 'Partidas activas · Sale Custom',
+        path: 'grupos/:id/convocatoria/:lobbyId',
+        title: 'Convocatoria · Sale Custom',
         loadComponent: () =>
-          import('./features/shell/views/group-matches/grupo-partidas').then(
-            (m) => m.GrupoPartidas,
-          ),
+          import('./features/shell/views/group-lobby/convocatoria').then((m) => m.Convocatoria),
       },
       {
-        path: 'grupos/:id/partidas/:roomId',
+        path: 'grupos/:id/sala/:salaId',
         title: 'Sala · Sale Custom',
-        loadComponent: () =>
-          import('./features/shell/views/grupo-sala').then((m) => m.GrupoSala),
+        loadComponent: () => import('./features/shell/views/group-room/sala').then((m) => m.Sala),
       },
       {
         path: 'grupos/:id/ranking',
         title: 'Ranking · Sale Custom',
         loadComponent: () =>
-          import('./features/shell/views/grupo-ranking').then((m) => m.GrupoRanking),
+          import('./features/shell/views/group/grupo-ranking').then((m) => m.GrupoRanking),
       },
       {
         path: 'grupos/:id/tierlist',
         title: 'Tierlist · Sale Custom',
-        loadComponent: () => import('./features/shell/views/tierlist').then((m) => m.Tierlist),
+        loadComponent: () => import('./features/shell/views/group/tierlist').then((m) => m.Tierlist),
       },
       {
         path: 'grupos/:id/estadisticas',
@@ -93,13 +94,13 @@ export const routes: Routes = [
         path: 'grupos/:id/discord',
         title: 'Discord · Sale Custom',
         loadComponent: () =>
-          import('./features/shell/views/grupo-discord').then((m) => m.GrupoDiscord),
+          import('./features/shell/views/group/grupo-discord').then((m) => m.GrupoDiscord),
       },
       {
         path: 'grupos/:id/historial',
         title: 'Historial del grupo · Sale Custom',
         loadComponent: () =>
-          import('./features/shell/views/grupo-historial').then((m) => m.GrupoHistorial),
+          import('./features/shell/views/group/grupo-historial').then((m) => m.GrupoHistorial),
       },
       {
         path: 'tierlist',
@@ -108,13 +109,13 @@ export const routes: Routes = [
       {
         path: 'perfil',
         title: 'Perfil · Sale Custom',
-        loadComponent: () => import('./features/shell/views/perfil').then((m) => m.Perfil),
+        loadComponent: () => import('./features/shell/views/profile/perfil').then((m) => m.Perfil),
       },
       {
         path: 'perfil/:id',
         title: 'Perfil de jugador · Sale Custom',
         loadComponent: () =>
-          import('./features/shell/views/perfil-miembro').then((m) => m.PerfilMiembro),
+          import('./features/shell/views/profile/perfil-miembro').then((m) => m.PerfilMiembro),
       },
       // Cruce con otro jugador (Fase 4): CrossLayout gestiona el estado y la cabecera compartida,
       // mientras que las vistas hijas (Historial, Versus, Sinergia y Detalle) se cargan sin parpadeos.
@@ -127,12 +128,12 @@ export const routes: Routes = [
             path: '',
             title: 'Historial cruzado · Sale Custom',
             loadComponent: () =>
-              import('./features/shell/views/historial-cruzado').then((m) => m.HistorialCruzado),
+              import('./features/shell/views/cross/historial-cruzado').then((m) => m.HistorialCruzado),
           },
           {
             path: 'contra',
             title: 'Cara a cara · Sale Custom',
-            loadComponent: () => import('./features/shell/views/versus').then((m) => m.Versus),
+            loadComponent: () => import('./features/shell/views/cross/versus').then((m) => m.Versus),
           },
           {
             path: 'contra/:matchId',
@@ -144,7 +145,7 @@ export const routes: Routes = [
           {
             path: 'juntos',
             title: 'Sinergia de dúo · Sale Custom',
-            loadComponent: () => import('./features/shell/views/synergy').then((m) => m.Synergy),
+            loadComponent: () => import('./features/shell/views/cross/synergy').then((m) => m.Synergy),
           },
           {
             path: 'juntos/:matchId',
@@ -156,6 +157,9 @@ export const routes: Routes = [
         ],
       },
       // Redirects de compatibilidad para enlaces profundos
+      { path: 'grupos/:id/crear-partida', redirectTo: 'grupos/:id/tablon' },
+      { path: 'grupos/:id/partidas', pathMatch: 'full', redirectTo: 'grupos/:id/tablon' },
+      { path: 'grupos/:id/partidas/:roomId', redirectTo: 'grupos/:id/convocatoria/:roomId' },
       { path: 'versus/:playerId', redirectTo: 'jugador/:playerId/contra' },
       { path: 'versus/:playerId/:matchId', redirectTo: 'jugador/:playerId/contra/:matchId' },
       { path: 'synergy/:playerId', redirectTo: 'jugador/:playerId/juntos' },
@@ -171,35 +175,35 @@ export const routes: Routes = [
         path: 'admin',
         title: 'Administración · Sale Custom',
         canActivate: [adminGuard],
-        loadComponent: () => import('./features/shell/views/admin').then((m) => m.AdminDirectory),
+        loadComponent: () => import('./features/shell/views/admin/admin').then((m) => m.AdminDirectory),
       },
       {
         path: 'admin/feedback',
         title: 'Feedback · Admin',
         canActivate: [adminGuard],
         loadComponent: () =>
-          import('./features/shell/views/admin-feedback').then((m) => m.AdminFeedback),
+          import('./features/shell/views/admin/admin-feedback').then((m) => m.AdminFeedback),
       },
       {
         path: 'admin/feedback/:id',
         title: 'Reporte · Admin',
         canActivate: [adminGuard],
         loadComponent: () =>
-          import('./features/shell/views/admin-feedback-detalle').then((m) => m.AdminFeedbackDetalle),
+          import('./features/shell/views/admin/admin-feedback-detalle').then((m) => m.AdminFeedbackDetalle),
       },
       {
         path: 'admin/riot-metricas',
         title: 'Métricas API Riot · Admin',
         canActivate: [adminGuard],
         loadComponent: () =>
-          import('./features/shell/views/admin-riot-metricas').then((m) => m.AdminRiotMetricas),
+          import('./features/shell/views/admin/admin-riot-metricas').then((m) => m.AdminRiotMetricas),
       },
       {
         path: 'admin/seguridad',
         title: 'Registro de seguridad · Admin',
         canActivate: [adminGuard],
         loadComponent: () =>
-          import('./features/shell/views/admin-seguridad').then((m) => m.AdminSeguridad),
+          import('./features/shell/views/admin/admin-seguridad').then((m) => m.AdminSeguridad),
       },
       // 404 dentro del shell: una ruta desconocida bajo /app se queda en la
       // aplicación (con navegación y salida) en vez de rebotar al login.

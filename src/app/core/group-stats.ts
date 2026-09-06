@@ -9,7 +9,6 @@
  *   - metagameFor()      → campeones más jugados, más baneados y de mayor winrate
  *   - epicRecordsFor()   → los tres récords históricos, con enlace a su partida
  *   - playerTiles()      → el desglose de la fila expandible de cada jugador
- *   - awardsFor()        → los seis premios que consume `core/group-badges.ts`
  * Las medallas del Hall of Fame viven aparte, en `core/group-medals.ts`.
  *
  * BACKEND NOTE: fichero PLACEHOLDER. Al existir los endpoints de estadísticas
@@ -497,74 +496,6 @@ function leaderBy(stats: readonly MemberStats[], score: (s: MemberStats) => numb
   return [...stats].sort((a, b) => score(b) - score(a))[0];
 }
 
-/** Build the PREMIOS trophy wall ("métricas para reírse"). */
-export function awardsFor(stats: readonly MemberStats[]): StatAward[] {
-  if (!stats.length) return [];
-
-  const farmer = leaderBy(stats, (s) => s.csPerMin - s.kda * 0.6);
-  const silentCarry = leaderBy(stats, (s) => s.dmgK - s.deaths * 1.5);
-  const wardSimp = leaderBy(stats, (s) => s.visionScore + s.wardsPlaced * 0.4);
-  const pentaHunter = leaderBy(stats, (s) => s.pentas * 100 + s.quadras * 10 + s.triples);
-  const ccLord = leaderBy(stats, (s) => s.ccTime);
-  const feeder = leaderBy(stats, (s) => s.deaths - s.kda);
-
-  return [
-    {
-      id: 'farmer',
-      glyph: '🌾',
-      title: 'El granjero',
-      color: 'success',
-      member: farmer.member,
-      value: `${farmer.csPerMin} cs/min`,
-      blurb: 'Mucho minion, poca sangre.',
-    },
-    {
-      id: 'silent-carry',
-      glyph: '🥷',
-      title: 'Carry silencioso',
-      color: 'primary',
-      member: silentCarry.member,
-      value: `${silentCarry.dmgK}k daño`,
-      blurb: `Solo ${silentCarry.deaths} muertes de media.`,
-    },
-    {
-      id: 'ward-simp',
-      glyph: '👁',
-      title: 'Ward simp',
-      color: 'secondary',
-      member: wardSimp.member,
-      value: `${wardSimp.wardsPlaced} wards`,
-      blurb: `Visión ${wardSimp.visionScore}, el más cotilla.`,
-    },
-    {
-      id: 'penta-hunter',
-      glyph: '🎯',
-      title: 'Penta hunter',
-      color: 'warning',
-      member: pentaHunter.member,
-      value: `${pentaHunter.pentas}P · ${pentaHunter.quadras}Q`,
-      blurb: 'Cazador de multikills.',
-    },
-    {
-      id: 'cc-lord',
-      glyph: '🧊',
-      title: 'Señor del CC',
-      color: 'tertiary',
-      member: ccLord.member,
-      value: `${ccLord.ccTime}s CC`,
-      blurb: 'Nadie se mueve cuando él juega.',
-    },
-    {
-      id: 'feeder',
-      glyph: '💀',
-      title: 'El donante',
-      color: 'danger',
-      member: feeder.member,
-      value: `${feeder.deaths} muertes`,
-      blurb: 'Reparte oro al enemigo con cariño.',
-    },
-  ];
-}
 
 // ===================== JUGADORES (per-member tiles) =====================
 

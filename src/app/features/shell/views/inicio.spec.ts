@@ -9,6 +9,42 @@ import { Inicio } from './inicio';
 import { SessionRecovery } from '../../../core/http';
 import { GroupsApi } from '../../../core/groups/groups-api';
 import { GroupsStore } from '../../../core/groups';
+import { LobbiesApi } from '../../../core/lobbies/lobbies-api';
+import { LobbiesStore } from '../../../core/lobbies';
+
+/**
+ * Una convocatoria confirmada con seis de diez apuntados: es la sala que el widget de
+ * Inicio pinta. Antes de que la vista leyera datos reales, estos seis estaban escritos
+ * a mano dentro del propio componente.
+ */
+const LIVE_LOBBY = {
+  id: 'room-123',
+  groupId: 'grp-1',
+  code: 'WX4K',
+  mode: 'OPEN',
+  status: 'CONFIRMED',
+  capacity: 10,
+  note: null,
+  openedBy: { userId: 'u-1', discordUsername: 'daxlup', avatarUrl: null, joinedAt: '2026-09-01T18:00:00Z' },
+  confirmedSlotId: 'slot-1',
+  createdAt: '2026-09-01T18:00:00Z',
+  slots: [
+    {
+      id: 'slot-1',
+      startsAt: '2026-09-01T20:00:00Z',
+      signedUp: 6,
+      starters: [
+        { userId: 'u-1', discordUsername: 'daxlup', avatarUrl: null, joinedAt: '2026-09-01T18:00:00Z' },
+        { userId: 'u-2', discordUsername: 'EduUC', avatarUrl: null, joinedAt: '2026-09-01T18:01:00Z' },
+        { userId: 'u-3', discordUsername: 'Nightstalker', avatarUrl: null, joinedAt: '2026-09-01T18:02:00Z' },
+        { userId: 'u-4', discordUsername: 'FakerClone', avatarUrl: null, joinedAt: '2026-09-01T18:03:00Z' },
+        { userId: 'u-5', discordUsername: 'Chronoshift', avatarUrl: null, joinedAt: '2026-09-01T18:04:00Z' },
+        { userId: 'u-6', discordUsername: 'ViperX', avatarUrl: null, joinedAt: '2026-09-01T18:05:00Z' },
+      ],
+      bench: [],
+    },
+  ],
+};
 
 describe('Inicio Component', () => {
   let component: Inicio;
@@ -43,12 +79,21 @@ describe('Inicio Component', () => {
           },
         },
         { provide: OidcSecurityService, useValue: { getAccessToken: () => of(''), checkAuth: () => of({ isAuthenticated: true }) } },
+        {
+          provide: LobbiesApi,
+          useValue: {
+            listForGroup: () =>
+              of({ content: [LIVE_LOBBY], page: 0, size: 20, totalElements: 1, totalPages: 1 }),
+          },
+        },
         { provide: SessionRecovery, useValue: { refresh: () => Promise.resolve(false) } },
       ],
     }).compileComponents();
 
     groupsStore = TestBed.inject(GroupsStore);
     await groupsStore.ensureLoaded();
+    // El shell las mantiene cargadas en la app; aquí hay que pedirlas a mano.
+    await TestBed.inject(LobbiesStore).ensureLoaded('grp-1');
 
     const fixture = TestBed.createComponent(Inicio);
     component = fixture.componentInstance;
@@ -94,18 +139,18 @@ describe('Inicio Component', () => {
     expect(component.slideState()).toBe('idle');
   });
 
-  it('crearPartida navega a la ruta de creación de convocatoria del grupo activo', () => {
+  it('crearPartida lleva al Tablón del grupo activo, que es donde se convoca', () => {
     const navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
 
     component.crearPartida();
-    expect(navigateSpy).toHaveBeenCalledWith(['/app', 'grupos', 'grp-1', 'crear-partida']);
+    expect(navigateSpy).toHaveBeenCalledWith(['/app', 'grupos', 'grp-1', 'tablon']);
   });
 
   it('entrarSala navega a la sala especificada del grupo activo', () => {
     const navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
 
     component.entrarSala('room-123');
-    expect(navigateSpy).toHaveBeenCalledWith(['/app', 'grupos', 'grp-1', 'partidas', 'room-123']);
+    expect(navigateSpy).toHaveBeenCalledWith(['/app', 'grupos', 'grp-1', 'sala', 'room-123']);
   });
 
   it('retarNemesis navega a la ruta de Versus del rival', () => {

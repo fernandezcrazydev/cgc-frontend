@@ -8,7 +8,6 @@ import {
   GroupNavItem,
   groupIdFromUrl,
   isGroupHubUrl,
-  isGroupMatchesUrl,
   pageTitleFor,
 } from './shell-nav';
 import { Auth, Session } from '../../core/auth';
@@ -21,7 +20,6 @@ import {
   groupRoleLabel,
 } from '../../core/groups';
 import { LobbiesStore, LobbyDetailStore, LobbyResponse } from '../../core/lobbies';
-import { MatchStore, MatchRoom } from '../../core/match-store';
 import { MatchHistoryStore } from '../../core/matches';
 import { NotificationsStore, NotificationView, notificationView, NotificationSemanticLevel, SEED_NOTIFICATIONS } from '../../core/notifications';
 import { RiotAccountStore } from '../../core/riot';
@@ -96,7 +94,6 @@ export class Shell {
   readonly session = inject(Session);
   private readonly auth = inject(Auth);
   readonly groups = inject(GroupsStore);
-  private readonly matches = inject(MatchStore);
   private readonly matchHistory = inject(MatchHistoryStore);
   /** Campana real: bandeja durable + stream SSE en vivo (reemplaza el mock legacy). */
   readonly notifs = inject(NotificationsStore);
@@ -251,35 +248,6 @@ export class Shell {
     const mandatoryIds = new Set(this.mandatoryNotifs().map((n) => n.id));
     return this.notifViews().filter((n) => !mandatoryIds.has(n.id));
   });
-
-  /**
-   * The selected group's open room still waiting for players, if any. Surfaced as
-   * a pending-room banner so members can jump in without hunting for the notification.
-   */
-  readonly pendingRoom = computed<LobbyResponse | null>(() => {
-    const g = this.groups.selected();
-    if (!g) return null;
-    // En el hub del grupo y en su panel de partidas, no: las dos pantallas ya enseñan la
-    // convocatoria en su sitio, y el banner encima repetía la misma frase dos veces seguidas.
-    // El banner existe para enterarte estando en OTRA pantalla; ahí sigue apareciendo.
-    const url = this.currentUrl();
-    const mine = groupIdFromUrl(url) === g.id;
-    if (mine && (isGroupHubUrl(url) || isGroupMatchesUrl(url))) return null;
-    // La primera que sigue esperando gente. Una ya confirmada no va aquí: el banner es para
-    // "falta gente, entra", no para recordarte una partida que ya tiene hora.
-    return this.lobbies.open().find((lobby) => lobby.status === 'POLLING') ?? null;
-  });
-
-  /** Cuánta gente ha juntado la franja que mejor va, para el contador del banner. */
-  pendingSignedUp(lobby: LobbyResponse): number {
-    return lobby.slots.reduce((best, slot) => Math.max(best, slot.signedUp), 0);
-  }
-
-  /** Jump into the pending room's lobby (also closes the mobile group sheet). */
-  openPendingRoom(room: LobbyResponse): void {
-    this.showGroupSheet.set(false);
-    this.router.navigate(['/app', 'grupos', room.groupId, 'partidas', room.id]);
-  }
 
   readonly mobileLeft = NAV.slice(0, 2);
   readonly mobileRight = NAV.slice(2);
@@ -475,46 +443,49 @@ export class Shell {
 
   // ── Secciones del grupo (segundo nivel del acordeón) ──────────────
 
-  /** Obtiene la sala activa para un grupo, si existe. */
-  activeRoomForGroup(groupId: string): MatchRoom | undefined {
-    const rooms = this.matches.activeOf(groupId);
-    return rooms.find((r) => r.status === 'waiting' || r.status === 'live');
-  }
-
-  /** ¿El usuario actual está en la sala activa de este grupo? */
-  isUserInActiveRoom(room: MatchRoom): boolean {
-    const user = this.session.user();
-    if (!user) return false;
-    return room.seats.some(
-      (s) =>
-        (s.userId && s.userId === user.userId) ||
-        s.name.toLowerCase() === user.discordUsername.toLowerCase() ||
-        s.tag.toLowerCase().startsWith(user.discordUsername.toLowerCase())
-    );
-  }
-
-  /** Rótulo dinámico para la acción de sala / crear partida. */
-  roomActionLabel(groupId: string): string {
-    const room = this.activeRoomForGroup(groupId);
-    if (!room) return 'Crear partida';
-    const inRoom = this.isUserInActiveRoom(room);
-    const count = `${room.seats.length}/10`;
-    return inRoom ? `Ir a la sala (${count})` : `Unirme a la sala (${count})`;
+  /**
+   * ¿Este grupo tiene alguna sala en marcha? Es el punto verde del avatar, y a diferencia
+   * de la fila de abajo cuenta TODAS: el punto solo dice «aquí se está jugando».
+   */
+  hasLiveRoom(groupId: string): boolean {
+    return this.lobbies
+      .open()
+      .some((lobby) => lobby.groupId === groupId && lobby.confirmedSlotId !== null);
   }
 
   /**
-   * Rótulo de una sección del grupo. Es el texto de la fila y, con la barra plegada, también
-   * su `title`: en el rail solo se ve el icono, así que el nombre tiene que llegar por ahí.
+   * La fila contextual de sala: solo aparece cuando le concierne a quien mira.
+   *
+   *   - juegas en una  → «Mi sala 7/10», que lleva a la arena;
+   *   - no juegas y hay UNA sola → «Unirme a sala 7/10»;
+   *   - hay varias, o ninguna → nada, y el aviso lo lleva el contador del Tablón.
+   *
+   * Con varias salas la fila no puede decidir a cuál llevarte, y una fila que a veces
+   * abre un detalle y a veces un listado no se aprende. Ese caso lo resuelve el Tablón,
+   * que es donde están todas.
+   *
+   * Lee las convocatorias REALES (`LobbiesStore`). Antes leía el mock `MatchStore`
+   * mientras el banner de al lado leía estas, así que el shell tenía dos ideas distintas
+   * de «sala abierta» a la vez.
    */
-  sectionLabel(groupId: string, item: GroupNavItem): string {
-    return item.path === 'crear-partida' ? this.roomActionLabel(groupId) : item.label;
-  }
+  roomRowFor(groupId: string): { label: string; link: unknown[] } | null {
+    const live = this.lobbies
+      .open()
+      .filter((lobby) => lobby.groupId === groupId && lobby.confirmedSlotId !== null);
+    if (live.length !== 1) return null;
 
-  /** Enlace dinámico para la acción de sala / crear partida. */
-  roomActionLink(groupId: string): unknown[] {
-    const room = this.activeRoomForGroup(groupId);
-    if (!room) return ['/app', 'grupos', groupId, 'crear-partida'];
-    return ['/app', 'grupos', groupId, 'partidas', room.id];
+    const lobby = live[0];
+    const slot = lobby.slots.find((s) => s.id === lobby.confirmedSlotId);
+    if (!slot) return null;
+
+    const me = this.session.user()?.userId;
+    const mine = !!me && [...slot.starters, ...slot.bench].some((p) => p.userId === me);
+    const count = `${slot.starters.length}/${lobby.capacity}`;
+
+    return {
+      label: mine ? `Mi sala ${count}` : `Unirme a sala ${count}`,
+      link: ['/app', 'grupos', groupId, 'sala', lobby.id],
+    };
   }
 
   /**
@@ -527,9 +498,6 @@ export class Shell {
 
   /** Ruta absoluta de una sección. El hub es el grupo a secas, así que su segmento es vacío. */
   sectionLink(groupId: string, item: GroupNavItem): unknown[] {
-    if (item.path === 'crear-partida') {
-      return this.roomActionLink(groupId);
-    }
     return item.path ? ['/app', 'grupos', groupId, item.path] : ['/app', 'grupos', groupId];
   }
 

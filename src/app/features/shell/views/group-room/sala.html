@@ -1,0 +1,86 @@
+<div class="view">
+  @if (loading()) {
+    <div class="sl" aria-busy="true">
+      <div class="sl-head"><nf-skeleton width="180px" height="30px" /></div>
+      <nf-window title="Sala" bodyPadding="0">
+        <div class="sl-pad"><nf-skeleton width="100%" height="240px" radius="12px" /></div>
+      </nf-window>
+    </div>
+  } @else if (detail.status() === 'error') {
+    <div class="empty-state">
+      <div class="empty-state__icon">⚠</div>
+      <div class="empty-state__text nf-mono">Error al cargar</div>
+      <p class="empty-state__hint">No se pudo cargar la sala.</p>
+      <button nfButton variant="secondary" size="md" (click)="retry()">Reintentar</button>
+    </div>
+  } @else if (lobby(); as lb) {
+    @if (isRoom()) {
+      <div class="sl">
+        <div class="sl-head">
+          <div class="sl-head__titles">
+            <h1 class="view__title">Sala {{ lb.code }}</h1>
+            <p class="sl-head__sub nf-mono">
+              {{ starters().length }}/{{ lb.capacity }} jugadores · {{ kickoff() }}
+            </p>
+          </div>
+          <a
+            class="view-back sl-back"
+            [routerLink]="['/app', 'grupos', lb.groupId, 'convocatoria', lb.id]"
+          >
+            <span class="view-back__arrow">←</span> Convocatoria
+          </a>
+        </div>
+
+        <!-- Solo lectura: puedes abrir cualquier sala de la convocatoria, pero mandar en
+             ella es cosa de quien juega. La tanda no cierra hasta que terminan todas
+             (FlujoJuego §6.2), así que mirar la de al lado es normal. -->
+        @if (!amIn()) {
+          <div class="sl-spectator nf-mono">
+            <span class="sl-spectator__glyph" aria-hidden="true">👁</span>
+            Estás mirando esta sala. No juegas en ella.
+          </div>
+        }
+
+        <nf-window title="Jugadores" bodyPadding="0">
+          <div class="sl-pad">
+            <div class="sl-grid">
+              @for (pod of pods(); track pod.position) {
+                <app-room-pod
+                  [player]="pod.player"
+                  [state]="pod.player ? 'starter' : 'free'"
+                  [rank]="ranks().get(pod.player?.userId ?? '') ?? 0"
+                />
+              }
+            </div>
+
+            @if (bench().length) {
+              <app-bench-strip [players]="bench()" [ranks]="ranks()" />
+            }
+          </div>
+        </nf-window>
+      </div>
+    } @else {
+      <!-- Sin hora cerrada todavía no hay sala, solo una convocatoria recogiendo horas.
+           Mandar allí es más útil que enseñar una parrilla vacía. -->
+      <div class="view__head">
+        <h1 class="view__title">Todavía no hay sala</h1>
+        <p class="view__lead">
+          Esta convocatoria aún está recogiendo horas. Cuando una se llene, la sala se abre aquí.
+        </p>
+      </div>
+      <button
+        nfButton
+        variant="primary"
+        size="md"
+        [routerLink]="['/app', 'grupos', lb.groupId, 'convocatoria', lb.id]"
+      >Ver la convocatoria</button>
+    }
+  } @else {
+    <div class="view__head">
+      <div class="view__eyebrow nf-mono">Error 404</div>
+      <h1 class="view__title">Sala no encontrada</h1>
+      <p class="view__lead">La sala que buscas no existe o ya no perteneces al grupo.</p>
+    </div>
+    <a class="view-back" [routerLink]="['/app', 'grupos']">← Volver a grupos</a>
+  }
+</div>

@@ -4,10 +4,10 @@ import { ActivatedRoute, NavigationEnd, Router, RouterLink, RouterOutlet } from 
 import { toSignal } from '@angular/core/rxjs-interop';
 import { filter, map } from 'rxjs';
 import { NfButton, NfSkeleton } from '../../../../ui';
-import { HistorialCruzado } from '../historial-cruzado';
+import { HistorialCruzado } from './historial-cruzado';
 import { MatchHistoryUiState } from '../match-history/match-history-ui';
-import { Synergy } from '../synergy';
-import { Versus } from '../versus';
+import { Synergy } from './synergy';
+import { Versus } from './versus';
 import { CrossActiveTab, CrossHeaderComponent } from './cross-header.component';
 import { CrossViewState } from './cross-view-state';
 

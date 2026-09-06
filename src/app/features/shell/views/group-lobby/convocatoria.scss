@@ -1,0 +1,249 @@
+/* La convocatoria: sus franjas mientras recoge horas, y sus salas una vez confirmada.
+
+   Sale de `grupo-sala.ts`, que servía dos cosas en la misma ruta —la convocatoria real
+   del backend y una sala mock del asistente— con un `@if` gigante en medio. Aquí queda
+   solo la mitad real, que es la única que hablaba con el servidor.
+
+   El armazón (`cv-*`) sustituye al que estas reglas tomaban prestado del bloque `cp-*`
+   de `views.scss`, que se borró con el asistente. */
+
+.cv {
+  width: 100%;
+}
+
+/* La sombra dura por defecto (6px 6px) queda descentrada en una ventana a todo el
+   ancho, así que aquí va simétrica. */
+.cv .nf-window {
+  box-shadow: 0 16px 42px color-mix(in srgb, var(--nf-tertiary) 16%, rgba(8, 1, 16, 0.55));
+}
+
+.cv-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+
+.cv-head__titles {
+  min-width: 0;
+}
+
+.cv-back {
+  margin-bottom: 0;
+  flex: none;
+}
+
+.cv-pad {
+  padding: 40px 32px;
+}
+
+.cv-foot {
+  position: sticky;
+  bottom: 16px;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 20px 0 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--nf-border);
+  border-radius: var(--nf-radius-lg);
+  background: color-mix(in srgb, var(--nf-surface) 82%, transparent);
+  backdrop-filter: blur(12px);
+  box-shadow: var(--nf-shadow-card);
+}
+
+.cv-foot__status {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+  font-size: var(--fs-eyebrow);
+  color: var(--nf-text-dim);
+}
+
+/* La sala de una convocatoria confirmada: una tarjeta que lleva a la arena. Hoy una
+   convocatoria rinde exactamente una sala; cuando el backend cree filas de sala y
+   tandas (FlujoJuego §17.1) aquí irán varias. */
+.cv-room {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 20px;
+  border: 1px solid var(--nf-border);
+  border-radius: var(--nf-radius-lg);
+  background: color-mix(in srgb, var(--nf-primary) 6%, transparent);
+}
+
+.cv-room__meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.cv-room__title {
+  font-size: var(--fs-body);
+  font-weight: 600;
+}
+
+.cv-room__sub {
+  margin-top: 2px;
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+}
+
+.cv-bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--nf-border);
+  background: color-mix(in srgb, var(--nf-primary) 5%, transparent);
+}
+
+.cv-bar__meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.cv-bar__sub {
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+}
+
+.cv-bar__note {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--nf-text-dim);
+}
+
+.lb-slot {
+  padding: 14px;
+  border: 1px solid var(--nf-border);
+  border-radius: 12px;
+  background: var(--nf-surface-2);
+  & + & {
+    margin-top: 12px;
+  }
+}
+
+/* La franja que ya se cuadró: es la única que importa, así que se despega del resto. */
+
+.lb-slot.is-confirmed {
+  border-color: var(--nf-success);
+  box-shadow: 0 0 0 1px var(--nf-success) inset;
+}
+
+.lb-slot__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.lb-slot__when {
+  flex: 1;
+  font-size: var(--fs-body);
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.lb-slot__count {
+  font-size: 13px;
+  color: var(--nf-text-dim);
+}
+
+/* Un único botón que alterna: si ya puedo, quitarme; si no, apuntarme.
+   Es la acción principal de la vista, así que va con el `nfButton` secundario: antes era
+   una píldora fina y translúcida que se leía como otra etiqueta más de la fila, al lado
+   del contador. Del primitivo salen tamaño, hover, pulsado y disabled; aquí solo se
+   recolorea a verde el estado "ya estoy dentro", que no es una de sus variantes. */
+
+.lb-slot__cta {
+  flex: none;
+}
+
+.lb-slot__cta.is-in {
+  border-color: var(--nf-success);
+  background: color-mix(in srgb, var(--nf-success) 14%, transparent);
+  color: var(--nf-success);
+  box-shadow: var(--nf-shadow-card);
+}
+
+.lb-slot__cta.is-in:hover:not(:disabled) {
+  box-shadow: var(--nf-shadow-card);
+}
+
+.lb-slot__cta.is-in:active:not(:disabled) {
+  box-shadow: var(--nf-shadow-card);
+}
+
+.lb-slot__bar {
+  position: relative;
+  height: 5px;
+  margin: 10px 0 12px;
+  border-radius: 999px;
+  background: var(--nf-surface-3);
+  overflow: hidden;
+}
+
+.lb-slot__fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--nf-secondary), var(--nf-success));
+  transition: width 0.25s ease;
+}
+
+.lb-slot__label {
+  margin-bottom: 6px;
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+}
+
+.lb-slot__label:not(:first-of-type) {
+  margin-top: 12px;
+}
+
+.lb-slot__empty {
+  font-size: 12px;
+  color: var(--nf-text-dim);
+}
+
+.lb-people {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.lb-person {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px 4px 4px;
+  border: 1px solid var(--nf-border);
+  border-radius: 999px;
+  background: var(--nf-surface);
+}
+
+/* Encontrarte en una lista de doce nombres no debería costar un segundo. */
+
+.lb-person.is-me {
+  border-color: var(--nf-secondary);
+  background: color-mix(in srgb, var(--nf-secondary) 12%, transparent);
+}
+
+.lb-person__name {
+  font-size: 12px;
+}
+
+.lb-people--bench .lb-person {
+  opacity: 0.75;
+}
+
+.lb-person__pos {
+  min-width: 16px;
+  padding-left: 4px;
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+}

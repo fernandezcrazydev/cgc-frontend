@@ -9,9 +9,9 @@ describe('pageTitleFor', () => {
     expect(pageTitleFor('/app/grupos/abc-123/ranking')).toBe('Ranking');
     expect(pageTitleFor('/app/grupos/abc-123/tierlist')).toBe('Tierlist');
     expect(pageTitleFor('/app/grupos/abc-123/estadisticas')).toBe('Estadísticas');
-    expect(pageTitleFor('/app/grupos/abc-123/partidas')).toBe('Partidas');
-    expect(pageTitleFor('/app/grupos/abc-123/partidas/sala-9')).toBe('Sala');
-    expect(pageTitleFor('/app/grupos/abc-123/crear-partida')).toBe('Crear partida');
+    expect(pageTitleFor('/app/grupos/abc-123/tablon')).toBe('Tablón');
+    expect(pageTitleFor('/app/grupos/abc-123/convocatoria/lob-9')).toBe('Convocatoria');
+    expect(pageTitleFor('/app/grupos/abc-123/sala/sala-9')).toBe('Sala');
     expect(pageTitleFor('/app/grupos/abc-123/discord')).toBe('Discord');
     expect(pageTitleFor('/app/grupos/abc-123/historial')).toBe('Historial');
     expect(pageTitleFor('/app/grupos/abc-123')).toBe('Hub del grupo');
@@ -74,10 +74,15 @@ describe('GROUP_NAV', () => {
     expect(GROUP_NAV[0].label).toBe('Hub del grupo');
   });
 
-  it('«Crear partida» sigue destacada: es la acción central de la app', () => {
-    expect(GROUP_NAV[1].path).toBe('crear-partida');
+  it('el Tablón es la sección destacada: es la puerta de la zona de juego', () => {
+    expect(GROUP_NAV[1].path).toBe('tablon');
     expect(GROUP_NAV[1].primary).toBe(true);
     expect(GROUP_NAV.filter((i) => i.primary)).toHaveLength(1);
+  });
+
+  it('no quedan destinos del asistente borrado', () => {
+    expect(GROUP_NAV.map((i) => i.path)).not.toContain('crear-partida');
+    expect(GROUP_NAV.map((i) => i.path)).not.toContain('partidas');
   });
 
   it('solo Discord está restringido a quien gestiona el grupo', () => {

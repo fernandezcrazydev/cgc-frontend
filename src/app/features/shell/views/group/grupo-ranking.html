@@ -1,0 +1,757 @@
+<div class="view rk-view">
+  @if (isLoading()) {
+    <div aria-busy="true">
+      <div class="rk-league-header">
+        <div class="view-back nf-mono"><nf-skeleton width="140px" height="14px" /></div>
+        <div class="rk-league-hero">
+          <div class="rk-league-title-group">
+            <nf-skeleton width="140px" height="12px" />
+            <nf-skeleton width="280px" height="34px" />
+          </div>
+          <div class="rk-countdown"><nf-skeleton width="220px" height="24px" radius="999px" /></div>
+        </div>
+      </div>
+
+      <div class="rk-top3-grid">
+        @for (s of [1, 2, 3]; track s) {
+          <div class="rk-top-card">
+            <div class="rk-top-card__head">
+              <div class="rk-top-card__user">
+                <nf-skeleton width="48px" height="48px" radius="50%" />
+                <div class="rk-top-card__user-meta">
+                  <nf-skeleton width="100px" height="15px" />
+                  <nf-skeleton width="60px" height="11px" />
+                </div>
+              </div>
+              <nf-skeleton width="34px" height="34px" radius="50%" />
+            </div>
+            <div class="rk-top-card__mid">
+              <nf-skeleton width="24px" height="24px" />
+              <nf-skeleton width="90px" height="28px" />
+            </div>
+            <div class="rk-top-card__foot">
+              <div class="rk-top-card__stats">
+                <nf-skeleton width="120px" height="13px" />
+                <nf-skeleton width="80px" height="17px" />
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+
+      <div class="rk-list">
+        <!-- Las MISMAS columnas que la tabla real, no una copia: si divergieran, el esqueleto
+             reservaría un hueco distinto del que ocupa el contenido y la página saltaría al
+             llegar el dato, que es justo lo que un esqueleto existe para evitar. -->
+        <ng-container *ngTemplateOutlet="tableHead" />
+        @for (s of [1, 2, 3, 4, 5, 6, 7, 8]; track s) {
+          <div class="rk-row">
+            <div class="rk-row__summary">
+              <span class="rk-cell rk-cell--pos nf-mono"><nf-skeleton width="18px" height="14px" /></span>
+              <span class="rk-cell rk-cell--user">
+                <nf-skeleton width="40px" height="40px" radius="50%" />
+                <span class="rk-user-meta">
+                  <nf-skeleton width="110px" height="14px" />
+                  <nf-skeleton width="65px" height="11px" />
+                </span>
+              </span>
+              <span class="rk-cell rk-cell--lane"><nf-skeleton width="24px" height="24px" /></span>
+              <span class="rk-cell rk-cell--lp"><nf-skeleton width="70px" height="16px" /></span>
+              <span class="rk-cell rk-cell--wr"><nf-skeleton width="80px" height="14px" /></span>
+              <span class="rk-cell rk-cell--trend"><nf-skeleton width="60px" height="14px" /></span>
+              <span class="rk-cell rk-cell--avg-lp"><nf-skeleton width="50px" height="14px" /></span>
+              <span class="rk-cell rk-cell--main"><nf-skeleton width="32px" height="32px" radius="4px" /></span>
+              <span class="rk-cell"><nf-skeleton width="16px" height="16px" /></span>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  } @else if (group(); as g) {
+    <div class="rk-league-header">
+      <a class="view-back nf-mono" [routerLink]="['/app', 'grupos', g.id]">
+        <span class="view-back__arrow" aria-hidden="true">←</span> {{ g.name }}
+      </a>
+
+      <div class="rk-league-hero">
+        <div class="rk-league-title-group">
+          <span class="rk-league-eyebrow nf-mono">Clasificación oficial</span>
+          <h1 class="rk-league-title">{{ leagueName() }}</h1>
+          <!-- Solo con más de una temporada: un selector con una sola opción no es una
+               elección, es un adorno que sugiere que hay algo más donde no lo hay. -->
+          @if (seasonOptions().length > 1) {
+            <div class="rk-season">
+              <span class="rk-season__label nf-mono">Temporada</span>
+              <!-- Combobox y no el select nativo: aquel es legacy (Input/Output) y se
+                   quedaba desincronizado del store — la tabla cambiaba de temporada y el
+                   desplegable seguía rotulando la anterior. Este va con signals, así que
+                   refleja siempre lo que hay cargado. -->
+              <nf-combobox
+                class="rk-season__control"
+                [options]="seasonOptions()"
+                [value]="leagues.viewingLeagueId() ?? ''"
+                (valueChange)="onSeasonChange($event)"
+                [clearable]="false"
+                ariaLabel="Temporada"
+              />
+              @if (leagues.viewingLeagueId()) {
+                <span class="rk-season__past nf-mono">Temporada cerrada · solo lectura</span>
+              }
+            </div>
+          }
+        </div>
+
+        @if (countdown(); as cd) {
+          <div class="rk-countdown" [class.is-expired]="cd.isExpired">
+            <div class="rk-countdown__status">
+              <span
+                class="rk-countdown__badge nf-mono"
+                [class.rk-countdown__badge--success]="cd.statusVariant === 'success'"
+                [class.rk-countdown__badge--warning]="cd.statusVariant === 'warning'"
+                [class.rk-countdown__badge--danger]="cd.statusVariant === 'danger'"
+              >
+                <span class="rk-countdown__dot" aria-hidden="true"></span>
+                {{ cd.statusLabel }}
+              </span>
+            </div>
+
+            @if (!cd.isExpired) {
+              <div class="rk-countdown__timer nf-mono" aria-label="Tiempo restante de la liga">
+                <span class="rk-countdown__unit">
+                  <strong class="rk-countdown__val">{{ cd.days }}</strong>
+                  <small class="rk-countdown__lbl">días</small>
+                </span>
+                <span class="rk-countdown__sep" aria-hidden="true">:</span>
+                <span class="rk-countdown__unit">
+                  <strong class="rk-countdown__val">{{ pad(cd.hours) }}</strong>
+                  <small class="rk-countdown__lbl">h</small>
+                </span>
+                <span class="rk-countdown__sep" aria-hidden="true">:</span>
+                <span class="rk-countdown__unit">
+                  <strong class="rk-countdown__val">{{ pad(cd.minutes) }}</strong>
+                  <small class="rk-countdown__lbl">m</small>
+                </span>
+                <span class="rk-countdown__sep" aria-hidden="true">:</span>
+                <span class="rk-countdown__unit">
+                  <strong class="rk-countdown__val">{{ pad(cd.seconds) }}</strong>
+                  <small class="rk-countdown__lbl">s</small>
+                </span>
+              </div>
+            } @else {
+              <div class="rk-countdown__expired nf-mono">Temporada concluida</div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+
+    @if (leagues.status() === 'error') {
+      <!-- Error, no vacío: hubo un fallo y hay algo que reintentar. -->
+      <div class="empty-state" role="alert">
+        <span class="empty-state__icon">⚠️</span>
+        <p class="empty-state__text nf-mono">No se pudo cargar la clasificación</p>
+        <p class="empty-state__hint">{{ leagues.error() }}</p>
+        <button nfButton variant="secondary" size="md" (click)="retry()">Reintentar</button>
+      </div>
+    } @else if (leagues.isEmpty()) {
+      <!-- Vacío, no error: la liga existe, simplemente aún no se ha jugado nada. -->
+      <div class="empty-state">
+        <span class="empty-state__icon">🏆</span>
+        <p class="empty-state__text nf-mono">La liga aún no tiene participantes</p>
+        <p class="empty-state__hint">
+          Cuando juguéis vuestra primera custom, el podio y la clasificación aparecerán aquí.
+        </p>
+        <button nfButton variant="primary" size="md" [routerLink]="['/app', 'grupos', g.id, 'tablon']">
+          Crear partida
+        </button>
+      </div>
+    } @else {
+      @if (leagues.isSeasonClosed()) {
+        <!-- La temporada acabó. La clasificación sigue debajo, ya en solo lectura: es el
+             resultado final, no una tabla viva. La siguiente temporada no aparece sola —
+             reiniciar el LP de todo el grupo es una decisión de un admin. -->
+        <div class="rk-season-over" role="status">
+          <div class="rk-season-over__head">
+            <span class="rk-season-over__trophy" aria-hidden="true">🏆</span>
+            <div class="rk-season-over__text">
+              <p class="rk-season-over__title">Temporada finalizada</p>
+              @if (leagues.champion(); as champ) {
+                <p class="rk-season-over__champ">
+                  Campeón: <strong>{{ champ.discordUsername }}</strong>
+                  <span class="nf-mono">· {{ champ.lp }} LP · {{ champ.wins }}V-{{ champ.losses }}D</span>
+                </p>
+              } @else {
+                <p class="rk-season-over__champ">Nadie llegó a puntuar en esta temporada.</p>
+              }
+            </div>
+          </div>
+
+          @if (leagues.canManageLeague()) {
+            <button
+              nfButton
+              variant="primary"
+              size="md"
+              [disabled]="leagues.starting()"
+              (click)="startNextSeason(g.name)"
+            >
+              {{ leagues.starting() ? 'Abriendo…' : 'Empezar nueva temporada' }}
+            </button>
+          } @else {
+            <p class="rk-season-over__hint">
+              Un administrador del grupo puede abrir la siguiente temporada.
+            </p>
+          }
+        </div>
+      }
+
+      @if (podium().length) {
+        <div class="rk-top3-grid" role="region" aria-label="Podio de honor Top 3">
+          @for (e of podium(); track e.playerId) {
+            <div
+              class="rk-top-card"
+              [class.rk-top-card--1st]="e.rank === 1"
+              [class.rk-top-card--2nd]="e.rank === 2"
+              [class.rk-top-card--3rd]="e.rank === 3"
+              [attr.aria-label]="'Puesto ' + e.rank + ': ' + e.name"
+            >
+              <div class="rk-top-card__head">
+                <div class="rk-top-card__user">
+                  <nf-avatar [src]="e.avatar" [fallback]="e.name" [tint]="e.hue" [size]="e.rank === 1 ? 54 : 44" />
+                  <div class="rk-top-card__user-meta">
+                    <a
+                      class="rk-top-card__name no-underline"
+                      [routerLink]="['/app', 'perfil', e.playerId]"
+                      [title]="'Ver perfil de ' + e.name"
+                    >{{ e.name }}</a>
+                    @if (e.tag) {
+                      <span class="rk-top-card__tag nf-mono">#{{ e.tag }}</span>
+                    }
+                  </div>
+                </div>
+
+                @if (e.lolRank; as r) {
+                  <nf-rank-emblem
+                    class="rk-top-card__emblem"
+                    [tier]="r.tier"
+                    [label]="r.label"
+                    [size]="e.rank === 1 ? 38 : 30"
+                  />
+                }
+              </div>
+
+              <div class="rk-top-card__mid">
+                @if (e.lane; as lane) {
+                  <nf-lane-icon class="rk-top-card__lane" [lane]="lane" mode="original" [title]="'Rol: ' + lane" />
+                }
+                <span class="rk-top-card__lp nf-mono">{{ e.formattedLp }}</span>
+              </div>
+
+              <div class="rk-top-card__foot">
+                <div class="rk-top-card__stats">
+                  <div class="rk-top-card__stat-line">
+                    <span class="rk-top-card__wl nf-mono">
+                      <span class="rk-top-card__w">{{ e.wins }}V</span>
+                      <span class="rk-top-card__l"> {{ e.losses }}D</span>
+                    </span>
+                    <span class="rk-top-card__total nf-mono">({{ e.totalGames }} partidas)</span>
+                  </div>
+                  <div class="rk-top-card__wr-group">
+                    <span class="rk-top-card__wr-val nf-mono">{{ e.wr }}%</span>
+                    <span class="rk-top-card__wr-lbl nf-mono">Winrate</span>
+                  </div>
+                </div>
+
+                @if (e.trophyImg; as trophy) {
+                  <img class="rk-top-card__trophy" [src]="trophy" [alt]="'Trofeo del puesto ' + e.rank" aria-hidden="true" />
+                }
+              </div>
+            </div>
+          }
+        </div>
+      }
+
+      <div class="rk-mobile-sort nf-mono" role="toolbar" aria-label="Ordenar clasificación">
+        <span class="rk-mobile-sort__label">Ordenar:</span>
+        <div class="rk-mobile-sort__chips">
+          <button type="button" class="rk-sort-chip" [class.is-active]="sortKey() === 'rank'" (click)="sortBy('rank')">
+            Posición <span class="rk-sort-chip__arrow">{{ arrow('rank') }}</span>
+          </button>
+          <button type="button" class="rk-sort-chip" disabled [title]="NO_DATA_HINT">
+            Rol <span class="rk-sort-chip__arrow">–</span>
+          </button>
+          <button type="button" class="rk-sort-chip" [class.is-active]="sortKey() === 'wr'" (click)="sortBy('wr')">
+            Winrate <span class="rk-sort-chip__arrow">{{ arrow('wr') }}</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="rk-list">
+        <ng-container *ngTemplateOutlet="tableHead; context: { interactive: true }" />
+
+        @for (e of rows(); track e.playerId) {
+          <div
+            #rowRef
+            class="rk-row"
+            [id]="'rk-row-' + e.playerId"
+            [attr.data-player]="e.playerId"
+            [class.is-open]="openId() === e.playerId"
+            [class.has-menu]="menuFor() === e.playerId"
+            [class.is-banned]="e.banned"
+            [class.is-highlighted]="highlightedPlayerId() === e.playerId"
+          >
+            <div class="rk-row__summary">
+              <span class="rk-cell rk-cell--pos nf-mono">{{ e.rank }}</span>
+
+              <span class="rk-cell rk-cell--user">
+                <nf-avatar [src]="e.avatar" [fallback]="e.name" [tint]="e.hue" [size]="40" />
+                <span class="rk-user-meta">
+                  <span class="rk-user-meta__top">
+                    <a
+                      class="rk-user-name no-underline"
+                      [routerLink]="['/app', 'perfil', e.playerId]"
+                      [title]="'Ver perfil de ' + e.name"
+                    >{{ e.name }}</a>
+                    @if (e.banned) {
+                      <!-- El motivo lo manda el servidor. Antes era una constante del cliente,
+                           la misma para todo el mundo, porque no se guardaba ninguno. -->
+                      <span class="rk-ban" [title]="banTitle(e)">
+                        <span class="rk-ban__lbl nf-mono">Sancionado</span>
+                      </span>
+                    }
+                  </span>
+                  @if (e.tag) {
+                    <span class="rk-user-riot nf-mono">{{ e.name }}#{{ e.tag }}</span>
+                  } @else {
+                    <span class="rk-user-riot rk-nodata nf-mono" [title]="NO_RIOT_HINT">Sin cuenta de Riot</span>
+                  }
+                </span>
+              </span>
+
+              <span class="rk-cell rk-cell--lane">
+                @if (e.lane; as lane) {
+                  <nf-lane-icon [lane]="lane" mode="original" [title]="'Rol: ' + lane" />
+                } @else {
+                  <span class="rk-nodata nf-mono" [title]="NO_DATA_HINT">—</span>
+                }
+              </span>
+
+              <span class="rk-cell rk-cell--lp nf-mono">{{ e.formattedLp }}</span>
+
+              <span class="rk-cell rk-cell--wr">
+                <span class="rk-wr-text nf-mono">
+                  <span class="rk-wr-pct">{{ e.wr }}%</span>
+                  <span class="rk-wr-counts">{{ e.wins }}V - {{ e.losses }}D</span>
+                </span>
+                <span
+                  class="rk-wr-bar"
+                  [title]="e.wins + ' victorias / ' + e.losses + ' derrotas (' + e.totalGames + ' partidas)'"
+                >
+                  <span class="rk-wr-bar__w" [style.width.%]="e.wr"></span>
+                  <span class="rk-wr-bar__l" [style.width.%]="100 - e.wr"></span>
+                </span>
+              </span>
+
+              <span class="rk-cell rk-cell--trend">
+                @if (e.sparkPath; as path) {
+                  <svg
+                    class="rk-spark"
+                    [class.is-down]="e.trend === 'down'"
+                    viewBox="0 0 100 28"
+                    preserveAspectRatio="none"
+                    [attr.aria-label]="e.trend === 'down' ? 'Tendencia a la baja' : 'Tendencia al alza'"
+                    role="img"
+                  >
+                    <polyline [attr.points]="path" />
+                  </svg>
+                } @else {
+                  <span class="rk-nodata nf-mono" [title]="NO_TREND_HINT">—</span>
+                }
+              </span>
+
+              <span class="rk-cell rk-cell--avg-lp nf-mono">
+                @if (e.avgLpGain !== null && e.avgLpLoss !== null) {
+                  <span class="rk-lp-gain">+{{ e.avgLpGain }}</span>
+                  <span class="rk-lp-loss">-{{ e.avgLpLoss }}</span>
+                } @else {
+                  <span class="rk-nodata" [title]="NO_AVG_HINT">—</span>
+                }
+              </span>
+
+              <span class="rk-cell rk-cell--main">
+                @if (e.mainChampionId !== null) {
+                  <nf-avatar [src]="null" [fallback]="'?'" [tint]="e.mainChampionId" [size]="32" shape="square" />
+                } @else {
+                  <span class="rk-nodata nf-mono" [title]="NO_DATA_HINT">—</span>
+                }
+              </span>
+
+              <span class="rk-rowend">
+              <!-- Gestión del jugador. Un menú de tres puntos y no botones sueltos por fila:
+                   en una tabla de quince filas, repetir acciones destructivas a la vista
+                   invita al accidente y se come ancho que aquí ya va justo.
+                   Solo aparece si hay algo que ofrecer: quien lo abre gestiona el grupo Y
+                   supera en rango a esta fila. Sobre el propietario, o sobre uno mismo, no
+                   hay ninguna acción posible y ni el botón se pinta. -->
+              @if (canManageMembers() && canActOn(e)) {
+                <span class="rk-actions">
+                  <button
+                    type="button"
+                    class="rk-actions__trigger"
+                    [class.is-open]="menuFor() === e.playerId"
+                    aria-haspopup="menu"
+                    [attr.aria-expanded]="menuFor() === e.playerId"
+                    [attr.aria-label]="'Gestionar a ' + e.name"
+                    [disabled]="leagues.isSanctioning(e.playerId)"
+                    (click)="toggleMenu(e.playerId, $event)"
+                  >⋯</button>
+
+                  @if (menuFor() === e.playerId) {
+                    <span class="rk-actions__menu" role="menu" [attr.aria-label]="'Acciones sobre ' + e.name">
+                      @if (e.banned) {
+                        <button
+                          type="button"
+                          class="rk-actions__item"
+                          role="menuitem"
+                          [disabled]="leagues.isSanctioning(e.playerId)"
+                          (click)="liftSanction(e)"
+                        >Levantar sanción</button>
+                      } @else {
+                        <button
+                          type="button"
+                          class="rk-actions__item"
+                          role="menuitem"
+                          (click)="openSanction(e)"
+                        >Sancionar</button>
+                      }
+                      <button
+                        type="button"
+                        class="rk-actions__item rk-actions__item--danger"
+                        role="menuitem"
+                        (click)="askKick(e)"
+                      >Expulsar del grupo</button>
+                    </span>
+                  }
+                </span>
+              }
+
+              <button
+                #summary
+                type="button"
+                class="rk-row__toggle"
+                [attr.aria-expanded]="openId() === e.playerId"
+                [attr.aria-controls]="'rkd-' + e.playerId"
+                [attr.aria-label]="'Puesto ' + e.rank + ', ' + e.name + ': ver detalle'"
+                (click)="toggle(e.playerId)"
+              >
+                <span class="rk-row__chev" aria-hidden="true">▾</span>
+              </button>
+              </span>
+            </div>
+
+            @if (openId() === e.playerId) {
+              <div
+                class="rk-drawer"
+                [id]="'rkd-' + e.playerId"
+                role="region"
+                [attr.aria-label]="'Detalle de ' + e.name"
+                (keydown.escape)="close(summary)"
+              >
+                <div class="rk-drawer__head">
+                  <span class="rk-drawer__tab is-active nf-mono">Historial</span>
+                  @if (e.opggUrl; as url) {
+                    <span class="rk-drawer__actions">
+                      <a
+                        class="rk-drawer__btn rk-drawer__btn--opgg nf-mono"
+                        [href]="url"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        [title]="'Abrir ' + e.name + ' en OP.GG (pestaña nueva)'"
+                      >
+                        OP.GG <span class="rk-drawer__ext" aria-hidden="true">↗</span>
+                      </a>
+                    </span>
+                  }
+                </div>
+
+                @if (matchesOf(e.playerId); as pMatches) {
+                  @if (pMatches.length > 0) {
+                    <div class="rk-matches">
+                      @for (m of pMatches; track m.id) {
+                        <a
+                          class="rk-match"
+                          [routerLink]="['/app', 'historial', m.id]"
+                          [class.is-win]="m.isWin"
+                          [class.is-loss]="!m.isWin"
+                          [title]="'Ver análisis detallado de la partida ' + m.id"
+                        >
+                          <div class="rk-match__result">
+                            <span class="rk-match__verdict">{{ m.isWin ? 'Victoria' : 'Derrota' }}</span>
+                            <span class="rk-match__meta nf-mono">{{ m.meta }}</span>
+                          </div>
+
+                          <nf-lane-icon class="rk-match__lane" [lane]="m.lane" mode="original" />
+
+                          <div class="rk-match__loadout">
+                            <nf-avatar
+                              class="rk-match__champ"
+                              [src]="m.champIcon"
+                              [fallback]="m.champName"
+                              [tint]="m.champId"
+                              [size]="34"
+                              shape="square"
+                              [title]="m.champName"
+                            />
+
+                            <div class="rk-match__spells">
+                              @for (sId of m.spells; track $index) {
+                                <nf-avatar
+                                  class="rk-match__spell-slot"
+                                  [src]="spellIcon(sId)"
+                                  [fallback]="spellName(sId)"
+                                  [size]="16"
+                                  shape="square"
+                                  [title]="spellName(sId)"
+                                />
+                              }
+                            </div>
+
+                            <div class="rk-match__runes">
+                              <nf-avatar
+                                class="rk-match__rune-slot rk-match__rune-slot--primary"
+                                [src]="runeIcon(m.primaryRuneId)"
+                                [fallback]="runeName(m.primaryRuneId)"
+                                [size]="16"
+                                shape="round"
+                                [title]="runeName(m.primaryRuneId)"
+                              />
+                              <nf-avatar
+                                class="rk-match__rune-slot rk-match__rune-slot--secondary"
+                                [src]="runeIcon(m.secondaryRuneTreeId)"
+                                [fallback]="runeName(m.secondaryRuneTreeId)"
+                                [size]="14"
+                                shape="round"
+                                [title]="runeName(m.secondaryRuneTreeId)"
+                              />
+                            </div>
+                          </div>
+
+                          <div class="rk-match__vs-block">
+                            <span class="rk-match__vs nf-mono">VS</span>
+                            <div class="rk-match__foe">
+                              <nf-avatar
+                                class="rk-match__foe-champ"
+                                [src]="m.foeChampIcon"
+                                [fallback]="m.foeChampName"
+                                [tint]="m.foeChampId"
+                                [size]="30"
+                                shape="square"
+                                [title]="m.foeChampName"
+                              />
+                              <div class="rk-match__foe-name">
+                                <span class="rk-match__foe-nick">{{ m.foeName }}</span>
+                                @if (m.foeTag) {
+                                  <span class="rk-match__foe-tag nf-mono">#{{ m.foeTag }}</span>
+                                }
+                              </div>
+                            </div>
+                          </div>
+
+                          <div class="rk-match__kda">
+                            <span class="rk-match__kda-line nf-mono">
+                              {{ m.kills }} / <span class="rk-match__deaths">{{ m.deaths }}</span> / {{ m.assists }}
+                            </span>
+                            <span class="rk-match__kda-sub nf-mono">{{ m.cs }} CS ({{ m.csPerMin }}/min)</span>
+                          </div>
+
+                          <div class="rk-match__build">
+                            @for (it of m.items; track $index) {
+                              @if (it) {
+                                <nf-avatar
+                                  class="rk-item"
+                                  [class.rk-item--trinket]="$index === (m.lane === 'ADC' ? 7 : 6)"
+                                  [src]="it.iconUrl ?? null"
+                                  [fallback]="it.name"
+                                  [size]="22"
+                                  shape="square"
+                                  [title]="it.name"
+                                />
+                              } @else {
+                                <span
+                                  class="rk-item rk-item--empty"
+                                  [class.rk-item--trinket]="$index === (m.lane === 'ADC' ? 7 : 6)"
+                                ></span>
+                              }
+                            }
+                          </div>
+
+                          <span class="rk-match__lp nf-mono" [class.is-gain]="m.lpDelta > 0">
+                            {{ m.lpDelta > 0 ? '+' : '' }}{{ m.lpDelta }} LP
+                          </span>
+                        </a>
+                      }
+                    </div>
+                  } @else {
+                    <div class="empty-state">
+                      <span class="empty-state__icon">🎮</span>
+                      <p class="empty-state__text nf-mono">Sin partidas todavía</p>
+                      <p class="empty-state__hint">
+                        El historial por jugador aparecerá cuando se registren partidas de la liga.
+                      </p>
+                    </div>
+                  }
+                }
+              </div>
+            }
+          </div>
+        }
+      </div>
+
+      @if (leagues.totalPlayers() > leagues.pageSize()) {
+        <nf-pagination
+          [total]="leagues.totalPlayers()"
+          [pageSize]="leagues.pageSize()"
+          [page]="leagues.page() + 1"
+          (pageChange)="goToPage($event)"
+        />
+      }
+    }
+  } @else {
+    <div class="view__head">
+      <div class="view__eyebrow nf-mono">Error 404</div>
+      <h1 class="view__title">Grupo no encontrado</h1>
+      <p class="view__lead">El grupo que buscas no existe o ya no perteneces a él.</p>
+    </div>
+    <button nfButton variant="secondary" size="md" [routerLink]="['/app', 'grupos']">← Volver a grupos</button>
+  }
+</div>
+
+<!--
+  Cabecera de la tabla, UNA sola vez.
+  La usan el esqueleto y la tabla real, y por eso las nueve columnas se declaran aquí y no en
+  dos sitios: si divergieran, el esqueleto reservaría un hueco distinto del que ocupa el
+  contenido y la página saltaría al llegar el dato — lo contrario de lo que un esqueleto hace.
+  El parámetro "interactive" decide si las cabeceras ordenables son botones o etiquetas:
+  mientras carga no hay nada que ordenar ni donde buscar.
+-->
+<ng-template #tableHead let-interactive="interactive">
+  <div class="rk-list__head nf-mono">
+    @if (interactive) {
+      <button type="button" class="rk-th rk-th--btn" [attr.aria-sort]="ariaSort('rank')" (click)="sortBy('rank')">
+        Pos <span class="rk-th__arrow" aria-hidden="true">{{ arrow('rank') }}</span>
+      </button>
+    } @else {
+      <span class="rk-th">Pos</span>
+    }
+
+    <div class="rk-th rk-th--start rk-th--user-header">
+      <span class="rk-th__title">Jugador</span>
+      @if (interactive) {
+        <div class="rk-search-wrap">
+          <nf-typeahead
+            placeholder="Buscar jugador"
+            ariaLabel="Buscar jugador en la clasificación"
+            [suggestions]="suggestions()"
+            (queryChange)="onSearchChange($event)"
+            (selectOption)="selectPlayer($event)"
+          >
+            <ng-template let-s>
+              <div class="rk-search-info">
+                <span class="rk-search-name">
+                  {{ s.discordUsername }}
+                  @if (s.riotId) {
+                    <span class="rk-search-tag nf-mono">{{ s.riotId }}</span>
+                  }
+                </span>
+                <span class="rk-search-meta nf-mono">#{{ s.rank }} · {{ s.lp }} LP</span>
+              </div>
+            </ng-template>
+          </nf-typeahead>
+        </div>
+      }
+    </div>
+
+    <span class="rk-th rk-th--muted" [title]="NO_DATA_HINT">Rol</span>
+    <span class="rk-th">LP</span>
+
+    @if (interactive) {
+      <button type="button" class="rk-th rk-th--btn" [attr.aria-sort]="ariaSort('wr')" (click)="sortBy('wr')">
+        Winrate <span class="rk-th__arrow" aria-hidden="true">{{ arrow('wr') }}</span>
+      </button>
+    } @else {
+      <span class="rk-th">Winrate</span>
+    }
+
+    <span class="rk-th">Tendencia</span>
+    <span class="rk-th">LP prom.</span>
+    <span class="rk-th rk-th--muted" [title]="NO_DATA_HINT">Main</span>
+    <span class="rk-th" aria-hidden="true"></span>
+  </div>
+</ng-template>
+
+@if (sanctionFor(); as target) {
+  <nf-modal title="Sancionar" width="460px" (closed)="closeSanction()">
+    <div class="rk-sanction">
+      <p class="rk-sanction__lead">
+        <strong>{{ target.name }}</strong> quedará fuera de la competición y caerá al final de
+        la clasificación bajo cualquier orden.
+      </p>
+
+      <label class="field__label nf-mono" for="rk-sanction-reason">Motivo</label>
+      <input
+        id="rk-sanction-reason"
+        class="field__input"
+        type="text"
+        maxlength="200"
+        autocomplete="off"
+        placeholder="Por qué se le aparta"
+        [ngModel]="sanctionReason()"
+        (ngModelChange)="sanctionReason.set($event)"
+      />
+      <!-- El motivo lo lee el resto del grupo en la tabla, así que no puede quedar vacío: una
+           sanción sin explicación es indistinguible de un error del administrador. -->
+      <p class="rk-sanction__hint nf-mono">Se muestra a todo el grupo junto al jugador.</p>
+
+      <label class="field__label nf-mono" for="rk-sanction-until">Hasta</label>
+      <input
+        id="rk-sanction-until"
+        class="field__input"
+        type="datetime-local"
+        [ngModel]="sanctionUntil()"
+        (ngModelChange)="sanctionUntil.set($event)"
+      />
+      <p class="rk-sanction__hint nf-mono">Déjalo vacío para una sanción indefinida.</p>
+
+      <div class="form-foot">
+        <button
+          nfButton
+          variant="ghost"
+          size="md"
+          [disabled]="leagues.isSanctioning(target.playerId)"
+          (click)="closeSanction()"
+        >Cancelar</button>
+        <button
+          nfButton
+          variant="danger"
+          size="md"
+          [disabled]="!sanctionReason().trim() || leagues.isSanctioning(target.playerId)"
+          (click)="confirmSanction()"
+        >{{ leagues.isSanctioning(target.playerId) ? 'Sancionando…' : 'Sancionar' }}</button>
+      </div>
+    </div>
+  </nf-modal>
+}
+
+@if (kickFor(); as target) {
+  <nf-modal title="Expulsar del grupo" width="440px" (closed)="kickFor.set(null)">
+    <div class="rk-sanction">
+      <p class="rk-sanction__lead">
+        ¿Expulsar a <strong>{{ target.name }}</strong> del grupo? Sale también de la
+        clasificación. Puede volver si alguien le invita de nuevo.
+      </p>
+      <div class="form-foot">
+        <button nfButton variant="ghost" size="md" (click)="kickFor.set(null)">Cancelar</button>
+        <button nfButton variant="danger" size="md" (click)="confirmKick()">Expulsar</button>
+      </div>
+    </div>
+  </nf-modal>
+}

@@ -61,15 +61,15 @@ interface RoomSlot {
             nfButton
             variant="primary"
             size="sm"
-            [routerLink]="['/app', 'grupos', groupId(), 'partidas', l.id]"
+            [routerLink]="['/app', 'grupos', groupId(), 'sala', l.id]"
           >Entrar a la sala</button>
         </div>
       } @else {
-        <a class="hub-room__cta" [routerLink]="['/app', 'grupos', groupId(), 'crear-partida']">
+        <a class="hub-room__cta" [routerLink]="['/app', 'grupos', groupId(), 'tablon']">
           <span class="hub-room__cta-glyph" aria-hidden="true">＋</span>
           <span class="hub-room__cta-text">
-            <span class="hub-room__cta-title">Crear partida</span>
-            <span class="hub-room__cta-sub">Convoca a tu grupo y reparte los diez</span>
+            <span class="hub-room__cta-title">Convocar una custom</span>
+            <span class="hub-room__cta-sub">Propón horas en el Tablón y que el grupo se apunte</span>
           </span>
         </a>
       }

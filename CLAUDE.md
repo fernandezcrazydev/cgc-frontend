@@ -36,7 +36,7 @@ deterministas (`seeded`/`hash`). Los comentarios `BACKEND NOTE:` marcan puntos d
 **El backend será el dueño de TODA la regla de negocio**: matchmaking, cálculo de MMR/elo,
 validaciones de draft, TTL de salas, permisos, resolución de conflictos de importación,
 generación de ids/códigos/timestamps. La lógica de ese tipo que hoy vive en el front
-(en `matchmaking.ts`, `grupo-crear-partida.ts`, `grupo-sala.ts`, stores...) es un
+(en stores mock, generadores y semillas deterministas...) es un
 **placeholder desechable del endpoint futuro**. Por tanto:
 
 - **No la refactorices, no la extraigas a servicios "para dejarla limpia", no le añadas tests.**
@@ -248,9 +248,26 @@ custom properties, y 2 (`.nf-game-icon`) apuntaban a un componente **que no exis
 **Tamaño de hoja**: Angular avisa a 24 kB y falla a 32 por hoja de componente
 (`anyComponentStyle` en `angular.json`). Una vista-página no es un componente del tamaño que
 asume ese umbral, pero **no subas el presupuesto**: parte la hoja por bloques y usa `styleUrls`
-con varios ficheros, como hacen `shell.ts` y `grupo-ranking.ts` (base + `-podio` + `-historial`).
+con varios ficheros, como hacen `shell.ts` y `group/grupo-ranking.ts` (base + `-podio` +
+`-historial`).
 Ojo: ese presupuesto **no ve el CSS global**, así que hoy pasa solo porque el monolito lo esquiva.
 Sacar CSS a componentes es la primera vez que ese límite mira de verdad.
+
+**Al partir una hoja, comprueba que declaras TODAS las partes en `styleUrls`.** Nada avisa si te
+dejas una: no falla el build, no lo ve `dead-css` (sus clases siguen apareciendo en el markup, así
+que las da por vivas) y no lo ve `css-total-size` (el fichero sigue ahí, contando). `grupo-ranking`
+partió su hoja en tres y siguió declarando solo la base: 1.133 líneas —el podio entero y el cajón
+de historial del jugador— llevaban desde entonces sin cargarse, y esas dos zonas de la vista se
+pintaban sin estilo. Para auditarlo, cada hoja de `app/` debe aparecer en algún `styleUrl(s)`:
+
+```bash
+for f in $(find src/app -name '*.scss'); do
+  grep -rqF "'./$(basename $f)'" --include=*.ts src/app || echo "huérfana: $f"
+done
+```
+
+Hoy solo señala `views.scss`, y es el falso positivo esperado: el monolito es global y se declara
+en `angular.json`, no en un `styleUrl`. Cualquier otra cosa que salga ahí es CSS que no se carga.
 
 ### La duplicación es otro problema, y se arregla con tokens (no con ficheros)
 
@@ -297,10 +314,74 @@ mecánica. `npm run arch` lo vigila para que no se quede otra vez al 4% de adopc
 
 ### Carpetas
 
-`features/shell/views/` es una carpeta plana con 48 ficheros donde `admin-seguridad.ts`,
-`perfil.ts` y `no-encontrado.ts` son hermanos. `views` no es una capa, es un cubo. **Agrupa por
-dominio**, como ya hacen bien `views/cross/` y `views/match-history/`: `views/admin/`,
-`views/grupo/`, `views/perfil/`. Al tocar una vista por otro motivo, muévela.
+`features/shell/views` no es una capa, es un cubo: **agrupa por dominio**. Fue una carpeta plana
+de 48 ficheros donde `admin-seguridad.ts`, `perfil.ts` y `no-encontrado.ts` eran hermanos, y ya
+no lo es. Hoy:
+
+```
+views/
+  admin/          directorio, feedback (+detalle), métricas de Riot, registro de seguridad
+  cross/          el cruce con otro jugador: layout, cabecera, historial, versus, sinergia
+  group/          las vistas de un grupo: lista, detalle, perfil, ranking, tierlist…
+  group-hub/      tarjetas del hub que compone `group/grupo-detalle`
+  group-board/    EL TABLÓN: salas vivas + convocatorias, y sus dos columnas
+  group-lobby/    LA CONVOCATORIA: sus franjas, sus salas y su banquillo
+  group-room/     LA SALA: los diez que juegan
+  group-stats/    estadísticas del grupo y sus tarjetas
+  match-history/  historial personal, detalle de partida y las tarjetas que comparten
+  profile/        perfil propio, perfil de miembro y sus tarjetas
+  ajustes.*  inicio.*  no-encontrado.ts  views.scss
+```
+
+Las carpetas se nombran **en inglés** y los ficheros conservan su nombre **en español**: es la
+convención que ya traían `cross/` y `match-history/`, y mezclarla ahora costaría más de lo que
+aclara. `group-hub/`, `group-board/`, `group-lobby/`, `group-room/` y `group-stats/` son hermanas
+de `group/` y no hijas suyas a propósito: son las piezas de una sola vista cada una, y anidarlas
+alargaría todos sus imports relativos sin decir nada nuevo.
+
+Solo quedan sueltos los ficheros que de verdad son de raíz: las dos vistas que no pertenecen a
+ningún dominio (`inicio`, `ajustes`), el 404 y el monolito `views.scss`. Al crear una vista
+nueva, va dentro de su carpeta; si estrena dominio, se crea la carpeta.
+
+### La zona de juego del grupo
+
+Tres pantallas, una por objeto del dominio de `FlujoJuego.md` §2. **El vocabulario no es
+decorativo: es lo que decide el nombre de cada ruta, cada carpeta y cada rótulo.**
+
+| ruta | pantalla | qué es |
+|---|---|---|
+| `grupos/:id/tablon` | **Tablón** (`group-board/`) | Lo que hay ahora y lo que viene |
+| `grupos/:id/convocatoria/:lobbyId` | **Convocatoria** (`group-lobby/`) | La llamada a jugar: sus franjas, sus salas, su banquillo |
+| `grupos/:id/sala/:salaId` | **Sala** (`group-room/`) | Los diez que juegan. Sobrevive a cada partida (§10) |
+
+**Una «partida» es una custom ya jugada, y eso está en Historial.** Por eso la sección dejó de
+llamarse «Partidas»: no contenía ninguna. Y por eso el botón del host se llama **`Formar
+equipos`** y no «Generar partida» — si el menú y el botón usan la misma palabra para el sitio y
+para el acto, nadie sabe cuál creó qué.
+
+Solo viajan **dos ids** y ninguno se llama `roomId`, que era vocabulario del mock:
+
+```text
+lobbyId ── la convocatoria (con franjas, o sin ellas si es «jugar ahora»)
+  ├─ salaId  Sala 1
+  ├─ salaId  Sala 2
+  └─ banquillo (sin sala)
+```
+
+`partyId` **no es un nivel intermedio**: §2 la define como el contenedor de *una* convocatoria en
+rotación, o sea 1:1 con ella, así que no aparece en ninguna URL. La **tanda** tampoco: es una
+sección dentro de la pantalla de convocatoria.
+
+**BACKEND NOTE — `salaId` es hoy el `lobbyId`.** El servidor todavía no crea filas de sala y una
+convocatoria rinde exactamente una (`starters` + `bench`). La ruta ya tiene su forma definitiva:
+en la Fase 6 solo cambia el store que resuelve ese id, no la URL.
+
+**Lo que falta: «Jugar ahora»** (§4.1), la puerta principal según ese documento. No entra todavía
+porque el backend la rechaza por cuatro reglas independientes, y la cuarta no está en §17.3 —
+la encontró esta sesión: `CreateLobbyRequest.slotStartTimes` lleva `@NotEmpty`; `confirmIfFull` es
+el único camino a `CONFIRMED`; `checkCanFreezeLineup` exige estar confirmada; y **`findExpired`
+cancela cualquier `POLLING` sin franja futura**, así que una sala abierta «ahora» la barre el
+cron a la hora. Está anotado en la Fase 6 del `Roadmap.md`.
 
 ## Patrón obligatorio: store asíncrono (clon de `Session`)
 
@@ -462,9 +543,10 @@ Cuando se acuerde uno, documentarlo aquí y borrar la línea de pendientes.
 - Rutas hijas siempre `loadComponent` (lazy) con `title` definido.
 - **Plantilla inline hasta ~150 líneas; a partir de ahí, `templateUrl`.** La regla anterior
   ("inline por defecto, `templateUrl` solo si crece mucho") se escribió cuando una vista cabía
-  en pantalla, y ha producido ficheros de 2.300 líneas donde lógica y markup se pisan
-  (`grupo-crear-partida.ts`: 947 líneas de plantilla dentro del `.ts`). El umbral lo vigila
-  `npm run arch` (regla `inline-template-size`).
+  en pantalla, y produjo ficheros de 2.000 líneas donde lógica y markup se pisaban
+  (`grupo-crear-partida.ts` llegó a tener 780 líneas de plantilla dentro del `.ts`). Las cuatro
+  vistas peores ya tienen su `.html`; el umbral lo vigila `npm run arch`
+  (regla `inline-template-size`), que solo mide la **primera** plantilla inline de cada fichero.
 
 ## UI kit y estilos
 
@@ -547,24 +629,25 @@ check falla solo si una regla **empeora**. Así se adopta con el repo como está
 
 ## Deuda conocida (no la propagues)
 
-- `views.scss`: quedan ~4.000 líneas, y son las que **deben** quedar (bloques compartidos por
+- `views.scss`: quedan ~3.000 líneas, y son las que **deben** quedar (bloques compartidos por
   varios componentes). Sigue congelado: cero líneas nuevas. Ver § "Organización de ficheros".
-- `features/shell/views/`: ficheros planos sin agrupar por dominio (`cross/`, `match-history/` y
-  `profile/` sí lo están; el resto no).
-- Vistas gigantes: `grupo-crear-partida.ts` (2.327 líneas, 947 de plantilla inline),
-  `grupo-sala.ts` (1.473/826), `grupo-ranking.ts` (1.417/714), `perfil.ts` (1.402/846). Su lógica
-  de negocio es placeholder del backend: **no la refactorices** — se adelgazará sola al migrar
-  matchmaking/MMR/resultados a endpoints. Pero sacar **plantilla y CSS** de ahí no es refactorizar
-  negocio: es gratis, es mecánico y sobrevive a la migración. Hazlo cuando toques la vista.
+- Vistas gigantes: `group/grupo-ranking.ts` (917 líneas) y `profile/perfil.ts` (558) ya no llevan
+  la plantilla dentro —cada una tiene su `.html` al lado— pero su **lógica** sigue siendo grande.
+  Es placeholder del backend: **no la refactorices**, se adelgazará sola al migrar MMR y
+  resultados a endpoints. Sacar **plantilla y CSS**, en cambio, no es refactorizar negocio: es
+  gratis, es mecánico y sobrevive a la migración. Hazlo cuando toques una vista que aún no lo
+  tenga (`inline-template-size` va por 17; las mayores que quedan son
+  `match-history/match-scoreboard.component.ts`, `group/grupos.ts` y `profile/perfil-miembro.ts`).
+  Las otras dos que estaban en esta lista —el asistente `grupo-crear-partida.ts` y la sala mock
+  `grupo-sala.ts`— **ya no existen**: ver § "La zona de juego del grupo".
 - Duplicados pendientes de unificar en `shared/`: resolución de `:id`→grupo (repetida en 8
   vistas), `avatarBg(hue)`, bloque 404.
 - **CSS ad-hoc que duplica primitivas que ya existen**: `.modal*` en 6 vistas pese a `NfModal`,
   `.tabs*`/`.seg*` en 5 pese a `NfSegmented`. Al desmontar `views.scss`, esos bloques no se
   mueven: se borran y se usa la primitiva. `.field*` (9 vistas) sí es candidato a primitiva nueva
   (`NfField`), no existe todavía.
-- Rutas huérfanas: `crear.ts` y `partidas.ts` no están en `app.routes.ts`. Ya no caen en el
-  login: el wildcard interno del shell pinta `no-encontrado`. (`campeones.ts` se renombró a
-  `tierlist.ts` y sí tiene ruta.)
+- ~~Rutas huérfanas `crear.ts` y `partidas.ts`~~: ya no existen en el repo. Toda vista de
+  `views/` tiene hoy su ruta en `app.routes.ts`.
 - `lobby.ts` es un God-module de tipos + datos semilla; al migrar cada dominio, mueve sus tipos a
   `core/<dominio>/models.ts` y borra sus semillas.
 - `GroupStore.selectedId` es estado de UI (sidebar del shell) viviendo en un store de dominio, y

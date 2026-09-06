@@ -117,7 +117,7 @@
                       [size]="28"
                       shape="round"
                     />
-                    @if (activeRoomForGroup(g.id)) {
+                    @if (hasLiveRoom(g.id)) {
                       <span class="shell__group-live-dot" title="Sala en vivo"></span>
                     }
                   </span>
@@ -135,27 +135,44 @@
                      al plegar la barra una desaparecía y otra aparecía de golpe). -->
                 <div class="shell__sections-wrap" [class.is-open]="isExpandedGroup(g.id)">
                   <div class="shell__sections">
+                    <!-- La sala solo aparece cuando le concierne a quien mira: si juegas en
+                         una, o si hay UNA sola y puedes entrar. Con varias no puede decidir
+                         a cuál llevarte, así que se calla y el aviso lo lleva el Tablón. -->
+                    @if (roomRowFor(g.id); as room) {
+                      <a
+                        class="shell__section is-live-room"
+                        [routerLink]="room.link"
+                        routerLinkActive="is-active"
+                        #roomLink="routerLinkActive"
+                        [attr.aria-current]="roomLink.isActive ? 'page' : null"
+                        [attr.title]="railed() ? room.label : null"
+                      >
+                        <span class="shell__section-glyph" aria-hidden="true">
+                          <span class="shell__live-pulse"></span>
+                        </span>
+                        <span class="shell__section-label shell__collapsible">{{ room.label }}</span>
+                      </a>
+                    }
+
                     @for (item of sectionsOf(g); track item.path) {
                       <a
                         class="shell__section"
                         [class.is-primary]="item.primary"
-                        [class.is-live-room]="item.path === 'crear-partida' && !!activeRoomForGroup(g.id)"
                         [routerLink]="sectionLink(g.id, item)"
                         routerLinkActive="is-active"
                         [routerLinkActiveOptions]="{ exact: item.path === '' }"
                         #activeLink="routerLinkActive"
                         [attr.aria-current]="activeLink.isActive ? 'page' : null"
-                        [attr.title]="railed() ? sectionLabel(g.id, item) : null"
+                        [attr.title]="railed() ? item.label : null"
                       >
                         <span class="shell__section-glyph" aria-hidden="true">
-                          @if (item.path === 'crear-partida') {
-                            @if (activeRoomForGroup(g.id)) {
-                              <span class="shell__live-pulse"></span>
-                            } @else {
-                              <svg class="shell__section-icon" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-                              </svg>
-                            }
+                          @if (item.path === 'tablon') {
+                            <svg class="shell__section-icon" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                              <rect x="3" y="4" width="18" height="16" rx="2" />
+                              <path d="M3 9h18" />
+                              <path d="M8 14h4" />
+                              <path d="M8 17h8" />
+                            </svg>
                           } @else if (item.path === '') {
                             <svg class="shell__section-icon" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                               <rect x="3" y="3" width="7" height="7" rx="1" />
@@ -203,7 +220,7 @@
                           }
                         </span>
                         <span class="shell__section-label shell__collapsible">
-                          {{ sectionLabel(g.id, item) }}
+                          {{ item.label }}
                         </span>
                       </a>
                     }
@@ -559,18 +576,6 @@
       </div>
     </header>
 
-    <!-- pending open-room banner: jump straight into the sala still filling up -->
-    @if (pendingRoom(); as r) {
-      <button type="button" class="shell__pending" (click)="openPendingRoom(r)">
-        <span class="shell__pending-pulse" aria-hidden="true"></span>
-        <span class="shell__pending-text">
-          <span class="shell__pending-title nf-mono">Partida abierta · {{ pendingSignedUp(r) }}/{{ r.capacity }} apuntados</span>
-          <span class="shell__pending-sub nf-mono">Sala {{ r.code }} — di a qué horas puedes</span>
-        </span>
-        <span class="shell__pending-cta nf-mono">Entrar</span>
-      </button>
-    }
-
     <!-- `tabindex="-1"` para que el salto de ancla mueva de verdad el foco aquí:
          sin él el navegador desplaza la vista pero deja el foco en el enlace, y
          el siguiente tabulador vuelve a la navegación. -->
@@ -669,16 +674,6 @@
     <div class="shell__sheet-overlay" (click)="closeGroupSheet()">
       <div class="shell__sheet" (click)="$event.stopPropagation()">
         <div class="shell__sheet-handle"></div>
-        @if (pendingRoom(); as r) {
-          <button type="button" class="shell__sheet-pending" (click)="openPendingRoom(r)">
-            <span class="shell__pending-pulse" aria-hidden="true"></span>
-            <span class="shell__pending-text">
-              <span class="shell__pending-title nf-mono">Partida abierta · {{ pendingSignedUp(r) }}/{{ r.capacity }}</span>
-              <span class="shell__pending-sub nf-mono">Sala {{ r.code }} — di a qué horas puedes</span>
-            </span>
-            <span class="shell__pending-cta nf-mono">Entrar</span>
-          </button>
-        }
         <div class="shell__sheet-head nf-mono">Tus grupos</div>
         <div class="shell__sheet-list">
           @for (g of groups.groups(); track g.id) {
