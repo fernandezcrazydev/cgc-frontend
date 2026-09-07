@@ -1,71 +1,64 @@
-/* Banquillo de suplentes (§5.5.6): mini-tarjetas cuadradas en tira. */
-
-.bench {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding-top: 12px;
-  border-top: 1px solid var(--nf-border);
-}
-
-.bench__label {
-  font-size: 11.5px;
-  color: var(--nf-gold);
-}
-
+.bench { display: flex; flex-direction: column; gap: 6px; padding-top: 8px; border-top: 1px solid color-mix(in srgb, #10b981 30%, var(--nf-border, #2a2d3d)); }
+.bench__head { display: flex; align-items: center; gap: 6px; color: var(--nf-emerald, #10b981); }
+.bench__icon { display: flex; align-items: center; }
+.bench__label { font-size: var(--fs-label); font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase; }
 .bench__list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
+  display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none;
+  li { display: flex; }
 }
 
-.bench__card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  width: 96px;
-  padding: 9px 7px;
-  border-radius: 9px;
-  background: var(--nf-surface-2);
-  /* Ámbar como los titulares en banquillo de los pods: mismo estado, mismo color. */
-  border: 1px solid color-mix(in srgb, var(--nf-gold) 40%, var(--nf-border));
-  color: inherit;
-  text-decoration: none;
-  transition:
-    border-color 0.14s,
-    background 0.14s;
-}
+.bench__chip {
+  position: relative; display: flex; align-items: center; gap: 6px; width: 136px; height: 28px; padding: 0 8px;
+  box-sizing: border-box; border-radius: var(--nf-radius-md, 6px);
+  background: #14151b; border: 1px solid #10b981; box-shadow: 0 0 6px rgba(16, 185, 129, 0.15);
+  color: var(--nf-text-main, #f0f2f5); text-decoration: none; font-size: var(--fs-caption);
+  min-width: 0; overflow: hidden;
+  transition: border-color 0.14s ease, background-color 0.14s ease, box-shadow 0.14s ease;
 
-.bench__card:hover {
-  border-color: color-mix(in srgb, var(--nf-gold) 65%, var(--nf-border));
-  background: color-mix(in srgb, var(--nf-gold) 7%, var(--nf-surface-2));
-}
+  &:hover:not(.is-inactive) { border-color: #34d399; background: #181a22; box-shadow: 0 0 10px rgba(16, 185, 129, 0.3); }
+  &:focus-visible { outline: 2px solid var(--nf-focus, #38bdf8); outline-offset: 1px; }
 
-.bench__card:focus-visible {
-  outline: var(--nf-focus-ring, 2px) solid var(--nf-focus);
-  outline-offset: 2px;
-}
-
-.bench__name {
-  overflow: hidden;
-  max-width: 100%;
-  font-size: 11.5px;
-  color: var(--nf-text);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.bench__rank {
-  font-size: var(--fs-label);
-  color: var(--nf-text-dim);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .bench__card {
-    transition: none;
+  &.is-inactive {
+    background: #111216; border: 1px solid var(--nf-border, #2a2d3d); box-shadow: none; opacity: 0.72;
+    .bench__name { color: var(--nf-text-dim, #64748b); }
+    .bench__rank { color: var(--nf-text-dim, #64748b); text-shadow: none; }
+    &:hover { opacity: 0.9; border-color: color-mix(in srgb, var(--nf-text-dim, #64748b) 50%, var(--nf-border, #2a2d3d)); }
   }
+
+  &.has-debt:not(.is-inactive) {
+    background: color-mix(in srgb, #10b981 12%, #101217);
+    border: 1px solid #10b981;
+    box-shadow: 0 0 8px rgba(16, 185, 129, 0.2);
+    &:hover {
+      border-color: #34d399;
+      background: color-mix(in srgb, #10b981 20%, #101217);
+      box-shadow: 0 0 12px rgba(16, 185, 129, 0.35);
+    }
+  }
+}
+
+.bench__name { flex: 1 1 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+.bench__rank {
+  font-size: var(--fs-label); font-weight: 700; color: #10b981; text-shadow: 0 0 6px rgba(16, 185, 129, 0.4);
+  font-family: var(--nf-font-mono, monospace);
+}
+
+.bench--party {
+  border-top-color: color-mix(in srgb, #a855f7 35%, var(--nf-border, #2a2d3d));
+  .bench__head { color: #c084fc; }
+}
+
+.bench__debt-box {
+  position: relative; display: inline-flex; align-items: center; justify-content: center;
+  width: 18px; height: 18px; border-radius: 4px;
+  background: color-mix(in srgb, #a855f7 24%, transparent); border: 1px solid color-mix(in srgb, #a855f7 45%, transparent);
+  color: #e9d5ff; flex-shrink: 0; margin-left: 2px;
+}
+
+.bench__debt-sub {
+  position: absolute; bottom: -4px; right: -5px; width: 12px; height: 12px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center; font-size: var(--fs-label);
+  transform: scale(0.665); transform-origin: bottom right; font-weight: 800; line-height: 1; padding: 0;
+  background: #7e22ce; color: #ffffff; font-family: var(--nf-font-mono, monospace);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6); border: 1px solid rgba(255, 255, 255, 0.25);
 }

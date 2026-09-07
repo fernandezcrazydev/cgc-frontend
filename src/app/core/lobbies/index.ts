@@ -8,8 +8,12 @@ export {
   MAX_NOTE_LENGTH,
   type LobbyMode,
   type LobbyStatus,
+  type LobbyModality,
+  type LobbyDistribution,
+  type LobbySubType,
   type LobbyResponse,
   type LobbySlotResponse,
   type LobbyParticipantResponse,
   type CreateLobbyRequest,
 } from './models';
+export { buildRepeatOptions, type RepeatOption } from './repeat-options';

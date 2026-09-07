@@ -166,6 +166,12 @@ export const routes: Routes = [
       { path: 'synergy/:playerId/:matchId', redirectTo: 'jugador/:playerId/juntos/:matchId' },
       { path: 'historial-cruzado/:playerId', redirectTo: 'jugador/:playerId' },
       {
+        path: 'pruebas',
+        title: 'Pruebas Hall of Fame · Sale Custom',
+        loadComponent: () =>
+          import('./features/shell/views/pruebas/pruebas-hof').then((m) => m.PruebasHof),
+      },
+      {
         path: 'ajustes',
         title: 'Ajustes · Sale Custom',
         loadComponent: () => import('./features/shell/views/ajustes').then((m) => m.Ajustes),

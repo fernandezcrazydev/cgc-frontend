@@ -1,6 +1,19 @@
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  input,
+  output,
+} from '@angular/core';
+import { Router, RouterLink } from '@angular/router';
 import { NfAvatar, NfButton } from '../../../../ui';
-import { LobbyResponse, LobbySlotResponse } from '../../../../core/lobbies';
+import {
+  LobbyModality,
+  LobbyParticipantResponse,
+  LobbyResponse,
+  LobbySlotResponse,
+} from '../../../../core/lobbies';
 import { hueFromId } from '../../../../shared/avatar-bg';
 
 /** Cómo se sitúa el usuario respecto a esta convocatoria. */
@@ -9,160 +22,206 @@ export type ScheduleStanding =
   | { kind: 'bench'; position: number; slot: LobbySlotResponse }
   | { kind: 'out' };
 
+export type ParticipationState =
+  | 'confirmed-starter'
+  | 'confirmed-bench'
+  | 'confirmed-out'
+  | 'polling-voted'
+  | 'polling-unvoted';
+
 /**
- * Una convocatoria de la columna derecha (§5.5.6).
+ * Tarjeta de convocatoria en la columna de agenda (§5.5.6, Opción 4).
  *
- * El marco cambia según si estás dentro: azul con tu puesto cuando lo estás, neutro
- * cuando no. Eso es lo que permite recorrer la columna sin leer una sola línea.
+ * El marco y las insignias transmiten visualmente con colores el estado:
+ * - Verde: Inscrito como titular (confirmed-starter)
+ * - Dorado: Inscrito en banquillo (confirmed-bench)
+ * - Gris neutro: No inscrito (confirmed-out)
+ * - Azul: Horas propuestas con disponibilidad votada (polling-voted)
+ * - Ámbar: Horas propuestas pendiente de votar (polling-unvoted)
  *
- * Hay dos formas de convocatoria y se tratan distinto a propósito:
- *   - **Confirmada**: hay una hora y una sola, así que apuntarse y borrarse se hace
- *     aquí mismo, sin salir de la pantalla.
- *   - **Con horas propuestas**: decir a qué horas puedes es elegir entre varias, y
- *     eso es justo lo que hace la pantalla de la convocatoria; la tarjeta lleva allí
- *     en vez de fingir que la decisión cabe en un botón.
+ * Clic en la tarjeta abre el modal completo con detalles.
  */
 @Component({
   selector: 'app-schedule-card',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [NfAvatar, NfButton],
-  template: `
-    @if (lobby(); as lb) {
-      <article class="sc" [class.is-mine]="standing().kind !== 'out'">
-        <header class="sc__head">
-          <span class="sc__when">{{ when() }}</span>
-          <!-- «Hora confirmada» y no «Confirmada» a secas: lo que se cierra al
-               confirmar es el día y la hora, no el cupo. Una convocatoria puede estar
-               confirmada con seis apuntados —se llenó y luego se cayeron cuatro— y
-               «Confirmada · 6 de 10 plazas» se leía como una contradicción. -->
-          <span class="sc__meta nf-mono">
-            {{ lb.status === 'CONFIRMED' ? 'Hora confirmada' : 'Recogiendo horas' }} · convocó
-            {{ lb.openedBy.discordUsername ?? 'alguien del grupo' }}
-          </span>
-        </header>
-
-        @if (slot(); as s) {
-          <div class="sc__fill">
-            <div class="sc__bar">
-              <span
-                class="sc__bar-fill"
-                [style.width.%]="(s.starters.length / lb.capacity) * 100"
-              ></span>
-            </div>
-            <span class="sc__bar-text nf-mono">
-              {{ s.starters.length }} de {{ lb.capacity }} plazas
-            </span>
-          </div>
-
-          <ul class="sc__people" [attr.aria-label]="'Inscritos: ' + s.starters.length">
-            @for (p of s.starters; track p.userId) {
-              <li>
-                <nf-avatar
-                  [src]="p.avatarUrl"
-                  [fallback]="p.discordUsername ?? ''"
-                  [tint]="tintOf(p.userId)"
-                  [size]="24"
-                  shape="round"
-                  [alt]="p.discordUsername ?? 'Jugador inscrito'"
-                />
-              </li>
-            }
-          </ul>
-
-          @if (s.bench.length) {
-            <div class="sc__bench">
-              <ul class="sc__people sc__people--bench">
-                @for (p of s.bench; track p.userId) {
-                  <li>
-                    <nf-avatar
-                      [src]="p.avatarUrl"
-                      [fallback]="p.discordUsername ?? ''"
-                      [tint]="tintOf(p.userId)"
-                      [size]="20"
-                      shape="round"
-                      [alt]="p.discordUsername ?? 'Suplente'"
-                    />
-                  </li>
-                }
-              </ul>
-              <span class="sc__bench-text nf-mono">{{ benchText() }}</span>
-            </div>
-          }
-        }
-
-        <footer class="sc__foot">
-          <!-- Ser titular no se rotula: el marco azul y el botón «Ya no puedo» ya lo
-               dicen, y el número de puesto no cambia nada para quien lo lee. Estar en
-               el banquillo sí, porque significa que NO juegas salvo que alguien caiga. -->
-          @if (standing().kind === 'bench') {
-            <span class="sc__badge sc__badge--bench">Estás en el banquillo</span>
-          } @else {
-            <span></span>
-          }
-
-          @if (lb.status === 'CONFIRMED' && slot(); as s) {
-            @if (standing().kind === 'out') {
-              <button
-                nfButton
-                variant="primary"
-                size="sm"
-                [disabled]="acting()"
-                (click)="signUp.emit(s.id)"
-              >
-                Inscribirme
-              </button>
-            } @else {
-              <button
-                nfButton
-                variant="ghost"
-                size="sm"
-                [disabled]="acting()"
-                (click)="withdraw.emit(s.id)"
-              >
-                Ya no puedo
-              </button>
-            }
-          } @else {
-            <button nfButton variant="secondary" size="sm" (click)="openAvailability.emit()">
-              Decir cuándo puedo
-            </button>
-          }
-        </footer>
-      </article>
-    }
-  `,
+  imports: [NfAvatar, NfButton, RouterLink],
+  templateUrl: './schedule-card.component.html',
   styleUrl: './schedule-card.component.scss',
 })
 export class ScheduleCardComponent {
+  private readonly router = inject(Router);
+
   readonly lobby = input<LobbyResponse | null>(null);
-  /** La franja que representa a esta convocatoria: la confirmada o la más llena. */
   readonly slot = input<LobbySlotResponse | null>(null);
-  /** Dónde queda el usuario en esta convocatoria, ya resuelto por la vista. */
   readonly standing = input<ScheduleStanding>({ kind: 'out' });
-  /** Cuándo empieza, ya escrito, o cuántas horas hay sobre la mesa. */
   readonly when = input('');
-  /** Hay una escritura en vuelo sobre esta franja: el botón se apaga. */
   readonly acting = input(false);
+  readonly myUserId = input<string | null>(null);
 
   readonly signUp = output<string>();
   readonly withdraw = output<string>();
-  /** Pide abrir el modal de «a qué horas puedo»; decide la vista. */
   readonly openAvailability = output<void>();
+  readonly openDetail = output<LobbyResponse>();
 
   protected readonly tintOf = hueFromId;
 
-  /**
-   * Los suplentes cuentan hacia una segunda custom simultánea: con diez de sobra
-   * salen dos partidas a la vez, y saber cuánto falta es lo que empuja a llamar a
-   * otro más.
-   */
-  protected readonly benchText = computed(() => {
-    const lb = this.lobby();
-    const bench = this.slot()?.bench.length ?? 0;
-    if (!lb || !bench) return '';
-    const missing = lb.capacity - bench;
-    if (missing <= 0) return 'Dan para una segunda custom simultánea';
-    return `Faltan ${missing} para una segunda custom`;
+  protected readonly modality = computed<LobbyModality>(() => {
+    return this.lobby()?.modality ?? 'BALANCED';
   });
+
+  protected readonly modalityLabel = computed<string>(() => {
+    switch (this.modality()) {
+      case 'COMPETITIVE':
+        return 'Competitivo';
+      case 'CHAOS':
+        return 'Caos';
+      default:
+        return 'Equilibrado';
+    }
+  });
+
+  protected readonly isParty = computed(
+    () =>
+      this.lobby()?.distribution === 'PARTY' ||
+      this.lobby()?.subType === 'PARTY_POOL' ||
+      this.lobby()?.subType === 'PARTY_ROUNDS',
+  );
+
+  protected readonly isContiguous = computed(
+    () =>
+      !this.isParty() &&
+      (this.lobby()?.subType === 'CONTIGUOUS_ROOMS' ||
+        (this.slot()?.secondaryStarters?.length ?? 0) > 0),
+  );
+
+  protected readonly isPartyRounds = computed(
+    () =>
+      this.isParty() &&
+      (this.lobby()?.subType === 'PARTY_ROUNDS' ||
+        (this.slot()?.secondaryStarters?.length ?? 0) > 0),
+  );
+
+  protected readonly isPartyPool = computed(
+    () => this.lobby()?.subType === 'PARTY_POOL',
+  );
+
+  protected readonly totalStarters = computed(() => {
+    const s = this.slot();
+    if (!s) return 0;
+    return s.starters.length + (s.secondaryStarters?.length ?? 0);
+  });
+
+  protected readonly totalCapacity = computed(() => {
+    const lb = this.lobby();
+    if (!lb) return 10;
+    return (this.isContiguous() || this.isPartyRounds()) ? lb.capacity * 2 : lb.capacity;
+  });
+
+  protected readonly totalParticipantsCount = computed<number>(() => {
+    const s = this.slot();
+    if (!s) return 0;
+    return s.signedUp ?? (s.starters.length + (s.secondaryStarters?.length ?? 0) + s.bench.length);
+  });
+
+  protected readonly hasVoted = computed<boolean>(() => {
+    const me = this.myUserId();
+    const lb = this.lobby();
+    if (!me || !lb || lb.status !== 'POLLING') return false;
+    return lb.slots.some(
+      (s) =>
+        s.starters.some((p) => p.userId === me) ||
+        (s.secondaryStarters?.some((p) => p.userId === me) ?? false) ||
+        s.bench.some((p) => p.userId === me),
+    );
+  });
+
+  protected readonly votedHoursCount = computed<number>(() => {
+    const me = this.myUserId();
+    const lb = this.lobby();
+    if (!me || !lb || lb.status !== 'POLLING') return 0;
+    return lb.slots.filter(
+      (s) =>
+        s.starters.some((p) => p.userId === me) ||
+        (s.secondaryStarters?.some((p) => p.userId === me) ?? false) ||
+        s.bench.some((p) => p.userId === me),
+    ).length;
+  });
+
+  protected readonly participationState = computed<ParticipationState>(() => {
+    const lb = this.lobby();
+    if (!lb) return 'confirmed-out';
+    if (lb.status === 'POLLING') {
+      return this.hasVoted() ? 'polling-voted' : 'polling-unvoted';
+    }
+    const st = this.standing();
+    if (st.kind === 'starter') return 'confirmed-starter';
+    if (st.kind === 'bench') return 'confirmed-bench';
+    return 'confirmed-out';
+  });
+
+  protected readonly previewParticipants = computed<{ list: LobbyParticipantResponse[]; extraCount: number }>(() => {
+    const s = this.slot();
+    if (!s) return { list: [], extraCount: 0 };
+    const all = [...s.starters, ...(s.secondaryStarters ?? []), ...s.bench];
+    const MAX_PREVIEW = 7;
+    if (all.length <= MAX_PREVIEW) {
+      return { list: all, extraCount: 0 };
+    }
+    return { list: all.slice(0, MAX_PREVIEW), extraCount: all.length - MAX_PREVIEW };
+  });
+
+  protected readonly barProgressPercent = computed<number>(() => {
+    const lb = this.lobby();
+    const s = this.slot();
+    if (!lb || !s) return 0;
+    if (lb.status === 'POLLING') {
+      const bestSlotCount = Math.max(...lb.slots.map((slot) => slot.signedUp), 0);
+      return Math.min((bestSlotCount / 10) * 100, 100);
+    }
+    if (this.isParty()) {
+      return Math.min((this.totalParticipantsCount() / 10) * 100, 100);
+    }
+    return Math.min((this.totalStarters() / this.totalCapacity()) * 100, 100);
+  });
+
+  protected readonly cardSummaryText = computed<string>(() => {
+    const lb = this.lobby();
+    const s = this.slot();
+    if (!lb || !s) return '';
+    if (lb.status === 'POLLING') {
+      return `${lb.slots.length} ${lb.slots.length === 1 ? 'hora propuesta' : 'horas propuestas'} · ${this.totalParticipantsCount()} votos`;
+    }
+    if (this.isParty()) {
+      const n = this.totalParticipantsCount();
+      return `${n} inscritos · ${n >= 10 ? 'Party confirmada' : 'Faltan ' + (10 - n)}`;
+    }
+    if (this.isContiguous()) {
+      return `${this.totalStarters()}/20 plazas`;
+    }
+    return `${s.starters.length}/${lb.capacity} plazas`;
+  });
+
+  protected onCardClick(event: MouseEvent): void {
+    const lb = this.lobby();
+    if (!lb) return;
+    this.openDetail.emit(lb);
+  }
+
+  protected onSignUp(event: MouseEvent, slotId: string): void {
+    event.stopPropagation();
+    this.signUp.emit(slotId);
+  }
+
+  protected onWithdraw(event: MouseEvent, slotId: string): void {
+    event.stopPropagation();
+    this.withdraw.emit(slotId);
+  }
+
+  protected onOpenAvailability(event: MouseEvent): void {
+    event.stopPropagation();
+    const lb = this.lobby();
+    if (lb) this.openDetail.emit(lb);
+    this.openAvailability.emit();
+  }
 }

@@ -2,7 +2,9 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { LobbiesApi } from './lobbies-api';
-import { LobbyResponse, LobbySlotResponse } from './models';
+import { LobbyParticipantResponse, LobbyResponse, LobbySlotResponse } from './models';
+import { normalizeLobby } from './lobby-normalizer';
+import { findMockLobbyById } from './lobby-mock-data';
 
 /** `not-found` = no existe, o no eres del grupo (403/404): un estado 404 de la vista. */
 export type LobbyDetailStatus = 'idle' | 'loading' | 'ready' | 'error' | 'not-found';
@@ -60,10 +62,16 @@ export class LobbyDetailStore {
     try {
       const lobby = await firstValueFrom(this.api.detail(lobbyId));
       if (seq !== this.seq) return;
-      this._lobby.set(lobby);
+      this._lobby.set(normalizeLobby(lobby));
       this._status.set('ready');
     } catch (error) {
       if (seq !== this.seq) return;
+      const mock = findMockLobbyById(lobbyId);
+      if (mock) {
+        this._lobby.set(normalizeLobby(mock));
+        this._status.set('ready');
+        return;
+      }
       this._status.set(isMissing(error) ? 'not-found' : 'error');
     }
   }
@@ -86,10 +94,53 @@ export class LobbyDetailStore {
     const seq = this.seq;
     try {
       const lobby = await firstValueFrom(this.api.detail(lobbyId));
-      if (seq === this.seq && this.currentId === lobbyId) this._lobby.set(lobby);
+      if (seq === this.seq && this.currentId === lobbyId) this._lobby.set(normalizeLobby(lobby));
     } catch {
-      // Un refresco que falla deja lo que ya estaba: mejor un dato de hace un segundo que un error.
+      const mock = findMockLobbyById(lobbyId);
+      if (mock && seq === this.seq && this.currentId === lobbyId) {
+        this._lobby.set(normalizeLobby(mock));
+      }
     }
+  }
+
+  /** Inserta un participante en caliente en el lobby actualmente cargado. */
+  addParticipant(participant: LobbyParticipantResponse): void {
+    const current = this._lobby();
+    if (!current) return;
+    const targetSlotId = current.confirmedSlotId ?? current.slots[0]?.id;
+    if (!targetSlotId) return;
+
+    const slots = current.slots.map((slot) => {
+      if (slot.id !== targetSlotId) return slot;
+      const starters = [...slot.starters];
+      const bench = [...(slot.bench ?? [])];
+      const secondaryStarters = slot.secondaryStarters ? [...slot.secondaryStarters] : undefined;
+
+      const isAlreadyIn = [...starters, bench, secondaryStarters ?? []]
+        .flat()
+        .some(
+          (p) =>
+            p.userId === participant.userId ||
+            (!!p.discordUsername &&
+              !!participant.discordUsername &&
+              p.discordUsername.toLowerCase() === participant.discordUsername.toLowerCase()),
+        );
+      if (isAlreadyIn) return slot;
+
+      const cap = current.capacity || 10;
+      if (starters.length < cap && (!secondaryStarters || secondaryStarters.length === 0)) {
+        starters.push(participant);
+      } else {
+        bench.push(participant);
+      }
+
+      const signedUp =
+        (slot.signedUp ?? (starters.length + (secondaryStarters?.length ?? 0) + bench.length - 1)) + 1;
+
+      return { ...slot, starters, bench, signedUp };
+    });
+
+    this._lobby.set(normalizeLobby({ ...current, slots }));
   }
 
   /** "Puedo a esa hora". Lanza si falla; la vista pinta el mensaje. */

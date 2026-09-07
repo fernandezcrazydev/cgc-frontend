@@ -5,23 +5,21 @@
    Solo el armazón de la pantalla: cada bloque trae su propia hoja. El chrome de
    tarjeta compartido está en `stats-card.scss`. */
 
-.gs-head {
-  gap: 20px;
+.gs-tabs {
+  margin-bottom: 12px;
 }
 
 .gs-controls {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 10px;
   flex-wrap: wrap;
+  margin-bottom: 16px;
 }
 
 .gs-controls__season {
   min-width: 190px;
-}
-
-.gs-tabs {
-  margin-bottom: 20px;
 }
 
 /* Los bloques de rendimiento se apilan a lo ancho: la pantalla es un informe que
@@ -35,6 +33,7 @@
 @media (max-width: $bp-compact) {
   .gs-controls {
     width: 100%;
+    justify-content: flex-start;
   }
 
   .gs-controls__season {

@@ -1,150 +1,94 @@
-/* Tarjeta táctica de la sala en directo (§5.5.6).
-
-   El aura vive en `--pod-aura`: el estado la define una vez y el borde, el fondo y
-   el resplandor la leen de ahí, así que no hay tres reglas por estado que puedan
-   quedarse desalineadas. */
-
-:host {
-  display: block;
-}
+:host { display: block; min-width: 0; width: 100%; }
 
 .pod {
-  --pod-aura: var(--nf-border-strong);
+  --pod-aura: var(--nf-border-subtle);
+  display: flex; align-items: center; gap: 6px; height: 38px; padding: 0 8px;
+  border-radius: var(--nf-radius-md, 8px); background: var(--nf-surface-raised, #1e2029);
+  border: 1px solid color-mix(in srgb, var(--pod-aura) 50%, var(--nf-border, #2a2d3d));
+  color: var(--nf-text-main, #f0f2f5); text-decoration: none; font-family: inherit;
+  font-size: var(--fs-caption); box-sizing: border-box; width: 100%; min-width: 0;
+  overflow: hidden;
+  transition: border-color 0.14s ease, background-color 0.14s ease;
 
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  height: 100%;
-  padding: 10px 8px 11px;
-  border-radius: 10px;
-  background: var(--nf-surface-2);
-  border: 1px solid color-mix(in srgb, var(--pod-aura) 55%, var(--nf-border));
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--pod-aura) 9%, transparent);
-  color: inherit;
-  text-decoration: none;
-  transition:
-    border-color 0.14s,
-    box-shadow 0.14s,
-    transform 0.14s;
+  &:hover { border-color: var(--pod-aura); background: color-mix(in srgb, var(--pod-aura) 10%, var(--nf-surface-raised, #1e2029)); }
+  &:focus-visible { outline: 2px solid var(--nf-focus, #38bdf8); outline-offset: 2px; }
 }
 
-a.pod:hover,
-.pod--join:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--pod-aura) 18%, transparent);
+.pod[data-state='starter']:not(.team-blue):not(.team-red) { --pod-aura: var(--nf-emerald, #10b981); background: color-mix(in srgb, #10b981 12%, #101217); border: 1px solid #10b981; box-shadow: 0 0 8px rgba(16, 185, 129, 0.2); &:hover { border-color: #34d399; background: color-mix(in srgb, #10b981 20%, #101217); box-shadow: 0 0 12px rgba(16, 185, 129, 0.35); } .pod__name { font-weight: 600; } .pod__rank { font-weight: 700; color: #34d399; text-shadow: 0 0 6px rgba(16, 185, 129, 0.4); } }
+.pod[data-state='bench']:not(.team-blue):not(.team-red) { --pod-aura: var(--nf-emerald, #10b981); background: #14151b; border: 1px solid #10b981; box-shadow: 0 0 6px rgba(16, 185, 129, 0.15); &:hover { border-color: #34d399; background: #181a22; box-shadow: 0 0 10px rgba(16, 185, 129, 0.3); } .pod__rank { font-weight: 700; color: #10b981; text-shadow: 0 0 6px rgba(16, 185, 129, 0.4); } }
+.pod.is-added { --pod-aura: var(--nf-amber, #f59e0b); }
+.pod.is-host { border-color: color-mix(in srgb, var(--nf-gold, #eab308) 60%, var(--pod-aura)); }
+.pod.is-inactive { --pod-aura: var(--nf-crimson, #ef4444); opacity: 0.75; }
+.pod.team-blue {
+  --pod-aura: #3b82f6;
+  border-color: color-mix(in srgb, #3b82f6 55%, var(--nf-border, #2a2d3d));
+  background: color-mix(in srgb, #3b82f6 12%, var(--nf-surface-raised, #1e2029));
+  box-shadow: inset 0 0 8px color-mix(in srgb, #3b82f6 12%, transparent);
+
+  &:hover {
+    border-color: #3b82f6;
+    background: color-mix(in srgb, #3b82f6 18%, var(--nf-surface-raised, #1e2029));
+  }
+
+  .pod__lane {
+    background: color-mix(in srgb, #3b82f6 24%, transparent);
+    border: 1px solid color-mix(in srgb, #3b82f6 45%, transparent);
+    color: #bfdbfe;
+  }
 }
 
-a.pod:focus-visible,
-.pod--join:focus-visible {
-  outline: var(--nf-focus-ring, 2px) solid var(--nf-focus);
-  outline-offset: 2px;
+.pod.team-red {
+  --pod-aura: #ef4444;
+  border-color: color-mix(in srgb, #ef4444 55%, var(--nf-border, #2a2d3d));
+  background: color-mix(in srgb, #ef4444 12%, var(--nf-surface-raised, #1e2029));
+  box-shadow: inset 0 0 8px color-mix(in srgb, #ef4444 12%, transparent);
+
+  &:hover {
+    border-color: #ef4444;
+    background: color-mix(in srgb, #ef4444 18%, var(--nf-surface-raised, #1e2029));
+  }
+
+  .pod__lane {
+    background: color-mix(in srgb, #ef4444 24%, transparent);
+    border: 1px solid color-mix(in srgb, #ef4444 45%, transparent);
+    color: #fecaca;
+  }
 }
 
-/* Inscrito. Es la única lectura honesta que da el dominio: quien está, está. */
-.pod[data-state='starter'] {
-  --pod-aura: var(--nf-emerald);
-}
-
-/* En el banquillo: dentro de la convocatoria, fuera de los diez. */
-.pod[data-state='bench'] {
-  --pod-aura: var(--nf-gold);
-}
-
-.pod[data-state='free'] {
-  background: transparent;
-  border-style: dashed;
-  box-shadow: none;
-  /* Sin el `+` arriba, el hueco necesita repartir su contenido a lo alto para no
-     quedar pegado al borde superior de una tarjeta que sí lleva avatar y nombre. */
-  justify-content: center;
-  gap: 10px;
-}
-
-/* Hueco al que SÍ te puedes apuntar: se comporta como un botón y lo dice. */
-.pod--join {
-  --pod-aura: var(--nf-primary);
-
-  font: inherit;
-  color: inherit;
-  cursor: pointer;
-}
-
-.pod--join:hover:not(:disabled) {
-  border-style: solid;
-  background: color-mix(in srgb, var(--nf-primary) 8%, transparent);
-}
-
-.pod--join:hover:not(:disabled) .pod__plus,
-.pod--join:hover:not(:disabled) .pod__name {
-  color: var(--nf-primary);
-}
-
-.pod--join:disabled {
-  cursor: default;
-  opacity: 0.6;
-}
-
-/* El `+` va en todo hueco sin ocupar, se pueda pulsar o no: es lo que dice de un
-   vistazo cuántas plazas quedan por llenar. */
-.pod__plus {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 38px;
-  height: 38px;
-  border-radius: 8px;
-  border: 1px dashed var(--nf-border-strong);
-  color: var(--nf-text-dim);
-  transition:
-    color 0.14s,
-    border-color 0.14s;
-}
-
-.pod--join:hover:not(:disabled) .pod__plus {
-  border-color: color-mix(in srgb, var(--nf-primary) 55%, transparent);
-}
-
-.pod__plus svg {
-  width: 20px;
-  height: 20px;
-}
-
-/* Solo el puesto en la clasificación del grupo. El número de plaza se retiró: la
-   posición dentro de la parrilla no significa nada para quien mira. */
-.pod__top {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  width: 100%;
-  font-size: var(--fs-label);
-  color: var(--nf-text-dim);
+.pod__avatar-wrap { position: relative; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.pod__host-crown {
+  position: absolute; top: -4px; right: -4px; display: flex; align-items: center; justify-content: center;
+  width: 13px; height: 13px; border-radius: 50%; background: #12131a; color: var(--nf-gold, #eab308); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
 }
 
 .pod__name {
-  overflow: hidden;
-  max-width: 100%;
-  font-size: 11.5px;
-  color: var(--nf-text);
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  flex: 1 1 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-weight: 500; color: var(--nf-text-main, #f0f2f5);
+}
+.pod__rank { flex-shrink: 0; font-size: var(--fs-label); color: var(--nf-text-muted, #94a3b8); font-family: var(--nf-font-mono, monospace); }
+.pod__lane {
+  display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+  width: 20px; height: 20px; border-radius: 4px;
+  background: color-mix(in srgb, var(--nf-primary, #6366f1) 20%, transparent); color: var(--nf-text-main, #f0f2f5);
+}
+.pod__lane-icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: var(--fs-body); line-height: 1; flex-shrink: 0;
 }
 
-.pod__name--free {
-  color: var(--nf-text-dim);
+.pod__tag {
+  display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 16px; height: 16px; border-radius: 4px; font-size: var(--fs-label); font-weight: 700;
+  &--added { color: var(--nf-amber, #f59e0b); background: color-mix(in srgb, var(--nf-amber, #f59e0b) 15%, transparent); }
+  &--inactive { color: var(--nf-crimson, #ef4444); background: color-mix(in srgb, var(--nf-crimson, #ef4444) 15%, transparent); }
 }
 
-.pod__champs {
-  display: flex;
-  gap: 3px;
+.pod[data-state='free'] { background: transparent; border-style: dashed; border-color: var(--nf-border, #2a2d3d); }
+.pod--join {
+  cursor: pointer; background: color-mix(in srgb, var(--nf-primary, #6366f1) 6%, transparent); border-color: color-mix(in srgb, var(--nf-primary, #6366f1) 40%, transparent);
+  &:hover:not(:disabled) { background: color-mix(in srgb, var(--nf-primary, #6366f1) 14%, transparent); border-color: var(--nf-primary, #6366f1); .pod__plus, .pod__name--free { color: var(--nf-primary, #6366f1); } }
+  &:disabled { opacity: 0.5; cursor: default; }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .pod {
-    transition: none;
-  }
+.pod__plus { display: flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 4px; background: color-mix(in srgb, var(--nf-border-subtle, #334155) 30%, transparent); color: var(--nf-text-muted, #94a3b8); flex-shrink: 0; }
+.pod__name--free { color: var(--nf-text-muted, #94a3b8); font-size: var(--fs-caption); }
 
-  a.pod:hover {
-    transform: none;
-  }
-}

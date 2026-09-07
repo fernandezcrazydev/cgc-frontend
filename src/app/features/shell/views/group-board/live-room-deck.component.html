@@ -1,0 +1,269 @@
+<section
+  class="mt-card rm"
+  [class.rm--clickable]="!!lobby()"
+  [class.rm--room]="!isParty()"
+  [class.rm--party]="isParty()"
+  [attr.aria-busy]="loading() ? 'true' : null"
+  (click)="navigateToLobby()"
+>
+  @if (loading()) {
+    <nf-skeleton width="50%" height="18px" />
+    <div class="rm-grid">
+      @for (s of [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]; track s) {
+        <nf-skeleton width="100%" height="38px" radius="8px" />
+      }
+    </div>
+  } @else if (lobby(); as lb) {
+    <header class="mt-card__head">
+      <div class="rm__title-wrap">
+        <h2 class="mt-card__title">
+          {{ roomHeaderTitle() }}
+        </h2>
+        <div class="rm__badges">
+          <!-- Modalidad -->
+          <span class="rm__badge-modality" [attr.data-mod]="modality()">
+            @switch (modality()) {
+              @case ('COMPETITIVE') {
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11" aria-hidden="true">
+                  <path d="M14.5 17.5L3 6V3h3l11.5 11.5M13 19l6 2 2-6-4.5-4.5" />
+                </svg>
+                Competitivo
+              }
+              @case ('CHAOS') { Caos }
+              @default { Equilibrado }
+            }
+          </span>
+
+          <!-- Formato: siempre Room o Party -->
+          @if (isParty()) {
+            <span class="rm__badge-party">Party</span>
+          } @else {
+            <span class="rm__badge-room">Room</span>
+          }
+
+          <!-- Salas generadas (solo si >= 2 salas) -->
+          @if (isContiguous() || isPartyRounds()) {
+            <span class="rm__badge-rooms-count">2 Salas</span>
+          }
+
+          <!-- Tanda en Party -->
+          @if (isPartyRounds()) {
+            <span class="rm__badge-sync">
+              Tanda {{ slot()?.partyRound ?? 1 }}
+            </span>
+          }
+        </div>
+      </div>
+
+      <span class="mt-live">
+        <span class="mt-live__pulse" aria-hidden="true"></span>
+        {{ lb.status === 'LIVE' ? 'En Juego' : 'En Vivo' }}
+      </span>
+    </header>
+
+    <p class="rm__count nf-mono">
+      {{ countText() }}
+    </p>
+
+    <!-- CASO 1: Party en espera (Pool de jugadores) -->
+    @if (isPartyPool()) {
+      <div class="rm-sala-card" (click)="navigateToSala($event)">
+        <div class="rm-sala-card__head">
+          <span class="rm-sala-card__title nf-mono">Pool de Jugadores ({{ starters().length }} inscritos)</span>
+        </div>
+        <div class="rm-pool-grid">
+          @for (p of starters(); track p.userId) {
+            <app-room-pod [player]="p" state="starter" [rank]="rankOf(p.userId)" />
+          }
+        </div>
+        <p class="rm-party-pool__hint">
+          Esperando a que el host cierre la lista y genere las tandas de salas.
+        </p>
+      </div>
+    }
+    <!-- CASO 2: Salas Contiguas o Tandas de Party (2 salas encapsuladas) -->
+    @else if (isContiguous() || isPartyRounds()) {
+      <div class="rm-contiguous">
+        <div class="rm-sala-card" [class.has-teams]="hasFormedTeams()" [class.is-animating]="isAnimating()" (click)="navigateToSala($event)">
+          <div class="rm-sala-card__head">
+            <span class="rm-sala-card__title nf-mono">{{ subroomOneName() }} (10/10{{ hasFormedTeams() ? ' · Equipos formados' : '' }})</span>
+          </div>
+          @if (hasFormedTeams()) {
+            <div class="rm-bay rm-bay--blue">
+              <div class="rm-grid">
+                @for (pod of bluePods(); track pod.position) {
+                  <app-room-pod [player]="pod.player" [state]="pod.state" [rank]="rankOf(pod.player?.userId)" />
+                }
+              </div>
+            </div>
+            <div class="rm-sala-card__divider-vs">
+              <span class="rm-sala-card__vs-tag nf-mono">VS</span>
+            </div>
+            <div class="rm-bay rm-bay--red">
+              <div class="rm-grid">
+                @for (pod of redPods(); track pod.position) {
+                  <app-room-pod [player]="pod.player" [state]="pod.state" [rank]="rankOf(pod.player?.userId)" />
+                }
+              </div>
+            </div>
+          } @else {
+            <div class="rm-bay rm-bay--blue">
+              <div class="rm-grid">
+                @for (pod of bluePods(); track pod.position) {
+                  <app-room-pod [player]="pod.player" [state]="pod.state" [rank]="rankOf(pod.player?.userId)" />
+                }
+              </div>
+            </div>
+            <div class="rm-sala-card__divider-standby">
+              <span class="rm-sala-card__divider-text nf-mono">
+                {{ starters().length === 10 ? 'Convocatoria completa · Esperando asignación' : 'Convocatoria en curso' }}
+              </span>
+            </div>
+            <div class="rm-bay rm-bay--red">
+              <div class="rm-grid">
+                @for (pod of redPods(); track pod.position) {
+                  <app-room-pod [player]="pod.player" [state]="pod.state" [rank]="rankOf(pod.player?.userId)" />
+                }
+              </div>
+            </div>
+          }
+        </div>
+        <div class="rm-sala-card" [class.has-teams]="secondaryHasTeams()" [class.is-animating]="secondaryIsAnimating()" (click)="navigateToSala($event)">
+          <div class="rm-sala-card__head">
+            <span class="rm-sala-card__title nf-mono">{{ subroomTwoName() }} (10/10{{ secondaryHasTeams() ? ' · Equipos formados' : '' }})</span>
+          </div>
+          @if (secondaryHasTeams()) {
+            <div class="rm-bay rm-bay--blue">
+              <div class="rm-grid">
+                @for (pod of secondaryBluePods(); track pod.position) {
+                  <app-room-pod [player]="pod.player" [state]="pod.state" [rank]="rankOf(pod.player?.userId)" />
+                }
+              </div>
+            </div>
+            <div class="rm-sala-card__divider-vs">
+              <span class="rm-sala-card__vs-tag nf-mono">VS</span>
+            </div>
+            <div class="rm-bay rm-bay--red">
+              <div class="rm-grid">
+                @for (pod of secondaryRedPods(); track pod.position) {
+                  <app-room-pod [player]="pod.player" [state]="pod.state" [rank]="rankOf(pod.player?.userId)" />
+                }
+              </div>
+            </div>
+          } @else {
+            <div class="rm-bay rm-bay--blue">
+              <div class="rm-grid">
+                @for (pod of secondaryBluePods(); track pod.position) {
+                  <app-room-pod [player]="pod.player" [state]="pod.state" [rank]="rankOf(pod.player?.userId)" />
+                }
+              </div>
+            </div>
+            <div class="rm-sala-card__divider-standby">
+              <span class="rm-sala-card__divider-text nf-mono">
+                {{ secondaryStarters().length === 10 ? 'Convocatoria completa · Esperando asignación' : 'Convocatoria en curso' }}
+              </span>
+            </div>
+            <div class="rm-bay rm-bay--red">
+              <div class="rm-grid">
+                @for (pod of secondaryRedPods(); track pod.position) {
+                  <app-room-pod [player]="pod.player" [state]="pod.state" [rank]="rankOf(pod.player?.userId)" />
+                }
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    }
+    <!-- CASO 3: Sala única encapsulada (estándar o con equipos formados) -->
+    @else {
+      <div class="rm-sala-card" [class.has-teams]="hasFormedTeams()" [class.is-animating]="isAnimating()" (click)="navigateToSala($event)">
+        <div class="rm-sala-card__head">
+          <span class="rm-sala-card__title nf-mono">
+            {{ subroomOneName() }} ({{ starters().length }}/{{ lb.capacity }}{{ hasFormedTeams() ? ' · Equipos formados' : '' }})
+          </span>
+        </div>
+        @if (hasFormedTeams()) {
+          <div class="rm-bay rm-bay--blue">
+            <div class="rm-grid">
+              @for (pod of bluePods(); track pod.position) {
+                <app-room-pod
+                  [player]="pod.player"
+                  [state]="pod.state"
+                  [rank]="rankOf(pod.player?.userId)"
+                />
+              }
+            </div>
+          </div>
+          <div class="rm-sala-card__divider-vs">
+            <span class="rm-sala-card__vs-tag nf-mono">VS</span>
+          </div>
+          <div class="rm-bay rm-bay--red">
+            <div class="rm-grid">
+              @for (pod of redPods(); track pod.position) {
+                <app-room-pod
+                  [player]="pod.player"
+                  [state]="pod.state"
+                  [rank]="rankOf(pod.player?.userId)"
+                />
+              }
+            </div>
+          </div>
+        } @else {
+          <div class="rm-bay rm-bay--blue">
+            <div class="rm-grid">
+              @for (pod of bluePods(); track pod.position) {
+                <app-room-pod
+                  [player]="pod.player"
+                  [state]="pod.state"
+                  [rank]="rankOf(pod.player?.userId)"
+                  [canJoin]="canJoin()"
+                  [joining]="joining()"
+                  (join)="join.emit()"
+                />
+              }
+            </div>
+          </div>
+          <div class="rm-sala-card__divider-standby">
+            <span class="rm-sala-card__divider-text nf-mono">
+              {{ starters().length === lb.capacity ? 'Convocatoria completa · Esperando asignación' : 'Convocatoria en curso' }}
+            </span>
+          </div>
+          <div class="rm-bay rm-bay--red">
+            <div class="rm-grid">
+              @for (pod of redPods(); track pod.position) {
+                <app-room-pod
+                  [player]="pod.player"
+                  [state]="pod.state"
+                  [rank]="rankOf(pod.player?.userId)"
+                  [canJoin]="canJoin()"
+                  [joining]="joining()"
+                  (join)="join.emit()"
+                />
+              }
+            </div>
+          </div>
+        }
+      </div>
+    }
+
+    <app-bench-strip [players]="bench()" [ranks]="ranks()" [isParty]="isParty()" />
+  } @else {
+    <div class="rm-hero">
+      <span class="rm-hero__glyph" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="28" height="28">
+          <circle cx="12" cy="12" r="10" />
+          <path d="M12 8v8M8 12h8" />
+        </svg>
+      </span>
+      <h2 class="rm-hero__title">No hay salas en directo en este momento</h2>
+      <p class="rm-hero__sub">
+        Agenda una fecha con el grupo para organizar las próximas partidas.
+      </p>
+      <div class="rm-hero__actions">
+        <button nfButton variant="primary" size="sm" (click)="schedule.emit()">
+          Agendar una custom
+        </button>
+      </div>
+    </div>
+  }
+</section>

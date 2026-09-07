@@ -160,13 +160,39 @@ describe('LiveRoomDeckComponent', () => {
     expect(fixture.nativeElement.querySelectorAll('.pod--join')).toHaveLength(4);
   });
 
-  it('apuntarse desde un hueco sube a la vista, que es quien habla con el store', () => {
-    const { fixture, component } = createComponent(lobby(), slot(6), false, true);
+  it('muestra la insignia fija de formato (Room) y no muestra 2 Salas si solo hay 1 sala', () => {
+    const { fixture } = createComponent(lobby(), slot(10));
 
-    let pedido = 0;
-    component.join.subscribe(() => pedido++);
-    fixture.nativeElement.querySelector('.pod--join').click();
+    expect(fixture.nativeElement.querySelector('.rm__badge-room').textContent.trim()).toBe('Room');
+    expect(fixture.nativeElement.querySelector('.rm__badge-room svg')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.rm__badge-rooms-count')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.rm__badge-scraper')).toBeNull();
+  });
 
-    expect(pedido).toBe(1);
+  it('muestra 2 Salas cuando la convocatoria tiene salas contiguas', () => {
+    const s2 = slot(10);
+    s2.secondaryStarters = Array.from({ length: 10 }, (_, i) => participant(i + 11));
+    const { fixture } = createComponent(lobby({ subType: 'CONTIGUOUS_ROOMS' }), s2);
+
+    expect(fixture.nativeElement.querySelector('.rm__badge-room').textContent.trim()).toBe('Room');
+    expect(fixture.nativeElement.querySelector('.rm__badge-room svg')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.rm__badge-rooms-count').textContent).toContain('2 Salas');
+  });
+
+  it('en party muestra la insignia fija de Party sin icono', () => {
+    const { fixture } = createComponent(lobby({ distribution: 'PARTY', subType: 'PARTY_POOL' }), slot(12));
+
+    expect(fixture.nativeElement.querySelector('.rm__badge-party').textContent.trim()).toBe('Party');
+    expect(fixture.nativeElement.querySelector('.rm__badge-party svg')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.rm__badge-rooms-count')).toBeNull();
+  });
+
+  it('muestra la insignia de modalidad como etiqueta, con icono para Competitivo', () => {
+    const { fixture } = createComponent(lobby({ modality: 'COMPETITIVE' }), slot(10));
+
+    const modBadge: HTMLElement = fixture.nativeElement.querySelector('.rm__badge-modality');
+    expect(modBadge.textContent.trim()).toBe('Competitivo');
+    expect(modBadge.querySelector('svg')).toBeTruthy();
+    expect(modBadge.getAttribute('data-mod')).toBe('COMPETITIVE');
   });
 });

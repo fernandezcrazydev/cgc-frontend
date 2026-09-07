@@ -61,6 +61,8 @@ function lobby(id: string, overrides: Partial<LobbyResponse> = {}): LobbyRespons
 class LobbiesStub {
   readonly all = signal<LobbyResponse[]>([]);
   readonly open = this.all.asReadonly();
+  readonly savingAvailability = signal(false).asReadonly();
+  readonly creating = signal(false).asReadonly();
   status = () => 'ready' as const;
   isLoading = () => false;
   isActing = () => false;
@@ -69,6 +71,8 @@ class LobbiesStub {
   refreshQuietly = vi.fn().mockResolvedValue(undefined);
   signUp = vi.fn().mockResolvedValue(undefined);
   withdraw = vi.fn().mockResolvedValue(undefined);
+  setAvailability = vi.fn().mockResolvedValue(undefined);
+  create = vi.fn().mockResolvedValue(undefined);
 }
 
 /** Aviso en vivo por SSE, empujable desde el test. */
@@ -319,5 +323,19 @@ describe('Tablon', () => {
     component.reloadLobbies();
 
     expect(store.reload).toHaveBeenCalled();
+  });
+
+  it('al abrir una convocatoria abre el modal con sus datos', () => {
+    const proxima = lobby('k', {
+      confirmedSlotId: 's-k',
+      slots: [slot('s-k', '2026-09-06T22:00:00Z')],
+    });
+    const { component, fixture } = createComponent([proxima]);
+
+    expect(component.selectedConvocatoria()).toBeNull();
+    component.openConvocatoria(proxima);
+    fixture.detectChanges();
+
+    expect(component.selectedConvocatoria()?.id).toBe('k');
   });
 });

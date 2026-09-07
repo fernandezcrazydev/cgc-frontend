@@ -197,14 +197,6 @@
   max-width: 460px;
   animation: nf-pop 0.18s ease both;
 }
-/* Wider variant for the launch preview (balance bar + both teams side by side).
-   Stretched so player names/badges aren't cramped; the overlay's 20px padding
-   keeps a comfortable margin around it. */
-.modal--wide {
-  max-width: 1040px;
-  max-height: calc(var(--nf-vh) * 100 - 40px);
-  overflow-y: auto;
-}
 /* ---- grupo detalle: hero + members ---- */
 
 .members {

@@ -75,9 +75,18 @@ export class Sala {
 
   /** ¿Juego en esta sala? Decide si se ve el aviso de espectador. */
   readonly amIn = computed(() => {
-    const me = this.session.user()?.userId;
-    if (!me) return false;
-    return [...this.starters(), ...this.bench()].some((p) => p.userId === me);
+    const user = this.session.user();
+    if (!user) return false;
+    const me = user.userId;
+    const meName = user.discordUsername?.toLowerCase();
+    const all = [
+      ...this.starters(),
+      ...(this.detail.confirmedSlot()?.secondaryStarters ?? []),
+      ...this.bench(),
+    ];
+    return all.some(
+      (p) => (me && p.userId === me) || (meName && p.discordUsername?.toLowerCase() === meName),
+    );
   });
 
   readonly kickoff = computed(() => {

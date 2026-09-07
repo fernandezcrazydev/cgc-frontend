@@ -1,10 +1,19 @@
 import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { NfButton } from '../../../../ui';
-import { MAX_NOTE_LENGTH, MAX_SLOTS } from '../../../../core/lobbies';
-import { DAYS_AHEAD, HourOption, buildDays, buildHours } from '../../../../shared/schedule-options';
+import { MAX_NOTE_LENGTH, MAX_SLOTS, RepeatOption } from '../../../../core/lobbies';
+import {
+  CalendarCell,
+  HourOption,
+  WEEKDAY_INITIALS,
+  buildHours,
+  buildMonth,
+  describeDay,
+  monthKeyOf,
+  shiftMonth,
+} from '../../../../shared/schedule-options';
 
-/** Lo que se manda al convocar: las horas propuestas y la nota opcional. */
+/** Lo que se manda al convocar: las horas propuestas y la descripción opcional. */
 export interface ScheduleDraft {
   /** Horas en el formato local de `datetime-local` ("2026-09-08T22:00"). */
   slotStartTimes: string[];
@@ -13,13 +22,18 @@ export interface ScheduleDraft {
 
 /** Una banda de la rejilla de horas, con su rótulo. */
 interface HourBand {
-  id: 'tarde' | 'noche';
+  id: string;
   label: string;
   hours: HourOption[];
 }
 
-/** A partir de esta hora empieza la banda de noche. */
-const NIGHT_FROM = 20;
+/** Las cuatro bandas que reparten las cuarenta y ocho pastillas del día. */
+const BANDS: readonly { id: string; label: string; from: number; open: boolean }[] = [
+  { id: 'madrugada', label: 'Madrugada', from: 0, open: false },
+  { id: 'manana', label: 'Mañana', from: 6, open: false },
+  { id: 'tarde', label: 'Tarde', from: 13, open: true },
+  { id: 'noche', label: 'Noche', from: 20, open: true },
+];
 
 /**
  * Agendar una custom (§5.5.6): elige un día y hasta seis horas de ese día.
@@ -28,214 +42,195 @@ const NIGHT_FROM = 20;
  * («¿a las 19 o a las 21?»), y mezclar el martes con el sábado convierte esa pregunta
  * en otra distinta. Para otro día, otra convocatoria.
  *
- * El diseño está pensado para que se resuelva sin leer: la tira de días lleva su mes
- * encima y marca los fines de semana —que es cuando se juega—, las catorce horas van
- * partidas en dos bandas rotuladas en vez de un muro de pastillas iguales, y lo
- * elegido se acumula en «vas a proponer», donde se ve la propuesta montándose y se
- * quita una sin buscarla otra vez en la rejilla.
+ * **Rediseñado el 2026-09-07.** La versión anterior tenía tres límites que no eran del
+ * dominio ni del servidor, sino del cliente: una tira de catorce días (no se podía
+ * convocar para el mes que viene), una rejilla de 17:00 a 23:30 (no se podía convocar
+ * por la mañana) y ninguna forma de repetir lo del otro día. Ahora hay un calendario sin
+ * tope hacia delante, las veinticuatro horas en bandas y una tira de «repetir».
+ *
+ * Va todo en un componente y no en cuatro **a propósito**: cada `.scss` de más
+ * redeclara su propia estructura, y el presupuesto `css-total-size` de `npm run arch`
+ * está al límite y solo baja. El bloque del calendario lleva su BEM propio
+ * (`.sm-cal__*`) para que promoverlo algún día a `ui/nf-calendar` sea mover, no
+ * reescribir.
  */
 @Component({
   selector: 'app-schedule-modal',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [FormsModule, NfButton],
-  template: `
-    <div class="sm">
-      <p class="sm__legend">
-        Propón varias horas y el grupo dirá a cuáles puede. La que junte diez jugadores se
-        confirma sola; del once en adelante, banquillo.
-      </p>
-
-      <section class="sm__block">
-        <h3 class="sm__month">{{ month() }}</h3>
-
-        <div class="sm-days" role="tablist" aria-label="Elige el día">
-          @for (d of days; track d.value) {
-            <button
-              type="button"
-              role="tab"
-              class="sm-day"
-              [class.is-on]="selectedDay() === d.value"
-              [class.is-weekend]="d.isWeekend"
-              [attr.aria-selected]="selectedDay() === d.value"
-              [attr.aria-label]="d.fullLabel"
-              (click)="pickDay(d.value)"
-            >
-              <span class="sm-day__weekday nf-mono">{{ d.weekday }}</span>
-              <span class="sm-day__number">{{ d.dayNumber }}</span>
-            </button>
-          }
-        </div>
-
-        <p class="sm__chosen">{{ chosenDay()?.fullLabel }}</p>
-      </section>
-
-      @if (bands().length) {
-        <section class="sm__block">
-          @for (band of bands(); track band.id) {
-            <div class="sm-band">
-              <h4 class="sm-band__label">{{ band.label }}</h4>
-              <div class="sm-hours">
-                @for (h of band.hours; track h.value) {
-                  <button
-                    type="button"
-                    class="sm-hour"
-                    [class.is-on]="picked().includes(h.value)"
-                    [disabled]="atLimit() && !picked().includes(h.value)"
-                    [attr.aria-pressed]="picked().includes(h.value)"
-                    (click)="toggleHour(h.value)"
-                  >
-                    {{ h.label }}
-                  </button>
-                }
-              </div>
-            </div>
-          }
-        </section>
-      } @else {
-        <p class="sm__empty">Hoy ya no quedan horas por proponer. Prueba con otro día.</p>
-      }
-
-      <!-- La propuesta montándose. Es lo que convierte «pulsar pastillas» en «estoy
-           proponiendo estas tres horas», y deja quitar una sin volver a buscarla. -->
-      <section class="sm__block sm-basket" [class.is-empty]="!picked().length">
-        <h3 class="sm__label">
-          Vas a proponer
-          <span class="sm__count nf-mono">{{ picked().length }} de {{ maxSlots }}</span>
-        </h3>
-
-        @if (picked().length) {
-          <ul class="sm-basket__list">
-            @for (value of picked(); track value) {
-              <li>
-                <button
-                  type="button"
-                  class="sm-chip"
-                  [attr.aria-label]="'Quitar las ' + labelOf(value)"
-                  (click)="toggleHour(value)"
-                >
-                  {{ labelOf(value) }}
-                  <span class="sm-chip__x" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M7 7l10 10M17 7L7 17" stroke-linecap="round" />
-                    </svg>
-                  </span>
-                </button>
-              </li>
-            }
-          </ul>
-        } @else {
-          <p class="sm__hint">Toca una hora de arriba para empezar.</p>
-        }
-
-        @if (atLimit()) {
-          <p class="sm__hint">
-            Seis es el tope. Con más horas nadie se lee la lista y no se decide nada.
-          </p>
-        }
-      </section>
-
-      <section class="sm__block">
-        <label class="sm__label" for="sm-note">
-          Nota para el grupo (opcional)
-          <span class="sm__count nf-mono">{{ note().length }} / {{ maxNote }}</span>
-        </label>
-        <input
-          id="sm-note"
-          class="sm__note"
-          type="text"
-          [maxlength]="maxNote"
-          placeholder="Scrims contra los del curro, veníos con ganas…"
-          [ngModel]="note()"
-          (ngModelChange)="note.set($event)"
-        />
-      </section>
-
-      <footer class="sm__foot">
-        <button
-          nfButton
-          variant="primary"
-          size="md"
-          [disabled]="!picked().length || pending()"
-          (click)="publish()"
-        >
-          {{ pending() ? 'Convocando…' : 'Convocar partida' }}
-        </button>
-      </footer>
-    </div>
-  `,
+  templateUrl: './schedule-modal.component.html',
   styleUrl: './schedule-modal.component.scss',
 })
 export class ScheduleModalComponent {
   /** Hay una convocatoria en vuelo: el botón se apaga para que no salgan dos. */
   readonly pending = input(false);
 
+  /** Convocatorias recientes del grupo. Vacío: la tira de «repetir» no se pinta. */
+  readonly recent = input<RepeatOption[]>([]);
+
   readonly create = output<ScheduleDraft>();
 
   protected readonly maxSlots = MAX_SLOTS;
   protected readonly maxNote = MAX_NOTE_LENGTH;
+  protected readonly weekdays = WEEKDAY_INITIALS;
 
   /**
-   * Los días se calculan una vez, al abrir. Recalcularlos en un `computed` los movería
-   * al pasar la medianoche con la ventana abierta, y el día elegido dejaría de existir.
+   * El instante en que se abrió la ventana. Todo se deriva de él y nada lo relee: si el
+   * calendario se recalculara solo, cruzar la medianoche con el modal abierto movería el
+   * día elegido bajo el dedo.
    */
-  protected readonly days = buildDays(new Date(), DAYS_AHEAD);
+  private readonly openedAt = new Date();
 
-  protected readonly selectedDay = signal(this.days[0].value);
-  protected readonly picked = signal<string[]>([]);
+  protected readonly selectedDay = signal(toDayValue(this.openedAt));
   protected readonly note = signal('');
 
-  protected readonly chosenDay = computed(() =>
-    this.days.find((d) => d.value === this.selectedDay()),
-  );
-
-  protected readonly month = computed(() => this.chosenDay()?.monthLabel ?? '');
-
-  private readonly hours = computed(() => buildHours(this.selectedDay(), new Date()));
+  /** El mes que se está mirando, "2026-09". Navegar no cambia el día elegido. */
+  private readonly monthKey = signal(monthKeyOf(this.openedAt));
 
   /**
-   * Las horas partidas en tarde y noche. Catorce pastillas iguales no se escanean; dos
-   * filas rotuladas, sí. Una banda vacía no se pinta —a las 22:00 ya no hay tarde—.
+   * Las horas pedidas, sin fecha ("22:00"). Guardar la hora del día y no el instante es
+   * lo que permite que «repetir» y elegir fecha funcionen en cualquier orden.
+   */
+  private readonly wantedTimes = signal<string[]>([]);
+
+  /**
+   * Las horas que vienen de una plantilla. `null` cuando no hay ninguna aplicada.
+   * Es lo único que sobrevive a cambiar de día.
+   */
+  private readonly carried = signal<string[] | null>(null);
+
+  protected readonly repeatId = signal<string | null>(null);
+
+  /** Qué bandas están desplegadas. Las customs son de tarde-noche: la mañana empieza plegada. */
+  private readonly openBands = signal<ReadonlySet<string>>(
+    new Set(BANDS.filter((b) => b.open).map((b) => b.id)),
+  );
+
+  protected readonly month = computed(() => buildMonth(this.monthKey(), this.openedAt));
+
+  protected readonly atFirstMonth = computed(() => !this.month().canGoBack);
+
+  protected readonly chosenDay = computed(() => describeDay(this.selectedDay()));
+
+  private readonly hours = computed(() => buildHours(this.selectedDay(), this.openedAt));
+
+  private readonly offered = computed(() => new Set(this.hours().map((h) => h.label)));
+
+  /**
+   * Las horas partidas en bandas. Cuarenta y ocho pastillas iguales no se escanean;
+   * cuatro grupos rotulados, sí. Una banda vacía no se pinta —a las 22:00 ya no hay tarde—.
    */
   protected readonly bands = computed<HourBand[]>(() => {
     const hours = this.hours();
-    const bands: HourBand[] = [
-      { id: 'tarde', label: 'Tarde', hours: hours.filter((h) => hourOf(h) < NIGHT_FROM) },
-      { id: 'noche', label: 'Noche', hours: hours.filter((h) => hourOf(h) >= NIGHT_FROM) },
-    ];
-    return bands.filter((band) => band.hours.length > 0);
+    return BANDS.map((band, index) => {
+      const to = BANDS[index + 1]?.from ?? 24;
+      return {
+        id: band.id,
+        label: band.label,
+        hours: hours.filter((h) => hourOf(h) >= band.from && hourOf(h) < to),
+      };
+    }).filter((band) => band.hours.length > 0);
   });
 
-  protected readonly atLimit = computed(() => this.picked().length >= MAX_SLOTS);
+  /** Lo que de verdad se va a mandar: las horas pedidas que ese día todavía se ofrecen. */
+  protected readonly picked = computed(() => {
+    const day = this.selectedDay();
+    const offered = this.offered();
+    return this.wantedTimes()
+      .filter((time) => offered.has(time))
+      .map((time) => `${day}T${time}`);
+  });
+
+  /** Horas de la plantilla que en el día elegido ya han pasado. Se dicen, no se esconden. */
+  protected readonly droppedTimes = computed(() => {
+    const offered = this.offered();
+    return this.wantedTimes().filter((time) => !offered.has(time));
+  });
+
+  protected readonly atLimit = computed(() => this.wantedTimes().length >= MAX_SLOTS);
+
+  /** A partir del 90% el contador avisa; antes sería gritar durante novecientos caracteres. */
+  protected readonly noteNearLimit = computed(() => this.note().length >= MAX_NOTE_LENGTH * 0.9);
+
+  protected isOpen(bandId: string): boolean {
+    return this.openBands().has(bandId);
+  }
+
+  protected toggleBand(bandId: string): void {
+    this.openBands.update((open) => {
+      const next = new Set(open);
+      if (!next.delete(bandId)) next.add(bandId);
+      return next;
+    });
+  }
+
+  protected isPicked(label: string): boolean {
+    return this.wantedTimes().includes(label);
+  }
 
   /** "2026-09-08T22:00" → "22:00". */
   protected labelOf(value: string): string {
     return value.slice(11);
   }
 
-  /** Cambiar de día vacía lo elegido: una convocatoria es de un solo día. */
-  protected pickDay(value: string): void {
-    if (this.selectedDay() === value) return;
-    this.selectedDay.set(value);
-    this.picked.set([]);
+  protected moveMonth(delta: number): void {
+    if (delta < 0 && this.atFirstMonth()) return;
+    this.monthKey.update((key) => shiftMonth(key, delta));
   }
 
-  protected toggleHour(value: string): void {
-    this.picked.update((picked) => {
-      if (picked.includes(value)) return picked.filter((v) => v !== value);
-      if (picked.length >= MAX_SLOTS) return picked;
-      return [...picked, value].sort();
-    });
+  /**
+   * Cambiar de día vacía lo elegido a mano: una convocatoria es de un solo día. Lo que
+   * viene de una plantilla sí viaja, que es exactamente lo que se pidió al repetirla.
+   */
+  protected pickDay(cell: CalendarCell): void {
+    if (cell.isPast || cell.isFiller || this.selectedDay() === cell.value) return;
+    this.selectedDay.set(cell.value);
+    this.wantedTimes.set(this.carried() ?? []);
+  }
+
+  protected toggleHour(label: string): void {
+    const current = this.wantedTimes();
+    let next: string[];
+    if (current.includes(label)) next = current.filter((time) => time !== label);
+    else if (current.length >= MAX_SLOTS) return;
+    else next = [...current, label].sort();
+
+    this.wantedTimes.set(next);
+    // Retocar a mano no rompe la plantilla: la actualiza, para que el retoque viaje también.
+    if (this.carried() !== null) this.carried.set(next);
+  }
+
+  protected applyRepeat(option: RepeatOption): void {
+    if (this.repeatId() === option.id) {
+      // Segundo clic: se suelta la plantilla. La descripción NO se borra — quitar texto
+      // que el usuario está viendo es peor que dejarlo de más.
+      this.repeatId.set(null);
+      this.carried.set(null);
+      this.wantedTimes.set([]);
+      return;
+    }
+    this.repeatId.set(option.id);
+    this.carried.set(option.times);
+    this.wantedTimes.set(option.times);
+    if (!this.note().trim()) this.note.set(option.note);
   }
 
   protected publish(): void {
     if (!this.picked().length || this.pending()) return;
-    const note = this.note().trim();
+    // El recorte también aquí: `maxlength` no ata lo que entra por «repetir».
+    const note = this.note().trim().slice(0, MAX_NOTE_LENGTH);
     this.create.emit({ slotStartTimes: this.picked(), note: note || null });
   }
 }
 
-/** La hora en punto de una opción, para repartirla entre tarde y noche. */
+/** La hora en punto de una opción, para repartirla entre bandas. */
 function hourOf(option: HourOption): number {
   return Number(option.label.slice(0, 2));
+}
+
+/** `Date` → "2026-09-08". Duplicado mínimo para no exportar de más desde `shared/`. */
+function toDayValue(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }

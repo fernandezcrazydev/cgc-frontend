@@ -128,9 +128,12 @@
   cursor: pointer;
   text-align: left;
   text-decoration: none;
-  transition: color var(--nf-dur) var(--nf-ease-std), background var(--nf-dur) var(--nf-ease-std);
+  transition: color 0.05s ease, background 0.05s ease;
 }
-.shell__nav-item:hover { color: #fff; }
+.shell__nav-item:hover {
+  color: #fff;
+  transition: color 0.04s ease, background 0.04s ease;
+}
 .shell__nav-glyph {
   display: inline-flex;
   align-items: center;
@@ -194,14 +197,15 @@
   user-select: none;
   -webkit-user-drag: element;
   transition:
-    background var(--nf-dur) var(--nf-ease-std),
-    border-color var(--nf-dur) var(--nf-ease-std),
-    color var(--nf-dur) var(--nf-ease-std),
+    background 0.05s ease,
+    border-color 0.05s ease,
+    color 0.05s ease,
     padding var(--nf-dur-slow) var(--nf-ease-std);
 }
 .shell__groupitem:hover {
   background: rgba(255, 255, 255, 0.05);
   color: #fff;
+  transition: background 0.04s ease, color 0.04s ease;
 }
 .shell__groupitem.is-active {
   background: color-mix(in srgb, var(--nf-primary) 14%, transparent);
@@ -269,13 +273,14 @@
   border-left: 3px solid transparent;
   border-radius: 0 4px 4px 0;
   transition:
-    background var(--nf-dur) var(--nf-ease-std),
-    color var(--nf-dur) var(--nf-ease-std),
+    background 0.05s ease,
+    color 0.05s ease,
     padding var(--nf-dur-slow) var(--nf-ease-std);
 }
 .shell__grouplist-all:hover {
   background: rgba(255, 255, 255, 0.05);
   color: #fff;
+  transition: background 0.04s ease, color 0.04s ease;
 }
 .shell__grouplist-all-glyph {
   display: inline-flex;

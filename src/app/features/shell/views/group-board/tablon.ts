@@ -9,14 +9,21 @@ import {
 } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
 import { NfButton, NfModal, NfSkeleton } from '../../../../ui';
 import { Session } from '../../../../core/auth';
 import { GroupStore } from '../../../../core/group-store';
 import { GroupBridge } from '../../../../core/groups';
 import { GameDataStore } from '../../../../core/game-data';
-import { LobbiesStore, LobbyResponse, LobbySlotResponse } from '../../../../core/lobbies';
+import {
+  LobbiesStore,
+  LobbyResponse,
+  LobbySlotResponse,
+  MAX_SLOTS,
+  RepeatOption,
+  buildRepeatOptions,
+} from '../../../../core/lobbies';
 import { NotificationsStore } from '../../../../core/notifications';
 import { ToastService } from '../../../../core/toast';
 import { errorMessage } from '../../../../core/http';
@@ -27,7 +34,7 @@ import {
   ScheduleEntry,
   SchedulePanelComponent,
 } from './schedule-panel.component';
-import { AvailabilityChange, AvailabilityModalComponent } from './availability-modal.component';
+import { AvailabilityChange, ConvocatoriaModalComponent } from './convocatoria-modal.component';
 import { ScheduleDraft, ScheduleModalComponent } from './schedule-modal.component';
 
 /**
@@ -68,142 +75,17 @@ const CLOCK_TICK_MS = 30 * 1000;
     NfButton,
     NfModal,
     NfSkeleton,
-    AvailabilityModalComponent,
+    ConvocatoriaModalComponent,
     LiveRoomDeckComponent,
     ScheduleModalComponent,
     SchedulePanelComponent,
   ],
-  template: `
-    <div class="view gm">
-      @switch (bridge.status()) {
-        @case ('loading') {
-          <ng-container [ngTemplateOutlet]="skeleton" />
-        }
-        @case ('idle') {
-          <ng-container [ngTemplateOutlet]="skeleton" />
-        }
-        @case ('error') {
-          <div class="view__head">
-            <h1 class="view__title">No hemos podido cargar el grupo</h1>
-            <p class="view__lead">La conexión ha fallado. Vuelve a intentarlo en un momento.</p>
-          </div>
-          <button nfButton variant="secondary" size="md" (click)="retryGroup()">Reintentar</button>
-        }
-        @default {
-          @if (group(); as g) {
-            <div class="gm-deck">
-                <div class="gm-live">
-                  @if (liveLobbies().length) {
-                    @for (lb of liveLobbies(); track lb.id) {
-                      <app-live-room-deck
-                        [lobby]="lb"
-                        [slot]="slotOf(lb)"
-                        [groupId]="g.id"
-                        [kickoff]="kickoffOf(lb)"
-                        [loading]="lobbiesLoading()"
-                        [canJoin]="canJoinLive(lb)"
-                        [joining]="joiningLive(lb)"
-                        (join)="joinLive(lb)"
-                      />
-                    }
-                  } @else {
-                    <app-live-room-deck
-                      [lobby]="null"
-                      [slot]="null"
-                      [groupId]="g.id"
-                      [kickoff]="''"
-                      [loading]="lobbiesLoading()"
-                      [canJoin]="false"
-                      [joining]="false"
-                    />
-                  }
-
-                <!-- La acción va debajo de la sala y no en una cabecera: es donde se mira
-                     después de comprobar que no hay partida a la que apuntarse, que es
-                     justo cuando se quiere convocar una.
-
-                     Antes eran dos, y la otra llevaba al asistente de «Crear partida», que
-                     montaba los equipos a dedo sobre una sala que el backend nunca veía. Se
-                     borró entera; su relevo es «Jugar ahora» (FlujoJuego.md §4.1), que
-                     necesita cuatro cambios de servidor todavía pendientes. -->
-                <div class="gm-actions">
-                  <button type="button" class="gm-action" (click)="scheduling.set(true)">
-                    <span class="gm-action__glyph" aria-hidden="true">
-                      <svg
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="1.7"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      >
-                        <rect x="3.5" y="5" width="17" height="15.5" rx="2.5" />
-                        <path d="M3.5 9.5h17M8 3.5v3M16 3.5v3" />
-                      </svg>
-                    </span>
-                    <span class="gm-action__text">
-                      <span class="gm-action__title">Agendar fecha</span>
-                      <span class="gm-action__sub">Propón horas y que el grupo diga cuándo puede</span>
-                    </span>
-                  </button>
-                </div>
-              </div>
-
-              <app-schedule-panel
-                [entries]="scheduled()"
-                [loading]="lobbiesLoading()"
-                [failed]="lobbiesFailed()"
-                (signUp)="signUp($event)"
-                (withdraw)="withdraw($event)"
-                (openAvailability)="availabilityFor.set($event)"
-                (retry)="reloadLobbies()"
-              />
-            </div>
-
-            @if (scheduling()) {
-              <nf-modal title="Agendar una custom" width="600px" (closed)="scheduling.set(false)">
-                <app-schedule-modal
-                  [pending]="lobbies.creating()"
-                  (create)="publish(g.id, $event)"
-                />
-              </nf-modal>
-            }
-
-            @if (availabilityFor(); as lb) {
-              <nf-modal title="¿A qué horas puedes?" width="520px" (closed)="availabilityFor.set(null)">
-                <app-availability-modal
-                  [lobby]="lb"
-                  [myUserId]="myUserId()"
-                  [pending]="lobbies.savingAvailability()"
-                  (apply)="saveAvailability(lb.id, $event)"
-                />
-              </nf-modal>
-            }
-          } @else {
-            <div class="view__head">
-              <div class="view__eyebrow nf-mono">Error 404</div>
-              <h1 class="view__title">Grupo no encontrado</h1>
-              <p class="view__lead">El grupo que buscas no existe o ya no perteneces a él.</p>
-            </div>
-            <button nfButton variant="secondary" size="md" [routerLink]="['/app', 'grupos']">
-              Volver a grupos
-            </button>
-          }
-        }
-      }
-    </div>
-
-    <ng-template #skeleton>
-      <div class="gm-deck">
-        <nf-skeleton width="100%" height="420px" radius="12px" />
-        <nf-skeleton width="100%" height="420px" radius="12px" />
-      </div>
-    </ng-template>
-  `,
+  templateUrl: './tablon.html',
   styleUrl: './tablon.scss',
 })
 export class Tablon {
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly session = inject(Session);
   private readonly groups = inject(GroupStore);
   private readonly gameData = inject(GameDataStore);
@@ -238,13 +120,27 @@ export class Tablon {
   /** El id del usuario, para saber en qué convocatorias está metido. */
   readonly myUserId = computed(() => this.session.user()?.userId ?? null);
 
-  /* ---- Ventanas ----
+  /* ---- Ventanas y pestañas móviles ----
      Estado de interfaz, así que vive en la vista y no en el store (`CLAUDE.md`). */
+
+  /** Pestaña activa en móvil y tablet: salas en vivo o convocatorias. */
+  readonly activeTab = signal<'live' | 'schedule'>('live');
 
   /** Está abierta la ventana de agendar. */
   readonly scheduling = signal(false);
-  /** La convocatoria cuya disponibilidad se está editando, si hay alguna. */
-  readonly availabilityFor = signal<LobbyResponse | null>(null);
+
+  /**
+   * Las convocatorias que el modal de agendar ofrece repetir.
+   *
+   * Vacío mientras la lista venga del mock: proponer que repitas una convocatoria
+   * inventada es peor que no ofrecer nada, porque se actúa sobre ello y se acaban
+   * publicando horas que no eligió nadie. Sin opciones, la tira no se pinta.
+   */
+  readonly repeatOptions = computed<RepeatOption[]>(() =>
+    this.lobbies.usingMockData() ? [] : buildRepeatOptions(this.lobbies.lobbies(), MAX_SLOTS),
+  );
+  /** Convocatoria seleccionada para abrir en el modal completo de detalles e inscripción. */
+  readonly selectedConvocatoria = signal<LobbyResponse | null>(null);
 
   /* ---- La sala en directo ---- */
 
@@ -255,8 +151,10 @@ export class Tablon {
    */
   readonly liveLobbies = computed<LobbyResponse[]>(() => {
     const now = this.now();
+    const currentId = this.id();
     return this.lobbies
       .open()
+      .filter((lobby) => !currentId || lobby.groupId === currentId)
       .filter((lobby) => {
         const slot = confirmedSlotOf(lobby);
         return slot ? startsWithin(slot, now, LIVE_WINDOW_MS) : false;
@@ -318,9 +216,11 @@ export class Tablon {
   readonly scheduled = computed<ScheduleEntry[]>(() => {
     const liveIds = new Set(this.liveLobbies().map((lobby) => lobby.id));
     const myId = this.myUserId();
+    const currentId = this.id();
 
     return this.lobbies
       .open()
+      .filter((lobby) => !currentId || lobby.groupId === currentId)
       .filter((lobby) => !liveIds.has(lobby.id))
       .sort((a, b) => startMsOf(a) - startMsOf(b))
       .map((lobby) => {
@@ -372,6 +272,26 @@ export class Tablon {
 
   /* ---- Acciones ---- */
 
+  openConvocatoria(lb: LobbyResponse): void {
+    this.selectedConvocatoria.set(lb);
+  }
+
+  isActingConvocatoria(lb: LobbyResponse): boolean {
+    return lb.slots.some((s) => this.lobbies.isActing(s.id));
+  }
+
+  async onModalSignUp(lb: LobbyResponse, slotId: string): Promise<void> {
+    await this.signUp({ lobbyId: lb.id, slotId });
+    const updated = this.lobbies.open().find((l) => l.id === lb.id);
+    if (updated) this.selectedConvocatoria.set(updated);
+  }
+
+  async onModalWithdraw(lb: LobbyResponse, slotId: string): Promise<void> {
+    await this.withdraw({ lobbyId: lb.id, slotId });
+    const updated = this.lobbies.open().find((l) => l.id === lb.id);
+    if (updated) this.selectedConvocatoria.set(updated);
+  }
+
   retryGroup(): void {
     const id = this.id();
     if (id) void this.bridge.ensure(id);
@@ -400,20 +320,24 @@ export class Tablon {
   async saveAvailability(lobbyId: string, change: AvailabilityChange): Promise<void> {
     try {
       await this.lobbies.setAvailability(lobbyId, change.join, change.leave);
-      this.availabilityFor.set(null);
+      this.selectedConvocatoria.set(null);
       this.toasts.success('Guardado. Te avisamos cuando alguna hora junte a los diez.');
     } catch (error) {
       this.toasts.error(errorMessage(error));
     }
   }
 
-  /** Apuntarse a la sala en directo desde un hueco libre. */
+  /** Apuntarse y entrar a la sala en directo desde un hueco libre. */
   async joinLive(lb?: LobbyResponse): Promise<void> {
     const lobby = lb ?? this.liveLobby();
     if (!lobby) return;
     const slot = confirmedSlotOf(lobby);
     if (!slot) return;
-    await this.signUp({ lobbyId: lobby.id, slotId: slot.id });
+    if (this.canJoinLive(lobby)) {
+      await this.signUp({ lobbyId: lobby.id, slotId: slot.id });
+    }
+    const groupId = this.id() ?? lobby.groupId;
+    void this.router.navigate(['/app', 'grupos', groupId, 'sala', lobby.id]);
   }
 
   async signUp(action: ScheduleAction): Promise<void> {
@@ -482,6 +406,10 @@ function standingOf(lobby: LobbyResponse, myUserId: string | null): ScheduleStan
   for (const slot of lobby.slots) {
     const starter = slot.starters.findIndex((p) => p.userId === myUserId);
     if (starter >= 0) return { kind: 'starter', position: starter + 1, slot };
+    if (slot.secondaryStarters) {
+      const secStarter = slot.secondaryStarters.findIndex((p) => p.userId === myUserId);
+      if (secStarter >= 0) return { kind: 'starter', position: slot.starters.length + secStarter + 1, slot };
+    }
     const bench = slot.bench.findIndex((p) => p.userId === myUserId);
     if (bench >= 0) return { kind: 'bench', position: bench + 1, slot };
   }

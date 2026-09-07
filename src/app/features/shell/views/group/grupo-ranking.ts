@@ -314,10 +314,10 @@ export class GrupoRanking {
   }
 
   protected spellName(id: number): string {
-    if (id === 1102) return 'Castigo Desatado (Azul - Caminavientos)';
-    if (id === 1101) return 'Castigo de Furia (Rojo - Garramélica)';
-    if (id === 1103) return 'Castigo de Vitalidad (Verde - Brincamusgo)';
-    if (id === 11) return 'Castigo (Sin evolucionar)';
+    if (id === 1102) return 'Smite Desatado (Azul - Caminavientos)';
+    if (id === 1101) return 'Smite de Furia (Rojo - Garramélica)';
+    if (id === 1103) return 'Smite de Vitalidad (Verde - Brincamusgo)';
+    if (id === 11) return 'Smite (Sin evolucionar)';
 
     const fromStore = typeof this.gameData.summonerSpellById === 'function'
       ? this.gameData.summonerSpellById().get(id)?.name
@@ -327,7 +327,7 @@ export class GrupoRanking {
     const names: Record<number, string> = {
       4: 'Destello',
       12: 'Teleportar',
-      11: 'Castigo',
+      11: 'Smite',
       14: 'Ignición',
       7: 'Curar',
       21: 'Barrera',

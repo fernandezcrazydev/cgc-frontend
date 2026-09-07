@@ -1,0 +1,377 @@
+@if (lobby(); as lb) {
+  <div class="cv">
+    <!-- Metadatos de la convocatoria: Modalidad, Formato, Estado y Convocante -->
+    <header class="cv__header">
+      <div class="cv__badges">
+        <!-- Modalidad -->
+        <span class="cv__badge cv__badge--modality" [attr.data-mod]="modality()">
+          @switch (modality()) {
+            @case ('COMPETITIVE') {
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
+                <path d="M14.5 17.5L3 6V3h3l11.5 11.5M13 19l6 2 2-6-4.5-4.5" />
+              </svg>
+              Competitivo
+            }
+            @case ('CHAOS') {
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
+                <rect x="3" y="3" width="18" height="18" rx="3" />
+                <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor" />
+                <circle cx="15.5" cy="15.5" r="1.5" fill="currentColor" />
+              </svg>
+              Caos
+            }
+            @default {
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
+                <path d="M12 3v18M3 7l9-4 9 4M6 17l-3-6h6l-3 6zM18 17l-3-6h6l-3 6z" />
+              </svg>
+              Equilibrado
+            }
+          }
+        </span>
+
+        <!-- Formato de Reparto: siempre Party o Room -->
+        @if (isParty()) {
+          <span class="cv__badge cv__badge--party">Party</span>
+        } @else {
+          <span class="cv__badge cv__badge--rooms">Room</span>
+        }
+
+        <!-- Salas generadas (solo si >= 2 salas) -->
+        @if (isContiguous() || isPartyRounds()) {
+          <span class="cv__badge cv__badge--rooms-count">2 Salas</span>
+        }
+
+        <!-- Estado de confirmación -->
+        @if (lb.status === 'CONFIRMED') {
+          <span class="cv__badge cv__badge--status-confirmed">
+            <span class="cv__dot"></span>
+            Hora confirmada
+          </span>
+        } @else {
+          <span class="cv__badge cv__badge--status-polling">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11">
+              <circle cx="12" cy="12" r="10" />
+              <polyline points="12 6 12 12 16 14" />
+            </svg>
+            Recogiendo disponibilidad
+          </span>
+        }
+      </div>
+
+      <div class="cv__meta">
+        <span>Convocó <strong>{{ lb.openedBy.discordUsername ?? 'alguien del grupo' }}</strong></span>
+        @if (whenText(); as w) {
+          <span>· {{ w }}</span>
+        }
+      </div>
+
+      <!-- Lo que escribió quien convocó. Se pinta entera y el modal hace scroll si hace
+           falta: recortarla escondería detrás de un clic justo lo que quiso decirle al
+           grupo. Hasta el 2026-09-07 solo se veía en la pantalla completa. -->
+      @if (lb.note) {
+        <p class="cv__note">{{ lb.note }}</p>
+      }
+    </header>
+
+    <!-- CASO 1: HORA CONFIRMADA -->
+    @if (lb.status === 'CONFIRMED' && representativeSlot(); as s) {
+      <div class="cv-confirmed">
+        <div class="cv-confirmed__banner">
+          <div class="cv-confirmed__time">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+              <rect x="3" y="4" width="18" height="18" rx="2" />
+              <path d="M16 2v4M8 2v4M3 10h18" />
+            </svg>
+            <span class="cv-confirmed__time-text">{{ formatKickoff(s.startsAt) }}</span>
+          </div>
+          <span class="cv-confirmed__code nf-mono">Código: {{ lb.code }}</span>
+        </div>
+
+        <!-- CASO 1.A: PARTY (Rotación) -> Muestra el número de gente apuntada -->
+        @if (isParty()) {
+          <div class="cv-party-info">
+            <div class="cv-party-count-card">
+              <div class="cv-party-count-val nf-mono">
+                {{ s.signedUp }}
+              </div>
+              <div class="cv-party-count-detail">
+                <span class="cv-party-count-label">Jugadores apuntados a la Party</span>
+                <span class="cv-party-status-tag">
+                  @if (s.signedUp >= 10) {
+                    🟢 Party confirmada (mínimo 10 alcanzado)
+                  } @else {
+                    🟡 Faltan {{ 10 - s.signedUp }} jugadores para confirmar
+                  }
+                </span>
+              </div>
+            </div>
+
+            <p class="cv-party-desc">
+              Todos los inscritos entrarán en la rotación de tandas simultáneas. A partir de 10 personas apuntadas la party queda confirmada. Si el cupo supera múltiplos de 10, los que esperen acumulan Deuda de Rotación garantizada para la siguiente tanda (§7).
+            </p>
+
+            @if (s.starters.length > 0) {
+              <div class="cv-roster-block">
+                <span class="cv-roster-title nf-mono">Inscritos en la convocatoria:</span>
+                <ul class="cv-avatar-grid">
+                  @for (p of allPartyParticipants(s); track p.userId) {
+                    <li class="cv-avatar-item" [title]="p.discordUsername ?? ''">
+                      <nf-avatar
+                        [src]="p.avatarUrl"
+                        [fallback]="p.discordUsername ?? ''"
+                        [tint]="tintOf(p.userId)"
+                        [size]="28"
+                        shape="round"
+                        [alt]="p.discordUsername ?? 'Participante'"
+                      />
+                      <span class="cv-avatar-name">{{ p.discordUsername ?? 'Jugador' }}</span>
+                      @if (p.isAdded) {
+                        <span class="cv-tag-added" title="Añadido por el host">✚</span>
+                      }
+                    </li>
+                  }
+                </ul>
+              </div>
+            }
+          </div>
+        }
+        <!-- CASO 1.B: SALAS INDEPENDIENTES (Rooms) -> Muestra quién está apuntado -->
+        @else {
+          <div class="cv-rooms-info">
+            @if (isContiguous() && s.secondaryStarters; as sec) {
+              <!-- 2 Salas Contiguas -->
+              <div class="cv-subroom-section">
+                <div class="cv-subroom-head">
+                  <span class="cv-subroom-title nf-mono">{{ s.roomName || 'Sala 1' }} ({{ s.starters.length }}/10)</span>
+                </div>
+                <div class="cv-pod-grid">
+                  @for (p of s.starters; track p.userId) {
+                    <div class="cv-pod-card">
+                      <nf-avatar
+                        [src]="p.avatarUrl"
+                        [fallback]="p.discordUsername ?? ''"
+                        [tint]="tintOf(p.userId)"
+                        [size]="26"
+                        shape="round"
+                        [alt]="p.discordUsername ?? 'Jugador'"
+                      />
+                      <span class="cv-pod-name">{{ p.discordUsername ?? 'Jugador' }}</span>
+                      @if (p.isAdded) {
+                        <span class="cv-tag-added" title="Añadido por el host">✚</span>
+                      }
+                    </div>
+                  }
+                </div>
+              </div>
+
+              <div class="cv-subroom-section">
+                <div class="cv-subroom-head">
+                  <span class="cv-subroom-title nf-mono">{{ s.secondaryRoomName || 'Sala 2' }} ({{ sec.length }}/10)</span>
+                </div>
+                <div class="cv-pod-grid">
+                  @for (p of sec; track p.userId) {
+                    <div class="cv-pod-card">
+                      <nf-avatar
+                        [src]="p.avatarUrl"
+                        [fallback]="p.discordUsername ?? ''"
+                        [tint]="tintOf(p.userId)"
+                        [size]="26"
+                        shape="round"
+                        [alt]="p.discordUsername ?? 'Jugador'"
+                      />
+                      <span class="cv-pod-name">{{ p.discordUsername ?? 'Jugador' }}</span>
+                      @if (p.isAdded) {
+                        <span class="cv-tag-added" title="Añadido por el host">✚</span>
+                      }
+                    </div>
+                  }
+                </div>
+              </div>
+            } @else {
+              <!-- Sala Única Estándar -->
+              <div class="cv-subroom-section">
+                <div class="cv-subroom-head">
+                  <span class="cv-subroom-title nf-mono">
+                    Titulares de la Sala ({{ s.starters.length }}/{{ lb.capacity }})
+                  </span>
+                </div>
+                <div class="cv-pod-grid">
+                  @for (p of s.starters; track p.userId) {
+                    <div class="cv-pod-card">
+                      <nf-avatar
+                        [src]="p.avatarUrl"
+                        [fallback]="p.discordUsername ?? ''"
+                        [tint]="tintOf(p.userId)"
+                        [size]="26"
+                        shape="round"
+                        [alt]="p.discordUsername ?? 'Jugador'"
+                      />
+                      <span class="cv-pod-name">{{ p.discordUsername ?? 'Jugador' }}</span>
+                      @if (p.isAdded) {
+                        <span class="cv-tag-added" title="Añadido por el host">✚</span>
+                      }
+                    </div>
+                  }
+                  @for (empty of emptyStarterSlots(s, lb.capacity); track empty) {
+                    <div class="cv-pod-card cv-pod-card--empty">
+                      <span class="cv-pod-empty-plus">＋</span>
+                      <span class="cv-pod-empty-text">Libre</span>
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+
+            <!-- Banquillo -->
+            @if (s.bench.length > 0) {
+              <div class="cv-bench-section">
+                <span class="cv-bench-title nf-mono">
+                  🪑 Banquillo ({{ s.bench.length }} suplente{{ s.bench.length === 1 ? '' : 's' }})
+                </span>
+                <div class="cv-bench-list">
+                  @for (p of s.bench; track p.userId) {
+                    <div class="cv-bench-item">
+                      <nf-avatar
+                        [src]="p.avatarUrl"
+                        [fallback]="p.discordUsername ?? ''"
+                        [tint]="tintOf(p.userId)"
+                        [size]="22"
+                        shape="round"
+                        [alt]="p.discordUsername ?? 'Suplente'"
+                      />
+                      <span class="cv-bench-name">{{ p.discordUsername ?? 'Suplente' }}</span>
+                    </div>
+                  }
+                </div>
+                <p class="cv-bench-hint">
+                  Orden FIFO de llegada. Cuando cae un titular sube el primer suplente activo (§5).
+                </p>
+              </div>
+            }
+          </div>
+        }
+
+        <!-- Pie con estado personal y acciones -->
+        <footer class="cv-confirmed__foot">
+          <div class="cv-confirmed__user-status">
+            @switch (myStanding().kind) {
+              @case ('starter') {
+                <span class="cv-status-badge cv-status-badge--in">
+                  ✓ Estás inscrito como titular
+                </span>
+              }
+              @case ('bench') {
+                <span class="cv-status-badge cv-status-badge--bench">
+                  🪑 Estás en el banquillo (suplente)
+                </span>
+              }
+              @default {
+                <span class="cv-status-badge cv-status-badge--out">
+                  No estás apuntado a esta convocatoria
+                </span>
+              }
+            }
+          </div>
+
+          <div class="cv-confirmed__actions">
+            @if (myStanding().kind === 'out') {
+              <button
+                nfButton
+                variant="primary"
+                size="md"
+                [disabled]="acting()"
+                (click)="onSignUp(s.id)"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                  <path d="M12 5v14M5 12h14" />
+                </svg>
+                Inscribirme
+              </button>
+            } @else {
+              <button
+                nfButton
+                variant="ghost"
+                size="md"
+                [disabled]="acting()"
+                (click)="onWithdraw(s.id)"
+              >
+                Ya no puedo / Desapuntarme
+              </button>
+            }
+          </div>
+        </footer>
+      </div>
+    }
+
+    <!-- CASO 2: HORAS PROPUESTAS (POLLING) -->
+    @else {
+      <div class="cv-polling">
+        <p class="cv-polling__legend">
+          Marca todas las horas a las que puedas jugar. Cada barra muestra los apuntados de 0 a 10; la franja que alcance 10 se confirmará automáticamente.
+        </p>
+
+        <ul class="cv-slot-list">
+          @for (row of rows(); track row.slot.id) {
+            <li>
+              <button
+                type="button"
+                class="cv-slot-btn"
+                [class.is-selected]="picked().includes(row.slot.id)"
+                [attr.aria-pressed]="picked().includes(row.slot.id)"
+                [disabled]="pending()"
+                (click)="toggle(row.slot.id)"
+              >
+                <!-- Indicador Checkbox -->
+                <span class="cv-slot-check" aria-hidden="true">
+                  @if (picked().includes(row.slot.id)) {
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="14" height="14">
+                      <path d="M5 12.5l4.5 4.5L19 7.5" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                  }
+                </span>
+
+                <div class="cv-slot-body">
+                  <div class="cv-slot-top">
+                    <span class="cv-slot-time">{{ row.label }}</span>
+                    <div class="cv-slot-count-wrap">
+                      <span class="cv-slot-count nf-mono">
+                        {{ projected(row) }}/10
+                      </span>
+                      @if (projected(row) >= 10) {
+                        <span class="cv-slot-tag cv-slot-tag--ready">¡Lista para confirmar!</span>
+                      } @else if (row.isAlreadySigned) {
+                        <span class="cv-slot-tag cv-slot-tag--mine">✓ Apuntado</span>
+                      }
+                    </div>
+                  </div>
+
+                  <!-- Barra de progreso de 0 a 10 con la gente apuntada -->
+                  <div class="cv-slot-bar-track" aria-hidden="true">
+                    <span
+                      class="cv-slot-bar-fill"
+                      [class.is-full]="projected(row) >= 10"
+                      [style.width.%]="(projected(row) / 10) * 100"
+                    ></span>
+                  </div>
+                </div>
+              </button>
+            </li>
+          }
+        </ul>
+
+        <footer class="cv-polling__foot">
+          <span class="cv-polling__summary nf-mono">{{ summary() }}</span>
+          <button
+            nfButton
+            variant="primary"
+            size="md"
+            [disabled]="!dirty() || pending()"
+            (click)="applyAvailability()"
+          >
+            {{ pending() ? 'Guardando…' : 'Guardar disponibilidad' }}
+          </button>
+        </footer>
+      </div>
+    }
+  </div>
+}

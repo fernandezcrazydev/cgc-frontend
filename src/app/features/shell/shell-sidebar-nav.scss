@@ -11,7 +11,7 @@
   transition:
     opacity var(--nf-dur) var(--nf-ease-std),
     transform var(--nf-dur) var(--nf-ease-std),
-    background var(--nf-dur-slow) var(--nf-ease-std);
+    background 0.06s ease;
   cursor: grab;
 
   &:active {
@@ -114,8 +114,8 @@
   opacity: 0;
   transform: translateX(-8px);
   transition:
-    background var(--nf-dur) var(--nf-ease-std),
-    color var(--nf-dur) var(--nf-ease-std),
+    background 0.05s ease,
+    color 0.05s ease,
     padding var(--nf-dur-slow) var(--nf-ease-std),
     opacity var(--nf-dur) var(--nf-ease-out),
     transform var(--nf-dur) var(--nf-ease-out);
@@ -127,11 +127,13 @@
   opacity: 1;
   transform: none;
 
-  @for $i from 1 through 8 { &:nth-child(#{$i}) { transition-delay: #{60 + $i * 24}ms; } }
+  @for $i from 1 through 8 { &:nth-child(#{$i}) { transition-delay: 0s, 0s, 0s, #{60 + $i * 24}ms, #{60 + $i * 24}ms; } }
 }
 .shell__section:hover {
   background: rgba(255, 255, 255, 0.06);
   color: var(--nf-text);
+  transition: background 0.04s ease, color 0.04s ease;
+  transition-delay: 0s;
 }
 .shell__section:focus-visible {
   outline: 2px solid var(--nf-primary);
@@ -144,6 +146,8 @@
 .shell__section.is-active .shell__section-glyph { color: var(--grp-c1, var(--nf-primary)); }
 .shell__section.is-active:hover {
   background: color-mix(in srgb, var(--grp-c1, var(--nf-primary)) 24%, transparent);
+  transition: background 0.04s ease;
+  transition-delay: 0s;
 }
 .shell__section.is-primary .shell__section-glyph { color: var(--grp-c1, var(--nf-primary)); }
 
@@ -154,6 +158,8 @@
   &:hover {
     background: rgba(16, 185, 129, 0.12);
     color: #6ee7b7;
+    transition: background 0.04s ease, color 0.04s ease;
+    transition-delay: 0s;
   }
 }
 

@@ -1,0 +1,220 @@
+<div class="sm">
+  <p class="sm__legend">
+    Propón varias horas del mismo día y el grupo dirá a cuáles puede. La que junte diez
+    jugadores se confirma sola; del once en adelante, banquillo.
+  </p>
+
+  <!-- Repetir: una custom de grupo es semanal y casi siempre igual, así que lo más rápido
+       es partir de la anterior. Sin convocatorias previas la tira no se pinta: una fila
+       vacía arriba del todo sería ruido permanente para un grupo nuevo. -->
+  @if (recent().length) {
+    <section class="sm__block">
+      <h3 class="sm__label">Repetir una anterior</h3>
+      <ul class="sm-repeat">
+        @for (option of recent(); track option.id) {
+          <li>
+            <button
+              type="button"
+              class="sm-repeat__chip"
+              [class.is-on]="repeatId() === option.id"
+              [attr.aria-pressed]="repeatId() === option.id"
+              (click)="applyRepeat(option)"
+            >
+              <span class="sm-repeat__times nf-mono">{{ option.label }}</span>
+              @if (option.truncated) {
+                <span class="sm-repeat__note">{{ option.times.length }} de {{ option.originalCount }} horas</span>
+              }
+            </button>
+          </li>
+        }
+      </ul>
+    </section>
+  }
+
+  <div class="sm__cols">
+    <!-- Columna izquierda: el día. El calendario se queda fijo mientras se eligen horas,
+         que es justo cuando hace falta verlo. Bloque con BEM propio para poder promoverlo
+         algún día a una primitiva `ui/nf-calendar` moviéndolo, no reescribiéndolo. -->
+    <section class="sm-cal">
+      <header class="sm-cal__head">
+        <button
+          type="button"
+          class="sm-cal__nav"
+          [disabled]="atFirstMonth()"
+          aria-label="Mes anterior"
+          (click)="moveMonth(-1)"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M15 6l-6 6 6 6" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </button>
+        <h3 class="sm-cal__month" aria-live="polite">{{ month().label }}</h3>
+        <button type="button" class="sm-cal__nav" aria-label="Mes siguiente" (click)="moveMonth(1)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </button>
+      </header>
+
+      <div class="sm-cal__dow" aria-hidden="true">
+        @for (initial of weekdays; track $index) {
+          <span>{{ initial }}</span>
+        }
+      </div>
+
+      <!-- Un grupo rotulado de botones, no un `role="grid"`: una rejilla de verdad exige
+           filas y celdas, y las de relleno tendrían que ser celdas ocultas a la vez. Cada
+           día lleva su fecha entera en el `aria-label`. -->
+      <div class="sm-cal__grid" role="group" [attr.aria-label]="'Elige el día de ' + month().label">
+        @for (week of month().weeks; track $index) {
+          @for (cell of week; track cell.value || $index) {
+            @if (cell.isFiller) {
+              <span class="sm-cal__cell is-filler" aria-hidden="true"></span>
+            } @else {
+              <button
+                type="button"
+                class="sm-cal__cell"
+                [class.is-on]="selectedDay() === cell.value"
+                [class.is-weekend]="cell.isWeekend"
+                [class.is-today]="cell.isToday"
+                [disabled]="cell.isPast"
+                [attr.aria-label]="cell.label"
+                [attr.aria-pressed]="selectedDay() === cell.value"
+                [attr.aria-current]="cell.isToday ? 'date' : null"
+                (click)="pickDay(cell)"
+              >
+                {{ cell.dayNumber }}
+              </button>
+            }
+          }
+        }
+      </div>
+
+      <p class="sm-cal__chosen">{{ chosenDay() }}</p>
+      <p class="sm__hint">
+        Una convocatoria es de un solo día: cambiar de día vacía las horas elegidas.
+      </p>
+    </section>
+
+    <!-- Columna derecha: las horas de ese día y la propuesta montándose. -->
+    <section class="sm-right">
+      @if (bands().length) {
+        <div class="sm-bands">
+          @for (band of bands(); track band.id) {
+            <div class="sm-band">
+              <button
+                type="button"
+                class="sm-band__head"
+                [attr.aria-expanded]="isOpen(band.id)"
+                (click)="toggleBand(band.id)"
+              >
+                <span class="sm-band__caret" [class.is-open]="isOpen(band.id)" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                </span>
+                {{ band.label }}
+                <span class="sm-band__count nf-mono">{{ band.hours.length }}</span>
+              </button>
+
+              @if (isOpen(band.id)) {
+                <div class="sm-hours">
+                  @for (h of band.hours; track h.value) {
+                    <button
+                      type="button"
+                      class="sm-hour"
+                      [class.is-on]="isPicked(h.label)"
+                      [disabled]="atLimit() && !isPicked(h.label)"
+                      [attr.aria-pressed]="isPicked(h.label)"
+                      (click)="toggleHour(h.label)"
+                    >
+                      {{ h.label }}
+                    </button>
+                  }
+                </div>
+              }
+            </div>
+          }
+        </div>
+      } @else {
+        <p class="sm__empty">Hoy ya no quedan horas por proponer. Prueba con otro día.</p>
+      }
+
+      <!-- La propuesta montándose. Es lo que convierte «pulsar pastillas» en «estoy
+           proponiendo estas tres horas», y deja quitar una sin volver a buscarla. -->
+      <div class="sm-basket" [class.is-empty]="!picked().length">
+        <h3 class="sm__label">
+          Vas a proponer
+          <span class="sm__count nf-mono">{{ picked().length }} de {{ maxSlots }}</span>
+        </h3>
+
+        @if (picked().length) {
+          <ul class="sm-basket__list">
+            @for (value of picked(); track value) {
+              <li>
+                <button
+                  type="button"
+                  class="sm-chip"
+                  [attr.aria-label]="'Quitar las ' + labelOf(value)"
+                  (click)="toggleHour(labelOf(value))"
+                >
+                  {{ labelOf(value) }}
+                  <span class="sm-chip__x" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M7 7l10 10M17 7L7 17" stroke-linecap="round" />
+                    </svg>
+                  </span>
+                </button>
+              </li>
+            }
+          </ul>
+        } @else {
+          <p class="sm__hint">Toca una hora de arriba para empezar.</p>
+        }
+
+        <!-- Lo copiado que ya no cabe se dice. Silenciarlo sería mentir sobre lo que se
+             va a proponer, y basta con cambiar de día para recuperarlo entero. -->
+        @if (droppedTimes().length) {
+          <p class="sm__hint">
+            {{ droppedTimes().length }} de esas horas ya han pasado hoy. Elige otro día para
+            proponerlas todas.
+          </p>
+        }
+
+        @if (atLimit()) {
+          <p class="sm__hint">Seis es el tope. Con más horas nadie se lee la lista y no se decide nada.</p>
+        }
+      </div>
+    </section>
+  </div>
+
+  <section class="sm__block">
+    <label class="sm__label" for="sm-note">
+      Descripción para el grupo (opcional)
+      <span class="sm__count nf-mono" [class.is-near]="noteNearLimit()">
+        {{ note().length }} / {{ maxNote }}
+      </span>
+    </label>
+    <textarea
+      id="sm-note"
+      class="sm__note"
+      rows="3"
+      [maxlength]="maxNote"
+      placeholder="Scrims contra los del curro. Veníos con ganas y con el micro puesto."
+      [ngModel]="note()"
+      (ngModelChange)="note.set($event)"
+    ></textarea>
+  </section>
+
+  <footer class="sm__foot">
+    <button
+      nfButton
+      variant="primary"
+      size="md"
+      [disabled]="!picked().length || pending()"
+      (click)="publish()"
+    >
+      {{ pending() ? 'Convocando…' : 'Convocar partida' }}
+    </button>
+  </footer>
+</div>

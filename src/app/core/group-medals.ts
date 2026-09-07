@@ -177,7 +177,7 @@ export const MEDALS: readonly MedalDefinition[] = [
     id: 'thief',
     icon: 'steal',
     title: 'El ladrón',
-    description: 'Premia a quien más objetivos épicos ha robado con el castigo.',
+    description: 'Premia a quien más objetivos épicos ha robado con el Smite.',
     family: 'objetivos',
     score: (s) => s.steals,
     format: counted('robo', 'robos'),

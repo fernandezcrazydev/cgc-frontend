@@ -36,10 +36,19 @@ export interface ScheduleAction {
   template: `
     <section class="mt-card sp" [attr.aria-busy]="loading() ? 'true' : null">
       <header class="mt-card__head">
-        <h2 class="mt-card__title">Próximas convocatorias</h2>
-        @if (!loading() && entries().length) {
-          <span class="sp__count nf-mono">{{ entries().length }}</span>
-        }
+        <div class="sp__title-wrap">
+          <h2 class="mt-card__title">Próximas convocatorias</h2>
+          @if (!loading() && entries().length) {
+            <span class="sp__count nf-mono">{{ entries().length }}</span>
+          }
+        </div>
+        <button nfButton variant="primary" size="sm" (click)="schedule.emit()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
+            <rect x="3" y="4" width="18" height="18" rx="2" />
+            <path d="M16 2v4M8 2v4M3 10h18" />
+          </svg>
+          Agendar fecha
+        </button>
       </header>
 
       @if (loading()) {
@@ -59,9 +68,11 @@ export interface ScheduleAction {
                 [standing]="entry.standing"
                 [when]="entry.when"
                 [acting]="entry.acting"
+                [myUserId]="myUserId()"
                 (signUp)="signUp.emit({ lobbyId: entry.lobby.id, slotId: $event })"
                 (withdraw)="withdraw.emit({ lobbyId: entry.lobby.id, slotId: $event })"
                 (openAvailability)="openAvailability.emit(entry.lobby)"
+                (openDetail)="openDetail.emit($event)"
               />
             </li>
           }
@@ -79,10 +90,13 @@ export class SchedulePanelComponent {
   readonly entries = input<readonly ScheduleEntry[]>([]);
   readonly loading = input(false);
   readonly failed = input(false);
+  readonly myUserId = input<string | null>(null);
 
   readonly signUp = output<ScheduleAction>();
   readonly withdraw = output<ScheduleAction>();
   /** Pide abrir el modal de disponibilidad de esa convocatoria. */
   readonly openAvailability = output<LobbyResponse>();
+  readonly openDetail = output<LobbyResponse>();
+  readonly schedule = output<void>();
   readonly retry = output<void>();
 }

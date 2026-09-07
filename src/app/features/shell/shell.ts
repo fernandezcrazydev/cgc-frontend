@@ -19,7 +19,7 @@ import {
   InvitationsStore,
   groupRoleLabel,
 } from '../../core/groups';
-import { LobbiesStore, LobbyDetailStore, LobbyResponse } from '../../core/lobbies';
+import { LobbiesStore, LobbyDetailStore, LobbyParticipantResponse, LobbyResponse } from '../../core/lobbies';
 import { MatchHistoryStore } from '../../core/matches';
 import { NotificationsStore, NotificationView, notificationView, NotificationSemanticLevel, SEED_NOTIFICATIONS } from '../../core/notifications';
 import { RiotAccountStore } from '../../core/riot';
@@ -46,6 +46,14 @@ function readRailed(): boolean {
   } catch {
     return false;
   }
+}
+
+export interface LiveRoomRow {
+  label: string;
+  link: unknown[];
+  isJoinAction: boolean;
+  lobbyId: string;
+  slotId: string;
 }
 
 /**
@@ -447,45 +455,155 @@ export class Shell {
    * ¿Este grupo tiene alguna sala en marcha? Es el punto verde del avatar, y a diferencia
    * de la fila de abajo cuenta TODAS: el punto solo dice «aquí se está jugando».
    */
-  hasLiveRoom(groupId: string): boolean {
-    return this.lobbies
-      .open()
-      .some((lobby) => lobby.groupId === groupId && lobby.confirmedSlotId !== null);
+  private isLiveLobby(lobby: LobbyResponse, now = Date.now()): boolean {
+    if (lobby.status === 'FINISHED' || lobby.status === 'CANCELLED') return false;
+    if (lobby.status === 'LIVE') return true;
+    const slot = lobby.confirmedSlotId
+      ? lobby.slots.find((s) => s.id === lobby.confirmedSlotId)
+      : null;
+    if (!slot) return false;
+    const start = Date.parse(slot.startsAt);
+    if (Number.isNaN(start)) return false;
+    // Dentro de la ventana en directo (30 min antes de la hora o ya empezada)
+    return start - now <= 30 * 60 * 1000;
+  }
+
+  activeLobbiesFor(groupId: string): LobbyResponse[] {
+    const group = this.groups.byId(groupId);
+    const lobbies = this.lobbies.lobbiesForGroup(groupId, group?.name);
+    const now = Date.now();
+    return lobbies.filter((lb) => this.isLiveLobby(lb, now));
   }
 
   /**
-   * La fila contextual de sala: solo aparece cuando le concierne a quien mira.
-   *
-   *   - juegas en una  → «Mi sala 7/10», que lleva a la arena;
-   *   - no juegas y hay UNA sola → «Unirme a sala 7/10»;
-   *   - hay varias, o ninguna → nada, y el aviso lo lleva el contador del Tablón.
-   *
-   * Con varias salas la fila no puede decidir a cuál llevarte, y una fila que a veces
-   * abre un detalle y a veces un listado no se aprende. Ese caso lo resuelve el Tablón,
-   * que es donde están todas.
-   *
-   * Lee las convocatorias REALES (`LobbiesStore`). Antes leía el mock `MatchStore`
-   * mientras el banner de al lado leía estas, así que el shell tenía dos ideas distintas
-   * de «sala abierta» a la vez.
+   * ¿Este grupo tiene alguna sala en marcha? Es el punto verde del avatar:
+   * brilla cuando ese grupo tiene salas activas.
    */
-  roomRowFor(groupId: string): { label: string; link: unknown[] } | null {
-    const live = this.lobbies
-      .open()
-      .filter((lobby) => lobby.groupId === groupId && lobby.confirmedSlotId !== null);
-    if (live.length !== 1) return null;
+  hasLiveRoom(groupId: string): boolean {
+    return this.activeLobbiesFor(groupId).length > 0;
+  }
 
-    const lobby = live[0];
-    const slot = lobby.slots.find((s) => s.id === lobby.confirmedSlotId);
+  /**
+   * La fila contextual de sala/party:
+   * Solo aparece si hay una UNICA sala o party activa.
+   *
+   *   - Si el usuario YA está inscrito:
+   *     - En Room o Party con salas creadas: «Entrar a mi sala».
+   *     - En Party sin salas creadas (pool): «Entrar a mi party».
+   *   - Si el usuario NO está inscrito:
+   *     - En una Room activa con huecos libres (< 10): «Unirme a sala X/10».
+   *     - En una Party activa: «Unirme a party (X)».
+   *     - En salas llenas (>= 10) o con equipos ya formados: null (no aparece).
+   */
+  roomRowFor(groupId: string): LiveRoomRow | null {
+    const active = this.activeLobbiesFor(groupId);
+    if (active.length !== 1) return null;
+
+    const lobby = active[0];
+    const slot = lobby.confirmedSlotId
+      ? lobby.slots.find((s) => s.id === lobby.confirmedSlotId)
+      : lobby.slots[0];
     if (!slot) return null;
 
-    const me = this.session.user()?.userId;
-    const mine = !!me && [...slot.starters, ...slot.bench].some((p) => p.userId === me);
-    const count = `${slot.starters.length}/${lobby.capacity}`;
+    const user = this.session.user();
+    const meId = user?.userId;
+    const meName = user?.discordUsername?.toLowerCase();
+    const isMe = (p: LobbyParticipantResponse) =>
+      (!!meId && p.userId === meId) ||
+      (!!meName && !!p.discordUsername && p.discordUsername.toLowerCase() === meName);
+
+    const isEnrolled =
+      [...slot.starters, ...(slot.secondaryStarters ?? []), ...(slot.bench ?? [])].some(isMe) ||
+      lobby.slots.some((s) =>
+        [...s.starters, ...(s.secondaryStarters ?? []), ...(s.bench ?? [])].some(isMe),
+      );
+
+    const isParty =
+      lobby.distribution === 'PARTY' ||
+      lobby.subType === 'PARTY_POOL' ||
+      lobby.subType === 'PARTY_ROUNDS';
+
+    const link = ['/app', 'grupos', groupId, 'sala', lobby.id];
+
+    if (isEnrolled) {
+      const isPartyWithoutRooms =
+        isParty &&
+        (lobby.subType === 'PARTY_POOL' ||
+          (!slot.secondaryStarters?.length && lobby.subType !== 'PARTY_ROUNDS'));
+      return {
+        label: isPartyWithoutRooms ? 'Entrar a mi party' : 'Entrar a mi sala',
+        link,
+        isJoinAction: false,
+        lobbyId: lobby.id,
+        slotId: slot.id,
+      };
+    }
+
+    if (isParty) {
+      const allParticipants = [
+        ...slot.starters,
+        ...(slot.secondaryStarters ?? []),
+        ...slot.bench,
+      ];
+      const totalPlayers = slot.signedUp ?? allParticipants.length;
+      return {
+        label: `Unirme a party (${totalPlayers})`,
+        link,
+        isJoinAction: true,
+        lobbyId: lobby.id,
+        slotId: slot.id,
+      };
+    }
+
+    const isSingleRoom =
+      lobby.subType !== 'CONTIGUOUS_ROOMS' &&
+      (!slot.secondaryStarters || slot.secondaryStarters.length === 0);
+    const capacity = lobby.capacity || 10;
+    const startersCount = slot.starters.length;
+
+    if (!isSingleRoom || startersCount >= capacity) {
+      return null;
+    }
 
     return {
-      label: mine ? `Mi sala ${count}` : `Unirme a sala ${count}`,
-      link: ['/app', 'grupos', groupId, 'sala', lobby.id],
+      label: `Unirme a sala ${startersCount}/${capacity}`,
+      link,
+      isJoinAction: true,
+      lobbyId: lobby.id,
+      slotId: slot.id,
     };
+  }
+
+  onLiveRoomClick(event: MouseEvent, groupId: string, room: LiveRoomRow): void {
+    this.selectGroupOnNavigate(groupId);
+    if (room.isJoinAction) {
+      this.joinLiveRoom(groupId, room.lobbyId, room.slotId);
+    }
+  }
+
+  private joinLiveRoom(groupId: string, lobbyId: string, slotId: string): void {
+    const user = this.session.user();
+    const participant: LobbyParticipantResponse = {
+      userId: user?.userId ?? 'u-daxlup',
+      discordUsername: user?.discordUsername ?? 'daxlup',
+      avatarUrl: user?.avatarUrl ?? null,
+      joinedAt: new Date().toISOString(),
+      isAdded: false,
+      isActive: true,
+      isHost: false,
+    };
+
+    this.lobbies.addParticipantToSlot(lobbyId, slotId, participant, groupId);
+    this.lobbyDetail.addParticipant(participant);
+
+    void this.lobbies.signUp(lobbyId, slotId).catch(() => {
+      // Ignorar fallo de red en modo mock
+    });
+  }
+
+  selectGroupOnNavigate(id: string): void {
+    this.groups.select(id);
+    this.expandedGroupId.set(id);
   }
 
   /**
@@ -501,16 +619,14 @@ export class Shell {
     return item.path ? ['/app', 'grupos', groupId, item.path] : ['/app', 'grupos', groupId];
   }
 
+  /** Grupo cuyas secciones están desplegadas en el menú lateral. */
+  readonly expandedGroupId = signal<string | null>(this.groups.selectedId() ?? null);
+
   /**
    * ¿Se despliegan las secciones de este grupo bajo su fila?
-   *
-   * Ya no depende del plegado: rail y barra desplegada pintan LA MISMA lista, solo que en
-   * el rail se queda en columna de iconos (ver `shell-sidebar-nav.scss`). Cuando eran dos
-   * listas distintas, plegar la barra desmontaba una y montaba la otra, y por eso el
-   * despliegue de un grupo solo se animaba en rail.
    */
   isExpandedGroup(id: string): boolean {
-    return this.groups.selectedId() === id;
+    return this.expandedGroupId() === id;
   }
 
   // ── Popover de secciones en rail ──────────────────────────────────
@@ -605,10 +721,10 @@ export class Shell {
       return;
     }
 
-    if (this.groups.selectedId() === id) {
-      this.groups.select('');
+    if (this.expandedGroupId() === id) {
+      this.expandedGroupId.set(null);
     } else {
-      this.groups.select(id);
+      this.expandedGroupId.set(id);
     }
   }
 
@@ -754,7 +870,10 @@ export class Shell {
     // la lista.
     effect(() => {
       const id = this.routeGroupId();
-      if (id && this.groups.byId(id)) this.groups.select(id);
+      if (id && this.groups.byId(id)) {
+        this.groups.select(id);
+        this.expandedGroupId.set(id);
+      }
     });
 
     // Rol admin: lo lee del token (sin red). Si falla, se queda en false y el enlace no aparece.

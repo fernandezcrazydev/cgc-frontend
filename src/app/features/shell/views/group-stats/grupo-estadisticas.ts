@@ -87,41 +87,6 @@ type StatTab = (typeof STAT_TABS)[number];
         }
         @default {
           @if (group(); as g) {
-            <a class="view-back" [routerLink]="['/app', 'grupos', g.id]">
-              <span class="view-back__arrow" aria-hidden="true">←</span>
-              {{ g.name }}
-            </a>
-
-            <header class="view__head view__head--row gs-head">
-              <div>
-                <div class="view__eyebrow nf-mono">Estadísticas y telemetría</div>
-                <h1 class="view__title">{{ g.name }}</h1>
-                <p class="view__lead">
-                  Cómo juega este grupo y quién manda en cada apartado.
-                </p>
-              </div>
-
-              <div class="gs-controls">
-                @if (seasons().length > 1) {
-                  <nf-combobox
-                    class="gs-controls__season"
-                    [options]="seasonOptions()"
-                    [value]="seasonId()"
-                    (valueChange)="setSeason($event)"
-                    ariaLabel="Temporada"
-                    [clearable]="false"
-                  />
-                }
-
-                <nf-segmented
-                  [options]="scopeOptions()"
-                  [value]="scope()"
-                  (valueChange)="setScope($event)"
-                  ariaLabel="Alcance temporal de las estadísticas"
-                />
-              </div>
-            </header>
-
             <nav class="gs-tabs">
               <nf-segmented
                 variant="tabs"
@@ -131,6 +96,26 @@ type StatTab = (typeof STAT_TABS)[number];
                 ariaLabel="Secciones de las estadísticas del grupo"
               />
             </nav>
+
+            <div class="gs-controls">
+              @if (seasons().length > 1) {
+                <nf-combobox
+                  class="gs-controls__season"
+                  [options]="seasonOptions()"
+                  [value]="seasonId()"
+                  (valueChange)="setSeason($event)"
+                  ariaLabel="Temporada"
+                  [clearable]="false"
+                />
+              }
+
+              <nf-segmented
+                [options]="scopeOptions()"
+                [value]="scope()"
+                (valueChange)="setScope($event)"
+                ariaLabel="Alcance temporal de las estadísticas"
+              />
+            </div>
 
             @if (tab() === 'rendimiento') {
               <div class="gs-stack">
@@ -176,9 +161,9 @@ type StatTab = (typeof STAT_TABS)[number];
     </div>
 
     <ng-template #skeleton>
-      <nf-skeleton width="180px" height="34px" radius="6px" />
-      <div class="view__head">
-        <nf-skeleton width="240px" height="30px" />
+      <nf-skeleton width="100%" height="40px" radius="8px" />
+      <div class="gs-controls" style="margin: 12px 0 16px;">
+        <nf-skeleton width="200px" height="32px" radius="8px" />
       </div>
       <div class="gs-stack">
         @for (s of [0, 1, 2]; track s) {

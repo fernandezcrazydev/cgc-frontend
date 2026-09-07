@@ -92,7 +92,7 @@ export interface MemberStats {
   dragons: number;
   /** Barones asegurados. */
   barons: number;
-  /** Objetivos épicos robados con el castigo. */
+  /** Objetivos épicos robados con el Smite. */
   steals: number;
   /** Primeras sangres firmadas. */
   firstBloods: number;

@@ -26,28 +26,33 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  border-bottom: 1px solid var(--nf-border);
-  padding-bottom: 10px;
+  gap: 12px;
+  margin-bottom: 4px;
 }
 
 .m-scoreboard__tabs-group {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 0;
+  padding: 0;
+  flex: 1;
+  min-width: 0;
+  background: var(--nf-inset);
+  border: var(--bw-hair) solid var(--nf-border);
+  border-radius: var(--nf-radius);
+  overflow: hidden;
 }
 
 .m-scoreboard__share-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 30px;
+  width: 38px;
+  height: 38px;
   padding: 0;
-  background: transparent;
-  border: 1px solid var(--nf-border);
-  border-radius: 5px;
+  background: var(--nf-inset);
+  border: var(--bw-hair) solid var(--nf-border);
+  border-radius: var(--nf-radius);
   color: var(--nf-text-mid);
   cursor: pointer;
   flex: none;
@@ -55,7 +60,7 @@
 
   &:hover {
     color: var(--nf-text);
-    background: var(--nf-surface-2);
+    background: var(--nf-elevated);
     border-color: var(--nf-border-strong);
   }
 
@@ -66,26 +71,46 @@
 }
 
 .m-scoreboard__tab {
-  height: 30px;
-  padding: 0 14px;
+  flex: 1;
+  min-width: 0;
+  height: 38px;
+  padding: 0 16px;
   background: transparent;
-  border: 1px solid var(--nf-border);
-  border-radius: 5px;
-  color: var(--nf-text-mid);
-  font-size: 12px;
+  border: 0;
+  border-radius: 0;
+  border-bottom: 2px solid transparent;
+  border-right: var(--bw-hair) solid var(--nf-border);
+  color: var(--nf-text-dim);
+  font-size: var(--fs-body);
+  font-weight: var(--fw-medium);
   cursor: pointer;
-  transition: all 0.14s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
 
-  &:hover {
+  &:last-child {
+    border-right: 0;
+  }
+
+  &:hover:not(.is-active) {
     color: var(--nf-text);
-    background: var(--nf-surface-2);
+    background: var(--nf-elevated);
   }
 
   &.is-active {
-    background: var(--nf-primary);
+    background: color-mix(in srgb, var(--nf-primary) 16%, var(--nf-surface));
     color: #fff;
-    border-color: var(--nf-primary);
-    font-weight: 700;
+    border-bottom: 2px solid var(--nf-primary);
+    font-weight: var(--fw-bold);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--nf-primary);
+    outline-offset: -2px;
   }
 }
 
@@ -727,13 +752,14 @@
      dejaban el botón de compartir descolgado. A ancho completo y repartidos, la fila es
      una sola y cada pestaña tiene área de dedo. */
 .m-scoreboard { padding: 14px 12px 16px; }
-.m-scoreboard__tabs { flex-wrap: wrap; gap: 10px; }
-.m-scoreboard__tabs-group { flex: 1; flex-wrap: nowrap; gap: 6px; }
+.m-scoreboard__tabs { flex-wrap: nowrap; gap: 8px; }
+.m-scoreboard__tabs-group { flex: 1; min-width: 0; }
 .m-scoreboard__tab {
     flex: 1;
     min-width: 0;
     height: $touch;
     padding: 0 8px;
+    font-size: var(--fs-caption);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;

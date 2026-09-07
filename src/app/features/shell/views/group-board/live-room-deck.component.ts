@@ -1,164 +1,206 @@
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, signal } from '@angular/core';
+import { Router } from '@angular/router';
 import { NfButton, NfSkeleton } from '../../../../ui';
-import { LobbyResponse, LobbySlotResponse } from '../../../../core/lobbies';
+import { LobbyParticipantResponse, LobbyResponse, LobbySlotResponse } from '../../../../core/lobbies';
 import { lobbyRanksFor } from '../../../../core/lobby-extras';
 import { BenchStripComponent } from './bench-strip.component';
 import { PodState, RoomPodComponent } from './room-pod.component';
 
-/** Un hueco de la parrilla: la plaza, quién la ocupa y en qué situación está. */
 interface Pod {
   position: number;
-  player: LobbyResponse['slots'][number]['starters'][number] | null;
+  player: LobbyParticipantResponse | null;
   state: PodState;
 }
 
 /**
- * Columna izquierda del panel de convocatorias (§5.5.6): la sala en directo.
+ * Deck de Lobbies Activos en el Tablón (Fase 5.5 - F5.5-06, Opción 4).
  *
- * Los diez huecos se pintan en dos filas de cinco con orden alterno —impares arriba
- * (1, 3, 5, 7, 9) y pares abajo (2, 4, 6, 8, 10)—, que es como se lee un 5v5 de un
- * vistazo. No hay elección de bando ni de línea: eso lo reparte el balanceo al
- * generar la partida.
+ * Visualización compacta de alta densidad (~140-220px) sin scroll vertical.
+ * Soporta todos los estados de FlujoJuego.md:
+ *   - Sala estándar con banquillo
+ *   - Salas contiguas (ej. 23 jugadores repartidos en Sala 1 y Sala 2)
+ *   - Party sin generar salas (pool de espera)
+ *   - Party con tandas generadas (Sala A y Sala B simultáneas)
+ *   - Sala con equipos formados 5v5 (Azul vs Rojo)
  *
- * Cuando no hay ninguna sala a punto, la columna se convierte en la llamada a crear
- * una. El paso de una cosa a otra lo decide la vista, no este componente.
+ * Cero emojis: iconos vectoriales SVG para modalidades, scraper y estado.
+ * Toda la tarjeta es pulsable para navegar a la sala/convocatoria.
+ * Sin botón de «Generar partida» en la preview (se gestiona dentro de la sala).
  */
 @Component({
   selector: 'app-live-room-deck',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [NfButton, NfSkeleton, RouterLink, BenchStripComponent, RoomPodComponent],
-  template: `
-    <section class="mt-card rm" [attr.aria-busy]="loading() ? 'true' : null">
-      @if (loading()) {
-        <nf-skeleton width="60%" height="18px" />
-        <div class="rm-grid">
-          @for (s of [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]; track s) {
-            <nf-skeleton width="100%" height="118px" radius="10px" />
-          }
-        </div>
-      } @else if (lobby(); as lb) {
-        <header class="mt-card__head">
-          <h2 class="mt-card__title">
-            Sala en directo · {{ lb.code }}
-          </h2>
-          <span class="mt-live">
-            <span class="mt-live__pulse" aria-hidden="true"></span>
-            En vivo
-          </span>
-        </header>
-
-        <p class="rm__count nf-mono">
-          {{ starters().length }} de {{ lb.capacity }} plazas ocupadas@if (kickoff()) {
-            · empieza {{ kickoff() }}
-          }
-        </p>
-
-        <div class="rm-grid">
-          @for (pod of pods(); track pod.position) {
-            <app-room-pod
-              [player]="pod.player"
-              [state]="pod.state"
-              [rank]="ranks().get(pod.player?.userId ?? '') ?? 0"
-              [canJoin]="canJoin()"
-              [joining]="joining()"
-              (join)="join.emit()"
-            />
-          }
-        </div>
-
-        <app-bench-strip [players]="bench()" [ranks]="ranks()" />
-
-        <footer class="rm__foot">
-          <button
-            nfButton
-            variant="primary"
-            size="md"
-            [routerLink]="['/app', 'grupos', groupId(), 'sala', lb.id]"
-          >
-            Entrar a la sala
-          </button>
-        </footer>
-      } @else {
-        <div class="rm-hero">
-          <span class="rm-hero__glyph" aria-hidden="true">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.7"
-              stroke-linecap="round"
-            >
-              <path d="M12 5.5v13M5.5 12h13" />
-            </svg>
-          </span>
-          <h2 class="rm-hero__title">No hay ninguna sala abierta</h2>
-          <p class="rm-hero__sub">
-            Propón horas y que el grupo diga cuándo puede. La sala aparece aquí en cuanto
-            una hora se llene y falte media hora para empezar.
-          </p>
-          <button nfButton variant="primary" size="lg" (click)="schedule.emit()">
-            Agendar una custom
-          </button>
-        </div>
-      }
-    </section>
-  `,
+  imports: [NfButton, NfSkeleton, BenchStripComponent, RoomPodComponent],
+  templateUrl: './live-room-deck.component.html',
   styleUrls: ['./board-card.scss', './live-room-deck.component.scss'],
 })
 export class LiveRoomDeckComponent {
-  /** La convocatoria que ya se juega o está a punto, o nada si no hay ninguna. */
+  private readonly router = inject(Router);
+
   readonly lobby = input<LobbyResponse | null>(null);
-  /** La franja horaria que manda: la confirmada, o la que más gente ha juntado. */
   readonly slot = input<LobbySlotResponse | null>(null);
   readonly groupId = input.required<string>();
   readonly loading = input(false);
-  /** La hora de comienzo ya escrita, o cadena vacía si aún no está cuadrada. */
   readonly kickoff = input('');
-  /** Quien mira no está en la sala, así que los huecos libres le dejan apuntarse. */
   readonly canJoin = input(false);
-  /** Hay una inscripción en vuelo. */
   readonly joining = input(false);
 
-  /** Pide apuntarse a la franja de esta sala; decide la vista. */
   readonly join = output<void>();
-
-  /**
-   * Sin sala abierta, la acción es convocar. El modal lo abre el Tablón y no este
-   * componente: la tarjeta pinta la sala, y quién sabe montar una convocatoria es la
-   * pantalla que ya tiene el store y el formulario.
-   */
   readonly schedule = output<void>();
 
+  readonly isAnimating = signal(false);
+  readonly secondaryIsAnimating = signal(false);
+
+  private prevHasFormed: boolean | null = null;
+  private prevSecondaryHasFormed: boolean | null = null;
+
+  constructor() {
+    effect(() => {
+      const current = this.hasFormedTeams();
+      if (this.prevHasFormed === false && current) {
+        this.isAnimating.set(true);
+        setTimeout(() => this.isAnimating.set(false), 1800);
+      }
+      this.prevHasFormed = current;
+    });
+
+    effect(() => {
+      const current = this.secondaryHasTeams();
+      if (this.prevSecondaryHasFormed === false && current) {
+        this.secondaryIsAnimating.set(true);
+        setTimeout(() => this.secondaryIsAnimating.set(false), 1800);
+      }
+      this.prevSecondaryHasFormed = current;
+    });
+  }
+
+  protected readonly modality = computed(() => this.lobby()?.modality ?? 'BALANCED');
+  protected readonly isParty = computed(
+    () =>
+      this.lobby()?.distribution === 'PARTY' ||
+      this.isPartyRounds() ||
+      this.isPartyPool(),
+  );
+  protected readonly isPartyRounds = computed(
+    () =>
+      this.lobby()?.subType === 'PARTY_ROUNDS' ||
+      (this.lobby()?.distribution === 'PARTY' &&
+        (this.slot()?.secondaryStarters?.length ?? 0) > 0),
+  );
+  protected readonly isPartyPool = computed(
+    () => this.lobby()?.subType === 'PARTY_POOL',
+  );
+  protected readonly isContiguous = computed(
+    () =>
+      !this.isParty() &&
+      (this.lobby()?.subType === 'CONTIGUOUS_ROOMS' ||
+        (this.slot()?.secondaryStarters?.length ?? 0) > 0),
+  );
+  protected readonly scraperActive = computed(() => this.lobby()?.scraperActive ?? false);
+
   protected readonly starters = computed(() => this.slot()?.starters ?? []);
+  protected readonly secondaryStarters = computed(() => this.slot()?.secondaryStarters ?? []);
   protected readonly bench = computed(() => this.slot()?.bench ?? []);
 
-  /**
-   * Los puestos de todos los de la sala, titulares y banquillo, resueltos de una
-   * vez: repartidos uno a uno salían posiciones repetidas en la misma parrilla.
-   */
+  protected readonly hasFormedTeams = computed(() => {
+    const lb = this.lobby();
+    if (!lb) return false;
+    return (
+      lb.subType === 'TEAMS_GENERATED' ||
+      (this.starters().length === 10 && this.starters().some((p) => !!p.team))
+    );
+  });
+
   protected readonly ranks = computed(() =>
-    lobbyRanksFor([...this.starters(), ...this.bench()].map((p) => p.userId)),
+    lobbyRanksFor([...this.starters(), ...this.secondaryStarters(), ...this.bench()].map((p) => p.userId)),
   );
 
-  /**
-   * Los diez huecos en orden alterno. Se generan tantos como diga `capacity` y no
-   * diez fijos: el número de plazas lo manda el servidor, y darlo por supuesto aquí
-   * sería una segunda fuente de verdad.
-   */
+  protected readonly secondaryHasTeams = computed(() => {
+    return this.secondaryStarters().some((p) => !!p.team);
+  });
+
   protected readonly pods = computed<Pod[]>(() => {
     const capacity = this.lobby()?.capacity ?? 10;
     const starters = this.starters();
     const half = Math.ceil(capacity / 2);
-
     const order: number[] = [];
-    for (let i = 0; i < half; i++) order.push(i * 2 + 1);
-    for (let i = 0; i < capacity - half; i++) order.push(i * 2 + 2);
-
+    if (this.hasFormedTeams()) {
+      for (let i = 1; i <= capacity; i++) order.push(i);
+    } else {
+      for (let i = 0; i < half; i++) order.push(i * 2 + 1);
+      for (let i = 0; i < capacity - half; i++) order.push(i * 2 + 2);
+    }
     return order.map((position) => {
       const player = starters[position - 1] ?? null;
       return { position, player, state: player ? ('starter' as const) : ('free' as const) };
     });
   });
+
+  protected readonly secondaryPods = computed<Pod[]>(() => {
+    const starters = this.secondaryStarters();
+    const order = this.secondaryHasTeams()
+      ? [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+      : [1, 3, 5, 7, 9, 2, 4, 6, 8, 10];
+    return order.map((position) => {
+      const player = starters[position - 1] ?? null;
+      return { position, player, state: player ? ('starter' as const) : ('free' as const) };
+    });
+  });
+
+  protected readonly bluePods = computed(() => this.pods().slice(0, 5));
+  protected readonly redPods = computed(() => this.pods().slice(5, 10));
+  protected readonly secondaryBluePods = computed(() => this.secondaryPods().slice(0, 5));
+  protected readonly secondaryRedPods = computed(() => this.secondaryPods().slice(5, 10));
+
+  protected roomHeaderTitle(): string {
+    const lb = this.lobby();
+    if (!lb) return '';
+    return this.isParty() ? `Party · ${lb.code}` : `Room · ${lb.code}`;
+  }
+
+  protected subroomOneName(): string {
+    return this.isPartyRounds() ? 'Sala A' : (this.slot()?.roomName ?? 'Sala 1');
+  }
+
+  protected subroomTwoName(): string {
+    return this.isPartyRounds() ? 'Sala B' : (this.slot()?.secondaryRoomName ?? 'Sala 2');
+  }
+
+  protected countText(): string {
+    const lb = this.lobby();
+    if (!lb) return '';
+    if (this.hasFormedTeams()) {
+      const ko = this.kickoff();
+      return `10 de 10 jugadores · Equipos formados (5v5 Azul vs Rojo)${ko ? ' · ' + ko : ''}`;
+    }
+    if (this.isParty()) {
+      if (this.isPartyPool()) {
+        return `${this.starters().length} jugadores en el pool · Esperando a generar tandas`;
+      }
+      return `20 de 20 plazas jugando · ${this.bench().length} esperando en rotación`;
+    }
+    if (this.isContiguous()) {
+      return `20 de 20 plazas jugando · ${this.bench().length} en banquillo`;
+    }
+    const ko = this.kickoff();
+    return `${this.starters().length} de ${lb.capacity} plazas ocupadas${ko ? ' · ' + ko : ''}`;
+  }
+
+  protected rankOf(userId?: string | null): number {
+    return userId ? (this.ranks().get(userId) ?? 0) : 0;
+  }
+
+  protected navigateToLobby(): void {
+    const lb = this.lobby();
+    if (!lb) return;
+    void this.router.navigate(['/app', 'grupos', this.groupId(), 'convocatoria', lb.id]);
+  }
+
+  protected navigateToSala(event: MouseEvent): void {
+    event.stopPropagation();
+    const lb = this.lobby();
+    if (!lb) return;
+    void this.router.navigate(['/app', 'grupos', this.groupId(), 'sala', lb.id]);
+  }
 }

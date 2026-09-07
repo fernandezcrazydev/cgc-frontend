@@ -1,103 +1,62 @@
 @use 'breakpoints' as *;
 
-/* El Tablón del grupo (§5.5.6): 60/40.
-
-   Solo el armazón; cada columna trae su hoja y el chrome común está en
-   `board-card.scss`. */
-
-/* La columna izquierda: la sala, y debajo las dos acciones. */
-.gm-live {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-/* Dos tarjetas a partes iguales, y entre las dos ocupan lo mismo que la sala que
-   tienen encima: son la continuación de esa columna, no una barra de botones. */
-/* Una sola acción desde que cayó el asistente de «Crear partida». `auto-fit` en vez de
-   un `1fr` fijo para que al volver «Jugar ahora» a su lado vuelvan a repartirse solas. */
-.gm-actions {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 14px;
-}
-
-.gm-action {
+.gm-header {
   display: flex;
   align-items: center;
-  gap: 13px;
-  padding: 16px 18px;
-  border-radius: 12px;
-  background: var(--nf-surface);
-  border: 1px solid var(--nf-border);
-  color: inherit;
-  text-decoration: none;
-  /* Una de las dos es un `<button>` y la otra un enlace: sin esto, la primera
-     heredaba el centrado y la fuente del navegador y no casaban. */
-  text-align: left;
-  font: inherit;
-  cursor: pointer;
-  transition:
-    border-color 0.16s,
-    background 0.16s,
-    transform 0.16s;
+  margin-bottom: 12px;
+  gap: 12px;
 }
 
-.gm-action:hover {
-  transform: translateY(-2px);
-  border-color: color-mix(in srgb, var(--nf-primary) 45%, var(--nf-border));
-  background: color-mix(in srgb, var(--nf-primary) 7%, var(--nf-surface));
+.gm-tabs {
+  display: none;
 }
 
-.gm-action:focus-visible {
-  outline: var(--nf-focus-ring, 2px) solid var(--nf-focus);
-  outline-offset: 2px;
+@media (max-width: $bp-compact) {
+  .gm-tabs {
+    display: flex;
+    gap: 6px;
+    width: 100%;
+    padding: 3px;
+    border-radius: var(--nf-radius-md, 8px);
+    background: var(--nf-surface-card, #1a1c26);
+    border: 1px solid var(--nf-border, #2a2d3d);
+  }
 }
 
-.gm-action__glyph {
-  display: flex;
-  flex: none;
+.gm-tab {
+  flex: 1;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 11px;
-  background: color-mix(in srgb, var(--nf-primary) 16%, transparent);
-  color: var(--nf-primary);
-}
+  gap: 6px;
+  padding: 8px 12px;
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  color: var(--nf-text-muted, #94a3b8);
+  border-radius: 6px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
 
-.gm-action__glyph svg {
-  width: 21px;
-  height: 21px;
-}
-
-.gm-action__text {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  min-width: 0;
-}
-
-.gm-action__title {
-  font-size: var(--fs-body);
-  font-weight: var(--fw-semibold);
-  color: var(--nf-text);
-}
-
-.gm-action__sub {
-  font-size: 11.5px;
-  line-height: 1.45;
-  color: var(--nf-text-dim);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .gm-action {
-    transition: none;
+  &.is-active {
+    color: var(--nf-text-main, #f0f2f5);
+    background: var(--nf-surface-raised, #242738);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
   }
+}
 
-  .gm-action:hover {
-    transform: none;
-  }
+.gm-tab__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  font-size: var(--fs-label);
+  background: color-mix(in srgb, var(--nf-primary) 20%, transparent);
+  color: #a5b4fc;
 }
 
 .gm-deck {
@@ -107,14 +66,44 @@
   gap: 14px;
 }
 
-/* Por debajo del salto las dos columnas se apilan, y la sala en directo va primero:
-   lo que se juega ahora manda sobre lo que se jugará el sábado. */
+.gm-live,
+.gm-schedule {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-height: 680px;
+  overflow-y: auto;
+  padding-right: 4px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--nf-border, #2a2d3d) transparent;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: var(--nf-border, #2a2d3d);
+    border-radius: 4px;
+  }
+  &::-webkit-scrollbar-thumb:hover {
+    background: var(--nf-border-strong, #3a3d52);
+  }
+}
+
 @media (max-width: $bp-compact) {
   .gm-deck {
     grid-template-columns: 1fr;
   }
-
-  .gm-actions {
-    grid-template-columns: 1fr;
+  .gm-live,
+  .gm-schedule {
+    max-height: none;
+    overflow-y: visible;
+    padding-right: 0;
+  }
+  .is-hidden-mobile {
+    display: none !important;
   }
 }
+

@@ -49,6 +49,7 @@ function createComponent(
   s: LobbySlotResponse | null,
   standing: ScheduleStanding = { kind: 'out' },
   acting = false,
+  myUserId: string | null = null,
 ) {
   TestBed.configureTestingModule({ providers: [provideRouter([])] });
   const fixture = TestBed.createComponent(ScheduleCardComponent);
@@ -57,35 +58,71 @@ function createComponent(
   fixture.componentRef.setInput('standing', standing);
   fixture.componentRef.setInput('when', 'viernes, 5 de septiembre, 22:00');
   fixture.componentRef.setInput('acting', acting);
+  fixture.componentRef.setInput('myUserId', myUserId);
   fixture.detectChanges();
   return { fixture, component: fixture.componentInstance };
 }
 
 describe('ScheduleCardComponent', () => {
-  it('sin ti dentro, el marco se queda neutro y ofrece inscribirse', () => {
+  it('sin ti dentro, data-state es confirmed-out, badge No inscrito y ofrece inscribirse', () => {
     const { fixture } = createComponent(lobby(), slot(6));
 
-    expect(fixture.nativeElement.querySelector('.sc.is-mine')).toBeNull();
+    const card = fixture.nativeElement.querySelector('.sc');
+    expect(card.getAttribute('data-state')).toBe('confirmed-out');
+    expect(fixture.nativeElement.querySelector('.sc-status-pill--out').textContent).toContain('No inscrito');
     expect(fixture.nativeElement.querySelector('button').textContent).toContain('Inscribirme');
   });
 
-  it('contigo dentro, el marco se tiñe y ofrece borrarte, sin rotular el puesto', () => {
+  it('como titular, data-state es confirmed-starter, badge Titular y ofrece borrarte', () => {
     const s = slot(6);
     const { fixture } = createComponent(lobby(), s, { kind: 'starter', position: 3, slot: s });
 
-    expect(fixture.nativeElement.querySelector('.sc.is-mine')).not.toBeNull();
+    const card = fixture.nativeElement.querySelector('.sc');
+    expect(card.getAttribute('data-state')).toBe('confirmed-starter');
+    expect(fixture.nativeElement.querySelector('.sc-status-pill--starter').textContent).toContain('Inscrito (Titular)');
     expect(fixture.nativeElement.querySelector('button').textContent).toContain('Ya no puedo');
-    // El puesto no se pinta: el marco y el botón ya dicen que estás dentro.
-    expect(fixture.nativeElement.querySelector('.sc__badge')).toBeNull();
   });
 
-  it('al suplente sí se le dice, porque no juega salvo que alguien caiga', () => {
+  it('al suplente se le asigna confirmed-bench y badge En banquillo', () => {
     const s = slot(10, 2);
     const { fixture } = createComponent(lobby(), s, { kind: 'bench', position: 2, slot: s });
 
-    expect(fixture.nativeElement.querySelector('.sc__badge--bench').textContent).toContain(
-      'banquillo',
-    );
+    const card = fixture.nativeElement.querySelector('.sc');
+    expect(card.getAttribute('data-state')).toBe('confirmed-bench');
+    expect(fixture.nativeElement.querySelector('.sc-status-pill--bench').textContent).toContain('En banquillo');
+  });
+
+  it('en horas propuestas sin haber votado, asigna polling-unvoted y botón Votar horas', () => {
+    const lb = lobby({ status: 'POLLING', confirmedSlotId: null });
+    const { fixture, component } = createComponent(lb, slot(4), { kind: 'out' }, false, 'user-edu');
+
+    const card = fixture.nativeElement.querySelector('.sc');
+    expect(card.getAttribute('data-state')).toBe('polling-unvoted');
+    expect(fixture.nativeElement.querySelector('.sc-status-pill--unvoted').textContent).toContain('Sin votar');
+
+    let abierto = 0;
+    component.openAvailability.subscribe(() => abierto++);
+    const boton = fixture.nativeElement.querySelector('button');
+    expect(boton.textContent).toContain('Votar horas');
+    boton.click();
+    expect(abierto).toBe(1);
+  });
+
+  it('en horas propuestas habiendo votado, asigna polling-voted y botón Modificar', () => {
+    const s = slot(4);
+    s.starters.push({
+      userId: 'user-edu',
+      discordUsername: 'Edu',
+      avatarUrl: null,
+      joinedAt: '2026-09-05T20:00:00Z',
+    });
+    const lb = lobby({ status: 'POLLING', confirmedSlotId: null, slots: [s] });
+    const { fixture } = createComponent(lb, s, { kind: 'out' }, false, 'user-edu');
+
+    const card = fixture.nativeElement.querySelector('.sc');
+    expect(card.getAttribute('data-state')).toBe('polling-voted');
+    expect(fixture.nativeElement.querySelector('.sc-status-pill--voted').textContent).toContain('Votado (1)');
+    expect(fixture.nativeElement.querySelector('button').textContent).toContain('Modificar');
   });
 
   it('apuntarse sube la franja pulsada, no la convocatoria entera', () => {
@@ -105,28 +142,67 @@ describe('ScheduleCardComponent', () => {
     expect(fixture.nativeElement.querySelector('button').disabled).toBe(true);
   });
 
-  it('si aún se recogen horas, abre el modal en vez de fingir un solo botón', () => {
-    const lb = lobby({ status: 'POLLING', confirmedSlotId: null });
-    const { fixture, component } = createComponent(lb, slot(4));
+  it('en salas contiguas indica badge 2 Salas', () => {
+    const s: LobbySlotResponse = {
+      id: 's1',
+      startsAt: '2026-09-05T22:00:00Z',
+      signedUp: 22,
+      starters: Array.from({ length: 10 }, (_, i) => participant(i + 1)),
+      secondaryStarters: Array.from({ length: 10 }, (_, i) => participant(i + 11)),
+      bench: [participant(21), participant(22)],
+      roomName: 'Sala 1',
+      secondaryRoomName: 'Sala 2',
+    };
+    const { fixture } = createComponent(lobby({ subType: 'CONTIGUOUS_ROOMS' }), s);
 
-    let abierto = 0;
-    component.openAvailability.subscribe(() => abierto++);
-
-    const boton = fixture.nativeElement.querySelector('button');
-    expect(boton.textContent).toContain('Decir cuándo puedo');
-    boton.click();
-    expect(abierto).toBe(1);
+    expect(fixture.nativeElement.querySelector('.sc__badge-rooms-count').textContent).toContain(
+      '2 Salas',
+    );
   });
 
-  it('cuenta cuántos suplentes faltan para una segunda custom simultánea', () => {
-    const { component } = createComponent(lobby(), slot(10, 4));
+  it('en horas propuestas indica la modalidad (icono) y si es Room o Party', () => {
+    const lb = lobby({
+      status: 'POLLING',
+      confirmedSlotId: null,
+      modality: 'COMPETITIVE',
+      distribution: 'PARTY',
+    });
+    const { fixture } = createComponent(lb, slot(4), { kind: 'out' }, false, 'user-edu');
 
-    expect(component['benchText']()).toBe('Faltan 6 para una segunda custom');
+    const modBadge: HTMLElement = fixture.nativeElement.querySelector('.sc__badge-modality');
+    expect(modBadge.getAttribute('data-mod')).toBe('COMPETITIVE');
+    expect(modBadge.getAttribute('title')).toContain('Competitivo');
+    expect(modBadge.querySelector('svg')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('.sc__badge-party').textContent.trim()).toBe('Party');
+    expect(fixture.nativeElement.querySelector('.sc__badge-party svg')).toBeNull();
   });
 
-  it('con suplentes de sobra deja de pedir gente', () => {
-    const { component } = createComponent(lobby(), slot(10, 10));
+  it('en horas propuestas modo Room indica Room y la modalidad correspondiente (icono)', () => {
+    const lb = lobby({
+      status: 'POLLING',
+      confirmedSlotId: null,
+      modality: 'BALANCED',
+      distribution: 'ROOMS',
+    });
+    const { fixture } = createComponent(lb, slot(4), { kind: 'out' }, false, 'user-edu');
 
-    expect(component['benchText']()).toContain('segunda custom simultánea');
+    const modBadge: HTMLElement = fixture.nativeElement.querySelector('.sc__badge-modality');
+    expect(modBadge.getAttribute('data-mod')).toBe('BALANCED');
+    expect(modBadge.getAttribute('title')).toContain('Equilibrado');
+    expect(modBadge.querySelector('svg')).toBeTruthy();
+    expect(modBadge.textContent?.trim()).toBe('');
+    expect(fixture.nativeElement.querySelector('.sc__badge-room').textContent.trim()).toBe('Room');
+    expect(fixture.nativeElement.querySelector('.sc__badge-room svg')).toBeNull();
+  });
+
+  it('al hacer clic sobre la tarjeta emite openDetail con el lobby', () => {
+    const lb = lobby();
+    const { fixture, component } = createComponent(lb, slot(6));
+
+    let detailEmitted: LobbyResponse | null = null;
+    component.openDetail.subscribe((l) => (detailEmitted = l));
+
+    fixture.nativeElement.querySelector('.sc').click();
+    expect(detailEmitted).toBe(lb);
   });
 });
