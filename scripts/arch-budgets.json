@@ -2,11 +2,11 @@
   "layers": 0,
   "feature-internals": 0,
   "api-url": 0,
-  "views-scss-size": 2973,
+  "views-scss-size": 2968,
   "dead-css": 0,
-  "css-total-size": 16817,
-  "inline-template-size": 17,
-  "font-floor": 42,
-  "font-size-raw": 346,
+  "css-total-size": 16744,
+  "inline-template-size": 16,
+  "font-floor": 41,
+  "font-size-raw": 340,
   "viewport-units": 0
 }
