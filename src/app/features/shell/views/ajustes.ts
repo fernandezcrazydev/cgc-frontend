@@ -3,7 +3,13 @@ import { NfBadge, NfButton, NfSelect, NfSkeleton, NfToggle, NfWindow } from '../
 import { errorMessage } from '../../../core/http';
 import { REGION_OPTIONS } from '../../../core/lobby';
 import { SettingsStore } from '../../../core/settings';
-import { ActiveSession, SessionsStore, scopeLabels, sessionLabel } from '../../../core/sessions';
+import {
+  ActiveSession,
+  SessionsStore,
+  desktopAppMeta,
+  scopeLabels,
+  sessionLabel,
+} from '../../../core/sessions';
 import { THEMES, ThemeService } from '../../../core/theme';
 import { ToastService } from '../../../core/toast';
 import { formatRelativeTime } from '../../../shared/date-format';
@@ -316,7 +322,10 @@ export class Ajustes {
    */
   sessionMeta(session: ActiveSession): string {
     const parts: string[] = [];
-    if (session.kind === 'DESKTOP_APP') parts.push('App de escritorio');
+    // Solo cuando el título no lo dice ya: con cgc-scraper `label()` devuelve "App de escritorio",
+    // y repetirlo aquí llenaba las dos líneas de la fila con la misma frase.
+    const desktop = desktopAppMeta(session);
+    if (desktop) parts.push(desktop);
     if (session.scopes.length) parts.push(scopeLabels(session.scopes));
     parts.push(`Último acceso ${formatRelativeTime(session.lastSeenAt)}`);
     return parts.join(' · ');

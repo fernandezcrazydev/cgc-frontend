@@ -170,6 +170,37 @@ describe('SessionsStore', () => {
   });
 
   /**
+   * El 404 **sin `code`** no es "esa sesión ya no estaba": es "esa ruta no existe", que es
+   * literalmente lo que contesta un backend que todavía no tiene el endpoint. Si esto se pusiera
+   * rojo, desplegar esta pantalla antes que el backend quitaría la fila y cantaría "Sesión
+   * cerrada" sobre una sesión perfectamente abierta — una mentira tranquilizadora, en la pantalla
+   * donde más caro sale contarla.
+   */
+  it('close propaga un 404 sin code y NO quita la fila', async () => {
+    const load = store.ensureLoaded();
+    await api.settleList([CURRENT, PHONE]);
+    await load;
+
+    api.closeError = new HttpErrorResponse({ status: 404, error: 'Not Found' });
+    await expect(store.close('sess-phone')).rejects.toBeTruthy();
+
+    expect(store.sessions()).toEqual([CURRENT, PHONE]);
+    expect(store.isClosing('sess-phone')).toBe(false);
+  });
+
+  /** Un 404 de otro recurso tampoco vale: el éxito lo afirma el code, no el status. */
+  it('close propaga un 404 con otro code y NO quita la fila', async () => {
+    const load = store.ensureLoaded();
+    await api.settleList([CURRENT, PHONE]);
+    await load;
+
+    api.closeError = new HttpErrorResponse({ status: 404, error: { code: 'USER_NOT_FOUND' } });
+    await expect(store.close('sess-phone')).rejects.toBeTruthy();
+
+    expect(store.sessions()).toEqual([CURRENT, PHONE]);
+  });
+
+  /**
    * El 409 NO es lo mismo que el 404, y es el caso que se cuela solo si alguien copia el `catch`
    * del 404 sin mirar: la sesión sigue viva, así que quitarla de la lista pintaría lo contrario de
    * lo que ha pasado. Se propaga para que la vista lo diga.

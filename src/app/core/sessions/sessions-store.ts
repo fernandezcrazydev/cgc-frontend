@@ -52,9 +52,16 @@ export class SessionsStore {
    * Cierra una sesión de otro dispositivo. Pesimista: solo se quita de la lista cuando el servidor
    * confirma. Lanza si falla, para que la vista traduzca el error con `errorMessage()`.
    *
-   * El 404 (`SESSION_NOT_FOUND`) se trata como éxito: es lo que llega al reintentar tras una
-   * respuesta perdida, y también cuando la sesión ya había caducado. En los dos casos el usuario
-   * consiguió lo que pedía, así que la fila se retira en vez de enseñar un error falso.
+   * El 404 **con `code` `SESSION_NOT_FOUND`** se trata como éxito: es lo que llega al reintentar
+   * tras una respuesta perdida, y también cuando la sesión ya había caducado. En los dos casos el
+   * usuario consiguió lo que pedía, así que la fila se retira en vez de enseñar un error falso.
+   *
+   * Se mira el `code` y no solo el `status` porque un 404 pelado significa otra cosa: que la ruta
+   * no existe. Es exactamente lo que responde un backend que todavía no tiene este endpoint —el
+   * escenario real si esta pantalla se despliega antes que él—, y darlo por bueno quitaría la fila
+   * y cantaría "Sesión cerrada" sobre una sesión que sigue abierta. En una pantalla de seguridad
+   * esa es la peor mentira posible, y es la misma que este store evita al no inventar `[]`
+   * mientras carga.
    *
    * El 409 (`CURRENT_SESSION_NOT_REVOCABLE`) NO: ahí la sesión sigue viva y quitarla de la lista
    * pintaría lo contrario de lo que pasó. La vista no ofrece ese botón para la sesión actual, pero
@@ -67,7 +74,8 @@ export class SessionsStore {
       await firstValueFrom(this.api.close(id));
       this.removeFromList(id);
     } catch (e) {
-      if (parseApiError(e).status === 404) {
+      const { status, code } = parseApiError(e);
+      if (status === 404 && code === 'SESSION_NOT_FOUND') {
         this.removeFromList(id);
         return;
       }

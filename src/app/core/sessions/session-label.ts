@@ -15,7 +15,26 @@ export function sessionLabel(session: ActiveSession): string {
   if (browser && operatingSystem) return `${browser} en ${operatingSystem}`;
   if (browser) return browser;
   if (operatingSystem) return operatingSystem;
-  return session.kind === 'DESKTOP_APP' ? 'App de escritorio' : 'Dispositivo desconocido';
+  return session.kind === 'DESKTOP_APP' ? DESKTOP_APP : 'Dispositivo desconocido';
+}
+
+const DESKTOP_APP = 'App de escritorio';
+
+/**
+ * Si la segunda línea de la fila tiene que decir que es la app de escritorio, o si el título ya lo
+ * ha dicho. Devuelve `null` cuando no hay nada que añadir.
+ *
+ * Existe porque las dos líneas salen del mismo dato y se pisaban: con `cgc-scraper` el `User-Agent`
+ * es `CGC-MatchExporter/<versión>`, del que el backend no saca ni navegador ni sistema, así que
+ * `sessionLabel` ya devuelve "App de escritorio" —y ese es el caso **normal**, no el raro—.
+ * Anteponerlo otra vez dejaba la fila diciendo "App de escritorio" arriba y "App de escritorio ·
+ * Leer perfil · …" debajo. Se decide aquí, y no en la vista, porque la condición es exactamente
+ * "qué ha contestado `sessionLabel`": preguntárselo es la única forma de que las dos no se
+ * separen cuando una de las dos cambie.
+ */
+export function desktopAppMeta(session: ActiveSession): string | null {
+  if (session.kind !== 'DESKTOP_APP') return null;
+  return sessionLabel(session) === DESKTOP_APP ? null : DESKTOP_APP;
 }
 
 /** Copy amable de cada scope; uno sin traducir se pinta tal cual (no rompe). */

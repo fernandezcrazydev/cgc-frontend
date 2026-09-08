@@ -1,5 +1,5 @@
 import { ActiveSession } from './models';
-import { scopeLabels, sessionLabel } from './session-label';
+import { desktopAppMeta, scopeLabels, sessionLabel } from './session-label';
 
 function session(partial: Partial<ActiveSession>): ActiveSession {
   return {
@@ -47,6 +47,34 @@ describe('sessionLabel', () => {
     expect(sessionLabel(session({ kind: 'DESKTOP_APP', operatingSystem: 'Windows' }))).toBe(
       'Windows',
     );
+  });
+});
+
+/**
+ * Las dos líneas de la fila salen del mismo dato, y por eso se pisaban: el título ya decía "App de
+ * escritorio" y el subtítulo volvía a empezar por lo mismo. Lo que se protege aquí es que la
+ * segunda línea sigue diciendo qué es cuando el título habla de otra cosa, y se calla cuando no
+ * aporta nada.
+ */
+describe('desktopAppMeta', () => {
+  /**
+   * El caso normal, no el raro: `cgc-scraper` manda `CGC-MatchExporter/<versión>` y de ahí el
+   * backend no saca ni navegador ni sistema, así que el título ya es "App de escritorio".
+   */
+  it('se calla cuando el título ya dice que es la app de escritorio', () => {
+    expect(desktopAppMeta(session({ kind: 'DESKTOP_APP' }))).toBeNull();
+  });
+
+  /** Si el título dice el sistema, la segunda línea es la única que puede decir qué programa es. */
+  it('lo dice cuando el título habla de otra cosa', () => {
+    expect(desktopAppMeta(session({ kind: 'DESKTOP_APP', operatingSystem: 'Windows' }))).toBe(
+      'App de escritorio',
+    );
+  });
+
+  it('una sesión de navegador no lo menciona nunca', () => {
+    expect(desktopAppMeta(session({ browser: 'Chrome', operatingSystem: 'Windows' }))).toBeNull();
+    expect(desktopAppMeta(session({}))).toBeNull();
   });
 });
 
