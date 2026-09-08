@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { NfAvatar, NfSkeleton } from '../../../../ui';
 import { GameDataStore } from '../../../../core/game-data';
 import { MetagameBoard } from '../../../../core/group-stats';
@@ -16,7 +17,7 @@ import { MetagameBoard } from '../../../../core/group-stats';
   selector: 'app-stats-metagame',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [NfAvatar, NfSkeleton],
+  imports: [NfAvatar, NfSkeleton, RouterLink],
   template: `
     <section class="st-card" [attr.aria-busy]="busy() ? 'true' : null">
       <header class="st-card__head">
@@ -25,7 +26,7 @@ import { MetagameBoard } from '../../../../core/group-stats';
 
       @if (loading()) {
         <div class="st-grid mg-boards">
-          @for (s of [0, 1, 2]; track s) {
+          @for (s of [0, 1, 2, 3]; track s) {
             <nf-skeleton width="100%" height="168px" radius="10px" />
           }
         </div>
@@ -38,26 +39,47 @@ import { MetagameBoard } from '../../../../core/group-stats';
 
               <ol class="mg-board__list">
                 @for (entry of board.entries; track entry.championId; let i = $index) {
-                  <li class="mg-entry">
-                    <span class="mg-entry__rank nf-mono">{{ i + 1 }}</span>
-                    <nf-avatar
-                      [loading]="champsLoading()"
-                      [src]="championIcon(entry.championId)"
-                      [fallback]="championName(entry.championId)"
-                      [tint]="entry.championId"
-                      [size]="30"
-                      shape="square"
-                    />
-                    <span class="mg-entry__meta">
-                      @if (champsLoading()) {
-                        <nf-skeleton width="86px" height="12px" />
-                        <nf-skeleton width="112px" height="11px" />
+                  <li>
+                    <a
+                      class="mg-entry"
+                      [routerLink]="championRoute(entry.championId)"
+                      [queryParams]="championQueryParams(entry.championId)"
+                      [attr.data-podium]="i < 3 ? i + 1 : null"
+                      [attr.data-worst]="board.id === 'worst-winrate' ? true : null"
+                      [attr.title]="'Ver información de ' + championName(entry.championId)"
+                    >
+                      @if (i < 3) {
+                        <img
+                          class="mg-entry__trophy"
+                          [src]="'/assets/trofeos/Trofeo' + (i + 1) + '.webp'"
+                          [alt]="'Puesto ' + (i + 1)"
+                          width="22"
+                          height="22"
+                        />
                       } @else {
-                        <span class="mg-entry__name">{{ championName(entry.championId) }}</span>
-                        <span class="mg-entry__sub nf-mono">{{ entry.sub }}</span>
+                        <span class="mg-entry__rank nf-mono">
+                          {{ i + 1 }}
+                        </span>
                       }
-                    </span>
-                    <span class="mg-entry__value nf-mono">{{ entry.value }}</span>
+                      <nf-avatar
+                        [loading]="champsLoading()"
+                        [src]="championIcon(entry.championId)"
+                        [fallback]="championName(entry.championId)"
+                        [tint]="entry.championId"
+                        [size]="30"
+                        shape="square"
+                      />
+                      <span class="mg-entry__meta">
+                        @if (champsLoading()) {
+                          <nf-skeleton width="86px" height="12px" />
+                          <nf-skeleton width="112px" height="11px" />
+                        } @else {
+                          <span class="mg-entry__name">{{ championName(entry.championId) }}</span>
+                          <span class="mg-entry__sub nf-mono">{{ entry.sub }}</span>
+                        }
+                      </span>
+                      <span class="mg-entry__value nf-mono">{{ entry.value }}</span>
+                    </a>
                   </li>
                 }
               </ol>
@@ -76,11 +98,21 @@ import { MetagameBoard } from '../../../../core/group-stats';
 export class StatsMetagameComponent {
   readonly boards = input<readonly MetagameBoard[]>([]);
   readonly loading = input(false);
+  readonly groupId = input<string | null>(null);
 
   private readonly gameData = inject(GameDataStore);
 
   protected readonly champsLoading = computed(() => this.gameData.status() === 'loading');
   protected readonly busy = computed(() => this.loading() || this.champsLoading());
+
+  protected championRoute(id: number): (string | number)[] {
+    const gid = this.groupId();
+    return gid ? ['/app', 'grupos', gid, 'tierlist'] : ['/app', 'tierlist'];
+  }
+
+  protected championQueryParams(id: number): Record<string, number> {
+    return { campeon: id };
+  }
 
   protected championIcon(id: number): string | null {
     return this.gameData.championById().get(id)?.iconUrl ?? null;

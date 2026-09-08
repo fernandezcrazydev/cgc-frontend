@@ -1,152 +1,57 @@
 @use 'breakpoints' as *;
 
-/* Telemetría de mapa (§5.5.5). Los azul/rojo salen de `--nf-team-blue` y
-   `--nf-team-red`, que son dominio de LoL y no siguen al acento de la app: si
-   mañana el primario cambia de tono, los bandos tienen que seguir siendo los
-   bandos. */
+.tm-sides { display: flex; flex-direction: column; gap: 10px; }
+.tm-sides__row { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.tm-sides__team { display: inline-flex; align-items: baseline; gap: 10px; }
+.tm-sides__name { font-size: var(--fs-h3); font-weight: var(--fw-bold); letter-spacing: -0.01em; }
+.tm-sides__team--blue .tm-sides__name, .tm-sides__team--blue .tm-sides__pct { color: var(--nf-team-blue); }
+.tm-sides__team--red .tm-sides__name, .tm-sides__team--red .tm-sides__pct { color: var(--nf-team-red); }
+.tm-sides__pct { font-size: var(--fs-h2); font-weight: var(--fw-black); }
+.tm-sides__bar { display: flex; overflow: hidden; height: 14px; border-radius: 7px; background: var(--nf-surface-3); box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4); }
+.tm-sides__fill { height: 100%; }
+.tm-sides__fill--blue { background: linear-gradient(90deg, color-mix(in srgb, var(--nf-team-blue) 60%, transparent), var(--nf-team-blue)); }
+.tm-sides__fill--red { background: linear-gradient(90deg, var(--nf-team-red), color-mix(in srgb, var(--nf-team-red) 60%, transparent)); }
+.tm-sides__foot { margin: 0; font-size: var(--fs-caption); color: var(--nf-text-dim); }
+.tm-pacing { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 8px 12px; background: var(--nf-surface-2); border: 1px solid var(--nf-border); border-radius: 10px; }
+.tm-pacing__item { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 2px; }
+.tm-pacing__label { font-size: var(--fs-label); color: var(--nf-text-dim); text-transform: uppercase; letter-spacing: 0.04em; font-weight: var(--fw-bold); }
+.tm-pacing__stat { display: inline-flex; align-items: baseline; gap: 4px; }
+.tm-pacing__value { font-size: var(--fs-h3); font-weight: var(--fw-black); color: var(--nf-text); line-height: 1.1; }
+.tm-pacing__value--fb { color: var(--nf-team-red); }
+.tm-pacing__unit { font-size: var(--fs-label); color: var(--nf-text-dim); font-weight: var(--fw-semibold); }
+.tm-pacing__sub { font-size: var(--fs-label); color: var(--nf-text-dim); }
 
-.tm-sides {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.tm-sides__row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.tm-sides__label {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 7px;
-  font-size: 12.5px;
-  color: var(--nf-text-mid);
-}
-
-.tm-sides__label strong {
-  font-size: 17px;
-  font-weight: var(--fw-bold);
-}
-
-.tm-sides__label--blue strong {
-  color: var(--nf-team-blue);
-}
-
-.tm-sides__label--red strong {
-  color: var(--nf-team-red);
-}
-
-.tm-sides__bar {
-  display: flex;
-  overflow: hidden;
-  height: 12px;
-  border-radius: 6px;
-  background: var(--nf-surface-3);
-}
-
-.tm-sides__fill {
-  height: 100%;
-}
-
-.tm-sides__fill--blue {
-  background: linear-gradient(
-    90deg,
-    color-mix(in srgb, var(--nf-team-blue) 55%, transparent),
-    var(--nf-team-blue)
-  );
-}
-
-.tm-sides__fill--red {
-  background: linear-gradient(
-    90deg,
-    var(--nf-team-red),
-    color-mix(in srgb, var(--nf-team-red) 55%, transparent)
-  );
-}
-
-.tm-sides__foot {
-  margin: 0;
-  font-size: 11.5px;
-  color: var(--nf-text-dim);
-}
-
-/* ---- Los cuatro objetivos ---- */
-
-.tm-objectives {
-  grid-template-columns: repeat(4, 1fr);
-  margin: 6px 0 0;
-  padding: 0;
-  list-style: none;
-}
-
+.tm-objectives { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin: 8px 0 0; padding: 0; list-style: none; }
 .tm-objective {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  padding: 12px 13px;
-  border-radius: 10px;
-  background: var(--nf-surface-2);
-  /* El borde superior es el que lleva la lectura: cuanto más decisivo el
-     objetivo, más peso visual tiene su tarjeta. */
-  border: 1px solid var(--nf-border);
-  border-top: 2px solid var(--nf-border-strong);
+  --tm-accent: var(--nf-secondary);
+  position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: center; text-align: center; justify-content: space-between; gap: 10px; padding: 14px 10px; border-radius: 12px;
+  background: radial-gradient(120% 90% at 90% 10%, color-mix(in srgb, var(--tm-accent) 14%, transparent), var(--nf-surface-2)); border: 1px solid var(--nf-border); border-top: 3px solid var(--tm-accent);
+  transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+  &[data-impact='Decisivo'] { --tm-accent: var(--nf-gold); }
+  &[data-impact='Alto']     { --tm-accent: var(--nf-emerald); }
+  &[data-impact='Medio']    { --tm-accent: var(--nf-secondary); }
+  &:hover, &.is-highlighted { transform: translateY(-3px); border-color: var(--tm-accent); box-shadow: 0 6px 18px color-mix(in srgb, var(--tm-accent) 20%, transparent); .tm-objective__watermark { opacity: 0.14; transform: scale(1.06); } }
 }
-
-.tm-objective[data-impact='Decisivo'] {
-  border-top-color: var(--nf-gold);
-}
-
-.tm-objective[data-impact='Alto'] {
-  border-top-color: var(--nf-emerald);
-}
-
-.tm-objective[data-impact='Medio'] {
-  border-top-color: var(--nf-secondary);
-}
-
-.tm-objective__label {
-  font-size: 11.5px;
-  color: var(--nf-text-dim);
-}
-
-.tm-objective__value {
-  font-size: 21px;
-  font-weight: var(--fw-bold);
-  color: var(--nf-text);
-}
-
-.tm-objective__sub {
-  font-size: 11.5px;
-  color: var(--nf-text-mid);
-}
-
-.tm-objective__impact {
-  margin-top: 4px;
-  font-size: var(--fs-label);
-  color: var(--nf-text-dim);
-}
-
-.tm-objective[data-impact='Decisivo'] .tm-objective__impact {
-  color: var(--nf-gold);
-}
+.tm-objective__watermark { position: absolute; right: -12px; bottom: -12px; width: 84px; height: 84px; object-fit: contain; opacity: 0.07; pointer-events: none; transition: opacity 0.2s ease, transform 0.2s ease; }
+.tm-objective__top { display: flex; align-items: center; justify-content: center; width: 100%; position: relative; z-index: 1; }
+.tm-objective__badge { position: absolute; right: 0; top: 0; font-size: var(--fs-label); line-height: 1; font-weight: var(--fw-medium); padding: 1.5px 5px; border-radius: 999px; background: color-mix(in srgb, var(--tm-accent) 15%, transparent); color: var(--tm-accent); border: 1px solid color-mix(in srgb, var(--tm-accent) 30%, transparent); }
+.tm-objective__icon-halo { display: flex; align-items: center; justify-content: center; width: 46px; height: 46px; border-radius: 50%; background: color-mix(in srgb, var(--tm-accent) 16%, transparent); }
+.tm-objective__icon { width: 38px; height: 38px; object-fit: contain; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4)); }
+.tm-objective__middle { display: flex; flex-direction: column; align-items: center; gap: 2px; position: relative; z-index: 1; width: 100%; }
+.tm-objective__label { margin: 0; font-size: var(--fs-caption); font-weight: var(--fw-bold); color: var(--nf-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.tm-objective__hint { font-size: var(--fs-label); color: var(--tm-accent); font-weight: 500; }
+.tm-objective__value { font-size: var(--fs-h2); font-weight: var(--fw-black); color: var(--tm-accent); line-height: 1; margin-top: 2px; }
+.tm-objective__bottom { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 100%; position: relative; z-index: 1; padding-top: 8px; border-top: 1px solid var(--nf-border); }
+.tm-objective__segments { display: flex; gap: 3px; height: 4px; width: 44px; }
+.tm-objective__seg { flex: 1; border-radius: 2px; background: var(--nf-surface-3); &.is-on { background: var(--tm-accent); } }
+.tm-objective__sub { font-size: var(--fs-label); color: var(--nf-text-dim); text-align: center; }
 
 @media (max-width: $bp-compact) {
-  .tm-objectives {
-    grid-template-columns: repeat(2, 1fr);
-  }
+  .tm-objectives { grid-template-columns: repeat(3, 1fr); }
 }
-
 @media (max-width: $bp-narrow) {
-  .tm-objectives {
-    grid-template-columns: 1fr;
-  }
-
-  .tm-sides__row {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 4px;
-  }
+  .tm-pacing { grid-template-columns: 1fr; gap: 6px; }
+  .tm-objectives { grid-template-columns: 1fr; }
+  .tm-sides__row { flex-direction: column; align-items: flex-start; gap: 6px; }
+  .tm-sides__team--red { flex-direction: row-reverse; }
 }

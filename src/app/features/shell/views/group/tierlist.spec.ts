@@ -28,6 +28,10 @@ describe('Tierlist Component', () => {
           provide: ActivatedRoute,
           useValue: {
             paramMap: of(convertToParamMap({ id: GROUP_ID })),
+            snapshot: {
+              paramMap: convertToParamMap({ id: GROUP_ID }),
+              queryParamMap: convertToParamMap({}),
+            },
           },
         },
       ],

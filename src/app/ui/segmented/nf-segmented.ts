@@ -9,6 +9,8 @@ export interface NfSegmentOption {
    * usa el color neutro del tema, que es lo correcto para la mayoría de los casos.
    */
   tone?: NfSegmentTone;
+  /** Si la opción no está disponible en el estado actual. */
+  disabled?: boolean;
 }
 
 /** Se nombra por lo que significa, nunca por el color que salga hoy. */
@@ -62,8 +64,11 @@ export type NfSegmentedVariant = 'pill' | 'tabs';
           [class.nf-seg__btn--on]="opt.value === value()"
           [class.nf-seg__btn--success]="opt.tone === 'success'"
           [class.nf-seg__btn--danger]="opt.tone === 'danger'"
+          [class.nf-seg__btn--disabled]="opt.disabled"
+          [disabled]="opt.disabled || null"
           [attr.aria-selected]="opt.value === value()"
-          (click)="value.set(opt.value)"
+          [attr.aria-disabled]="opt.disabled || null"
+          (click)="!opt.disabled && value.set(opt.value)"
         >
           {{ opt.label }}
         </button>

@@ -6,7 +6,7 @@
  * backend. Hay una única pasada de estadísticas por miembro (`statsFor`) y de ella
  * se proyecta todo lo demás, para que la pantalla no cuente dos verdades distintas:
  *   - mapTelemetryFor()  → balance de bandos e impacto de objetivos
- *   - metagameFor()      → campeones más jugados, más baneados y de mayor winrate
+ *   - metagameFor()      → campeones más jugados, baneados y de mayor winrate
  *   - epicRecordsFor()   → los tres récords históricos, con enlace a su partida
  *   - playerTiles()      → el desglose de la fila expandible de cada jugador
  * Las medallas del Hall of Fame viven aparte, en `core/group-medals.ts`.
@@ -20,25 +20,86 @@ import { hash, seeded } from './group-ranking';
 import { SEEDED_MATCH_COUNT, seedMatchId } from './seed-matches';
 
 /** Ventana temporal a la que se escala cada widget. */
-export type StatScope = 'sesion' | 'temporada' | 'historico';
+export type StatScope = 'temporada' | 'historico';
 
 /**
- * §5.5.5 fija la nomenclatura: «Sesión» y «Temporada actual». El histórico solo se
- * ofrece cuando hay más de una temporada, porque con una sola repetiría cifras
- * idénticas a las de la temporada actual; de esa criba se encarga la vista.
+ * §5.5.5 fija la nomenclatura temporal para las estadísticas.
  */
 export const SCOPE_OPTIONS: { id: StatScope; label: string }[] = [
-  { id: 'sesion', label: 'Sesión' },
   { id: 'temporada', label: 'Temporada actual' },
   { id: 'historico', label: 'Histórico total' },
 ];
 
 /** Banda aproximada de partidas por alcance, para que los totales cuadren en cada zoom. */
 const SCOPE_GAMES: Record<StatScope, [number, number]> = {
-  sesion: [3, 6],
   temporada: [18, 44],
   historico: [70, 160],
 };
+
+export type StatModality = 'COMPETITIVE' | 'BALANCED' | 'CHAOS';
+
+export interface GroupModalitySeason {
+  id: string;
+  label: string;
+  played: boolean;
+}
+
+export interface GroupModalityConfig {
+  modality: StatModality;
+  label: string;
+  played: boolean;
+  seasons: GroupModalitySeason[];
+}
+
+/** Configuración determinista de modalidades y temporadas disputadas para un grupo. */
+export function groupModalitiesConfig(groupId: string): GroupModalityConfig[] {
+  const rnd = seeded(hash(groupId + ':modalities:v2'));
+  const compHas2024 = rnd() > 0.4;
+  const balHas2025 = rnd() > 0.3;
+  const chaosPlayed = rnd() > 0.25;
+
+  return [
+    {
+      modality: 'COMPETITIVE',
+      label: 'Competitivo',
+      played: true,
+      seasons: [
+        { id: 'current', label: 'Temporada 2026', played: true },
+        { id: 'past-2025', label: 'Temporada 2025', played: true },
+        { id: 'past-2024', label: 'Temporada 2024', played: compHas2024 },
+      ],
+    },
+    {
+      modality: 'BALANCED',
+      label: 'Equilibrado',
+      played: true,
+      seasons: [
+        { id: 'current', label: 'Temporada 2026', played: true },
+        { id: 'past-2025', label: 'Temporada 2025', played: balHas2025 },
+        { id: 'past-2024', label: 'Temporada 2024', played: false },
+      ],
+    },
+    {
+      modality: 'CHAOS',
+      label: 'Caos',
+      played: chaosPlayed,
+      seasons: [
+        { id: 'current', label: 'Temporada 2026', played: chaosPlayed },
+        { id: 'past-2025', label: 'Temporada 2025', played: false },
+        { id: 'past-2024', label: 'Temporada 2024', played: false },
+      ],
+    },
+  ];
+}
+
+export interface MemberAffinity {
+  name: string;
+  tag: string;
+  avatar: string | null;
+  hue: number;
+  winrate: number;
+  games: number;
+}
 
 /** Per-member aggregate stats for one scope. The single source of truth. */
 export interface MemberStats {
@@ -66,6 +127,8 @@ export interface MemberStats {
   triples: number;
   quadras: number;
   pentas: number;
+  bestDuo: MemberAffinity;
+  nemesis: MemberAffinity;
   /**
    * This member's unofficial "main". BACKEND NOTE: id real de ddragon elegido
    * de `REAL_CHAMPION_IDS` (ver `core/lobby.ts`) mientras no exista el
@@ -108,6 +171,10 @@ export interface MemberStats {
   damageTakenK: number;
   /** Racha de victorias más larga del alcance (`streak` es la vigente). */
   bestStreak: number;
+  /** Peor racha de derrotas del alcance. */
+  worstStreak: number;
+  /** Posición media en el ranking del grupo en este alcance (1 a N). */
+  avgRank: number;
 }
 
 /** Pick a stable item from `arr` for `seed`. */
@@ -178,6 +245,46 @@ export function statsFor(groupId: string, roster: readonly Member[], scope: Stat
     const healShieldK = +(1 + rnd() * 14).toFixed(1);
     const damageTakenK = +(14 + rnd() * 26).toFixed(1);
     const bestStreak = streak + Math.floor(rnd() * 4);
+    const worstStreak = Math.max(1, Math.floor(rnd() * Math.min(6, losses + 1)));
+    const avgRank = +(1 + (1 - rating / 100) * (roster.length - 1)).toFixed(1);
+
+    const others = roster.filter((m) => m.tag !== member.tag);
+    let bestDuo: MemberAffinity;
+    let nemesis: MemberAffinity;
+
+    if (others.length > 0) {
+      const duoIdx = Math.floor(rnd() * others.length);
+      const duoMember = others[duoIdx];
+      const duoGames = Math.max(4, Math.round(games * (0.35 + rnd() * 0.3)));
+      const duoWr = Math.round(68 + rnd() * 24);
+      bestDuo = {
+        name: duoMember.name,
+        tag: duoMember.tag,
+        avatar: duoMember.avatar ?? null,
+        hue: duoMember.hue,
+        winrate: duoWr,
+        games: duoGames,
+      };
+
+      let nemIdx = Math.floor(rnd() * (others.length - (others.length > 1 ? 1 : 0)));
+      if (others.length > 1 && nemIdx >= duoIdx) {
+        nemIdx = (nemIdx + 1) % others.length;
+      }
+      const nemMember = others[nemIdx];
+      const nemGames = Math.max(4, Math.round(games * (0.3 + rnd() * 0.3)));
+      const nemWr = Math.round(18 + rnd() * 24);
+      nemesis = {
+        name: nemMember.name,
+        tag: nemMember.tag,
+        avatar: nemMember.avatar ?? null,
+        hue: nemMember.hue,
+        winrate: nemWr,
+        games: nemGames,
+      };
+    } else {
+      bestDuo = { name: member.name, tag: member.tag, avatar: member.avatar ?? null, hue: member.hue, winrate: 50, games: 0 };
+      nemesis = { name: member.name, tag: member.tag, avatar: member.avatar ?? null, hue: member.hue, winrate: 50, games: 0 };
+    }
 
     return {
       member,
@@ -199,6 +306,8 @@ export function statsFor(groupId: string, roster: readonly Member[], scope: Stat
       triples,
       quadras,
       pentas,
+      bestDuo,
+      nemesis,
       mainChampionId,
       mainChampWr,
       streak,
@@ -216,13 +325,15 @@ export function statsFor(groupId: string, roster: readonly Member[], scope: Stat
       healShieldK,
       damageTakenK,
       bestStreak,
+      worstStreak,
+      avgRank,
     };
   });
 }
 
 // ===================== Telemetría de mapa =====================
 
-export type ObjectiveId = 'dragon' | 'herald' | 'baron' | 'tower';
+export type ObjectiveId = 'dragon' | 'grubs' | 'herald' | 'baron' | 'tower';
 
 /** Cuánto pesa quedarse un objetivo en la victoria del grupo. */
 export interface ObjectiveImpact {
@@ -234,6 +345,8 @@ export interface ObjectiveImpact {
   games: number;
   /** El winrate dicho en una palabra, para no obligar a interpretar el número. */
   impact: 'Decisivo' | 'Alto' | 'Medio';
+  /** Ruta al icono o imagen del objetivo. */
+  iconUrl: string;
 }
 
 /** Reparto de victorias entre los dos lados del mapa. */
@@ -245,19 +358,47 @@ export interface SideBalance {
   redPct: number;
 }
 
+/** Métricas de ritmo, duración e intensidad de las partidas del grupo. */
+export interface PacingStats {
+  averageDuration: string;
+  killsPerMinute: number;
+  totalKillsPerGame: number;
+  firstBloodWinrate: number;
+}
+
 export interface MapTelemetry {
   side: SideBalance;
+  pacing: PacingStats;
   objectives: ObjectiveImpact[];
+}
+
+/** Dúo de Oro: la pareja con mayor química competitiva en el mismo equipo. */
+export interface GoldenDuo {
+  player1: { name: string; tag: string; avatar?: string | null; hue: number };
+  player2: { name: string; tag: string; avatar?: string | null; hue: number };
+  winrate: number;
+  games: number;
+  wins: number;
+  losses: number;
 }
 
 const OBJECTIVE_LABELS: Record<ObjectiveId, string> = {
   dragon: 'Primer dragón',
+  grubs: 'Larvas del vacío',
   herald: 'Heraldo de la grieta',
   baron: 'Primer barón',
   tower: 'Primera torre',
 };
 
-const OBJECTIVE_ORDER: ObjectiveId[] = ['dragon', 'herald', 'baron', 'tower'];
+const OBJECTIVE_ICONS: Record<ObjectiveId, string> = {
+  dragon: '/assets/objectives/dragon.png',
+  grubs: '/assets/objectives/grubs.png',
+  herald: '/assets/objectives/herald.png',
+  baron: '/assets/objectives/baron.png',
+  tower: '/assets/objectives/tower.png',
+};
+
+const OBJECTIVE_ORDER: ObjectiveId[] = ['dragon', 'grubs', 'herald', 'baron', 'tower'];
 
 function impactOf(winrate: number): ObjectiveImpact['impact'] {
   if (winrate >= 82) return 'Decisivo';
@@ -275,7 +416,7 @@ function groupGamesOf(stats: readonly MemberStats[]): number {
   return Math.round(stats.reduce((total, s) => total + s.games, 0) / stats.length);
 }
 
-/** Balance de bandos e impacto de los cuatro objetivos (§5.5.5, bloque 1). */
+/** Balance de bandos e impacto de los objetivos (§5.5.5, bloque 1). */
 export function mapTelemetryFor(
   groupId: string,
   stats: readonly MemberStats[],
@@ -302,8 +443,25 @@ export function mapTelemetryFor(
       wins: Math.round((objectiveGames * winrate) / 100),
       games: objectiveGames,
       impact: impactOf(winrate),
+      iconUrl: OBJECTIVE_ICONS[id],
     };
   });
+
+  // Métricas de ritmo, duración e intensidad
+  const avgMin = Math.floor(27 + rnd() * 6);
+  const avgSec = Math.floor(rnd() * 60);
+  const averageDuration = `${avgMin}:${avgSec.toString().padStart(2, '0')}`;
+  const totalDurationMin = avgMin + avgSec / 60;
+  const killsPerMinute = Math.round((1.8 + rnd() * 0.6) * 10) / 10;
+  const totalKillsPerGame = Math.round(totalDurationMin * killsPerMinute);
+  const firstBloodWinrate = Math.round(63 + rnd() * 11);
+
+  const pacing: PacingStats = {
+    averageDuration,
+    killsPerMinute,
+    totalKillsPerGame,
+    firstBloodWinrate,
+  };
 
   return {
     side: {
@@ -313,13 +471,76 @@ export function mapTelemetryFor(
       bluePct,
       redPct: 100 - bluePct,
     },
+    pacing,
     objectives,
+  };
+}
+
+/** Determina la pareja con mayor sinergia y porcentaje de victorias jugando juntos. */
+export function goldenDuoFor(
+  groupId: string,
+  roster: readonly Member[],
+  stats: readonly MemberStats[],
+): GoldenDuo | null {
+  if (roster.length < 2) return null;
+
+  const rnd = seeded(hash(groupId + ':golden-duo'));
+  const p1Idx = Math.floor(rnd() * roster.length);
+  let p2Idx = Math.floor(rnd() * (roster.length - 1));
+  if (p2Idx >= p1Idx) p2Idx++;
+
+  const m1 = roster[p1Idx];
+  const m2 = roster[p2Idx];
+
+  const games = Math.max(8, Math.round(12 + rnd() * 14));
+  const winrate = Math.round(74 + rnd() * 15);
+  const wins = Math.round((games * winrate) / 100);
+  const losses = games - wins;
+
+  return {
+    player1: { name: m1.name, tag: m1.tag, avatar: m1.avatar ?? null, hue: m1.hue },
+    player2: { name: m2.name, tag: m2.tag, avatar: m2.avatar ?? null, hue: m2.hue },
+    winrate,
+    games,
+    wins,
+    losses,
+  };
+}
+
+/** Determina la pareja con menor sinergia («Dúo de madera») jugando juntos. */
+export function woodenDuoFor(
+  groupId: string,
+  roster: readonly Member[],
+  stats: readonly MemberStats[],
+): GoldenDuo | null {
+  if (roster.length < 2) return null;
+
+  const rnd = seeded(hash(groupId + ':wooden-duo'));
+  const p1Idx = Math.floor(rnd() * roster.length);
+  let p2Idx = Math.floor(rnd() * (roster.length - 1));
+  if (p2Idx >= p1Idx) p2Idx++;
+
+  const m1 = roster[p1Idx];
+  const m2 = roster[p2Idx];
+
+  const games = Math.max(7, Math.round(9 + rnd() * 11));
+  const winrate = Math.round(18 + rnd() * 14);
+  const wins = Math.round((games * winrate) / 100);
+  const losses = games - wins;
+
+  return {
+    player1: { name: m1.name, tag: m1.tag, avatar: m1.avatar ?? null, hue: m1.hue },
+    player2: { name: m2.name, tag: m2.tag, avatar: m2.avatar ?? null, hue: m2.hue },
+    winrate,
+    games,
+    wins,
+    losses,
   };
 }
 
 // ===================== Metagame =====================
 
-export type MetagameBoardId = 'picks' | 'bans' | 'winrate';
+export type MetagameBoardId = 'picks' | 'bans' | 'winrate' | 'worst-winrate';
 
 export interface MetagameEntry {
   /**
@@ -350,7 +571,7 @@ function pickChampions(rnd: () => number, count: number): number[] {
   return out;
 }
 
-/** Los tres tableros del metagame del grupo (§5.5.5, bloque 2). */
+/** Los tableros del metagame del grupo (§5.5.5, bloque 2). */
 export function metagameFor(groupId: string, stats: readonly MemberStats[]): MetagameBoard[] {
   if (!stats.length) return [];
 
@@ -370,8 +591,8 @@ export function metagameFor(groupId: string, stats: readonly MemberStats[]): Met
     const banned = Math.max(2, Math.round(games * (0.46 - i * 0.09) + rnd() * 3));
     return {
       championId,
-      value: banned + (banned === 1 ? ' baneo' : ' baneos'),
-      sub: Math.round(38 + rnd() * 28) + '% de victorias cuando juega',
+      value: banned + (banned === 1 ? ' ban' : ' bans'),
+      sub: Math.round(38 + rnd() * 28) + '% de victorias',
     };
   });
 
@@ -389,17 +610,31 @@ export function metagameFor(groupId: string, stats: readonly MemberStats[]): Met
       sub: c.played + ' partidas',
     }));
 
+  // Ordenado de menor a mayor: los picks trampa con menor winrate.
+  const worstWinrates = pickChampions(rnd, 3)
+    .map((championId) => ({
+      championId,
+      played: 4 + Math.floor(rnd() * 7),
+      wr: Math.round(18 + rnd() * 22),
+    }))
+    .sort((a, b) => a.wr - b.wr)
+    .map((c) => ({
+      championId: c.championId,
+      value: c.wr + '% de victorias',
+      sub: c.played + ' partidas',
+    }));
+
   return [
     {
       id: 'picks',
       title: 'Más jugados',
-      note: 'Los campeones que más pisan la grieta en este grupo.',
+      note: 'Los que aparecen siempre',
       entries: picks,
     },
     {
       id: 'bans',
-      title: 'Más baneados',
-      note: 'A quién no se le deja salir del banquillo.',
+      title: 'Baneados',
+      note: 'No se les permite aparecer',
       entries: bans,
     },
     {
@@ -408,12 +643,131 @@ export function metagameFor(groupId: string, stats: readonly MemberStats[]): Met
       note: 'Solo campeones con cinco partidas o más.',
       entries: winrates,
     },
+    {
+      id: 'worst-winrate',
+      title: 'Menor winrate',
+      note: 'Picks trampa con cuatro partidas o más.',
+      entries: worstWinrates,
+    },
   ];
+}
+
+// ===================== Multikills del grupo =====================
+
+export interface GroupMultikills {
+  pentas: number;
+  quadras: number;
+  triples: number;
+  topPentaHunter?: { name: string; tag: string; count: number };
+  topQuadraHunter?: { name: string; tag: string; count: number };
+}
+
+export function multikillsFor(stats: readonly MemberStats[]): GroupMultikills {
+  if (!stats.length) {
+    return { pentas: 0, quadras: 0, triples: 0 };
+  }
+  const pentas = stats.reduce((sum, s) => sum + s.pentas, 0);
+  const quadras = stats.reduce((sum, s) => sum + s.quadras, 0);
+  const triples = stats.reduce((sum, s) => sum + s.triples, 0);
+
+  const pentaLeaders = [...stats].filter((s) => s.pentas > 0).sort((a, b) => b.pentas - a.pentas);
+  const quadraLeaders = [...stats].filter((s) => s.quadras > 0).sort((a, b) => b.quadras - a.quadras);
+
+  return {
+    pentas,
+    quadras,
+    triples,
+    topPentaHunter: pentaLeaders[0]
+      ? { name: pentaLeaders[0].member.name, tag: pentaLeaders[0].member.tag, count: pentaLeaders[0].pentas }
+      : undefined,
+    topQuadraHunter: quadraLeaders[0]
+      ? { name: quadraLeaders[0].member.name, tag: quadraLeaders[0].member.tag, count: quadraLeaders[0].quadras }
+      : undefined,
+  };
+}
+
+// ===================== Guerra de visión =====================
+
+export interface GroupVision {
+  wardsPlaced: number;
+  wardsCleared: number;
+  visionPerMin: number;
+  topVisionary?: { name: string; tag: string; score: number };
+}
+
+export function groupVisionFor(groupId: string, stats: readonly MemberStats[]): GroupVision {
+  if (!stats.length) {
+    return { wardsPlaced: 0, wardsCleared: 0, visionPerMin: 0 };
+  }
+  const rnd = seeded(hash(groupId + ':vision-stats'));
+  const wardsPlaced = stats.reduce((acc, s) => acc + s.wardsPlaced * Math.max(1, Math.round(s.games * 0.9)), 0);
+  const wardsCleared = Math.round(wardsPlaced * (0.28 + rnd() * 0.1));
+  const avgVision = stats.reduce((acc, s) => acc + s.visionScore, 0) / stats.length;
+  const visionPerMin = +(avgVision / 12).toFixed(1);
+
+  const visionaryLeader = [...stats].sort((a, b) => b.visionScore - a.visionScore)[0];
+
+  return {
+    wardsPlaced,
+    wardsCleared,
+    visionPerMin,
+    topVisionary: visionaryLeader
+      ? { name: visionaryLeader.member.name, tag: visionaryLeader.member.tag, score: visionaryLeader.visionScore }
+      : undefined,
+  };
+}
+
+// ===================== Impacto por líneas =====================
+
+export type LaneRole = 'TOP' | 'JUNGLA' | 'MID' | 'ADC' | 'SUPPORT';
+
+export interface LaneImpact {
+  lane: LaneRole;
+  label: string;
+  winrate: number;
+  impactOrder: number;
+  description: string;
+}
+
+export function laneImpactFor(groupId: string, scope: StatScope): LaneImpact[] {
+  const rnd = seeded(hash(groupId + ':lane-impact:' + scope));
+  const laneConfigs: { lane: LaneRole; label: string; base: number; desc: string }[] = [
+    { lane: 'MID', label: 'Mid', base: 74, desc: 'Control de mapa y rotaciones' },
+    { lane: 'JUNGLA', label: 'Jungla', base: 72, desc: 'Presión en objetivos y ganks' },
+    { lane: 'ADC', label: 'Bot (ADC)', base: 69, desc: 'Poder de fuego en peleas de equipo' },
+    { lane: 'TOP', label: 'Top', base: 66, desc: 'Presión dividida e iniciación' },
+    { lane: 'SUPPORT', label: 'Soporte', base: 63, desc: 'Visión y protección aliada' },
+  ];
+
+  return laneConfigs
+    .map((item) => {
+      const winrate = Math.min(88, Math.max(54, Math.round(item.base + (rnd() - 0.5) * 14)));
+      return {
+        lane: item.lane,
+        label: item.label,
+        winrate,
+        description: item.desc,
+      };
+    })
+    .sort((a, b) => b.winrate - a.winrate)
+    .map((item, index) => ({
+      ...item,
+      impactOrder: index + 1,
+    }));
 }
 
 // ===================== Récords históricos =====================
 
-export type EpicRecordIcon = 'blood' | 'damage' | 'marathon';
+export type EpicRecordIcon =
+  | 'blood'
+  | 'damage'
+  | 'marathon'
+  | 'comeback'
+  | 'speedrun'
+  | 'monsters'
+  | 'kills'
+  | 'gold'
+  | 'tank';
 
 export interface EpicRecord {
   id: string;
@@ -429,7 +783,7 @@ export interface EpicRecord {
 }
 
 /**
- * Los tres hitos de máxima dificultad (§5.5.5, bloque 3). A diferencia de la trivia
+ * Los récords históricos de máxima dificultad (§5.5.5, bloque 3). A diferencia de la trivia
  * del hub, estos sí llevan `matchId`: la tarjeta promete «ver partida» y tiene que
  * aterrizar en una que exista.
  */
@@ -443,12 +797,22 @@ export function epicRecordsFor(groupId: string, stats: readonly MemberStats[]): 
   };
 
   const topDamage = [...stats].sort((a, b) => b.dmgK - a.dmgK)[0];
+  const topKills = [...stats].sort((a, b) => b.kills - a.kills)[0];
+  const topGold = [...stats].sort((a, b) => b.goldPerMin - a.goldPerMin)[0];
+  const topTank = [...stats].sort((a, b) => b.mitigatedK - a.mitigatedK)[0];
 
   const bloodiest = matchOf();
   const hardest = matchOf();
   const longest = matchOf();
+  const comebackMatch = matchOf();
+  const speedrunMatch = matchOf();
+  const monstersMatch = matchOf();
+  const killsMatch = matchOf();
+  const goldMatch = matchOf();
+  const tankMatch = matchOf();
 
   return [
+    // Lote 1
     {
       id: 'bloodiest',
       icon: 'blood',
@@ -472,6 +836,56 @@ export function epicRecordsFor(groupId: string, stats: readonly MemberStats[]): 
       value: 44 + Math.floor(rnd() * 12) + ' min ' + Math.floor(rnd() * 60) + ' s',
       detail: 'La partida más larga que ha jugado el grupo',
       ...longest,
+    },
+    // Lote 2
+    {
+      id: 'comeback',
+      icon: 'comeback',
+      title: 'La gran remontada',
+      value: (10000 + Math.floor(rnd() * 5500)).toLocaleString('es-ES') + ' oro remontado',
+      detail: 'Victoria tras perder los 3 inhibidores en base',
+      ...comebackMatch,
+    },
+    {
+      id: 'speedrun',
+      icon: 'speedrun',
+      title: 'Victoria relámpago',
+      value: 15 + Math.floor(rnd() * 4) + ' min ' + Math.floor(rnd() * 50) + ' s',
+      detail: 'Rendición rival tras asedio perfecto',
+      ...speedrunMatch,
+    },
+    {
+      id: 'monsters',
+      icon: 'monsters',
+      title: 'Guerra de monstruos',
+      value: 7 + Math.floor(rnd() * 3) + ' objetivos épicos',
+      detail: '5 dragones y 3 barones disputados en la grieta',
+      ...monstersMatch,
+    },
+    // Lote 3
+    {
+      id: 'kills',
+      icon: 'kills',
+      title: 'Mayor masacre',
+      value: Math.max(18, Math.round(topKills.kills * 2.2 + rnd() * 6)) + ' asesinatos',
+      detail: topKills.member.name + ' en una exhibición legendaria',
+      ...killsMatch,
+    },
+    {
+      id: 'gold',
+      icon: 'gold',
+      title: 'Fortuna de Midas',
+      value: (19500 + Math.floor(rnd() * 6000)).toLocaleString('es-ES') + ' de oro',
+      detail: topGold.member.name + ' con ritmo de ' + topGold.goldPerMin + ' oro/min',
+      ...goldMatch,
+    },
+    {
+      id: 'tank',
+      icon: 'tank',
+      title: 'Bastión infranqueable',
+      value: Math.round(topTank.mitigatedK * 1000 + rnd() * 25000).toLocaleString('es-ES') + ' mitigado',
+      detail: topTank.member.name + ' absorbió el asedio enemigo',
+      ...tankMatch,
     },
   ];
 }
@@ -502,24 +916,40 @@ function leaderBy(stats: readonly MemberStats[], score: (s: MemberStats) => numb
 /** Tinte de una cifra destacada. Se nombra por lo que significa, nunca por el color. */
 export type StatAccent = 'secondary' | 'primary' | 'warning';
 
+export type PlayerTileIcon =
+  | 'games'
+  | 'winrate'
+  | 'kda'
+  | 'kda-split'
+  | 'cs'
+  | 'gold'
+  | 'damage'
+  | 'vision'
+  | 'penta'
+  | 'streak'
+  | 'ranking';
+
 export interface PlayerTile {
   label: string;
   value: string;
   accent?: StatAccent;
+  icon?: PlayerTileIcon;
 }
 
 /** The stat tiles shown in a player's expanded JUGADORES panel. */
 export function playerTiles(s: MemberStats): PlayerTile[] {
   return [
-    { label: 'Partidas', value: `${s.games}`, accent: 'secondary' },
-    { label: 'Win rate', value: `${s.wr}%`, accent: 'primary' },
-    { label: 'KDA', value: `${s.kda}`, accent: 'secondary' },
-    { label: 'K / D / A', value: `${s.kills} / ${s.deaths} / ${s.assists}` },
-    { label: 'CS/min', value: `${s.csPerMin}` },
-    { label: 'Oro/min', value: `${s.goldPerMin}` },
-    { label: 'Daño/part.', value: `${s.dmgK}k`, accent: 'primary' },
-    { label: 'Visión', value: `${s.visionScore}` },
-    { label: 'Pentas', value: `${s.pentas}`, accent: 'warning' },
-    { label: 'Racha', value: `${s.streak}W`, accent: 'warning' },
+    { label: 'Partidas', value: `${s.games}`, accent: 'secondary', icon: 'games' },
+    { label: 'Win rate', value: `${s.wr}%`, accent: 'primary', icon: 'winrate' },
+    { label: 'KDA', value: `${s.kda}`, accent: 'secondary', icon: 'kda' },
+    { label: 'K / D / A', value: `${s.kills} / ${s.deaths} / ${s.assists}`, icon: 'kda-split' },
+    { label: 'CS/min', value: `${s.csPerMin}`, icon: 'cs' },
+    { label: 'Oro/min', value: `${s.goldPerMin}`, icon: 'gold' },
+    { label: 'Daño/part.', value: `${s.dmgK}k`, accent: 'primary', icon: 'damage' },
+    { label: 'Visión', value: `${s.visionScore}`, icon: 'vision' },
+    { label: 'Pentas', value: `${s.pentas}`, accent: 'warning', icon: 'penta' },
+    { label: 'Racha actual', value: `${s.streak}V`, accent: 'warning', icon: 'streak' },
+    { label: 'Pos. ranking', value: `#${s.avgRank}`, accent: s.avgRank <= 2 ? 'primary' : undefined, icon: 'ranking' },
+    { label: 'Mejor / Peor racha', value: `${s.bestStreak}V / ${s.worstStreak}D`, accent: 'warning', icon: 'streak' },
   ];
 }

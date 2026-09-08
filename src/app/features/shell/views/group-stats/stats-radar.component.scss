@@ -1,0 +1,32 @@
+@use 'breakpoints' as *;
+
+.st-radar { display: flex; flex-direction: column; justify-content: space-between; height: 100%; }
+.st-radar__body { display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; min-height: 0; }
+.st-radar__svg { width: 100%; max-width: 270px; height: auto; overflow: visible; display: block; margin: 0 auto; }
+.st-radar__grid-circle { fill: none; stroke: var(--nf-border); stroke-dasharray: 3 3; }
+.st-radar__outer-poly { fill: none; stroke: var(--nf-border-strong); stroke-width: 1.2; }
+.st-radar__axis { stroke: var(--nf-border); stroke-width: 1; }
+.st-radar__data-poly { stroke: var(--nf-primary); stroke-width: 2; transition: all 0.2s ease; }
+
+.st-radar__node {
+  cursor: pointer;
+  .st-radar__dot { fill: var(--nf-primary); stroke: var(--nf-surface); stroke-width: 2; transition: r 0.16s ease, fill 0.16s ease; }
+  .st-radar__text { font-size: var(--fs-label); fill: var(--nf-text-dim); text-anchor: middle; dominant-baseline: central; transition: fill 0.16s; }
+  &:hover, &.is-hovered {
+    .st-radar__dot { r: 8; fill: var(--nf-gold); }
+    .st-radar__text { fill: var(--nf-gold); font-weight: var(--fw-bold); }
+  }
+}
+
+.st-radar__caption { min-height: 22px; display: flex; align-items: center; justify-content: center; margin-top: 4px; text-align: center; }
+.st-radar__caption-dim { font-size: var(--fs-label); color: var(--nf-text-dim); letter-spacing: 0.04em; }
+.st-radar__caption-highlight { display: inline-flex; align-items: center; gap: 6px; font-size: var(--fs-label); }
+.st-radar__caption-name { color: var(--nf-text); font-weight: var(--fw-semibold); }
+.st-radar__caption-val { color: var(--nf-secondary); }
+.st-radar__caption-tag {
+  font-size: var(--fs-label); font-weight: 700; padding: 1px 6px; border-radius: 999px;
+  &[data-impact='Decisivo'] { color: var(--nf-gold); background: color-mix(in srgb, var(--nf-gold) 15%, transparent); }
+  &[data-impact='Alto'] { color: var(--nf-emerald); background: color-mix(in srgb, var(--nf-emerald) 15%, transparent); }
+  &[data-impact='Medio'] { color: var(--nf-secondary); background: color-mix(in srgb, var(--nf-secondary) 15%, transparent); }
+}
+.st-radar__loading { display: flex; align-items: center; justify-content: center; padding: 12px 0; }
