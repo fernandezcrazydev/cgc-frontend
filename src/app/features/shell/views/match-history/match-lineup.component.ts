@@ -8,7 +8,7 @@ import {
   signal,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { Lane, Match, MatchParticipant, TeamSide } from '../../../../core/matches/models';
+import { DragonType, Lane, Match, MatchItemSlot, MatchParticipant, TeamSide } from '../../../../core/matches/models';
 import { formatKda } from '../../../../core/matches/match-view';
 import { GameDataStore } from '../../../../core/game-data';
 import { NfAvatar, NfEmojiPicker, NfLaneIcon } from '../../../../ui';
@@ -45,15 +45,62 @@ import { MatchHistoryUiState } from './match-history-ui';
             [class.m-lineup__team--red]="team.side === 'red'"
           >
             <div class="m-lineup__team-head">
-              <span class="m-lineup__team-name">{{ team.side === 'blue' ? 'Equipo azul' : 'Equipo rojo' }}</span>
               <span class="m-lineup__team-outcome nf-mono" [class.is-win]="team.won" [class.is-loss]="!team.won">
                 {{ team.won ? 'Victoria' : 'Derrota' }}
               </span>
-              <span class="m-lineup__team-kills nf-mono">{{ team.kills }} bajas</span>
+
+              <div class="m-lineup__team-objs">
+                @if (team.voidgrubs > 0) {
+                  <span class="m-lineup__obj" [title]="'Larvas del Vacío: ' + team.voidgrubs">
+                    <img
+                      src="https://raw.communitydragon.org/latest/game/assets/ux/minimap/icons/grub.png"
+                      alt="Larvas"
+                      class="m-lineup__obj-icon"
+                    />
+                    <span class="m-lineup__obj-num nf-mono">{{ team.voidgrubs }}</span>
+                  </span>
+                }
+                @if (team.barons > 0) {
+                  <span class="m-lineup__obj" [title]="'Barones: ' + team.barons">
+                    <img
+                      src="https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-match-history/global/default/baron-100.png"
+                      alt="Barón"
+                      class="m-lineup__obj-icon"
+                    />
+                    <span class="m-lineup__obj-num nf-mono">{{ team.barons }}</span>
+                  </span>
+                }
+                @if (team.elderDragons > 0) {
+                  <span class="m-lineup__obj" [title]="'Dragones anciano: ' + team.elderDragons">
+                    <img
+                      src="https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-match-history/global/default/elder-100.png"
+                      alt="Dragón Anciano"
+                      class="m-lineup__obj-icon"
+                    />
+                    <span class="m-lineup__obj-num nf-mono">{{ team.elderDragons }}</span>
+                  </span>
+                }
+                @if (team.dragonTypes.length > 0) {
+                  <span class="m-lineup__drakes">
+                    @for (d of team.dragonTypes; track $index) {
+                      <img
+                        [src]="drakeIcon(d)"
+                        [alt]="d"
+                        [title]="drakeTitle(d)"
+                        class="m-lineup__drake-icon"
+                      />
+                    }
+                  </span>
+                }
+              </div>
             </div>
 
             @for (p of team.participants; track p.id) {
-              <div class="m-lineup__row" [class.is-you]="isCurrentUser(p)">
+              <div
+                class="m-lineup__row"
+                [class.is-you]="isCurrentUser(p)"
+                [class.m-lineup__row--no-react]="!reactionScope()"
+              >
                 <nf-lane-icon class="m-lineup__lane" [lane]="p.role" mode="original" />
 
                 <div class="m-lineup__champ-col">
@@ -69,7 +116,7 @@ import { MatchHistoryUiState } from './match-history-ui';
                       [src]="champion(p.championId)?.iconUrl ?? null"
                       [fallback]="p.championName"
                       [tint]="p.championId"
-                      [size]="34"
+                      [size]="28"
                       shape="square"
                     />
                   </a>
@@ -80,7 +127,7 @@ import { MatchHistoryUiState } from './match-history-ui';
                         class="m-lineup__spell-slot"
                         [src]="spellIcon(sId)"
                         [fallback]="spellName(sId)"
-                        [size]="16"
+                        [size]="13"
                         shape="square"
                         [title]="spellName(sId)"
                       />
@@ -92,7 +139,7 @@ import { MatchHistoryUiState } from './match-history-ui';
                       class="m-lineup__rune-slot m-lineup__rune-slot--primary"
                       [src]="runeIcon(participantPrimaryRune(p))"
                       [fallback]="runeName(participantPrimaryRune(p))"
-                      [size]="16"
+                      [size]="13"
                       shape="round"
                       [title]="runeName(participantPrimaryRune(p))"
                     />
@@ -100,7 +147,7 @@ import { MatchHistoryUiState } from './match-history-ui';
                       class="m-lineup__rune-slot m-lineup__rune-slot--secondary"
                       [src]="runeIcon(participantSecondaryRune(p))"
                       [fallback]="runeName(participantSecondaryRune(p))"
-                      [size]="14"
+                      [size]="12"
                       shape="round"
                       [title]="runeName(participantSecondaryRune(p))"
                     />
@@ -120,9 +167,6 @@ import { MatchHistoryUiState } from './match-history-ui';
                     @if (isCurrentUser(p)) {
                       <span class="m-lineup__tag nf-mono">Tú</span>
                     }
-                    @if (p.id === match().mvpParticipantId) {
-                      <span class="m-lineup__tag m-lineup__tag--mvp nf-mono">MVP</span>
-                    }
                   </div>
                   <a
                     class="m-lineup__champ-name nf-mono"
@@ -132,6 +176,18 @@ import { MatchHistoryUiState } from './match-history-ui';
                   >
                     {{ championName(p) }}
                   </a>
+                </div>
+
+                <div class="m-lineup__score-col">
+                  <span
+                    class="m-lineup__tag m-lineup__tag--score nf-mono"
+                    [class.is-mvp]="p.id === match().mvpParticipantId"
+                    [class.is-ace]="p.id === match().aceParticipantId"
+                    [class.is-podium]="playerRank(p) <= 3"
+                    [title]="'Nota de partida: ' + playerRankScore(p)"
+                  >
+                    {{ playerRankScore(p) }}
+                  </span>
                 </div>
 
                 @if (reactionScope(); as scope) {
@@ -219,21 +275,23 @@ import { MatchHistoryUiState } from './match-history-ui';
                 </div>
 
                 <div class="m-lineup__items">
-                  @for (it of p.stats.items; track $index) {
+                  @for (it of participantItems(p); track $index) {
                     @if (it) {
                       <nf-avatar
                         class="m-lineup__item-slot"
-                        [class.m-lineup__item-slot--trinket]="$index === (p.role === 'ADC' ? 7 : 6)"
+                        [class.m-lineup__item-slot--trinket]="$index === 6"
+                        [class.m-lineup__item-slot--quest]="$index === 7"
                         [src]="it.iconUrl ?? null"
                         [fallback]="it.name"
-                        [size]="22"
+                        [size]="19"
                         shape="square"
-                        [title]="it.name"
+                        [title]="$index === 7 ? 'Misión: ' + it.name : ($index === 6 ? 'Accesorio: ' + it.name : it.name)"
                       />
                     } @else {
                       <span
                         class="m-lineup__item-slot m-lineup__item-slot--empty"
-                        [class.m-lineup__item-slot--trinket]="$index === (p.role === 'ADC' ? 7 : 6)"
+                        [class.m-lineup__item-slot--trinket]="$index === 6"
+                        [class.m-lineup__item-slot--quest]="$index === 7"
                       ></span>
                     }
                   }
@@ -391,6 +449,10 @@ export class MatchLineupComponent {
       side: t.side as TeamSide,
       won: t.won,
       kills: t.totalKills,
+      barons: t.barons ?? 0,
+      elderDragons: t.elderDragons ?? 0,
+      voidgrubs: t.voidgrubs ?? 0,
+      dragonTypes: t.dragonTypes ?? [],
       participants: [...t.participants].sort(
         (a, b) => LANE_ORDER.indexOf(a.role) - LANE_ORDER.indexOf(b.role),
       ),
@@ -421,6 +483,81 @@ export class MatchLineupComponent {
 
   protected kdaRatio(p: MatchParticipant): string {
     return `${formatKda(p.stats, 1)} KDA`;
+  }
+
+  protected participantItems(p: MatchParticipant): (MatchItemSlot | null)[] {
+    return (p.stats.items ?? []).slice(0, 8);
+  }
+
+  protected drakeIcon(type: DragonType): string {
+    const map: Record<DragonType, string> = {
+      infernal: 'https://raw.communitydragon.org/latest/game/assets/ux/minimap/icons/dragon_infernal.png',
+      mountain: 'https://raw.communitydragon.org/latest/game/assets/ux/minimap/icons/dragon_mountain.png',
+      ocean: 'https://raw.communitydragon.org/latest/game/assets/ux/minimap/icons/dragon_ocean.png',
+      cloud: 'https://raw.communitydragon.org/latest/game/assets/ux/minimap/icons/dragon_cloud.png',
+      hextech: 'https://raw.communitydragon.org/latest/game/assets/ux/minimap/icons/dragon_hextech.png',
+      chemtech: 'https://raw.communitydragon.org/latest/game/assets/ux/minimap/icons/dragon_chemtech.png',
+    };
+    return map[type] ?? map.infernal;
+  }
+
+  protected drakeTitle(type: DragonType): string {
+    const map: Record<DragonType, string> = {
+      infernal: 'Dragón de fuego',
+      mountain: 'Dragón de montaña',
+      ocean: 'Dragón de océano',
+      cloud: 'Dragón de nube',
+      hextech: 'Dragón hextech',
+      chemtech: 'Dragón tecnoquímico',
+    };
+    return map[type] ?? 'Dragón elemental';
+  }
+
+  private readonly playerScores = computed(() => {
+    const m = this.match();
+    const all = [...m.blueTeam.participants, ...m.redTeam.participants];
+    const rated = all.map((p) => {
+      const isMvp = p.id === m.mvpParticipantId;
+      const isAce = p.id === m.aceParticipantId;
+      const kills = p.stats.kills;
+      const deaths = Math.max(1, p.stats.deaths);
+      const assists = p.stats.assists;
+      const cs = p.stats.cs;
+      const won = p.team === m.winningTeam;
+      let raw = isMvp
+        ? 9.5 + ((p.riotId.length + kills) % 5) / 10
+        : isAce
+          ? 8.7 + ((p.riotId.length + kills) % 5) / 10
+          : 4.2 + (kills * 2.2 + assists * 1.3 - deaths * 1.4) / 6 + (cs / 120) + (won ? 0.8 : 0);
+      raw = Math.min(9.9, Math.max(3.0, raw));
+      return { id: p.id, raw, isMvp, isAce };
+    });
+
+    rated.sort((a, b) => {
+      if (a.isMvp) return -1;
+      if (b.isMvp) return 1;
+      return b.raw - a.raw;
+    });
+
+    const map = new Map<string, { rank: number; score: string; display: string }>();
+    rated.forEach((item, index) => {
+      const rank = index + 1;
+      const scoreStr = item.raw.toFixed(1);
+      map.set(item.id, {
+        rank,
+        score: scoreStr,
+        display: `${rank} · ${scoreStr}`,
+      });
+    });
+    return map;
+  });
+
+  protected playerRankScore(p: MatchParticipant): string {
+    return this.playerScores().get(p.id)?.display ?? '';
+  }
+
+  protected playerRank(p: MatchParticipant): number {
+    return this.playerScores().get(p.id)?.rank ?? 10;
   }
 
   protected participantSpells(p: MatchParticipant): number[] {

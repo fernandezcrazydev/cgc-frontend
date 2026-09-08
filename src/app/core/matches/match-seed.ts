@@ -29,10 +29,13 @@ import { hash } from '../group-ranking';
 import { CURRENT_USER, GROUPS, MOCK_NAMES, REAL_CHAMPION_IDS } from '../lobby';
 import { MatchHistoryStore } from './match-history-store';
 import {
+  DragonType,
   GroupContext,
   Lane,
   Match,
+  MatchGameMode,
   MatchItemSlot,
+  MatchLobbyType,
   MatchParticipant,
   ParticipantStats,
   TeamSide,
@@ -49,6 +52,7 @@ const LANES: readonly Lane[] = ['TOP', 'JUNGLA', 'MID', 'ADC', 'SUPPORT'];
 interface ItemDef {
   id: number;
   name: string;
+  iconUrl?: string;
 }
 
 const ITEMS_BY_LANE: Record<Lane, ItemDef[]> = {
@@ -60,6 +64,11 @@ const ITEMS_BY_LANE: Record<Lane, ItemDef[]> = {
     { id: 6333, name: 'Danza de la Muerte' },
     { id: 3026, name: 'Ángel de la Guarda' },
     { id: 3340, name: 'Guardián Invisible' },
+    {
+      id: 1221,
+      name: 'Teleport Mejorado (Misión)',
+      iconUrl: 'https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/assets/items/icons2d/rolequest_topreward1_complete.png',
+    },
   ],
   JUNGLA: [
     { id: 6692, name: 'Eclipse' },
@@ -69,45 +78,113 @@ const ITEMS_BY_LANE: Record<Lane, ItemDef[]> = {
     { id: 3814, name: 'Filo de la Noche' },
     { id: 3026, name: 'Ángel de la Guarda' },
     { id: 3364, name: 'Lente del Oráculo' },
+    {
+      id: 1102,
+      name: 'Caminavientos (Misión)',
+      iconUrl: 'https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/assets/items/icons2d/1102_buff.png',
+    },
   ],
   MID: [
     { id: 6655, name: 'Compañero de Luden' },
     { id: 4645, name: 'Llama Sombría' },
     { id: 3157, name: 'Reloj de Arena de Zhonya' },
-    { id: 3020, name: 'Botas del Hechicero' },
     { id: 3089, name: 'Sombrero Mortal de Rabadon' },
     { id: 3135, name: 'Bastón del Vacío' },
+    { id: 4629, name: 'Impulso Cósmico' },
     { id: 3340, name: 'Guardián Invisible' },
+    {
+      id: 3013,
+      name: 'Almas en sincronía (Botas mejoradas)',
+      iconUrl: 'https://ddragon.leagueoflegends.com/cdn/14.24.1/img/item/3013.png',
+    },
   ],
   ADC: [
     { id: 6672, name: 'Verdugo de Krakens' },
     { id: 3031, name: 'Filo Infinito' },
     { id: 3036, name: 'Recuerdos de Lord Dominik' },
-    { id: 3006, name: 'Grebas de Berserker' },
     { id: 3072, name: 'Sanguinaria' },
     { id: 3094, name: 'Cañón de Fuego Rápido' },
     { id: 3026, name: 'Ángel de la Guarda' },
     { id: 3363, name: 'Alteración de Lejanía' },
+    {
+      id: 3006,
+      name: 'Grebas de Berserker (Misión)',
+      iconUrl: 'https://ddragon.leagueoflegends.com/cdn/14.24.1/img/item/3006.png',
+    },
   ],
   SUPPORT: [
     { id: 3869, name: 'Oposición Celestial' },
+    { id: 2065, name: 'Canto de Guerra de Shurelya' },
     { id: 3190, name: 'Relicario de los Solari de Hierro' },
     { id: 3107, name: 'Redención' },
     { id: 3158, name: 'Botas Jonias de Lucidez' },
     { id: 3109, name: 'Promesa del Caballero' },
-    { id: 2303, name: 'Piedra de Visión Vigilante' },
     { id: 3364, name: 'Lente del Oráculo' },
+    {
+      id: 2055,
+      name: 'Guardián de Control (Misión)',
+      iconUrl: 'https://ddragon.leagueoflegends.com/cdn/14.24.1/img/item/2055.png',
+    },
   ],
 };
 
-function generateItems(role: Lane): (MatchItemSlot | null)[] {
+function generateItems(
+  role: Lane,
+  spells: number[] = [4, 12],
+  smiteVariant?: 'blue' | 'red' | 'green' | 'unevolved',
+): (MatchItemSlot | null)[] {
   const pool = ITEMS_BY_LANE[role] ?? ITEMS_BY_LANE.MID;
-  return pool.map((item) => ({
+  const items: (MatchItemSlot | null)[] = pool.map((item) => ({
     id: item.id,
     name: item.name,
-    iconUrl: `https://ddragon.leagueoflegends.com/cdn/14.24.1/img/item/${item.id}.png`,
+    iconUrl: item.iconUrl ?? `https://ddragon.leagueoflegends.com/cdn/14.24.1/img/item/${item.id}.png`,
     gold: 3000,
   }));
+
+  if (role === 'TOP') {
+    const hasTeleport = spells.includes(12);
+    items[7] = hasTeleport
+      ? {
+          id: 1221,
+          name: 'Teleport Mejorado (Misión)',
+          iconUrl: 'https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/assets/items/icons2d/rolequest_topreward1_complete.png',
+          gold: 0,
+        }
+      : {
+          id: 12,
+          name: 'Teleportar (Misión)',
+          iconUrl: 'https://ddragon.leagueoflegends.com/cdn/14.24.1/img/spell/SummonerTeleport.png',
+          gold: 0,
+        };
+  } else if (role === 'JUNGLA') {
+    const companionMap: Record<'blue' | 'red' | 'green', { id: number; name: string; iconUrl: string }> = {
+      blue: {
+        id: 1102,
+        name: 'Caminavientos (Misión)',
+        iconUrl: 'https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/assets/items/icons2d/1102_buff.png',
+      },
+      red: {
+        id: 1101,
+        name: 'Garramélica (Misión)',
+        iconUrl: 'https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/assets/items/icons2d/1101_buff.png',
+      },
+      green: {
+        id: 1103,
+        name: 'Brincamusgo (Misión)',
+        iconUrl: 'https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/assets/items/icons2d/1103_buff.png',
+      },
+    };
+    const key = smiteVariant === 'red' || smiteVariant === 'green' || smiteVariant === 'blue' ? smiteVariant : 'blue';
+    const comp = companionMap[key];
+    items[7] = {
+      id: comp.id,
+      name: comp.name,
+      iconUrl: comp.iconUrl,
+      gold: 0,
+    };
+  }
+
+  return items;
 }
 
 /** Segundo hechizo por posición; el primero es siempre Destello (4). Ids reales de ddragon. */
@@ -246,9 +323,32 @@ function draftParticipant(args: {
     visionScore: role === 'SUPPORT' ? between(`${s}:vs`, 30, 78) : between(`${s}:vs`, 8, 34),
     wardsPlaced: role === 'SUPPORT' ? between(`${s}:wp`, 14, 34) : between(`${s}:wp`, 3, 14),
     wardsKilled: between(`${s}:wk`, 0, 11),
-    items: generateItems(role),
-    spells: [4, role === 'JUNGLA' ? pickJungleSmite(s, minutes).spellId : SECOND_SPELL[role]],
-    smiteVariant: role === 'JUNGLA' ? pickJungleSmite(s, minutes).variant : undefined,
+    ...(() => {
+      let secondSpell = SECOND_SPELL[role];
+      let smiteVariant: 'blue' | 'red' | 'green' | 'unevolved' | undefined;
+
+      if (role === 'JUNGLA') {
+        const smite = pickJungleSmite(s, minutes);
+        secondSpell = smite.spellId;
+        smiteVariant = smite.variant;
+      } else if (role === 'TOP') {
+        const topRoll = hash(`${s}:top_spell`) % 10;
+        if (topRoll === 0) {
+          secondSpell = 14;
+        } else if (topRoll === 1) {
+          secondSpell = 6;
+        } else {
+          secondSpell = 12;
+        }
+      }
+
+      const spells: [number, number] = [4, secondSpell];
+      return {
+        items: generateItems(role, spells, smiteVariant),
+        spells,
+        smiteVariant,
+      };
+    })(),
     primaryRuneId: RUNES_BY_LANE[role].primary,
     secondaryRuneTreeId: RUNES_BY_LANE[role].secondary,
     goldAt14,
@@ -293,6 +393,8 @@ function settleTeam(matchId: string, drafts: readonly Draft[], enemyKills: numbe
   });
 }
 
+const ALL_DRAKES: DragonType[] = ['infernal', 'mountain', 'ocean', 'cloud', 'hextech', 'chemtech'];
+
 function summarize(
   matchId: string,
   side: TeamSide,
@@ -302,6 +404,16 @@ function summarize(
   const total = (read: (s: ParticipantStats) => number) =>
     participants.reduce((a, p) => a + read(p.stats), 0);
 
+  const dragonsCount = won ? between(`${matchId}:${side}:dr`, 2, 4) : between(`${matchId}:${side}:dr`, 0, 2);
+  const barons = won ? between(`${matchId}:${side}:ba`, 0, 2) : between(`${matchId}:${side}:ba`, 0, 1);
+  const elderDragons = won && dragonsCount >= 3 && hash(`${matchId}:${side}:elder`) % 3 === 0 ? 1 : 0;
+  const voidgrubs = won ? between(`${matchId}:${side}:grubs`, 2, 6) : between(`${matchId}:${side}:grubs`, 0, 3);
+
+  const dragonTypes: DragonType[] = [];
+  for (let i = 0; i < dragonsCount; i++) {
+    dragonTypes.push(ALL_DRAKES[hash(`${matchId}:drake:${side}:${i}`) % ALL_DRAKES.length]);
+  }
+
   return {
     side,
     won,
@@ -310,9 +422,12 @@ function summarize(
     totalAssists: total((s) => s.assists),
     totalGold: total((s) => s.gold),
     totalDamage: total((s) => s.totalDamageToChampions),
-    dragons: won ? between(`${matchId}:${side}:dr`, 2, 4) : between(`${matchId}:${side}:dr`, 0, 2),
-    barons: won ? between(`${matchId}:${side}:ba`, 0, 2) : between(`${matchId}:${side}:ba`, 0, 1),
+    dragons: dragonsCount + elderDragons,
+    barons,
     towers: won ? between(`${matchId}:${side}:tw`, 6, 11) : between(`${matchId}:${side}:tw`, 0, 5),
+    elderDragons,
+    voidgrubs,
+    dragonTypes,
     participants: [...participants],
   };
 }
@@ -400,13 +515,28 @@ function buildMatch(index: number): Match {
     .reduce((best, p) => (kda(p) > kda(best) ? p : best));
   mvp.stats.isMvp = true;
 
+  // El ACE es el mejor KDA del equipo perdedor.
+  const losingTeam = other(winningTeam);
+  const ace = all
+    .filter((p) => p.team === losingTeam)
+    .reduce((best, p) => (kda(p) > kda(best) ? p : best));
+  ace.stats.isAce = true;
+
   const userParticipant = mine[0].participant;
   const rankBefore = between(`${id}:rank`, 2, 14);
+
+  const gameMode: MatchGameMode = hash(`${id}:mode`) % 4 === 0 ? 'Casual' : 'Competitivo';
+  const lobbyType: MatchLobbyType = hash(`${id}:lobby`) % 2 === 0 ? 'Party' : 'Room';
+  const modeLabel = `${gameMode} · ${lobbyType}`;
 
   return {
     id,
     groupId: GROUP.id,
     group: GROUP,
+    leagueName: GROUP.seasonName ?? 'Liga Challenger Clausura',
+    modeLabel,
+    gameMode,
+    lobbyType,
     source: hash(`${id}:src`) % 3 === 0 ? 'manual' : 'import',
     durationSeconds: minutes * 60,
     decidedAt: new Date(BASE_MS - index * DAY_MS - between(`${id}:hh`, 0, 9) * 3_600_000).toISOString(),
@@ -414,6 +544,7 @@ function buildMatch(index: number): Match {
     blueTeam: summarize(id, 'blue', winningTeam === 'blue', blue),
     redTeam: summarize(id, 'red', winningTeam === 'red', red),
     mvpParticipantId: mvp.id,
+    aceParticipantId: ace.id,
     milestones: {
       firstBloodParticipantId: pick(`${id}:fb`, all).id,
       firstTowerTeam: hash(`${id}:ft`) % 3 === 0 ? other(winningTeam) : winningTeam,
@@ -532,16 +663,31 @@ function buildChiringuitoMatch(index: number): Match {
     .reduce((best, p) => (kda(p) > kda(best) ? p : best));
   mvp.stats.isMvp = true;
 
+  // El ACE es el mejor KDA del equipo perdedor.
+  const losingTeam = other(winningTeam);
+  const ace = all
+    .filter((p) => p.team === losingTeam)
+    .reduce((best, p) => (kda(p) > kda(best) ? p : best));
+  ace.stats.isAce = true;
+
   // Si daxlup jugó en esta partida, asignamos userParticipant
   const userParticipant = all.find(
     (p) => p.userId === 'daxlup' || p.riotId.toLowerCase().includes('daxlup'),
   );
   const userWon = userParticipant ? userParticipant.team === winningTeam : undefined;
 
+  const gameMode: MatchGameMode = hash(`${id}:mode`) % 4 === 0 ? 'Casual' : 'Competitivo';
+  const lobbyType: MatchLobbyType = hash(`${id}:lobby`) % 2 === 0 ? 'Party' : 'Room';
+  const modeLabel = `${gameMode} · ${lobbyType}`;
+
   return {
     id,
     groupId: CHIRINGUITO_GROUP_ID,
     group: GROUP_CHIRINGUITO,
+    leagueName: GROUP_CHIRINGUITO.seasonName ?? 'Chiringo',
+    modeLabel,
+    gameMode,
+    lobbyType,
     source: hash(`${id}:src`) % 2 === 0 ? 'import' : 'manual',
     durationSeconds: minutes * 60,
     decidedAt: new Date(BASE_MS - index * (DAY_MS * 0.7) - between(`${id}:hh`, 0, 8) * 3_600_000).toISOString(),
@@ -549,6 +695,7 @@ function buildChiringuitoMatch(index: number): Match {
     blueTeam: summarize(id, 'blue', winningTeam === 'blue', blueSorted),
     redTeam: summarize(id, 'red', winningTeam === 'red', redSorted),
     mvpParticipantId: mvp.id,
+    aceParticipantId: ace.id,
     milestones: {
       firstBloodParticipantId: pick(`${id}:fb`, all).id,
       firstTowerTeam: hash(`${id}:ft`) % 3 === 0 ? other(winningTeam) : winningTeam,

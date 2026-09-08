@@ -11,7 +11,7 @@ import {
 import { laneLabel } from '../../../../core/matches/match-view';
 import { GameDataStore } from '../../../../core/game-data';
 import { GroupsStore } from '../../../../core/groups';
-import { Lane } from '../../../../core/matches/models';
+import { Lane, Match, MatchGameMode, MatchLobbyType } from '../../../../core/matches/models';
 import {
   NfAvatar,
   NfButton,
@@ -20,19 +20,10 @@ import {
   NfLaneIcon,
   NfSegmentOption,
   NfSegmented,
-  NfSelect,
-  NfSelectOption,
   NfSheet,
 } from '../../../../ui';
 import { Viewport } from '../../../../shared/viewport';
 import { MatchHistoryUiState } from './match-history-ui';
-
-/** Un filtro puesto, tal y como se pinta en la fila de chips. */
-interface ActiveChip {
-  key: string;
-  label: string;
-  clear: () => void;
-}
 
 interface SearchSuggestion {
   key: string;
@@ -62,7 +53,7 @@ interface SearchSuggestion {
   selector: 'app-match-filters',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [NgTemplateOutlet, NfAvatar, NfButton, NfCombobox, NfLaneIcon, NfSegmented, NfSelect, NfSheet],
+  imports: [NgTemplateOutlet, NfAvatar, NfButton, NfCombobox, NfLaneIcon, NfSegmented, NfSheet],
   styleUrl: './match-filters.component.scss',
   template: `
     <div class="m-filters">
@@ -109,34 +100,12 @@ interface SearchSuggestion {
         </span>
       </div>
 
-      <!-- FILA 2: lo que hay puesto ahora mismo, y cómo quitarlo -->
-      @if (chips().length > 0) {
-        <div class="m-filters__chips">
-          @for (chip of chips(); track chip.key) {
-            <button
-              type="button"
-              class="m-chip"
-              [attr.aria-label]="'Quitar el filtro ' + chip.label"
-              (click)="chip.clear()"
-            >
-              <span class="m-chip__label">{{ chip.label }}</span>
-            </button>
-          }
-          <button type="button" class="m-chip m-chip--clear nf-mono" (click)="reset()">
-            Limpiar todo
-          </button>
-        </div>
-      }
-
-      <!-- FILA 3: los filtros estructurados.
+      <!-- FILA 2: los filtros estructurados.
            En escritorio, en su sitio de siempre. En móvil, dentro del panel inferior: son
            los mismos controles y el mismo estado, montados en otro contenedor. -->
       @if (isMobile()) {
         <button type="button" class="m-filters__more" (click)="sheetOpen.set(true)">
           <span>Filtros</span>
-          @if (chips().length > 0) {
-            <span class="m-filters__more-count nf-mono">{{ chips().length }}</span>
-          }
         </button>
 
         @if (sheetOpen()) {
@@ -242,6 +211,42 @@ interface SearchSuggestion {
         </div>
       }
 
+      <div class="m-field m-field--season">
+        <span class="m-field__label nf-mono">Temporada</span>
+        <nf-combobox
+          [options]="seasonOptions()"
+          [value]="filters().season"
+          (valueChange)="setSeason($event)"
+          [clearable]="false"
+          placeholder="Todas"
+          ariaLabel="Filtrar por temporada"
+        />
+      </div>
+
+      <div class="m-field m-field--mode">
+        <span class="m-field__label nf-mono">Modalidad</span>
+        <nf-combobox
+          [options]="modeOptions"
+          [value]="filters().gameMode"
+          (valueChange)="setGameMode($event)"
+          [clearable]="false"
+          placeholder="Todas"
+          ariaLabel="Filtrar por modalidad"
+        />
+      </div>
+
+      <div class="m-field m-field--lobby">
+        <span class="m-field__label nf-mono">Sala</span>
+        <nf-combobox
+          [options]="lobbyTypeOptions"
+          [value]="filters().lobbyType"
+          (valueChange)="setLobbyType($event)"
+          [clearable]="false"
+          placeholder="Todas"
+          ariaLabel="Filtrar por tipo de sala"
+        />
+      </div>
+
       <div class="m-field m-field--champion">
         <span class="m-field__label nf-mono">Campeón</span>
         <nf-combobox
@@ -257,17 +262,27 @@ interface SearchSuggestion {
       @if (showGroupFilter()) {
         <div class="m-field m-field--group">
           <span class="m-field__label nf-mono">Grupo</span>
-          <nf-select
-            [options]="groupOptions()"
+          <nf-combobox
+            [options]="groupComboboxOptions()"
             [value]="filters().groupId"
             (valueChange)="setGroup($event)"
+            [clearable]="false"
+            placeholder="Todos los grupos"
+            ariaLabel="Filtrar por grupo"
           />
         </div>
       }
 
       <div class="m-field m-field--sort">
-      <span class="m-field__label nf-mono">Orden</span>
-      <nf-select [options]="sortOptions" [value]="filters().sortBy" (valueChange)="setSort($event)" />
+        <span class="m-field__label nf-mono">Orden</span>
+        <nf-combobox
+          [options]="sortComboboxOptions"
+          [value]="filters().sortBy"
+          (valueChange)="setSort($event)"
+          [clearable]="false"
+          placeholder="Más recientes"
+          ariaLabel="Ordenar por"
+        />
       </div>
     </ng-template>
   `,
@@ -361,16 +376,55 @@ export class MatchFiltersComponent {
     { value: 'red', label: 'Rojo' },
   ];
 
-  protected readonly sortOptions: NfSelectOption[] = SORT_OPTIONS.map((o) => ({ ...o }));
+  protected readonly sortComboboxOptions: readonly NfComboboxOption[] = SORT_OPTIONS.map((o) => ({
+    value: o.value,
+    label: o.label,
+  }));
+
+  protected readonly modeOptions: readonly NfComboboxOption[] = [
+    { value: 'all', label: 'Todas' },
+    { value: 'Competitivo', label: 'Competitivo' },
+    { value: 'Casual', label: 'Casual' },
+  ];
+
+  protected readonly lobbyTypeOptions: readonly NfComboboxOption[] = [
+    { value: 'all', label: 'Todas' },
+    { value: 'Room', label: 'Room' },
+    { value: 'Party', label: 'Party' },
+  ];
 
   /**
    * Las ligas del usuario, del backend (`GroupsStore`), no del mock legacy de `core/lobby`. Es
    * la misma lista que pinta la barra lateral: si el desplegable ofreciese otros nombres, elegir
    * uno vaciaría la lista sin explicar por qué.
    */
-  protected readonly groupOptions = computed<NfSelectOption[]>(() => [
+  protected readonly groupComboboxOptions = computed<NfComboboxOption[]>(() => [
     { value: 'all', label: 'Todos los grupos' },
     ...this.groupsStore.groups().map((g) => ({ value: g.id, label: g.name })),
+  ]);
+
+  private readonly availableSeasons = computed<string[]>(() => {
+    const ctxId = this.contextGroupId();
+    const filterGroupId = this.filters().groupId;
+    let matches: readonly Match[];
+    if (ctxId) {
+      matches = this.store.matchesByGroup(ctxId);
+    } else if (filterGroupId !== 'all') {
+      matches = this.store.matchesByGroup(filterGroupId);
+    } else {
+      matches = this.measuresMe() ? this.store.allPersonalMatches() : this.store.allMatches();
+    }
+    const set = new Set<string>();
+    for (const m of matches) {
+      const s = m.leagueName ?? m.group.seasonName;
+      if (s) set.add(s);
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b, 'es'));
+  });
+
+  protected readonly seasonOptions = computed<NfComboboxOption[]>(() => [
+    { value: 'all', label: 'Todas' },
+    ...this.availableSeasons().map((s) => ({ value: s, label: s })),
   ]);
 
   /** «18 de 47 partidas» — antes no había forma de saber cuánto había recortado el filtro. */
@@ -417,74 +471,6 @@ export class MatchFiltersComponent {
   protected readonly selectedChampionValue = computed(() => {
     const id = this.filters().championId;
     return id === 'all' ? '' : String(id);
-  });
-
-  protected readonly chips = computed<ActiveChip[]>(() => {
-    const f = this.filters();
-    const isPersonal = this.measuresMe();
-    const chips: ActiveChip[] = [];
-
-    if (this.isCross() && f.relation !== 'all') {
-      chips.push({
-        key: 'relation',
-        label: f.relation === 'ally' ? 'Juntos' : 'En contra',
-        clear: () => this.ui.update({ relation: 'all' }),
-      });
-    }
-
-    if (f.searchQuery.trim()) {
-      chips.push({
-        key: 'search',
-        label: `«${f.searchQuery.trim()}»`,
-        clear: () => this.ui.update({ searchQuery: '' }),
-      });
-    }
-    if (isPersonal && f.role !== 'all') {
-      // Por la función de etiqueta: el enum en crudo pintaba «SUPPORT» en el chip.
-      chips.push({
-        key: 'role',
-        label: laneLabel(f.role),
-        clear: () => this.ui.update({ role: 'all' }),
-      });
-    }
-    if (f.championId !== 'all') {
-      const champ = this.champions().find((c) => c.id === f.championId);
-      chips.push({
-        key: 'champion',
-        label: champ?.name ?? 'Campeón',
-        clear: () => this.ui.update({ championId: 'all' }),
-      });
-    }
-    if (isPersonal && f.outcome !== 'all') {
-      chips.push({
-        key: 'outcome',
-        label: f.outcome === 'win' ? 'Victorias' : 'Derrotas',
-        clear: () => this.ui.update({ outcome: 'all' }),
-      });
-    }
-    if (this.showGroupFilter() && f.groupId !== 'all') {
-      const group = this.groupsStore.groups().find((g) => g.id === f.groupId);
-      chips.push({
-        key: 'group',
-        label: group?.name ?? 'Grupo',
-        clear: () => this.ui.update({ groupId: 'all' }),
-      });
-    }
-    if (this.mode() === 'group' && f.winningSide !== 'all') {
-      chips.push({
-        key: 'side',
-        label: f.winningSide === 'blue' ? 'Ganó el azul' : 'Ganó el rojo',
-        clear: () => this.ui.update({ winningSide: 'all' }),
-      });
-    }
-    if (this.mode() === 'group' && f.participation !== 'all') {
-      chips.push({
-        key: 'participation',
-        label: f.participation === 'mine' ? 'Mis partidas' : 'Otras partidas',
-        clear: () => this.ui.update({ participation: 'all' }),
-      });
-    }
-    return chips;
   });
 
   protected readonly searchOpen = signal(false);
@@ -646,12 +632,24 @@ export class MatchFiltersComponent {
     this.ui.update({ championId: value === '' ? 'all' : Number(value) });
   }
 
+  protected setSeason(val: string): void {
+    this.ui.update({ season: val || 'all' });
+  }
+
+  protected setGameMode(val: string): void {
+    this.ui.update({ gameMode: (val || 'all') as MatchGameMode | 'all' });
+  }
+
+  protected setLobbyType(val: string): void {
+    this.ui.update({ lobbyType: (val || 'all') as MatchLobbyType | 'all' });
+  }
+
   protected setGroup(groupId: string): void {
-    this.ui.update({ groupId });
+    this.ui.update({ groupId: groupId || 'all' });
   }
 
   protected setSort(sortBy: string): void {
-    this.ui.update({ sortBy: sortBy as MatchSortBy });
+    this.ui.update({ sortBy: (sortBy || 'date-desc') as MatchSortBy });
   }
 
   protected reset(): void {

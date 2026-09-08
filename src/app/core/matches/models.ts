@@ -33,7 +33,7 @@ export interface ParticipantStats {
   visionScore: number;
   wardsPlaced: number;
   wardsKilled: number;
-  /** Ranuras de inventario: 6 objetos + 1 accesorio (índice 6), o 7 objetos + 1 accesorio para ADC (misión de rol S16) */
+  /** Ranuras de inventario: 6 objetos + 1 accesorio/ward (índice 6) + 1 objeto de misión de rol (índice 7) */
   items: (MatchItemSlot | null)[];
   /** IDs de Summoner Spells (D y F) */
   spells: [number, number];
@@ -51,6 +51,7 @@ export interface ParticipantStats {
   csAt14?: number;
   wonLane?: boolean;
   isMvp?: boolean;
+  isAce?: boolean;
 }
 
 /** Participante individual dentro del roster 5v5 */
@@ -93,6 +94,8 @@ export interface GroupContext {
   seasonName?: string;
 }
 
+export type DragonType = 'infernal' | 'mountain' | 'ocean' | 'cloud' | 'hextech' | 'chemtech';
+
 /** Resumen de objetivos y estadísticas de una escuadra (Azul o Rojo) */
 export interface TeamSummary {
   side: TeamSide;
@@ -105,6 +108,9 @@ export interface TeamSummary {
   dragons: number;
   barons: number;
   towers: number;
+  elderDragons?: number;
+  voidgrubs?: number;
+  dragonTypes?: DragonType[];
   participants: MatchParticipant[];
 }
 
@@ -134,12 +140,23 @@ export interface Match {
   blueTeam: TeamSummary;
   redTeam: TeamSummary;
   mvpParticipantId?: string;
+  aceParticipantId?: string;
   milestones?: MatchMilestones;
+
+  /** Nombre propio de la liga asociada a esta temporada */
+  leagueName?: string;
+  /** Modalidad y tipo de sala, ej: "Competitivo · Party" */
+  modeLabel?: string;
+  gameMode?: MatchGameMode;
+  lobbyType?: MatchLobbyType;
 
   /** Metadatos resueltos para el usuario logueado en la sesión actual */
   userParticipant?: MatchParticipant;
   userOutcome?: MatchResultOutcome;
 }
+
+export type MatchGameMode = 'Competitivo' | 'Casual';
+export type MatchLobbyType = 'Room' | 'Party';
 
 /** Resumen analítico del historial de un usuario */
 export interface UserMatchHistorySummary {
@@ -163,6 +180,7 @@ export interface GroupMatchHistorySummary {
   blueSideWins: number;
   redSideWins: number;
   blueWinrate: number;
+  redWinrate: number;
   avgDurationMinutes: number;
   topMvpName: string | null;
   topMvpCount: number;

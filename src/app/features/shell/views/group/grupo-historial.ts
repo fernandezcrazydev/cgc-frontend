@@ -8,7 +8,6 @@ import { GroupBridge, GroupsStore } from '../../../../core/groups';
 import { MatchHistoryStore } from '../../../../core/matches/match-history-store';
 import { filterGroupMatches, sortMatches } from '../../../../core/matches/match-filtering';
 import { GameDataStore } from '../../../../core/game-data';
-import { LobbiesStore } from '../../../../core/lobbies';
 import { Viewport } from '../../../../shared/viewport';
 import { ViewMemoryService } from '../../../../shared/view-memory';
 import { GroupMatchCardComponent } from '../match-history/group-match-card.component';
@@ -33,49 +32,33 @@ import { MatchHistoryUiState } from '../match-history/match-history-ui';
   template: `
     <div class="view">
       @if (group(); as g) {
-        <!-- NAVEGACIÓN HACIA EL GRUPO -->
-        <a class="view-back nf-mono" [routerLink]="['/app', 'grupos', g.id]">
-          <span class="view-back__arrow" aria-hidden="true">←</span> {{ g.name }}
-        </a>
-
-        <!-- CABECERA DEL HISTORIAL DE GRUPO -->
-        <div class="view__head">
-          <div class="view__eyebrow nf-mono">Historial de Liga / Grupo</div>
-          <h1 class="view__title">{{ g.name }}</h1>
-        </div>
-
-        <!-- BANNER DE PARTIDA EN DIRECTO (SI EXISTE) -->
-        @if (liveRoom(); as room) {
-          <div class="live-match-banner">
-            <span class="live-match-banner__pulse"></span>
-            <div class="live-match-banner__meta">
-              <strong class="live-match-banner__tag">En directo</strong>
-              <span>Sala #{{ room.code }} · 5v5 en curso en la Grieta</span>
-            </div>
-            <a class="live-match-banner__link nf-mono" [routerLink]="['/app', 'grupos', g.id, 'sala', room.id]">
-              Ver sala en vivo
-            </a>
-          </div>
-        }
-
         <!-- TARJETAS DE RESUMEN DE LA LIGA -->
         @if (allGroupMatches().length > 0) {
           <div class="m-summary">
             <!-- Bloque 1: Partidas y Lado Ganador -->
             <div class="m-summary__stat-card">
               <div class="m-summary__title nf-mono">Winrate por lado</div>
-              <div class="m-summary__wr-row">
-                <div class="m-summary__wr-val" style="color: var(--nf-team-blue);">
-                  {{ groupStats().blueWinrate }}%
+              <div class="m-summary__wr-row m-summary__wr-row--symmetric">
+                <div class="m-summary__side">
+                  <span class="m-summary__wr-val" style="color: var(--nf-team-blue);">
+                    {{ groupStats().blueWinrate }}%
+                  </span>
+                  <span class="m-summary__side-badge nf-mono" style="color: var(--nf-team-blue);">
+                    {{ groupStats().blueSideWins }} Azul
+                  </span>
                 </div>
-                <div class="m-summary__wr-counts nf-mono">
-                  <span style="color: var(--nf-team-blue); font-weight: 700;">{{ groupStats().blueSideWins }} Azul</span> -
-                  <span style="color: var(--nf-team-red); font-weight: 700;">{{ groupStats().redSideWins }} Rojo</span>
+                <div class="m-summary__side">
+                  <span class="m-summary__side-badge nf-mono" style="color: var(--nf-team-red);">
+                    {{ groupStats().redSideWins }} Rojo
+                  </span>
+                  <span class="m-summary__wr-val" style="color: var(--nf-team-red);">
+                    {{ groupStats().redWinrate }}%
+                  </span>
                 </div>
               </div>
               <div class="m-summary__progress-bar">
                 <div class="m-summary__progress-win" style="background: var(--nf-team-blue);" [style.width.%]="groupStats().blueWinrate"></div>
-                <div class="m-summary__progress-loss" style="background: var(--nf-team-red);" [style.width.%]="100 - groupStats().blueWinrate"></div>
+                <div class="m-summary__progress-loss" style="background: var(--nf-team-red);" [style.width.%]="groupStats().redWinrate"></div>
               </div>
             </div>
 
@@ -153,11 +136,6 @@ import { MatchHistoryUiState } from '../match-history/match-history-ui';
           dentro de un .view anidado en otro .view: en móvil eso es una pantalla vacía.
         -->
         <div aria-busy="true">
-          <div class="view__head">
-            <div class="view__eyebrow nf-mono">Historial de Liga / Grupo</div>
-            <nf-skeleton width="min(280px, 70%)" height="clamp(24px, 5vw, 32px)" />
-          </div>
-
           <div class="m-summary">
             @for (i of skeletonCards; track i) {
               <div class="m-summary__stat-card">
@@ -206,7 +184,6 @@ export class GrupoHistorial {
   private readonly groupStore = inject(GroupStore);
   private readonly groupsStore = inject(GroupsStore);
   private readonly bridge = inject(GroupBridge);
-  private readonly lobbies = inject(LobbiesStore);
   private readonly matchHistoryStore = inject(MatchHistoryStore);
   protected readonly ui = inject(MatchHistoryUiState);
 
@@ -233,22 +210,6 @@ export class GrupoHistorial {
     return this.groupStore.byId(id) ?? this.groupsStore.byId(id) ?? null;
   });
 
-  /**
-   * La sala en marcha del grupo, para el banner de arriba. Sale de las convocatorias
-   * reales; antes salía del mock `MatchStore` y su enlace apuntaba a una ruta que no
-   * existía (`/grupos/:id/sala`, sin id de sala), así que el banner no llevaba a ningún
-   * sitio.
-   */
-  readonly liveRoom = computed(() => {
-    const id = this.id();
-    if (!id) return null;
-    return (
-      this.lobbies
-        .open()
-        .find((lobby) => lobby.groupId === id && lobby.confirmedSlotId !== null) ?? null
-    );
-  });
-
   readonly allGroupMatches = computed(() => {
     const id = this.id();
     return id ? this.matchHistoryStore.matchesByGroup(id) : [];
@@ -271,6 +232,7 @@ export class GrupoHistorial {
       blueSideWins: 0,
       redSideWins: 0,
       blueWinrate: 0,
+      redWinrate: 0,
       avgDurationMinutes: 0,
       topMvpName: null,
       topMvpCount: 0,

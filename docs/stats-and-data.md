@@ -92,6 +92,24 @@ el MVP describiendo al ganador original.
 `aggregateCross`, `bestAllyOf`/`nemesisOf`), emparejando siempre por identidad completa
 —`userId` estable, o el Riot ID entero— nunca por prefijo de nombre.
 
+### Filtros de historial (`match-filtering.ts`)
+- Filtros por **temporada** (`seasonId`), **modalidad** (`modality`: Todas / Competitivo / Casual), **contexto de juego** (`matchType`: Todas / Room / Party) y **campeón**.
+- Los selectores comparten el diseño unificado del sistema (`nf-combobox`).
+
+### Cards de partida e ítems de misión por rol (`match-lineup.component.ts` / `group-match-card.component.ts`)
+- **Cabecera simétrica:** balance y winrates de ambos lados (Azul y Rojo).
+- **Metadatos:** modalidad y tipo de sala (`Competitivo · Party`) junto a la liga y fecha.
+- **MVP / ACE:** destacados en la card resumen para el mejor jugador de la partida y el mejor del equipo perdedor.
+- **Ranura de misión por rol:**
+  - `TOP`: TP mejorado si lleva Teleport entre sus hechizos; si no lleva Teleport, icono de TP estándar.
+  - `JUNGLA`: Icono de monstruo de jungla según la variante de smite.
+  - `MID`: Botas mejoradas de nivel 3.
+  - `ADC`: Botas estándar del rol.
+  - `SUPPORT`: Guardianes de control (wards rojos).
+  - Los 6 slots del inventario se reservan al 100% para objetos principales de la build.
+- **Desplegable de alineación (Lineup):**
+  - Notas de partida formateadas sin ordinal (`${rank} · ${scoreStr}`, ej. `1 · 9.8`) con resaltado perimetral para el podio, MVP y ACE.
+  - Layout responsive en 2 columnas: se activa a partir de **1600px** si la barra lateral está plegada (`is-rail`) y a partir de **1800px** si está desplegada.
+
 > El historial **no se alimenta** de las partidas resueltas en la sala — es un seed
 > aparte. Resolver una partida no añade nada aquí (ver [edge-cases.md](edge-cases.md)).
-</content>

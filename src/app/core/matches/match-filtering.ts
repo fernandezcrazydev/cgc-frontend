@@ -13,7 +13,7 @@
  * sobrevive; las tres funciones de abajo se borran.
  */
 import { CrossMatch, CrossRelation } from './cross-history';
-import { Lane, Match } from './models';
+import { Lane, Match, MatchGameMode, MatchLobbyType } from './models';
 
 export type MatchSortBy = 'date-desc' | 'date-asc' | 'duration-desc' | 'kills-desc';
 
@@ -55,6 +55,12 @@ export interface MatchFilterState {
    * mezcla con `outcome`, que sigue diciendo cómo TE fue.
    */
   relation: CrossRelation | 'all';
+  /** Temporada / nombre de la liga asociada */
+  season: string | 'all';
+  /** Modalidad (Competitivo / Casual) */
+  gameMode: MatchGameMode | 'all';
+  /** Tipo de sala (Room / Party) */
+  lobbyType: MatchLobbyType | 'all';
   /** Búsqueda libre por jugador, campeón o grupo. */
   searchQuery: string;
   sortBy: MatchSortBy;
@@ -68,6 +74,9 @@ export const EMPTY_FILTERS: MatchFilterState = {
   winningSide: 'all',
   participation: 'all',
   relation: 'all',
+  season: 'all',
+  gameMode: 'all',
+  lobbyType: 'all',
   searchQuery: '',
   sortBy: 'date-desc',
 };
@@ -90,6 +99,9 @@ export function filterPersonalMatches(list: readonly Match[], f: MatchFilterStat
     if (f.outcome !== 'all' && m.userOutcome !== f.outcome) return false;
     if (f.role !== 'all' && m.userParticipant?.role !== f.role) return false;
     if (f.championId !== 'all' && m.userParticipant?.championId !== f.championId) return false;
+    if (f.season !== 'all' && (m.leagueName ?? m.group.seasonName ?? m.group.name) !== f.season) return false;
+    if (f.gameMode !== 'all' && (m.gameMode ?? (m.modeLabel?.includes('Casual') ? 'Casual' : 'Competitivo')) !== f.gameMode) return false;
+    if (f.lobbyType !== 'all' && (m.lobbyType ?? (m.modeLabel?.includes('Party') ? 'Party' : 'Room')) !== f.lobbyType) return false;
     return matchesQuery(m, f.searchQuery);
   });
 }
@@ -109,6 +121,9 @@ export function filterGroupMatches(list: readonly Match[], f: MatchFilterState):
     if (f.championId !== 'all' && !participantsOf(m).some((p) => p.championId === f.championId)) {
       return false;
     }
+    if (f.season !== 'all' && (m.leagueName ?? m.group.seasonName ?? m.group.name) !== f.season) return false;
+    if (f.gameMode !== 'all' && (m.gameMode ?? (m.modeLabel?.includes('Casual') ? 'Casual' : 'Competitivo')) !== f.gameMode) return false;
+    if (f.lobbyType !== 'all' && (m.lobbyType ?? (m.modeLabel?.includes('Party') ? 'Party' : 'Room')) !== f.lobbyType) return false;
     return matchesQuery(m, f.searchQuery);
   });
 }
@@ -131,6 +146,9 @@ export function filterCrossMatches(
     if (f.outcome !== 'all' && c.match.userOutcome !== f.outcome) return false;
     if (f.role !== 'all' && c.me.role !== f.role) return false;
     if (f.championId !== 'all' && c.me.championId !== f.championId) return false;
+    if (f.season !== 'all' && (c.match.leagueName ?? c.match.group.seasonName ?? c.match.group.name) !== f.season) return false;
+    if (f.gameMode !== 'all' && (c.match.gameMode ?? (c.match.modeLabel?.includes('Casual') ? 'Casual' : 'Competitivo')) !== f.gameMode) return false;
+    if (f.lobbyType !== 'all' && (c.match.lobbyType ?? (c.match.modeLabel?.includes('Party') ? 'Party' : 'Room')) !== f.lobbyType) return false;
     return matchesQuery(c.match, f.searchQuery);
   });
 }

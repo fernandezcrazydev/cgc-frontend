@@ -146,6 +146,9 @@ import { Viewport } from '../../../../shared/viewport';
                         @if (p.stats.isMvp) {
                           <span class="m-mvp-badge nf-mono">MVP</span>
                         }
+                        @if (p.stats.isAce) {
+                          <span class="m-ace-badge nf-mono">ACE</span>
+                        }
                         @if (isCurrentUser(p.id)) {
                           <span class="m-you-badge nf-mono">Tú</span>
                         }
@@ -291,6 +294,9 @@ import { Viewport } from '../../../../shared/viewport';
                         </a>
                         @if (p.stats.isMvp) {
                           <span class="m-mvp-badge nf-mono">MVP</span>
+                        }
+                        @if (p.stats.isAce) {
+                          <span class="m-ace-badge nf-mono">ACE</span>
                         }
                         @if (isCurrentUser(p.id)) {
                           <span class="m-you-badge nf-mono">Tú</span>

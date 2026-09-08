@@ -134,54 +134,6 @@
   border-radius: 999px;
 }
 
-.m-filters__chips {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-}
-
-/* Cada filtro puesto es un chip que se quita solo: es lo que hace visible el estado y lo que
-   permite tener a la vez búsqueda libre y filtros estructurados sin que se pisen. */
-
-.m-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 26px;
-  padding: 0 10px;
-  border: var(--bw-1) solid var(--nf-border-strong);
-  border-radius: 13px;
-  background: var(--nf-surface-2);
-  color: var(--nf-text);
-  font-family: var(--nf-font);
-  font-size: 12px;
-  cursor: pointer;
-  transition: background 0.14s, border-color 0.14s, color 0.14s;
-
-  &::after {
-    content: '✕';
-    font-size: 10px;
-    color: var(--nf-text-dim);
-  }
-
-  &:hover {
-    border-color: var(--nf-danger);
-    color: var(--nf-text);
-  }
-
-  &:hover::after { color: var(--nf-danger); }
-}
-
-.m-chip--clear {
-  border-style: dashed;
-  background: transparent;
-  color: var(--nf-text-mid);
-
-  &::after { content: none; }
-  &:hover { border-color: var(--nf-border-strong); color: var(--nf-text); }
-}
-
 .m-filters__controls {
   display: flex;
   flex-wrap: wrap;
@@ -204,10 +156,11 @@
 
 /* Anchos fijos: si se encogen con su contenido, la barra baila cada vez que cambia lo elegido. */
 
+.m-field--season { width: 190px; }
+.m-field--mode { width: 140px; }
+.m-field--lobby { width: 120px; }
 .m-field--champion { width: 210px; }
-
 .m-field--group { width: 190px; }
-
 .m-field--sort { width: 170px; }
 
 .m-role-pills {
@@ -254,6 +207,9 @@
 }
 
 @media (max-width: $bp-compact) {
+  .m-field--season,
+  .m-field--mode,
+  .m-field--lobby,
   .m-field--champion,
   .m-field--group,
   .m-field--sort {
@@ -265,24 +221,10 @@
 
 @media (max-width: $bp-mobile) {
 /* ---- Filtros ----
-     En la vista solo quedan buscador, contador, chips y el botón que abre el panel. Los
+     En la vista solo quedan buscador, contador y el botón que abre el panel. Los
      controles viven dentro del `nf-sheet` (lo monta `match-filters`, mismo umbral). */
 .m-filters { gap: 10px; margin-bottom: 16px; }
 .m-filters__search { height: $touch; font-size: 16px; }
-/* Los chips dejan de envolver y pasan a carril: con cuatro filtros puestos, tres filas
-     de chips volvían a comerse la pantalla que acaba de liberarse. */
-.m-filters__chips {
-    flex-wrap: nowrap;
-    gap: 6px;
-    margin-inline: calc(-1 * clamp(18px, 4vw, 32px));
-    padding-block: 0 2px;
-    padding-inline: clamp(18px, 4vw, 32px);
-    overflow-x: auto;
-    overscroll-behavior-x: contain;
-    scrollbar-width: none;
-  }
-.m-filters__chips::-webkit-scrollbar { display: none; }
-.m-chip { flex: none; height: 32px; }
 .m-filters__more {
     display: inline-flex;
     align-items: center;
@@ -299,18 +241,6 @@
     font-size: 13px;
     font-weight: var(--fw-bold);
     cursor: pointer;
-  }
-.m-filters__more-count {
-    display: grid;
-    place-items: center;
-    min-width: 20px;
-    height: 20px;
-    padding: 0 6px;
-    border-radius: 10px;
-    background: var(--nf-primary);
-    color: #fff;
-    font-size: var(--fs-label);
-    font-weight: var(--fw-black);
   }
 /* Dentro del panel los campos van uno por línea y con altura de dedo: ahí el espacio
      vertical es del panel, no de la lista. */

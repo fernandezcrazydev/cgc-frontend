@@ -116,4 +116,12 @@ entra al historial (donde es **inmutable, solo borrable**).
 
 `DRAFT_TTL_MS = 24h`: un borrador abandonado se conserva para reanudar y se oculta al
 leer pasado ese tiempo.
-</content>
+
+## Match (`core/matches/models.ts`) y Filtros (`match-filtering.ts`)
+
+Representación de partidas jugadas para el historial, perfiles y estadísticas:
+
+- `Match`: entidad con `id`, `gameId`, `date`, `duration`, `winner` ('BLUE' | 'RED'), `teams` (objetivos, estadísticas y 5 participantes por lado), `mvpParticipantId`, `aceParticipantId`, `leagueId`, `seasonId`, `modality` ('COMPETITIVE' | 'CASUAL') y `matchType` ('ROOM' | 'PARTY').
+- `MatchParticipant`: `id`, `name`, `tag`, `role`, `championId`, `kills`, `deaths`, `assists`, `cs`, `gold`, `visionScore`, `stats` (objetos, hechizos, runas, rol de misión).
+- `MatchFilterState`: `{ seasonId: string; modality: 'ALL' | 'COMPETITIVE' | 'CASUAL'; matchType: 'ALL' | 'ROOM' | 'PARTY'; championId: string | null }`.
+

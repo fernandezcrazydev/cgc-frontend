@@ -58,7 +58,7 @@ import { MatchCardShellComponent } from './match-card-shell.component';
                     [src]="championIcon(p.championId)"
                     [fallback]="p.championName"
                     [tint]="p.championId"
-                    [size]="28"
+                    [size]="24"
                     shape="square"
                     [title]="playerTitle(p)"
                   />
@@ -92,7 +92,7 @@ import { MatchCardShellComponent } from './match-card-shell.component';
                     [src]="championIcon(p.championId)"
                     [fallback]="p.championName"
                     [tint]="p.championId"
-                    [size]="28"
+                    [size]="24"
                     shape="square"
                     [title]="playerTitle(p)"
                   />
