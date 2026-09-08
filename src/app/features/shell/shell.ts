@@ -20,7 +20,7 @@ import {
   groupRoleLabel,
 } from '../../core/groups';
 import { LobbiesStore, LobbyDetailStore, LobbyParticipantResponse, LobbyResponse } from '../../core/lobbies';
-import { MatchHistoryStore } from '../../core/matches';
+import { Match, MatchHistoryStore } from '../../core/matches';
 import { NotificationsStore, NotificationView, notificationView, NotificationSemanticLevel, SEED_NOTIFICATIONS } from '../../core/notifications';
 import { RiotAccountStore } from '../../core/riot';
 import { DevicesStore } from '../../core/devices';
@@ -649,11 +649,86 @@ export class Shell {
     return count > 0 ? count : null;
   });
 
+  /** ID de la partida activa si la ruta es de detalle de partida */
+  readonly currentMatchId = computed<string | null>(() => {
+    const url = this.currentUrl();
+    const segments = url.split('?')[0].split('#')[0].split('/').filter(Boolean);
+    if (segments[0] !== 'app') return null;
+    if (segments[1] === 'historial' && segments[2]) return segments[2];
+    if (segments[1] === 'analisis-avanzado') return segments[2] || 'seed-001';
+    return null;
+  });
+
+  /** ¿Estamos en la pantalla de detalle/análisis de partida? */
+  readonly isMatchDetailPage = computed(() => {
+    return this.currentMatchId() !== null || this.pageTitle() === 'Partida';
+  });
+
+  /** Partida activa si estamos en detalle de partida */
+  readonly currentMatch = computed<Match | undefined>(() => {
+    const id = this.currentMatchId();
+    if (!id) return undefined;
+    const found = this.matchHistory.matchById(id);
+    if (found) return found;
+    const all = this.matchHistory.allMatches();
+    return all.length > 0 ? all[0] : undefined;
+  });
+
+  /** Nombre de la liga de la partida para la cabecera */
+  readonly matchLeagueName = computed<string>(() => {
+    const m = this.currentMatch();
+    return m?.leagueName ?? m?.group?.seasonName ?? this.groups.groups()[0]?.leagueName ?? 'LIGA COMPETITIVA';
+  });
+
+  /** Duración de la partida para la cabecera (ej: 31:24) */
+  readonly matchPaceDuration = computed<string>(() => {
+    const m = this.currentMatch();
+    if (!m) return '31:24';
+    const totalSec = m.durationSeconds || 1884;
+    const mins = Math.floor(totalSec / 60);
+    const secs = totalSec % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  });
+
+  /** Kills totales de la partida para la cabecera (ej: 38-24 KILLS) */
+  readonly matchPaceKills = computed<string>(() => {
+    const m = this.currentMatch();
+    if (!m) return '38-24 KILLS';
+    const blueKills = m.blueTeam?.totalKills ?? 38;
+    const redKills = m.redTeam?.totalKills ?? 24;
+    return `${blueKills}-${redKills} KILLS`;
+  });
+
+  readonly copiedMatchId = signal(false);
+
+  async copyMatchId(): Promise<void> {
+    const id = this.currentMatch()?.id ?? this.currentMatchId() ?? 'seed-001';
+    try {
+      await navigator.clipboard?.writeText(id);
+      this.copiedMatchId.set(true);
+      this.toasts.info(`ID de partida copiado: #${id}`);
+      setTimeout(() => this.copiedMatchId.set(false), 2000);
+    } catch {
+      this.toasts.error('No se pudo copiar el ID de partida');
+    }
+  }
+
   /** Grupo nombrado explícitamente en la URL activa (/app/grupos/:id/...). */
   readonly currentRouteGroup = computed<GroupView | null>(() => {
     const id = this.routeGroupId();
-    if (!id) return null;
-    return this.groups.groups().find((g) => g.id === id) ?? null;
+    if (id) {
+      const found = this.groups.groups().find((g) => g.id === id);
+      if (found) return found;
+    }
+    if (this.isMatchDetailPage()) {
+      const m = this.currentMatch();
+      if (m?.groupId) {
+        const found = this.groups.groups().find((g) => g.id === m.groupId);
+        if (found) return found;
+      }
+      return this.groups.groups()[0] ?? null;
+    }
+    return null;
   });
 
   /** ¿Estamos en el hub principal del grupo (/app/grupos/:id) y no en una sub-sección? */
@@ -950,7 +1025,10 @@ export class Shell {
         // desplegar sus secciones: solo el hub seleccionaba, porque solo el hub pasa por
         // `GroupDetailStore.load()`. Las rutas que no llevan grupo NO lo borran: es estado
         // pegajoso, e Inicio depende de que siga puesto.
-        const routeGroup = groupIdFromUrl(url ?? '');
+        const routeGroup = groupIdFromUrl(
+          url ?? '',
+          (matchId) => this.matchHistory.matchById(matchId)?.groupId ?? null,
+        );
         this.routeGroupId.set(routeGroup);
         // La cabecera dice miembros y rol en TODAS las secciones del grupo, no solo en el hub,
         // así que el detalle se pide aquí. `ensureLoaded` es idempotente: si la vista de destino

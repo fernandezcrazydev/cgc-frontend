@@ -31,7 +31,19 @@ export const routes: Routes = [
         path: 'historial/:id',
         title: 'Partida · Sale Custom',
         loadComponent: () =>
-          import('./features/shell/views/match-history/partida-detalle').then((m) => m.PartidaDetalle),
+          import('./features/shell/views/match-detail/match-detail').then((m) => m.MatchDetail),
+      },
+      {
+        path: 'analisis-avanzado',
+        title: 'Análisis Avanzado · Sale Custom',
+        loadComponent: () =>
+          import('./features/shell/views/match-detail/match-detail').then((m) => m.MatchDetail),
+      },
+      {
+        path: 'analisis-avanzado/:id',
+        title: 'Análisis Avanzado · Sale Custom',
+        loadComponent: () =>
+          import('./features/shell/views/match-detail/match-detail').then((m) => m.MatchDetail),
       },
       {
         path: 'grupos',

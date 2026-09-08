@@ -2,13 +2,17 @@
   @if (isLoading()) {
     <div aria-busy="true">
       <div class="rk-league-header">
-        <div class="view-back nf-mono"><nf-skeleton width="140px" height="14px" /></div>
         <div class="rk-league-hero">
+          <div class="rk-header-left">
+            <nf-skeleton width="140px" height="34px" radius="8px" />
+          </div>
           <div class="rk-league-title-group">
             <nf-skeleton width="140px" height="12px" />
             <nf-skeleton width="280px" height="34px" />
           </div>
-          <div class="rk-countdown"><nf-skeleton width="220px" height="24px" radius="999px" /></div>
+          <div class="rk-header-right">
+            <div class="rk-countdown"><nf-skeleton width="220px" height="24px" radius="999px" /></div>
+          </div>
         </div>
       </div>
 
@@ -69,14 +73,8 @@
     </div>
   } @else if (group(); as g) {
     <div class="rk-league-header">
-      <a class="view-back nf-mono" [routerLink]="['/app', 'grupos', g.id]">
-        <span class="view-back__arrow" aria-hidden="true">←</span> {{ g.name }}
-      </a>
-
       <div class="rk-league-hero">
-        <div class="rk-league-title-group">
-          <span class="rk-league-eyebrow nf-mono">Clasificación oficial</span>
-          <h1 class="rk-league-title">{{ leagueName() }}</h1>
+        <div class="rk-header-left">
           <!-- Solo con más de una temporada: un selector con una sola opción no es una
                elección, es un adorno que sugiere que hay algo más donde no lo hay. -->
           @if (seasonOptions().length > 1) {
@@ -101,47 +99,54 @@
           }
         </div>
 
-        @if (countdown(); as cd) {
-          <div class="rk-countdown" [class.is-expired]="cd.isExpired">
-            <div class="rk-countdown__status">
-              <span
-                class="rk-countdown__badge nf-mono"
-                [class.rk-countdown__badge--success]="cd.statusVariant === 'success'"
-                [class.rk-countdown__badge--warning]="cd.statusVariant === 'warning'"
-                [class.rk-countdown__badge--danger]="cd.statusVariant === 'danger'"
-              >
-                <span class="rk-countdown__dot" aria-hidden="true"></span>
-                {{ cd.statusLabel }}
-              </span>
-            </div>
+        <div class="rk-league-title-group">
+          <span class="rk-league-eyebrow nf-mono">Clasificación oficial</span>
+          <h1 class="rk-league-title">{{ leagueName() }}</h1>
+        </div>
 
-            @if (!cd.isExpired) {
-              <div class="rk-countdown__timer nf-mono" aria-label="Tiempo restante de la liga">
-                <span class="rk-countdown__unit">
-                  <strong class="rk-countdown__val">{{ cd.days }}</strong>
-                  <small class="rk-countdown__lbl">días</small>
-                </span>
-                <span class="rk-countdown__sep" aria-hidden="true">:</span>
-                <span class="rk-countdown__unit">
-                  <strong class="rk-countdown__val">{{ pad(cd.hours) }}</strong>
-                  <small class="rk-countdown__lbl">h</small>
-                </span>
-                <span class="rk-countdown__sep" aria-hidden="true">:</span>
-                <span class="rk-countdown__unit">
-                  <strong class="rk-countdown__val">{{ pad(cd.minutes) }}</strong>
-                  <small class="rk-countdown__lbl">m</small>
-                </span>
-                <span class="rk-countdown__sep" aria-hidden="true">:</span>
-                <span class="rk-countdown__unit">
-                  <strong class="rk-countdown__val">{{ pad(cd.seconds) }}</strong>
-                  <small class="rk-countdown__lbl">s</small>
+        <div class="rk-header-right">
+          @if (countdown(); as cd) {
+            <div class="rk-countdown" [class.is-expired]="cd.isExpired">
+              <div class="rk-countdown__status">
+                <span
+                  class="rk-countdown__badge nf-mono"
+                  [class.rk-countdown__badge--success]="cd.statusVariant === 'success'"
+                  [class.rk-countdown__badge--warning]="cd.statusVariant === 'warning'"
+                  [class.rk-countdown__badge--danger]="cd.statusVariant === 'danger'"
+                >
+                  <span class="rk-countdown__dot" aria-hidden="true"></span>
+                  {{ cd.statusLabel }}
                 </span>
               </div>
-            } @else {
-              <div class="rk-countdown__expired nf-mono">Temporada concluida</div>
-            }
-          </div>
-        }
+
+              @if (!cd.isExpired) {
+                <div class="rk-countdown__timer nf-mono" aria-label="Tiempo restante de la liga">
+                  <span class="rk-countdown__unit">
+                    <strong class="rk-countdown__val">{{ cd.days }}</strong>
+                    <small class="rk-countdown__lbl">días</small>
+                  </span>
+                  <span class="rk-countdown__sep" aria-hidden="true">:</span>
+                  <span class="rk-countdown__unit">
+                    <strong class="rk-countdown__val">{{ pad(cd.hours) }}</strong>
+                    <small class="rk-countdown__lbl">h</small>
+                  </span>
+                  <span class="rk-countdown__sep" aria-hidden="true">:</span>
+                  <span class="rk-countdown__unit">
+                    <strong class="rk-countdown__val">{{ pad(cd.minutes) }}</strong>
+                    <small class="rk-countdown__lbl">m</small>
+                  </span>
+                  <span class="rk-countdown__sep" aria-hidden="true">:</span>
+                  <span class="rk-countdown__unit">
+                    <strong class="rk-countdown__val">{{ pad(cd.seconds) }}</strong>
+                    <small class="rk-countdown__lbl">s</small>
+                  </span>
+                </div>
+              } @else {
+                <div class="rk-countdown__expired nf-mono">Temporada concluida</div>
+              }
+            </div>
+          }
+        </div>
       </div>
     </div>
 
@@ -406,7 +411,7 @@
                   >⋯</button>
 
                   @if (menuFor() === e.playerId) {
-                    <span class="rk-actions__menu" role="menu" [attr.aria-label]="'Acciones sobre ' + e.name">
+                    <span class="rk-actions__menu" [class.is-dropup]="menuDropup()" role="menu" [attr.aria-label]="'Acciones sobre ' + e.name">
                       @if (e.banned) {
                         <button
                           type="button"

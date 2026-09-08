@@ -428,27 +428,62 @@
             <span class="shell__breadcrumb-section nf-mono">
               {{ pageTitle() }}
             </span>
+            @if (isMatchDetailPage()) {
+              <span class="shell__breadcrumb-sep" aria-hidden="true">
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+                  <path d="M6 3.5 10.5 8 6 12.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+              </span>
+              <span class="shell__breadcrumb-league nf-mono">
+                {{ matchLeagueName() }}
+              </span>
+            }
           }
         </nav>
 
-        <!-- Ficha del grupo y su gestión. Vivían en una tarjeta al principio del hub que repetía
-             el icono y el nombre que ya están aquí; ahora acompañan a la identidad y se ven desde
-             cualquier sección del grupo. -->
-        <div class="shell__groupmeta">
-          <span class="shell__groupmeta-chips nf-mono">
-            <span class="shell__groupmeta-chip">{{ g.region ?? 'Sin región' }}</span>
-            @if (g.tag) {
-              <span class="shell__groupmeta-chip">#{{ g.tag }}</span>
-            }
-            <!-- El recuento solo existe cuando el detalle de ESTE grupo está cargado; mientras
-                 viaja no se pinta un número de relleno. -->
-            @if (groupMemberCount(); as count) {
-              <span class="shell__groupmeta-chip">{{ count }} {{ count === 1 ? 'miembro' : 'miembros' }}</span>
-            }
-            <span class="shell__groupmeta-chip is-role">{{ roleLabel(g.role) }}</span>
-          </span>
-          <app-group-actions-menu />
-        </div>
+        @if (isMatchDetailPage()) {
+          <div class="shell__match-header-meta">
+            <button
+              type="button"
+              class="shell__copy-match-btn"
+              (click)="copyMatchId()"
+              [attr.title]="'Copiar ID de partida: ' + (currentMatch()?.id ?? currentMatchId() ?? 'seed-001')"
+              aria-label="Copiar ID de partida"
+            >
+              @if (copiedMatchId()) {
+                <svg class="shell__copy-icon is-copied" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M20 6L9 17l-5-5"/>
+                </svg>
+              } @else {
+                <svg class="shell__copy-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                </svg>
+              }
+            </button>
+            <span class="shell__match-id-text nf-mono" (click)="copyMatchId()" role="button" tabindex="0" (keydown.enter)="copyMatchId()" [attr.title]="'Copiar ID: ' + (currentMatch()?.id ?? currentMatchId() ?? 'seed-001')">ID de partida</span>
+            <span class="shell__match-pill nf-mono">{{ matchPaceDuration() }} · {{ matchPaceKills() }}</span>
+          </div>
+        } @else {
+          <!-- Ficha del grupo y su gestión. Vivían en una tarjeta al principio del hub que repetía
+               el icono y el nombre que ya están aquí; ahora acompañan a la identidad y se ven desde
+               cualquier sección del grupo. -->
+          <div class="shell__groupmeta">
+            <span class="shell__groupmeta-chips nf-mono">
+              <span class="shell__groupmeta-chip">{{ g.region ?? 'Sin región' }}</span>
+              @if (g.tag) {
+                <span class="shell__groupmeta-chip">#{{ g.tag }}</span>
+              }
+              <!-- El recuento solo existe cuando el detalle de ESTE grupo está cargado; mientras
+                   viaja no se pinta un número de relleno. -->
+              @if (groupMemberCount(); as count) {
+                <span class="shell__groupmeta-chip">{{ count }} {{ count === 1 ? 'miembro' : 'miembros' }}</span>
+              }
+              <span class="shell__groupmeta-chip is-role">{{ roleLabel(g.role) }}</span>
+            </span>
+            <app-group-actions-menu />
+          </div>
+        }
       } @else {
         @if (isMobile()) {
           <div class="shell__logo shell__logo--sm"><span class="shell__diamond"></span></div>

@@ -40,10 +40,7 @@ export interface ParticipantStats {
   /** Variante de aplastar/smite en junglas: azul, rojo, verde o sin evolucionar */
   smiteVariant?: 'blue' | 'red' | 'green' | 'unevolved';
   /**
-   * BACKEND NOTE: sin uso todavía. No hay endpoint ni catálogo de runas en el proyecto
-   * (`GameDataApi` solo sirve campeones, hechizos y objetos), así que no hay forma de
-   * resolver estos ids a nombre e icono sin inventarse un catálogo estático, que sería
-   * fabricar datos de dominio en cliente. Se pintarán cuando exista `GET /game-data/runes`.
+   * Runas del participante: `GameDataStore.perkById` las resuelve desde `GET /game-data/perks`.
    */
   primaryRuneId?: number;
   secondaryRuneTreeId?: number;
@@ -110,6 +107,7 @@ export interface TeamSummary {
   towers: number;
   elderDragons?: number;
   voidgrubs?: number;
+  heralds?: number;
   dragonTypes?: DragonType[];
   participants: MatchParticipant[];
 }

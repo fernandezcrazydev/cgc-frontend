@@ -728,7 +728,9 @@
 /* En pantallas estrechas la cabecera ya lleva breadcrumb, buscador y acciones: las píldoras se
    retiran y queda el menú, que es lo accionable. */
 @media (max-width: 1100px) {
-  .shell__groupmeta-chips {
+  .shell__groupmeta-chips,
+  .shell__match-id-text,
+  .shell__breadcrumb-league {
     display: none;
   }
 }
@@ -788,24 +790,14 @@
   color: var(--nf-text-dim);
 }
 
-.shell__breadcrumb-sep {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--nf-text-dim);
-  opacity: 0.65;
-  flex: none;
-}
-
-.shell__breadcrumb-section {
-  font-weight: 700;
-  font-size: 13px;
-  color: var(--nf-text-dim);
-  letter-spacing: var(--ls-normal);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
+.shell__breadcrumb-sep { display: inline-flex; align-items: center; justify-content: center; color: var(--nf-text-dim); opacity: 0.65; flex: none; }
+.shell__breadcrumb-section { font-weight: 700; font-size: 13px; color: var(--nf-text-dim); letter-spacing: var(--ls-normal); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.shell__breadcrumb-league { font-weight: 700; font-size: var(--fs-label); color: var(--nf-text-dim); letter-spacing: var(--ls-normal); text-transform: uppercase; white-space: nowrap; }
+.shell__match-header-meta { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+.shell__copy-match-btn { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; padding: 0; border-radius: var(--nf-radius-xs, 4px); background: var(--nf-surface-2); border: 1px solid var(--nf-border); color: var(--nf-text-dim); cursor: pointer; transition: all 0.15s ease; &:hover { color: var(--nf-text); background: var(--nf-surface-3); border-color: var(--nf-border-strong); } }
+.shell__copy-icon { display: block; &.is-copied { color: #10b981; } }
+.shell__match-id-text { font-size: var(--fs-label); font-weight: 600; color: var(--nf-text-dim); letter-spacing: var(--ls-normal); white-space: nowrap; cursor: pointer; &:hover { color: var(--nf-text); } }
+.shell__match-pill { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: var(--nf-radius-sm, 8px); background: color-mix(in srgb, var(--nf-primary) 14%, transparent); border: 1px solid color-mix(in srgb, var(--nf-primary) 35%, transparent); color: var(--nf-primary); font-size: var(--fs-label); font-weight: 700; letter-spacing: 0.04em; white-space: nowrap; }
 
 /* ---- global player search [F5.5-01] ---- */
 .shell__search {

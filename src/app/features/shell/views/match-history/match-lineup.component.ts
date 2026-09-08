@@ -9,7 +9,7 @@ import {
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { DragonType, Lane, Match, MatchItemSlot, MatchParticipant, TeamSide } from '../../../../core/matches/models';
-import { formatKda } from '../../../../core/matches/match-view';
+import { computeMatchScores, formatKda } from '../../../../core/matches/match-view';
 import { GameDataStore } from '../../../../core/game-data';
 import { NfAvatar, NfEmojiPicker, NfLaneIcon } from '../../../../ui';
 import { ReactionsStore, ReactionTally } from '../../../../core/reactions';
@@ -35,6 +35,7 @@ import { MatchHistoryUiState } from './match-history-ui';
     '(document:keydown.escape)': 'panelFor.set(null); peekFor.set(null)',
   },
   imports: [RouterLink, NfAvatar, NfEmojiPicker, NfLaneIcon],
+  styleUrls: ['./match-lineup.component.scss'],
   template: `
     <div class="m-lineup">
       <div class="m-lineup__teams">
@@ -104,22 +105,25 @@ import { MatchHistoryUiState } from './match-history-ui';
                 <nf-lane-icon class="m-lineup__lane" [lane]="p.role" mode="original" />
 
                 <div class="m-lineup__champ-col">
-                  <a
-                    class="m-lineup__champ-link"
-                    [routerLink]="['/app', 'tierlist']"
-                    [title]="'Ver estadísticas de ' + championName(p)"
-                    (click)="$event.stopPropagation()"
-                  >
-                    <nf-avatar
-                      class="m-lineup__champ"
-                      [loading]="champsLoading()"
-                      [src]="champion(p.championId)?.iconUrl ?? null"
-                      [fallback]="p.championName"
-                      [tint]="p.championId"
-                      [size]="28"
-                      shape="square"
-                    />
-                  </a>
+                  <div class="m-lineup__champ-wrap">
+                    <a
+                      class="m-lineup__champ-link"
+                      [routerLink]="['/app', 'tierlist']"
+                      [title]="'Ver estadísticas de ' + championName(p)"
+                      (click)="$event.stopPropagation()"
+                    >
+                      <nf-avatar
+                        class="m-lineup__champ"
+                        [loading]="champsLoading()"
+                        [src]="champion(p.championId)?.iconUrl ?? null"
+                        [fallback]="p.championName"
+                        [tint]="p.championId"
+                        [size]="28"
+                        shape="square"
+                      />
+                    </a>
+                    <span class="m-player-row__lvl nf-mono">{{ p.championLevel }}</span>
+                  </div>
 
                   <div class="m-lineup__spells-col">
                     @for (sId of participantSpells(p); track $index) {
@@ -513,44 +517,7 @@ export class MatchLineupComponent {
     return map[type] ?? 'Dragón elemental';
   }
 
-  private readonly playerScores = computed(() => {
-    const m = this.match();
-    const all = [...m.blueTeam.participants, ...m.redTeam.participants];
-    const rated = all.map((p) => {
-      const isMvp = p.id === m.mvpParticipantId;
-      const isAce = p.id === m.aceParticipantId;
-      const kills = p.stats.kills;
-      const deaths = Math.max(1, p.stats.deaths);
-      const assists = p.stats.assists;
-      const cs = p.stats.cs;
-      const won = p.team === m.winningTeam;
-      let raw = isMvp
-        ? 9.5 + ((p.riotId.length + kills) % 5) / 10
-        : isAce
-          ? 8.7 + ((p.riotId.length + kills) % 5) / 10
-          : 4.2 + (kills * 2.2 + assists * 1.3 - deaths * 1.4) / 6 + (cs / 120) + (won ? 0.8 : 0);
-      raw = Math.min(9.9, Math.max(3.0, raw));
-      return { id: p.id, raw, isMvp, isAce };
-    });
-
-    rated.sort((a, b) => {
-      if (a.isMvp) return -1;
-      if (b.isMvp) return 1;
-      return b.raw - a.raw;
-    });
-
-    const map = new Map<string, { rank: number; score: string; display: string }>();
-    rated.forEach((item, index) => {
-      const rank = index + 1;
-      const scoreStr = item.raw.toFixed(1);
-      map.set(item.id, {
-        rank,
-        score: scoreStr,
-        display: `${rank} · ${scoreStr}`,
-      });
-    });
-    return map;
-  });
+  private readonly playerScores = computed(() => computeMatchScores(this.match()));
 
   protected playerRankScore(p: MatchParticipant): string {
     return this.playerScores().get(p.id)?.display ?? '';

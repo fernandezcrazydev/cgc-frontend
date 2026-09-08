@@ -423,7 +423,20 @@ export class GrupoRanking {
 
   readonly leagueName = computed(() => this.leagues.league()?.name ?? 'Liga oficial');
 
-  readonly rows = computed<RankEntry[]>(() => mapLeaderboardEntries(this.leagues.rows()));
+  readonly rows = computed<RankEntry[]>(() => {
+    const list = mapLeaderboardEntries(this.leagues.rows());
+    const key = this.sortKey();
+    const dir = this.sortDir();
+    return [...list].sort((a, b) => {
+      let diff = 0;
+      if (key === 'rank') {
+        diff = a.rank - b.rank;
+      } else if (key === 'wr') {
+        diff = a.wr - b.wr;
+      }
+      return dir === 'desc' ? -diff : diff;
+    });
+  });
   readonly podium = computed<RankEntry[]>(() => mapLeaderboardEntries(this.leagues.podium()));
 
   // ---- Cuenta atrás ----------------------------------------------------
@@ -550,8 +563,16 @@ export class GrupoRanking {
     () => this.leagues.canManageLeague() && !this.leagues.isSeasonClosed(),
   );
 
+  readonly menuDropup = signal(false);
+
   toggleMenu(playerId: string, event: Event): void {
     event.stopPropagation();
+    const btn = event.currentTarget as HTMLElement | null;
+    if (btn) {
+      const rect = btn.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      this.menuDropup.set(spaceBelow < 160);
+    }
     this.menuFor.update((open) => (open === playerId ? null : playerId));
   }
 
@@ -745,8 +766,7 @@ export class GrupoRanking {
   readonly sortDir = signal<SortDir>('asc');
 
   /**
-   * Ordena en el SERVIDOR. Antes hacía `.sort()` sobre lo descargado y cortaba la página encima, de
-   * modo que la "página 2" enseñaba un tramo arbitrario de la clasificación.
+   * Ordena en memoria sin reiniciar el scroll ni enviar al usuario al inicio de la página.
    */
   sortBy(key: SortKey): void {
     if (this.sortKey() === key) {
@@ -756,12 +776,6 @@ export class GrupoRanking {
       // Pos se lee mejor ascendente; el winrate, de mayor a menor.
       this.sortDir.set(key === 'wr' ? 'desc' : 'asc');
     }
-    this.openId.set(null);
-    this.highlightedPlayerId.set(null);
-    void this.leagues.sortBy(
-      this.sortKey() === 'wr' ? 'WINRATE' : 'RANK',
-      this.sortDir() === 'desc' ? 'DESC' : 'ASC',
-    );
   }
 
   arrow(key: SortKey): string {

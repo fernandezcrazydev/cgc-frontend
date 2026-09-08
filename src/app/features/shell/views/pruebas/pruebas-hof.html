@@ -1,334 +1,1028 @@
-﻿<div class="test-view">
+<div class="test-view">
   <header class="test-view__header">
-    <div class="test-view__badge">LABORATORIO UX/UI</div>
-    <h1 class="test-view__title">Comparativa de Diseño: Cards de Objetivos y Telemetría</h1>
+    <div class="test-view__badge">LABORATORIO UX/UI · [F5.5-07]</div>
+    <h1 class="test-view__title">Banco de Pruebas: 8 Tarjetas de la Franja Superior</h1>
     <p class="test-view__desc">
-      Evaluación interactiva de las 5 opciones propuestas para las cards de objetivos («Primer dragón», «Larvas del vacío», «Primer heraldo», «Primer barón» y «Primera torre»).
-      Prueba los diferentes estados hover, animaciones y jerarquías de datos.
+      Evaluación de las alternativas visuales para las 8 tarjetas de estadísticas de partida.
+      Oro reservado exclusivamente para MVP, púrpura para ACE (derrotado), menciones coloridas con iconos vectoriales y previsualización de la cabecera completa en 3 pisos con selector dinámico 1 al 5.
     </p>
 
     <div class="test-view__controls">
       <nf-segmented
-        [options]="filterOptions"
-        [value]="selectedFilter()"
-        (valueChange)="setFilter($event)"
+        [options]="categoryOptions"
+        [value]="selectedCategory()"
+        (valueChange)="setCategory($event)"
       />
     </div>
   </header>
 
   <main class="test-view__content">
-    <!-- 1. HEXTECH RADIAL TOKENS -->
-    @if (showSection('all') || showSection('opt1')) {
-      <section class="test-section">
-        <div class="test-section__header">
-          <span class="test-section__tag">OPCIÓN 1</span>
-          <h2 class="test-section__title">1. Hextech Radial Tokens (Anillos Circulares SVG)</h2>
-          <p class="test-section__note">
-            Aro exterior de progreso SVG alrededor del icono oficial de Riot. El arco se llena según el winrate y resplandece al pasar el ratón.
+
+    <!-- ============================================================== -->
+    <!-- PESTAÑA 1: VISTA PREVIA DE LA CABECERA COMPLETA (3 PISOS EN VIVO) -->
+    <!-- ============================================================== -->
+    @if (selectedCategory() === 'preview') {
+      <section class="c-preview-shell">
+        <div class="card-group__header">
+          <span class="card-group__pill">COMPOSICIÓN DINÁMICA DE CABECERA</span>
+          <h2 class="card-group__title">Cabecera Completa (3 Pisos en Vivo)</h2>
+          <p class="test-view__desc">
+            Haz clic en los números (1 al 5) para cambiar la variante activa de cualquiera de las tarjetas. Cada una cambia en tiempo real a su variante exacta.
           </p>
         </div>
 
-        <div class="test-grid test-grid--5">
-          @for (o of objectives; track o.id) {
-            <div class="radial-card" [attr.data-impact]="o.impact">
-              <div class="radial-card__badge-wrap">
-                <span class="radial-card__badge" [attr.data-impact]="o.impact">{{ o.impact }}</span>
-              </div>
-
-              <div class="radial-card__gauge">
-                <svg class="radial-card__svg" viewBox="0 0 80 80" aria-hidden="true">
-                  <circle class="radial-card__track" cx="40" cy="40" r="34" />
-                  <circle
-                    class="radial-card__arc"
-                    cx="40"
-                    cy="40"
-                    r="34"
-                    [attr.stroke-dasharray]="213.6"
-                    [attr.stroke-dashoffset]="213.6 - (213.6 * o.winrate) / 100"
-                  />
-                </svg>
-                <div class="radial-card__icon-wrap">
-                  <img
-                    class="radial-card__icon"
-                    [src]="o.iconUrl"
-                    [alt]="o.label"
-                    width="42"
-                    height="42"
-                    loading="lazy"
-                    (error)="onIconError($event, o.id)"
-                  />
-                </div>
-              </div>
-
-              <span class="radial-card__name">{{ o.label }}</span>
-              <span class="radial-card__value nf-mono">{{ o.winrate }}%</span>
-              <span class="radial-card__sub">{{ o.wins }}/{{ o.games }} partidas</span>
-            </div>
-          }
-        </div>
-      </section>
-    }
-
-    <!-- 2. PILARES DE ENERGÍA VERTICALES -->
-    @if (showSection('all') || showSection('opt2')) {
-      <section class="test-section">
-        <div class="test-section__header">
-          <span class="test-section__tag">OPCIÓN 2</span>
-          <h2 class="test-section__title">2. Pilares de Energía Verticales (Ecualizador Táctico)</h2>
-          <p class="test-section__note">
-            Barras verticales continuas que suben desde la base con degradado luminoso. Permite comparar las 5 alturas de un vistazo como un ecualizador de mesa de retransmisión.
-          </p>
-        </div>
-
-        <div class="test-grid test-grid--5">
-          @for (o of objectives; track o.id) {
-            <div class="pillar-card" [attr.data-impact]="o.impact">
-              <div class="pillar-card__head">
-                <img
-                  class="pillar-card__icon"
-                  [src]="o.iconUrl"
-                  [alt]="o.label"
-                  width="36"
-                  height="36"
-                  loading="lazy"
-                  (error)="onIconError($event, o.id)"
-                />
-                <div class="pillar-card__meta">
-                  <span class="pillar-card__name">{{ o.label }}</span>
-                  <span class="pillar-card__impact" [attr.data-impact]="o.impact">{{ o.impact }}</span>
-                </div>
-              </div>
-
-              <div class="pillar-card__body">
-                <div class="pillar-card__meter">
-                  <span class="pillar-card__meter-fill" [style.height.%]="o.winrate"></span>
-                </div>
-                <div class="pillar-card__stats">
-                  <strong class="pillar-card__pct nf-mono">{{ o.winrate }}%</strong>
-                  <span class="pillar-card__label">winrate</span>
-                  <span class="pillar-card__sub nf-mono">{{ o.wins }}/{{ o.games }}</span>
-                </div>
-              </div>
-            </div>
-          }
-        </div>
-      </section>
-    }
-
-    <!-- 3. BANNERS BROADCAST PRO -->
-    @if (showSection('all') || showSection('opt3')) {
-      <section class="test-section">
-        <div class="test-section__header">
-          <span class="test-section__tag">OPCIÓN 3</span>
-          <h2 class="test-section__title">3. Banners Broadcast Pro (Retransmisión Esports)</h2>
-          <p class="test-section__note">
-            Formato en tiras apiladas con barra de recorrido ancho y marca de equilibrio al 50%. Máxima legibilidad sin comprimir textos.
-          </p>
-        </div>
-
-        <div class="banner-list">
-          @for (o of objectives; track o.id) {
-            <div class="banner-card" [attr.data-impact]="o.impact">
-              <div class="banner-card__who">
-                <div class="banner-card__icon-box">
-                  <img
-                    class="banner-card__icon"
-                    [src]="o.iconUrl"
-                    [alt]="o.label"
-                    width="40"
-                    height="40"
-                    loading="lazy"
-                    (error)="onIconError($event, o.id)"
-                  />
-                </div>
-                <div class="banner-card__info">
-                  <span class="banner-card__name">{{ o.label }}</span>
-                  <span class="banner-card__tag" [attr.data-impact]="o.impact">Impacto {{ o.impact.toLowerCase() }}</span>
-                </div>
-              </div>
-
-              <div class="banner-card__track-wrap">
-                <div class="banner-card__track">
-                  <span class="banner-card__fill" [style.width.%]="o.winrate"></span>
-                  <span class="banner-card__midpoint" title="50% Paridad"></span>
-                </div>
-                <div class="banner-card__track-labels">
-                  <span>0%</span>
-                  <span class="banner-card__paridad">50% paridad</span>
-                  <span>100%</span>
-                </div>
-              </div>
-
-              <div class="banner-card__data">
-                <span class="banner-card__pct nf-mono">{{ o.winrate }}%</span>
-                <span class="banner-card__score nf-mono">{{ o.ratioText }} ({{ o.games }} part.)</span>
-              </div>
-            </div>
-          }
-        </div>
-      </section>
-    }
-
-    <!-- 4. RELIQUIAS ÉPICAS CON MARCA DE AGUA -->
-    @if (showSection('all') || showSection('opt4')) {
-      <section class="test-section">
-        <div class="test-section__header">
-          <span class="test-section__tag">OPCIÓN 4</span>
-          <h2 class="test-section__title">4. Reliquias Épicas con Marca de Agua (Estilo Cliente LoL)</h2>
-          <p class="test-section__note">
-            Inspiradas en las cartas y trofeos del cliente de LoL. Icono oficial en marca de agua tenue al fondo, borde neón superior y micro-barra segmentada.
-          </p>
-        </div>
-
-        <div class="test-grid test-grid--5">
-          @for (o of objectives; track o.id) {
-            <div class="relic-card" [attr.data-impact]="o.impact">
-              <!-- Marca de agua ambiental de fondo -->
-              <img
-                class="relic-card__watermark"
-                [src]="o.iconUrl"
-                alt=""
-                aria-hidden="true"
-                (error)="onIconError($event, o.id)"
-              />
-
-              <div class="relic-card__top">
-                <span class="relic-card__tag" [attr.data-impact]="o.impact">★ {{ o.impact }}</span>
-                <div class="relic-card__icon-halo">
-                  <img
-                    class="relic-card__icon"
-                    [src]="o.iconUrl"
-                    [alt]="o.label"
-                    width="44"
-                    height="44"
-                    loading="lazy"
-                    (error)="onIconError($event, o.id)"
-                  />
-                </div>
-              </div>
-
-              <div class="relic-card__middle">
-                <span class="relic-card__name">{{ o.label }}</span>
-                <span class="relic-card__value nf-mono">{{ o.winrate }}%</span>
-              </div>
-
-              <div class="relic-card__bottom">
-                <div class="relic-card__segments" aria-hidden="true">
-                  <span class="relic-card__seg is-on"></span>
-                  <span class="relic-card__seg is-on"></span>
-                  <span class="relic-card__seg" [class.is-on]="o.winrate >= 70"></span>
-                  <span class="relic-card__seg" [class.is-on]="o.winrate >= 80"></span>
-                </div>
-                <span class="relic-card__games nf-mono">{{ o.wins }} victorias en {{ o.games }} part.</span>
-              </div>
-            </div>
-          }
-        </div>
-      </section>
-    }
-
-    <!-- 5. RADAR PENTAGONAL + SATÉLITES -->
-    @if (showSection('all') || showSection('opt5')) {
-      <section class="test-section">
-        <div class="test-section__header">
-          <span class="test-section__tag">OPCIÓN 5</span>
-          <h2 class="test-section__title">5. Radar Pentagonal + Fichas Satélite (Analítica Avanzada)</h2>
-          <p class="test-section__note">
-            Gráfico pentagonal interactivo de tela de araña que dibuja la huella global de control del equipo. Pasa el ratón por cualquier ficha para iluminar su vértice.
-          </p>
-        </div>
-
-        <div class="radar-layout">
-          <!-- Columna izquierda: Gráfico SVG de Radar -->
-          <div class="radar-box">
-            <svg class="radar-svg" viewBox="0 0 280 280">
-              <defs>
-                <radialGradient id="radarFillGrad" cx="50%" cy="50%" r="50%">
-                  <stop offset="0%" stop-color="var(--nf-primary)" stop-opacity="0.55" />
-                  <stop offset="100%" stop-color="var(--nf-secondary)" stop-opacity="0.15" />
-                </radialGradient>
-              </defs>
-
-              <!-- Mallas concéntricas de referencia (50% y 100%) -->
-              <circle cx="140" cy="140" r="47" class="radar-grid-circle" />
-              <circle cx="140" cy="140" r="95" class="radar-grid-circle" />
-              <polygon [attr.points]="radarData().outerPoints" class="radar-outer-poly" />
-
-              <!-- Ejes radiales -->
-              @for (p of radarData().points; track p.id) {
-                <line
-                  x1="140"
-                  y1="140"
-                  [attr.x2]="p.axisX"
-                  [attr.y2]="p.axisY"
-                  class="radar-axis"
-                />
+        <!-- Barra de selectores rápidos -->
+        <div class="c-config-bar">
+          <div class="c-config-col">
+            <span class="c-config-lbl">MVP (Piso 1):</span>
+            <div class="c-step-row">
+              @for (n of [1, 2, 3, 4, 5]; track n) {
+                <button type="button" class="c-step-btn" [class.is-active]="mvpVariant() === n" (click)="setVariant('mvp', n)">{{ n }}</button>
               }
-
-              <!-- Área poligonal de control rellena -->
-              <polygon [attr.points]="radarData().polygonPoints" class="radar-data-poly" fill="url(#radarFillGrad)" />
-
-              <!-- Vértices interactivos -->
-              @for (p of radarData().points; track p.id) {
-                <g
-                  class="radar-node"
-                  [class.is-hovered]="hoveredObjective() === p.id"
-                  (mouseenter)="setHovered(p.id)"
-                  (mouseleave)="setHovered(null)"
-                >
-                  <circle
-                    [attr.cx]="p.x"
-                    [attr.cy]="p.y"
-                    r="5"
-                    class="radar-node__dot"
-                  />
-                  <text
-                    [attr.x]="p.labelX"
-                    [attr.y]="p.labelY"
-                    class="radar-node__text nf-mono"
-                  >
-                    {{ p.winrate }}%
-                  </text>
-                </g>
-              }
-            </svg>
-            <span class="radar-box__caption">Huella de dominio táctico</span>
+            </div>
           </div>
 
-          <!-- Columna derecha: Fichas satélite interactivas -->
-          <div class="satellite-list">
-            @for (o of objectives; track o.id) {
-              <div
-                class="satellite-card"
-                [class.is-highlight]="hoveredObjective() === o.id"
-                [attr.data-impact]="o.impact"
-                (mouseenter)="setHovered(o.id)"
-                (mouseleave)="setHovered(null)"
-              >
-                <img
-                  class="satellite-card__icon"
-                  [src]="o.iconUrl"
-                  [alt]="o.label"
-                  width="36"
-                  height="36"
-                  loading="lazy"
-                  (error)="onIconError($event, o.id)"
-                />
-                <div class="satellite-card__main">
-                  <div class="satellite-card__row">
-                    <span class="satellite-card__name">{{ o.label }}</span>
-                    <span class="satellite-card__tag" [attr.data-impact]="o.impact">{{ o.impact }}</span>
-                  </div>
-                  <div class="satellite-card__row">
-                    <span class="satellite-card__sub nf-mono">{{ o.wins }}/{{ o.games }} victorias</span>
-                    <strong class="satellite-card__pct nf-mono">{{ o.winrate }}%</strong>
-                  </div>
-                </div>
+          <div class="c-config-col">
+            <span class="c-config-lbl">Menciones (Piso 1):</span>
+            <div class="c-step-row">
+              @for (n of [1, 2, 3, 4, 5]; track n) {
+                <button type="button" class="c-step-btn" [class.is-active]="honorsVariant() === n" (click)="setVariant('honors', n)">{{ n }}</button>
+              }
+            </div>
+          </div>
+
+          <div class="c-config-col">
+            <span class="c-config-lbl">ACE Púrpura (Piso 1):</span>
+            <div class="c-step-row">
+              @for (n of [1, 2, 3, 4, 5]; track n) {
+                <button type="button" class="c-step-btn" [class.is-active]="aceVariant() === n" (click)="setVariant('ace', n)">{{ n }}</button>
+              }
+            </div>
+          </div>
+
+          <div class="c-config-col">
+            <span class="c-config-lbl">Grieta (Piso 2):</span>
+            <div class="c-step-row">
+              @for (n of [1, 2, 3, 4, 5]; track n) {
+                <button type="button" class="c-step-btn" [class.is-active]="riftVariant() === n" (click)="setVariant('rift', n)">{{ n }}</button>
+              }
+            </div>
+          </div>
+
+          <div class="c-config-col">
+            <span class="c-config-lbl">Radar (Piso 2):</span>
+            <div class="c-step-row">
+              @for (n of [1, 2, 3, 4, 5]; track n) {
+                <button type="button" class="c-step-btn" [class.is-active]="radarVariant() === n" (click)="setVariant('radar', n)">{{ n }}</button>
+              }
+            </div>
+          </div>
+
+          <div class="c-config-col">
+            <span class="c-config-lbl">Ritmo (Piso 3):</span>
+            <div class="c-step-row">
+              @for (n of [1, 2, 3, 4, 5]; track n) {
+                <button type="button" class="c-step-btn" [class.is-active]="paceVariant() === n" (click)="setVariant('pace', n)">{{ n }}</button>
+              }
+            </div>
+          </div>
+
+          <div class="c-config-col">
+            <span class="c-config-lbl">Economía (Piso 3):</span>
+            <div class="c-step-row">
+              @for (n of [1, 2, 3, 4, 5]; track n) {
+                <button type="button" class="c-step-btn" [class.is-active]="economyVariant() === n" (click)="setVariant('economy', n)">{{ n }}</button>
+              }
+            </div>
+          </div>
+
+          <div class="c-config-col">
+            <span class="c-config-lbl">Visión (Piso 3):</span>
+            <div class="c-step-row">
+              @for (n of [1, 2, 3, 4, 5]; track n) {
+                <button type="button" class="c-step-btn" [class.is-active]="visionVariant() === n" (click)="setVariant('vision', n)">{{ n }}</button>
+              }
+            </div>
+          </div>
+        </div>
+
+        <!-- Render de los 3 Pisos -->
+        <div class="c-live-header">
+          <!-- PISO 1: MVP · Menciones · ACE -->
+          <div class="c-floor-badge">PISO 1 · CUADRO DE HONOR (MVP · MENCIONES · ACE)</div>
+          <div class="c-floor-grid-3">
+            <div class="c-slot">
+              <span class="c-slot-tag">MVP [V{{ mvpVariant() }}]</span>
+              @switch (mvpVariant()) {
+    @case (1) { <div class="c-card c-card--trophy">
+        <div class="c-row c-row--between"><span class="c-badge c-badge--gold"><svg viewBox="0 0 24 24" class="c-svg c-svg--gold"><path fill="currentColor" d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg> MVP</span><span class="c-score-pill nf-mono">NOTA {{ mvp.score }}</span></div>
+        <div class="c-row c-row--center">
+          <div class="c-avatar-wrap"><nf-avatar [src]="mvp.championIconUrl" [fallback]="mvp.championName" [size]="38" shape="square" /><span class="c-lvl-badge nf-mono">{{ mvp.championLevel }}</span></div>
+          <div class="c-col"><span class="c-name">{{ mvp.playerName }}</span><span class="c-sub">{{ mvp.role }} · {{ mvp.sideLabel }}</span></div>
+          <div class="c-col c-col--end"><span class="c-stat-main nf-mono">{{ mvp.kills }}/{{ mvp.deaths }}/{{ mvp.assists }}</span><span class="c-stat-sub nf-mono">{{ mvp.kdaRatio }} KDA</span></div>
+        </div>
+        <div class="c-bar-group"><div class="c-row c-row--between"><span class="c-stat-lbl">Daño infligido</span><strong class="c-stat-val nf-mono">{{ mvp.damage }} ({{ mvp.damageShare }}%)</strong></div><div class="c-bar-track"><div class="c-bar-fill c-bar-fill--gold" [style.width.%]="mvp.damageShare"></div></div></div>
+      </div> }
+    @case (2) { <div class="c-card c-card--telemetry">
+        <div class="c-row c-row--between"><div class="c-eyebrow"><span class="c-accent-bar c-accent-bar--gold"></span><span>MVP DE LA PARTIDA</span></div><span class="c-badge c-badge--gold nf-mono">#1</span></div>
+        <div class="c-row c-row--center"><div class="c-avatar-wrap"><nf-avatar [src]="mvp.championIconUrl" [fallback]="mvp.championName" [size]="32" shape="square" /><span class="c-lvl-badge nf-mono">{{ mvp.championLevel }}</span></div><span class="c-name">{{ mvp.playerName }}</span><span class="c-sub">{{ mvp.role }}</span></div>
+        <div class="c-kpi-grid"><div class="c-kpi-cell"><span class="c-stat-lbl">KDA</span><strong class="c-kpi-num nf-mono">{{ mvp.kdaRatio }}</strong></div><div class="c-kpi-cell"><span class="c-stat-lbl">DAÑO</span><strong class="c-kpi-num nf-mono">{{ mvp.damage }}</strong></div><div class="c-kpi-cell c-kpi-cell--highlight"><span class="c-stat-lbl">NOTA</span><strong class="c-kpi-num nf-mono">{{ mvp.score }}</strong></div></div>
+      </div> }
+    @case (3) { <div class="c-card c-card--honor">
+        <div class="c-badge c-badge--gold"><svg viewBox="0 0 24 24" class="c-svg c-svg--gold"><path fill="currentColor" d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg> MVP</div>
+        <div class="c-avatar-wrap"><nf-avatar [src]="mvp.championIconUrl" [fallback]="mvp.championName" [size]="44" shape="square" /><span class="c-lvl-badge nf-mono">{{ mvp.championLevel }}</span></div>
+        <span class="c-name">{{ mvp.playerName }}</span>
+        <span class="c-sub">{{ mvp.championName }} · {{ mvp.role }}</span>
+        <div class="c-kpi-dual"><div class="c-col"><span class="c-stat-lbl">KDA</span><span class="c-kpi-num nf-mono">{{ mvp.kdaRatio }}</span></div><div class="c-divider-v"></div><div class="c-col"><span class="c-stat-lbl">NOTA</span><span class="c-kpi-num c-text--gold nf-mono">{{ mvp.score }}</span></div></div>
+      </div> }
+    @case (4) { <div class="c-card c-card--split">
+        <div class="c-split-side">
+          <span class="c-badge c-badge--gold">MVP PARTIDA</span>
+          <div class="c-row c-row--center"><div class="c-avatar-wrap"><nf-avatar [src]="mvp.championIconUrl" [fallback]="mvp.championName" [size]="32" shape="square" /><span class="c-lvl-badge nf-mono">{{ mvp.championLevel }}</span></div><div class="c-col"><span class="c-name">{{ mvp.playerName }}</span><span class="c-sub">{{ mvp.role }}</span></div></div>
+        </div>
+        <div class="c-divider-v"></div>
+        <div class="c-split-side c-col--center"><div class="c-score-giant nf-mono">{{ mvp.score }}</div><span class="c-stat-sub nf-mono">{{ mvp.kdaRatio }} KDA</span></div>
+      </div> }
+    @case (5) { <div class="c-card c-card--dense">
+        <div class="c-row c-row--between">
+          <div class="c-row c-row--center"><span class="c-dot-pill c-dot-pill--gold">● MVP</span><span class="c-name">{{ mvp.playerName }}</span><span class="c-badge c-badge--dim nf-mono">{{ mvp.role }}</span></div>
+          <span class="c-badge c-badge--gold nf-mono">★ {{ mvp.score }}</span>
+        </div>
+        <div class="c-data-inline nf-mono"><span>{{ mvp.kills }}/{{ mvp.deaths }}/{{ mvp.assists }}</span><span class="c-dot-sep">·</span><span>{{ mvp.damage }}</span></div>
+      </div> }
+  }
+            </div>
+
+            <div class="c-slot">
+              <span class="c-slot-tag">MENCIONES [V{{ honorsVariant() }}]</span>
+              @switch (honorsVariant()) {
+    @case (1) { <div class="c-card c-card--surface">
+        <div class="c-row c-row--between"><span class="c-badge c-badge--dim">MENCIONES DE HONOR</span><span class="c-stat-lbl">4 DESTACADOS</span></div>
+        <div class="c-grid-4">
+          @for (h of honors; track h.id) {
+            <div class="c-medallion c-medallion--{{ h.color }}" [class.is-hovered]="hoveredHonorId() === h.id" (mouseenter)="hoveredHonorId.set(h.id)" (mouseleave)="hoveredHonorId.set(null)">
+              <div class="c-icon-circle">@if (h.id === 'damage') { <svg viewBox="0 0 24 24" class="c-svg c-svg--crimson"><path fill="currentColor" d="M19 3l-4 4 1.5 1.5 4-4L19 3zm-7.5 7.5l-6 6V21h4.5l6-6-4.5-4.5zM3 19l4-4 1.5 1.5-4 4L3 19zm14.5-8.5l-3-3L16 6l3 3-1.5 1.5z"/></svg> } @else if (h.id === 'tank') { <svg viewBox="0 0 24 24" class="c-svg c-svg--cyan"><path fill="currentColor" d="M12 2L4 5v6.09c0 5.05 3.41 9.76 8 10.91 4.59-1.15 8-5.86 8-10.91V5l-8-3zm0 2.18l6 2.25v4.66c0 4.09-2.67 7.9-6 8.91-3.33-1.01-6-4.82-6-8.91V6.43l6-2.25z"/></svg> } @else if (h.id === 'vision') { <svg viewBox="0 0 24 24" class="c-svg c-svg--emerald"><path fill="currentColor" d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg> } @else { <svg viewBox="0 0 24 24" class="c-svg c-svg--indigo"><path fill="currentColor" d="M12 2L4 9l8 13 8-13-8-7zm0 3.2L17.5 9 12 18 6.5 9 12 5.2z"/></svg> }</div>
+              <span class="c-medallion-title">{{ h.title }}</span>
+              <strong class="c-medallion-val nf-mono">{{ h.val }}</strong>
+              <span class="c-sub">{{ h.player }}</span>
+              <div class="c-medallion-sub-pill">{{ h.sub }}</div>
+            </div>
+          }
+        </div>
+      </div> }
+    @case (2) { <div class="c-card c-card--surface">
+        <div class="c-eyebrow"><span class="c-accent-bar c-accent-bar--cyan"></span><span>HITOS DE LA PARTIDA</span></div>
+        <div class="c-grid-2x2">
+          @for (h of honors; track h.id) {
+            <div class="c-kpi-cell c-kpi-cell--{{ h.color }}">
+              <div class="c-row c-row--between"><span class="c-stat-lbl">{{ h.title }}</span><strong class="c-kpi-num nf-mono">{{ h.val }}</strong></div>
+              <div class="c-row c-row--between"><span class="c-sub">{{ h.player }} ({{ h.champ }})</span><span class="c-stat-lbl nf-mono">{{ h.pct }}% cuota</span></div>
+              <div class="c-bar-track"><div class="c-bar-fill c-bar-fill--{{ h.color }}" [style.width.%]="h.pct"></div></div>
+            </div>
+          }
+        </div>
+      </div> }
+    @case (3) { <div class="c-card c-card--surface">
+        <div class="c-row c-row--between"><span class="c-stat-lbl">ACORDEÓN DINÁMICO</span><span class="c-sub">Hover para expandir</span></div>
+        <div class="c-acc-row">
+          @for (h of honors; track h.id) {
+            <div class="c-acc-card c-acc-card--{{ h.color }}" [class.is-expanded]="hoveredHonorId() === h.id" (mouseenter)="hoveredHonorId.set(h.id)" (mouseleave)="hoveredHonorId.set(null)">
+              <div class="c-row c-row--between">
+                <div class="c-icon-circle">@if (h.id === 'damage') { <svg viewBox="0 0 24 24" class="c-svg c-svg--crimson"><path fill="currentColor" d="M19 3l-4 4 1.5 1.5 4-4L19 3zm-7.5 7.5l-6 6V21h4.5l6-6-4.5-4.5zM3 19l4-4 1.5 1.5-4 4L3 19zm14.5-8.5l-3-3L16 6l3 3-1.5 1.5z"/></svg> } @else if (h.id === 'tank') { <svg viewBox="0 0 24 24" class="c-svg c-svg--cyan"><path fill="currentColor" d="M12 2L4 5v6.09c0 5.05 3.41 9.76 8 10.91 4.59-1.15 8-5.86 8-10.91V5l-8-3zm0 2.18l6 2.25v4.66c0 4.09-2.67 7.9-6 8.91-3.33-1.01-6-4.82-6-8.91V6.43l6-2.25z"/></svg> } @else if (h.id === 'vision') { <svg viewBox="0 0 24 24" class="c-svg c-svg--emerald"><path fill="currentColor" d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg> } @else { <svg viewBox="0 0 24 24" class="c-svg c-svg--indigo"><path fill="currentColor" d="M12 2L4 9l8 13 8-13-8-7zm0 3.2L17.5 9 12 18 6.5 9 12 5.2z"/></svg> }</div>
+                <strong class="c-acc-val nf-mono">{{ h.val }}</strong>
               </div>
-            }
+              <span class="c-name">{{ h.player }}</span>
+              <span class="c-acc-title">{{ h.title }}</span>
+              @if (hoveredHonorId() === h.id) {
+                <div class="c-acc-detail"><span class="c-sub">{{ h.champ }}</span><span class="c-stat-lbl">{{ h.sub }}</span></div>
+              }
+            </div>
+          }
+        </div>
+      </div> }
+    @case (4) { <div class="c-card c-card--surface">
+        <div class="c-grid-4">
+          @for (h of honors; track h.id) {
+            <div class="c-pillar-box">
+              <strong class="c-pillar-val nf-mono">{{ h.val }}</strong>
+              <div class="c-pillar-tube"><div class="c-pillar-fill c-pillar-fill--{{ h.color }}" [style.height.%]="h.pct"></div></div>
+              <span class="c-pillar-icon">@if (h.id === 'damage') { <svg viewBox="0 0 24 24" class="c-svg c-svg--crimson"><path fill="currentColor" d="M19 3l-4 4 1.5 1.5 4-4L19 3zm-7.5 7.5l-6 6V21h4.5l6-6-4.5-4.5zM3 19l4-4 1.5 1.5-4 4L3 19zm14.5-8.5l-3-3L16 6l3 3-1.5 1.5z"/></svg> } @else if (h.id === 'tank') { <svg viewBox="0 0 24 24" class="c-svg c-svg--cyan"><path fill="currentColor" d="M12 2L4 5v6.09c0 5.05 3.41 9.76 8 10.91 4.59-1.15 8-5.86 8-10.91V5l-8-3zm0 2.18l6 2.25v4.66c0 4.09-2.67 7.9-6 8.91-3.33-1.01-6-4.82-6-8.91V6.43l6-2.25z"/></svg> } @else if (h.id === 'vision') { <svg viewBox="0 0 24 24" class="c-svg c-svg--emerald"><path fill="currentColor" d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg> } @else { <svg viewBox="0 0 24 24" class="c-svg c-svg--indigo"><path fill="currentColor" d="M12 2L4 9l8 13 8-13-8-7zm0 3.2L17.5 9 12 18 6.5 9 12 5.2z"/></svg> }</span>
+              <span class="c-pillar-name">{{ h.player }}</span>
+              <span class="c-sub">{{ h.metric }}</span>
+            </div>
+          }
+        </div>
+      </div> }
+    @case (5) { <div class="c-card c-card--dense">
+        <div class="c-chips-wrap">
+          @for (h of honors; track h.id) {
+            <div class="c-chip-badge c-chip-badge--{{ h.color }}">
+              <span class="c-dot-pip c-dot-pip--{{ h.color }}"></span>
+              <span class="c-cell-icon">@if (h.id === 'damage') { <svg viewBox="0 0 24 24" class="c-svg c-svg--crimson"><path fill="currentColor" d="M19 3l-4 4 1.5 1.5 4-4L19 3zm-7.5 7.5l-6 6V21h4.5l6-6-4.5-4.5zM3 19l4-4 1.5 1.5-4 4L3 19zm14.5-8.5l-3-3L16 6l3 3-1.5 1.5z"/></svg> } @else if (h.id === 'tank') { <svg viewBox="0 0 24 24" class="c-svg c-svg--cyan"><path fill="currentColor" d="M12 2L4 5v6.09c0 5.05 3.41 9.76 8 10.91 4.59-1.15 8-5.86 8-10.91V5l-8-3zm0 2.18l6 2.25v4.66c0 4.09-2.67 7.9-6 8.91-3.33-1.01-6-4.82-6-8.91V6.43l6-2.25z"/></svg> } @else if (h.id === 'vision') { <svg viewBox="0 0 24 24" class="c-svg c-svg--emerald"><path fill="currentColor" d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg> } @else { <svg viewBox="0 0 24 24" class="c-svg c-svg--indigo"><path fill="currentColor" d="M12 2L4 9l8 13 8-13-8-7zm0 3.2L17.5 9 12 18 6.5 9 12 5.2z"/></svg> }</span>
+              <span class="c-name">{{ h.player }}:</span>
+              <strong class="nf-mono">{{ h.val }}</strong>
+              <span class="c-sub">({{ h.metric }})</span>
+            </div>
+          }
+        </div>
+      </div> }
+  }
+            </div>
+
+            <div class="c-slot">
+              <span class="c-slot-tag">ACE PÚRPURA [V{{ aceVariant() }}]</span>
+              @switch (aceVariant()) {
+    @case (1) { <div class="c-card c-card--purple-glow">
+        <div class="c-row c-row--between"><span class="c-badge c-badge--purple"><svg viewBox="0 0 24 24" class="c-svg c-svg--purple"><path fill="currentColor" d="M12 2L3 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5zm0 2.8l7 3.9v4.3c0 4.2-2.9 8.1-7 9.2-4.1-1.1-7-5-7-9.2V8.7l7-3.9z"/></svg> SVP</span><span class="c-score-pill c-score-pill--purple nf-mono">NOTA {{ ace.score }}</span></div>
+        <div class="c-row c-row--center">
+          <div class="c-avatar-wrap"><nf-avatar [src]="ace.championIconUrl" [fallback]="ace.championName" [size]="38" shape="square" /><span class="c-lvl-badge nf-mono">{{ ace.championLevel }}</span></div>
+          <div class="c-col"><span class="c-name">{{ ace.playerName }}</span><span class="c-sub">{{ ace.role }} · {{ ace.sideLabel }}</span></div>
+          <div class="c-col c-col--end"><span class="c-stat-main nf-mono">{{ ace.kills }}/{{ ace.deaths }}/{{ ace.assists }}</span><span class="c-stat-sub c-text--purple nf-mono">{{ ace.kdaRatio }} KDA</span></div>
+        </div>
+        <div class="c-bar-group"><div class="c-row c-row--between"><span class="c-stat-lbl">Daño infligido</span><strong class="c-stat-val nf-mono">{{ ace.damage }} ({{ ace.damageShare }}%)</strong></div><div class="c-bar-track"><div class="c-bar-fill c-bar-fill--purple" [style.width.%]="ace.damageShare"></div></div></div>
+      </div> }
+    @case (2) { <div class="c-card c-card--telemetry-purple">
+        <div class="c-row c-row--between"><div class="c-eyebrow"><span class="c-accent-bar c-accent-bar--purple"></span><span>ACE / MEJOR DERROTADO</span></div><span class="c-badge c-badge--purple nf-mono">#1 ROJO</span></div>
+        <div class="c-row c-row--center"><div class="c-avatar-wrap"><nf-avatar [src]="ace.championIconUrl" [fallback]="ace.championName" [size]="32" shape="square" /><span class="c-lvl-badge nf-mono">{{ ace.championLevel }}</span></div><span class="c-name">{{ ace.playerName }}</span><span class="c-sub">{{ ace.role }}</span></div>
+        <div class="c-kpi-grid"><div class="c-kpi-cell"><span class="c-stat-lbl">KDA</span><strong class="c-kpi-num nf-mono">{{ ace.kdaRatio }}</strong></div><div class="c-kpi-cell"><span class="c-stat-lbl">DAÑO</span><strong class="c-kpi-num nf-mono">{{ ace.damage }}</strong></div><div class="c-kpi-cell c-kpi-cell--purple"><span class="c-stat-lbl">NOTA</span><strong class="c-kpi-num nf-mono">{{ ace.score }}</strong></div></div>
+      </div> }
+    @case (3) { <div class="c-card c-card--honor-purple">
+        <div class="c-badge c-badge--purple"><svg viewBox="0 0 24 24" class="c-svg c-svg--purple"><path fill="currentColor" d="M12 2L3 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5zm0 2.8l7 3.9v4.3c0 4.2-2.9 8.1-7 9.2-4.1-1.1-7-5-7-9.2V8.7l7-3.9z"/></svg> EL ÚLTIMO EN CAER</div>
+        <div class="c-avatar-wrap"><nf-avatar [src]="ace.championIconUrl" [fallback]="ace.championName" [size]="44" shape="square" /><span class="c-lvl-badge nf-mono">{{ ace.championLevel }}</span></div>
+        <span class="c-name">{{ ace.playerName }}</span>
+        <span class="c-sub">{{ ace.championName }} · {{ ace.role }}</span>
+        <div class="c-kpi-dual"><div class="c-col"><span class="c-stat-lbl">KDA</span><span class="c-kpi-num nf-mono">{{ ace.kdaRatio }}</span></div><div class="c-divider-v"></div><div class="c-col"><span class="c-stat-lbl">NOTA</span><span class="c-kpi-num c-text--purple nf-mono">{{ ace.score }}</span></div></div>
+      </div> }
+    @case (4) { <div class="c-card c-card--split">
+        <div class="c-split-side">
+          <span class="c-badge c-badge--purple">ACE DERROTADO</span>
+          <div class="c-row c-row--center"><div class="c-avatar-wrap"><nf-avatar [src]="ace.championIconUrl" [fallback]="ace.championName" [size]="32" shape="square" /><span class="c-lvl-badge nf-mono">{{ ace.championLevel }}</span></div><div class="c-col"><span class="c-name">{{ ace.playerName }}</span><span class="c-sub">{{ ace.role }}</span></div></div>
+        </div>
+        <div class="c-divider-v"></div>
+        <div class="c-split-side c-col--center"><div class="c-score-giant c-text--purple nf-mono">{{ ace.score }}</div><span class="c-stat-sub nf-mono">{{ ace.kdaRatio }} KDA</span></div>
+      </div> }
+    @case (5) { <div class="c-card c-card--dense">
+        <div class="c-row c-row--between">
+          <div class="c-row c-row--center"><span class="c-dot-pill c-dot-pill--purple">● SVP</span><span class="c-name">{{ ace.playerName }}</span><span class="c-badge c-badge--dim nf-mono">{{ ace.role }}</span></div>
+          <span class="c-badge c-badge--purple nf-mono">★ {{ ace.score }}</span>
+        </div>
+        <div class="c-data-inline nf-mono"><span>{{ ace.kills }}/{{ ace.deaths }}/{{ ace.assists }}</span><span class="c-dot-sep">·</span><span>{{ ace.damage }}</span></div>
+      </div> }
+  }
+            </div>
+          </div>
+
+          <!-- PISO 2: Grieta · Radar -->
+          <div class="c-floor-badge">PISO 2 · TÁCTICA Y MAPA (GRIETA · RADAR)</div>
+          <div class="c-floor-grid-2">
+            <div class="c-slot">
+              <span class="c-slot-tag">DOMINIO DE LA GRIETA [V{{ riftVariant() }}]</span>
+              @switch (riftVariant()) {
+    @case (1) { <div class="c-card c-card--surface">
+        <div class="c-row c-row--between"><span class="c-badge c-badge--blue">AZUL 20</span><span class="c-stat-lbl">CONTROL DE OBJETIVOS (87% vs 13%)</span><span class="c-badge c-badge--ruby">ROJO 3</span></div>
+        <div class="c-bar-track"><div class="c-bar-fill c-bar-fill--blue" style="width: 87%"></div></div>
+        <div class="c-col">
+          @for (obj of objectives; track obj.id) {
+            <div class="c-row c-row--between c-list-item" (mouseenter)="hoveredObjectiveId.set(obj.id)" (mouseleave)="hoveredObjectiveId.set(null)" [class.is-hovered]="hoveredObjectiveId() === obj.id">
+              <div class="c-row c-row--center"><img [src]="obj.icon" [alt]="obj.name" class="c-obj-img" /><span class="c-name">{{ obj.name }}</span></div>
+              <div class="c-row c-row--center nf-mono"><span class="c-badge c-badge--blue">{{ obj.blueScore }}</span><span class="c-dot-sep">-</span><span class="c-badge c-badge--ruby">{{ obj.redScore }}</span></div>
+            </div>
+          }
+        </div>
+      </div> }
+    @case (2) { <div class="c-card c-card--telemetry">
+        <div class="c-eyebrow"><span class="c-accent-bar c-accent-bar--gold"></span><span>DESGLOSE TÁCTICO</span></div>
+        <div class="c-kpi-grid">
+          @for (obj of objectives; track obj.id) {
+            <div class="c-kpi-cell">
+              <div class="c-row c-row--center"><img [src]="obj.icon" [alt]="obj.name" class="c-obj-img" /><span class="c-stat-lbl">{{ obj.name }}</span></div>
+              <div class="c-row c-row--between nf-mono"><strong class="c-text--blue">{{ obj.blueScore }}</strong><span class="c-dot-sep">vs</span><strong class="c-text--ruby">{{ obj.redScore }}</strong></div>
+            </div>
+          }
+        </div>
+      </div> }
+    @case (3) { <div class="c-card c-card--split">
+        <div class="c-split-side c-col--center"><span class="c-badge c-badge--blue">EQUIPO AZUL</span><span class="c-score-giant c-text--blue nf-mono">20</span><span class="c-sub">Objetivos</span></div>
+        <div class="c-divider-v"></div>
+        <div class="c-split-side c-col--center"><span class="c-badge c-badge--ruby">EQUIPO ROJO</span><span class="c-score-giant c-text--ruby nf-mono">3</span><span class="c-sub">Objetivos</span></div>
+      </div> }
+    @case (4) { <div class="c-card c-card--dense">
+        <div class="c-chips-wrap">
+          @for (obj of objectives; track obj.id) {
+            <div class="c-chip-badge"><img [src]="obj.icon" [alt]="obj.name" class="c-obj-img" /><span class="c-name">{{ obj.name }}:</span><strong class="c-text--blue nf-mono">{{ obj.blueScore }}</strong><span class="c-dot-sep">/</span><strong class="c-text--ruby nf-mono">{{ obj.redScore }}</strong></div>
+          }
+        </div>
+      </div> }
+    @case (5) { <div class="c-card c-card--dense">
+        <div class="c-row c-row--between"><span class="c-stat-lbl">CONTROL TOTAL</span><span class="c-badge c-badge--blue nf-mono">DOMINIO AZUL (87%)</span></div>
+        <div class="c-data-inline nf-mono"><span>Dragones 4-1</span><span class="c-dot-sep">·</span><span>Larvas 6-0</span><span class="c-dot-sep">·</span><span>Heraldo 1-0</span><span class="c-dot-sep">·</span><span>Barón 1-0</span><span class="c-dot-sep">·</span><span>Torres 8-2</span></div>
+      </div> }
+  }
+            </div>
+
+            <div class="c-slot">
+              <span class="c-slot-tag">RADAR PENTAGONAL [V{{ radarVariant() }}]</span>
+              @switch (radarVariant()) {
+    @case (1) { <div class="c-card c-card--surface c-col--center">
+        <div class="c-row c-row--between" style="width: 100%"><span class="c-badge c-badge--blue">AZUL</span><span class="c-stat-lbl">HUELLA TÁCTICA</span><span class="c-badge c-badge--ruby">ROJO</span></div>
+        <svg viewBox="0 0 200 200" class="c-radar-svg">
+          <polygon points="100,20 176,75 147,165 53,165 24,75" class="c-radar-grid" />
+          <polygon points="100,50 148,85 130,141 70,141 52,85" class="c-radar-grid" />
+          <polygon points="100,80 120,95 113,117 87,117 80,95" class="c-radar-grid" />
+          <polygon points="100,36 176,75 147,165 53,165 39,80" class="c-radar-blue" />
+          <polygon points="100,84 115,90 109,113 91,113 85,90" class="c-radar-red" />
+          <circle cx="100" cy="36" r="4" class="c-radar-node" (mouseenter)="hoveredRadarAxis.set('dragons')" (mouseleave)="hoveredRadarAxis.set(null)" />
+          <circle cx="176" cy="75" r="4" class="c-radar-node" (mouseenter)="hoveredRadarAxis.set('grubs')" (mouseleave)="hoveredRadarAxis.set(null)" />
+          <circle cx="147" cy="165" r="4" class="c-radar-node" (mouseenter)="hoveredRadarAxis.set('herald')" (mouseleave)="hoveredRadarAxis.set(null)" />
+          <circle cx="53" cy="165" r="4" class="c-radar-node" (mouseenter)="hoveredRadarAxis.set('baron')" (mouseleave)="hoveredRadarAxis.set(null)" />
+          <circle cx="39" cy="80" r="4" class="c-radar-node" (mouseenter)="hoveredRadarAxis.set('towers')" (mouseleave)="hoveredRadarAxis.set(null)" />
+        </svg>
+        <div class="c-sub nf-mono">@if (hoveredRadarAxis(); as h) { <strong class="c-text--gold">{{ h.toUpperCase() }} ACTIVO</strong> } @else { Pasa el ratón por los vértices }</div>
+      </div> }
+    @case (2) { <div class="c-card c-card--telemetry">
+        <div class="c-eyebrow"><span class="c-accent-bar c-accent-bar--gold"></span><span>COMPARATIVA MIRROR</span></div>
+        <div class="c-col">
+          @for (m of radarMetrics; track m.label) {
+            <div class="c-row c-row--between c-mirror-row">
+              <span class="c-stat-lbl c-text--blue nf-mono">{{ m.blue }}%</span>
+              <span class="c-name">{{ m.label }}</span>
+              <span class="c-stat-lbl c-text--ruby nf-mono">{{ m.red }}%</span>
+            </div>
+          }
+        </div>
+      </div> }
+    @case (3) { <div class="c-card c-card--surface c-col--center">
+        <div class="c-badge c-badge--blue">CONTROL GLOBAL</div>
+        <div class="c-score-giant c-text--blue nf-mono">78%</div>
+        <span class="c-sub">Dominio del Equipo Azul</span>
+        <div class="c-bar-track"><div class="c-bar-fill c-bar-fill--blue" style="width: 78%"></div></div>
+      </div> }
+    @case (4) { <div class="c-card c-card--telemetry">
+        <div class="c-col">
+          @for (m of radarMetrics; track m.label) {
+            <div class="c-col">
+              <div class="c-row c-row--between"><span class="c-stat-lbl">{{ m.label }}</span><span class="c-stat-sub nf-mono">{{ m.blue }}% vs {{ m.red }}%</span></div>
+              <div class="c-bar-track"><div class="c-bar-fill c-bar-fill--blue" [style.width.%]="m.blue"></div></div>
+            </div>
+          }
+        </div>
+      </div> }
+    @case (5) { <div class="c-card c-card--dense">
+        <div class="c-col">
+          @for (m of radarMetrics; track m.label) {
+            <div class="c-row c-row--between c-list-item"><span class="c-name">{{ m.label }}</span><span class="c-badge c-badge--blue nf-mono">Azul +{{ m.blue - m.red }}%</span></div>
+          }
+        </div>
+      </div> }
+  }
+            </div>
+          </div>
+
+          <!-- PISO 3: Ritmo · Economía · Visión -->
+          <div class="c-floor-badge">PISO 3 · MÉTRICAS DE COMBATE (RITMO · ECONOMÍA · VISIÓN)</div>
+          <div class="c-floor-grid-3">
+            <div class="c-slot">
+              <span class="c-slot-tag">RITMO [V{{ paceVariant() }}]</span>
+              @switch (paceVariant()) {
+    @case (1) { <div class="c-card c-card--surface">
+        <div class="c-row c-row--between"><span class="c-badge c-badge--dim"><svg viewBox="0 0 24 24" class="c-svg"><path fill="currentColor" d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg> TIEMPO</span><span class="c-score-pill nf-mono">2.0 KILLS/MIN</span></div>
+        <span class="c-score-giant nf-mono">{{ pace.duration }}</span>
+        <div class="c-row c-row--between c-list-item"><span class="c-stat-lbl"><svg viewBox="0 0 24 24" class="c-svg c-svg--crimson"><path fill="currentColor" d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg> Primera Sangre:</span><strong class="c-stat-val nf-mono">{{ pace.fbPlayer }} @ {{ pace.fbTime }}</strong></div>
+      </div> }
+    @case (2) { <div class="c-card c-card--telemetry">
+        <div class="c-eyebrow"><span class="c-accent-bar c-accent-bar--gold"></span><span>CADENCIA</span></div>
+        <div class="c-kpi-grid">
+          <div class="c-kpi-cell"><span class="c-stat-lbl">DURACIÓN</span><strong class="c-kpi-num nf-mono">{{ pace.duration }}</strong></div>
+          <div class="c-kpi-cell"><span class="c-stat-lbl">KILLS/MIN</span><strong class="c-kpi-num nf-mono">{{ pace.killsPerMin }}</strong></div>
+          <div class="c-kpi-cell"><span class="c-stat-lbl">FB</span><strong class="c-kpi-num nf-mono">{{ pace.fbTime }}</strong></div>
+        </div>
+      </div> }
+    @case (3) { <div class="c-card c-card--surface">
+        <div class="c-row c-row--between" style="width: 100%">
+          <div class="c-col"><span class="c-stat-lbl">0:00</span><span class="c-sub">Inicio</span></div>
+          <div class="c-col"><span class="c-stat-lbl">2:48</span><span class="c-text--crimson"><svg viewBox="0 0 24 24" class="c-svg c-svg--crimson"><path fill="currentColor" d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg> FB {{ pace.fbPlayer }}</span></div>
+          <div class="c-col"><span class="c-stat-lbl">31:24</span><span class="c-text--blue">Victoria Azul</span></div>
+        </div>
+        <div class="c-bar-track"><div class="c-bar-fill c-bar-fill--blue" style="width: 100%"></div></div>
+      </div> }
+    @case (4) { <div class="c-card c-card--split">
+        <div class="c-split-side c-col--center"><span class="c-stat-lbl">DURACIÓN</span><span class="c-score-giant nf-mono">{{ pace.duration }}</span></div>
+        <div class="c-divider-v"></div>
+        <div class="c-split-side c-col--center"><span class="c-stat-lbl">INTENSIDAD</span><span class="c-score-giant c-text--blue nf-mono">{{ pace.killsPerMin }}</span><span class="c-sub">k/min</span></div>
+      </div> }
+    @case (5) { <div class="c-card c-card--dense">
+        <div class="c-data-inline nf-mono"><span><svg viewBox="0 0 24 24" class="c-svg"><path fill="currentColor" d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg> {{ pace.duration }}</span><span class="c-dot-sep">·</span><span>{{ pace.killsPerMin }} k/min ({{ pace.totalKills }} kills)</span><span class="c-dot-sep">·</span><span>FB: {{ pace.fbPlayer }} ({{ pace.fbTime }})</span></div>
+      </div> }
+  }
+            </div>
+
+            <div class="c-slot">
+              <span class="c-slot-tag">ECONOMÍA [V{{ economyVariant() }}]</span>
+              @switch (economyVariant()) {
+    @case (1) { <div class="c-card c-card--surface">
+        <div class="c-row c-row--between">
+          <span class="c-badge c-badge--gold"><svg viewBox="0 0 24 24" class="c-svg c-svg--gold"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 14h-2v-2h2v2zm0-4h-2V7h2v5z"/></svg> ORO</span>
+          <div class="c-step-row">
+            <button type="button" class="c-step-btn" [class.is-active]="activeEconomyPhase() === 'final'" (click)="setEconomyPhase('final')">Final (+4.3k)</button>
+            <button type="button" class="c-step-btn" [class.is-active]="activeEconomyPhase() === '14min'" (click)="setEconomyPhase('14min')">Min 14 (+900g)</button>
+          </div>
+        </div>
+        <div class="c-bar-group">
+          <div class="c-row c-row--between">
+            <span class="c-stat-lbl c-text--blue">Azul {{ activeEconomyPhase() === 'final' ? economy.blueTotal : economy.blue14 }}</span>
+            <span class="c-stat-lbl c-text--ruby">Rojo {{ activeEconomyPhase() === 'final' ? economy.redTotal : economy.red14 }}</span>
+          </div>
+          <div class="c-bar-track"><div class="c-bar-fill c-bar-fill--blue" [style.width.%]="activeEconomyPhase() === 'final' ? economy.bluePct : 53"></div></div>
+        </div>
+        <div class="c-row c-row--between c-list-item"><span class="c-stat-lbl">Ventaja de oro activa:</span><strong class="c-stat-val c-text--blue nf-mono">{{ activeEconomyPhase() === 'final' ? economy.leadTotal : economy.lead14 }}</strong></div>
+      </div> }
+    @case (2) { <div class="c-card c-card--telemetry">
+        <div class="c-eyebrow"><span class="c-accent-bar c-accent-bar--gold"></span><span>FINANZAS</span></div>
+        <div class="c-kpi-grid">
+          <div class="c-kpi-cell"><span class="c-stat-lbl">FINAL</span><strong class="c-kpi-num nf-mono">{{ economy.leadTotal }}</strong></div>
+          <div class="c-kpi-cell"><span class="c-stat-lbl">@14 MIN</span><strong class="c-kpi-num nf-mono">{{ economy.lead14 }}</strong></div>
+          <div class="c-kpi-cell"><span class="c-stat-lbl">CUOTA</span><strong class="c-kpi-num nf-mono">{{ economy.bluePct }}%</strong></div>
+        </div>
+      </div> }
+    @case (3) { <div class="c-card c-card--split">
+        <div class="c-split-side c-col--center"><span class="c-stat-lbl">FASE DE LÍNEAS (14m)</span><span class="c-score-giant c-text--blue nf-mono">{{ economy.lead14 }}</span><span class="c-sub">{{ economy.blue14 }} vs {{ economy.red14 }}</span></div>
+        <div class="c-divider-v"></div>
+        <div class="c-split-side c-col--center"><span class="c-stat-lbl">FINAL DE PARTIDA</span><span class="c-score-giant c-text--blue nf-mono">{{ economy.leadTotal }}</span><span class="c-sub">{{ economy.blueTotal }} vs {{ economy.redTotal }}</span></div>
+      </div> }
+    @case (4) { <div class="c-card c-card--surface c-col--center">
+        <span class="c-badge c-badge--blue">VENTAJA NETA AZUL</span>
+        <div class="c-score-giant c-text--blue nf-mono">{{ economy.leadTotal }}</div>
+        <div class="c-bar-track"><div class="c-bar-fill c-bar-fill--blue" [style.width.%]="economy.bluePct"></div></div>
+      </div> }
+    @case (5) { <div class="c-card c-card--dense">
+        <div class="c-data-inline nf-mono"><span><svg viewBox="0 0 24 24" class="c-svg c-svg--gold"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 14h-2v-2h2v2zm0-4h-2V7h2v5z"/></svg> Ventaja: {{ economy.leadTotal }}</span><span class="c-dot-sep">·</span><span>Final: {{ economy.blueTotal }}-{{ economy.redTotal }}</span><span class="c-dot-sep">·</span><span>@14m: {{ economy.lead14 }}</span></div>
+      </div> }
+  }
+            </div>
+
+            <div class="c-slot">
+              <span class="c-slot-tag">VISIÓN [V{{ visionVariant() }}]</span>
+              @switch (visionVariant()) {
+    @case (1) { <div class="c-card c-card--surface">
+        <div class="c-row c-row--between"><span class="c-badge c-badge--cyan"><svg viewBox="0 0 24 24" class="c-svg c-svg--cyan"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm1-13h-2v4h2V7zm0 6h-2v4h2v-4z"/></svg> VISIÓN</span><span class="c-score-pill nf-mono">+{{ vision.blueScore - vision.redScore }} PTS</span></div>
+        <div class="c-bar-group"><div class="c-row c-row--between"><span class="c-stat-lbl c-text--blue">Azul {{ vision.blueScore }} pts</span><span class="c-stat-lbl c-text--ruby">Rojo {{ vision.redScore }} pts</span></div><div class="c-bar-track"><div class="c-bar-fill c-bar-fill--cyan" style="width: 59%"></div></div></div>
+        <div class="c-col">
+          <div class="c-row c-row--between c-list-item"><span class="c-stat-lbl">Wards colocados:</span><strong class="c-stat-val nf-mono">{{ vision.placedBlue }} vs {{ vision.placedRed }}</strong></div>
+          <div class="c-row c-row--between c-list-item"><span class="c-stat-lbl">Wards destruidos:</span><strong class="c-stat-val nf-mono">{{ vision.killedBlue }} vs {{ vision.killedRed }}</strong></div>
+        </div>
+      </div> }
+    @case (2) { <div class="c-card c-card--telemetry">
+        <div class="c-eyebrow"><span class="c-accent-bar c-accent-bar--gold"></span><span>CONTROL VISIÓN</span></div>
+        <div class="c-kpi-grid">
+          <div class="c-kpi-cell"><span class="c-stat-lbl">PUNTOS</span><strong class="c-kpi-num nf-mono">{{ vision.blueScore }}-{{ vision.redScore }}</strong></div>
+          <div class="c-kpi-cell"><span class="c-stat-lbl">DESTRUIDOS</span><strong class="c-kpi-num nf-mono">{{ vision.killedBlue }}-{{ vision.killedRed }}</strong></div>
+          <div class="c-kpi-cell"><span class="c-stat-lbl">CONTROL</span><strong class="c-kpi-num nf-mono">{{ vision.controlBlue }}-{{ vision.controlRed }}</strong></div>
+        </div>
+      </div> }
+    @case (3) { <div class="c-card c-card--split">
+        <div class="c-split-side c-col--center"><span class="c-badge c-badge--blue">AZUL ({{ vision.blueScore }})</span><span class="c-score-giant c-text--blue nf-mono">{{ vision.placedBlue }}</span><span class="c-sub">wards puestos</span></div>
+        <div class="c-divider-v"></div>
+        <div class="c-split-side c-col--center"><span class="c-badge c-badge--ruby">ROJO ({{ vision.redScore }})</span><span class="c-score-giant c-text--ruby nf-mono">{{ vision.placedRed }}</span><span class="c-sub">wards puestos</span></div>
+      </div> }
+    @case (4) { <div class="c-card c-card--dense">
+        <div class="c-chips-wrap">
+          <div class="c-chip-badge"><span>Colocados:</span><strong class="c-text--blue nf-mono">{{ vision.placedBlue }}</strong>-<strong class="c-text--ruby nf-mono">{{ vision.placedRed }}</strong></div>
+          <div class="c-chip-badge"><span>Destruidos:</span><strong class="c-text--blue nf-mono">{{ vision.killedBlue }}</strong>-<strong class="c-text--ruby nf-mono">{{ vision.killedRed }}</strong></div>
+          <div class="c-chip-badge"><span>Control:</span><strong class="c-text--blue nf-mono">{{ vision.controlBlue }}</strong>-<strong class="c-text--ruby nf-mono">{{ vision.controlRed }}</strong></div>
+        </div>
+      </div> }
+    @case (5) { <div class="c-card c-card--dense">
+        <div class="c-data-inline nf-mono"><span><svg viewBox="0 0 24 24" class="c-svg c-svg--cyan"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm1-13h-2v4h2V7zm0 6h-2v4h2v-4z"/></svg> {{ vision.blueScore }} vs {{ vision.redScore }}</span><span class="c-dot-sep">·</span><span>Colocados: {{ vision.placedBlue }}-{{ vision.placedRed }}</span><span class="c-dot-sep">·</span><span>Control: {{ vision.controlBlue }}-{{ vision.controlRed }}</span></div>
+      </div> }
+  }
+            </div>
           </div>
         </div>
       </section>
     }
+
+    <!-- ============================================================== -->
+    <!-- PESTAÑA 2: CARA A CARA: MVP DORADO vs ACE PÚRPURA             -->
+    <!-- ============================================================== -->
+    @if (showCategory('mvp-ace')) {
+      <section class="card-group">
+        <div class="card-group__header">
+          <span class="card-group__pill">COMPARATIVA DIRECTA EN PISO 1</span>
+          <h2 class="card-group__title">MVP (Dorado) vs ACE (Púrpura)</h2>
+          <p class="test-view__desc">
+            Visualiza cómo contrastan el oro del MVP vencedor y el púrpura del ACE derrotado en cada una de las 5 alternativas visuales.
+          </p>
+        </div>
+
+        <div class="variants-grid">
+          @for (n of [1, 2, 3, 4, 5]; track n) {
+            <div class="variant-box">
+              <div class="c-row c-row--between">
+                <div class="variant-box__num">[{{ n }}] ALTERNATIVA VISUAL {{ n }}</div>
+                <div class="c-row c-row--center">
+                  <button type="button" class="c-step-btn" [class.is-active]="mvpVariant() === n && aceVariant() === n" (click)="setVariant('mvp', n); setVariant('ace', n)">✓ Activar ambos V{{ n }} en cabecera</button>
+                </div>
+              </div>
+              <div class="c-versus-grid">
+                <div>
+                  <div class="c-sub" style="margin-bottom: 4px;">MVP (DORADO)</div>
+                  @switch (n) {
+                    @case (1) { <div class="c-card c-card--trophy">
+        <div class="c-row c-row--between"><span class="c-badge c-badge--gold"><svg viewBox="0 0 24 24" class="c-svg c-svg--gold"><path fill="currentColor" d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg> MVP</span><span class="c-score-pill nf-mono">NOTA {{ mvp.score }}</span></div>
+        <div class="c-row c-row--center">
+          <div class="c-avatar-wrap"><nf-avatar [src]="mvp.championIconUrl" [fallback]="mvp.championName" [size]="38" shape="square" /><span class="c-lvl-badge nf-mono">{{ mvp.championLevel }}</span></div>
+          <div class="c-col"><span class="c-name">{{ mvp.playerName }}</span><span class="c-sub">{{ mvp.role }} · {{ mvp.sideLabel }}</span></div>
+          <div class="c-col c-col--end"><span class="c-stat-main nf-mono">{{ mvp.kills }}/{{ mvp.deaths }}/{{ mvp.assists }}</span><span class="c-stat-sub nf-mono">{{ mvp.kdaRatio }} KDA</span></div>
+        </div>
+        <div class="c-bar-group"><div class="c-row c-row--between"><span class="c-stat-lbl">Daño infligido</span><strong class="c-stat-val nf-mono">{{ mvp.damage }} ({{ mvp.damageShare }}%)</strong></div><div class="c-bar-track"><div class="c-bar-fill c-bar-fill--gold" [style.width.%]="mvp.damageShare"></div></div></div>
+      </div> }
+                    @case (2) { <div class="c-card c-card--telemetry">
+        <div class="c-row c-row--between"><div class="c-eyebrow"><span class="c-accent-bar c-accent-bar--gold"></span><span>MVP DE LA PARTIDA</span></div><span class="c-badge c-badge--gold nf-mono">#1</span></div>
+        <div class="c-row c-row--center"><div class="c-avatar-wrap"><nf-avatar [src]="mvp.championIconUrl" [fallback]="mvp.championName" [size]="32" shape="square" /><span class="c-lvl-badge nf-mono">{{ mvp.championLevel }}</span></div><span class="c-name">{{ mvp.playerName }}</span><span class="c-sub">{{ mvp.role }}</span></div>
+        <div class="c-kpi-grid"><div class="c-kpi-cell"><span class="c-stat-lbl">KDA</span><strong class="c-kpi-num nf-mono">{{ mvp.kdaRatio }}</strong></div><div class="c-kpi-cell"><span class="c-stat-lbl">DAÑO</span><strong class="c-kpi-num nf-mono">{{ mvp.damage }}</strong></div><div class="c-kpi-cell c-kpi-cell--highlight"><span class="c-stat-lbl">NOTA</span><strong class="c-kpi-num nf-mono">{{ mvp.score }}</strong></div></div>
+      </div> }
+                    @case (3) { <div class="c-card c-card--honor">
+        <div class="c-badge c-badge--gold"><svg viewBox="0 0 24 24" class="c-svg c-svg--gold"><path fill="currentColor" d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg> MVP</div>
+        <div class="c-avatar-wrap"><nf-avatar [src]="mvp.championIconUrl" [fallback]="mvp.championName" [size]="44" shape="square" /><span class="c-lvl-badge nf-mono">{{ mvp.championLevel }}</span></div>
+        <span class="c-name">{{ mvp.playerName }}</span>
+        <span class="c-sub">{{ mvp.championName }} · {{ mvp.role }}</span>
+        <div class="c-kpi-dual"><div class="c-col"><span class="c-stat-lbl">KDA</span><span class="c-kpi-num nf-mono">{{ mvp.kdaRatio }}</span></div><div class="c-divider-v"></div><div class="c-col"><span class="c-stat-lbl">NOTA</span><span class="c-kpi-num c-text--gold nf-mono">{{ mvp.score }}</span></div></div>
+      </div> }
+                    @case (4) { <div class="c-card c-card--split">
+        <div class="c-split-side">
+          <span class="c-badge c-badge--gold">MVP PARTIDA</span>
+          <div class="c-row c-row--center"><div class="c-avatar-wrap"><nf-avatar [src]="mvp.championIconUrl" [fallback]="mvp.championName" [size]="32" shape="square" /><span class="c-lvl-badge nf-mono">{{ mvp.championLevel }}</span></div><div class="c-col"><span class="c-name">{{ mvp.playerName }}</span><span class="c-sub">{{ mvp.role }}</span></div></div>
+        </div>
+        <div class="c-divider-v"></div>
+        <div class="c-split-side c-col--center"><div class="c-score-giant nf-mono">{{ mvp.score }}</div><span class="c-stat-sub nf-mono">{{ mvp.kdaRatio }} KDA</span></div>
+      </div> }
+                    @case (5) { <div class="c-card c-card--dense">
+        <div class="c-row c-row--between">
+          <div class="c-row c-row--center"><span class="c-dot-pill c-dot-pill--gold">● MVP</span><span class="c-name">{{ mvp.playerName }}</span><span class="c-badge c-badge--dim nf-mono">{{ mvp.role }}</span></div>
+          <span class="c-badge c-badge--gold nf-mono">★ {{ mvp.score }}</span>
+        </div>
+        <div class="c-data-inline nf-mono"><span>{{ mvp.kills }}/{{ mvp.deaths }}/{{ mvp.assists }}</span><span class="c-dot-sep">·</span><span>{{ mvp.damage }}</span></div>
+      </div> }
+                  }
+                </div>
+                <div>
+                  <div class="c-sub" style="margin-bottom: 4px;">ACE (PÚRPURA)</div>
+                  @switch (n) {
+                    @case (1) { <div class="c-card c-card--purple-glow">
+        <div class="c-row c-row--between"><span class="c-badge c-badge--purple"><svg viewBox="0 0 24 24" class="c-svg c-svg--purple"><path fill="currentColor" d="M12 2L3 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5zm0 2.8l7 3.9v4.3c0 4.2-2.9 8.1-7 9.2-4.1-1.1-7-5-7-9.2V8.7l7-3.9z"/></svg> SVP</span><span class="c-score-pill c-score-pill--purple nf-mono">NOTA {{ ace.score }}</span></div>
+        <div class="c-row c-row--center">
+          <div class="c-avatar-wrap"><nf-avatar [src]="ace.championIconUrl" [fallback]="ace.championName" [size]="38" shape="square" /><span class="c-lvl-badge nf-mono">{{ ace.championLevel }}</span></div>
+          <div class="c-col"><span class="c-name">{{ ace.playerName }}</span><span class="c-sub">{{ ace.role }} · {{ ace.sideLabel }}</span></div>
+          <div class="c-col c-col--end"><span class="c-stat-main nf-mono">{{ ace.kills }}/{{ ace.deaths }}/{{ ace.assists }}</span><span class="c-stat-sub c-text--purple nf-mono">{{ ace.kdaRatio }} KDA</span></div>
+        </div>
+        <div class="c-bar-group"><div class="c-row c-row--between"><span class="c-stat-lbl">Daño infligido</span><strong class="c-stat-val nf-mono">{{ ace.damage }} ({{ ace.damageShare }}%)</strong></div><div class="c-bar-track"><div class="c-bar-fill c-bar-fill--purple" [style.width.%]="ace.damageShare"></div></div></div>
+      </div> }
+                    @case (2) { <div class="c-card c-card--telemetry-purple">
+        <div class="c-row c-row--between"><div class="c-eyebrow"><span class="c-accent-bar c-accent-bar--purple"></span><span>ACE / MEJOR DERROTADO</span></div><span class="c-badge c-badge--purple nf-mono">#1 ROJO</span></div>
+        <div class="c-row c-row--center"><div class="c-avatar-wrap"><nf-avatar [src]="ace.championIconUrl" [fallback]="ace.championName" [size]="32" shape="square" /><span class="c-lvl-badge nf-mono">{{ ace.championLevel }}</span></div><span class="c-name">{{ ace.playerName }}</span><span class="c-sub">{{ ace.role }}</span></div>
+        <div class="c-kpi-grid"><div class="c-kpi-cell"><span class="c-stat-lbl">KDA</span><strong class="c-kpi-num nf-mono">{{ ace.kdaRatio }}</strong></div><div class="c-kpi-cell"><span class="c-stat-lbl">DAÑO</span><strong class="c-kpi-num nf-mono">{{ ace.damage }}</strong></div><div class="c-kpi-cell c-kpi-cell--purple"><span class="c-stat-lbl">NOTA</span><strong class="c-kpi-num nf-mono">{{ ace.score }}</strong></div></div>
+      </div> }
+                    @case (3) { <div class="c-card c-card--honor-purple">
+        <div class="c-badge c-badge--purple"><svg viewBox="0 0 24 24" class="c-svg c-svg--purple"><path fill="currentColor" d="M12 2L3 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5zm0 2.8l7 3.9v4.3c0 4.2-2.9 8.1-7 9.2-4.1-1.1-7-5-7-9.2V8.7l7-3.9z"/></svg> EL ÚLTIMO EN CAER</div>
+        <div class="c-avatar-wrap"><nf-avatar [src]="ace.championIconUrl" [fallback]="ace.championName" [size]="44" shape="square" /><span class="c-lvl-badge nf-mono">{{ ace.championLevel }}</span></div>
+        <span class="c-name">{{ ace.playerName }}</span>
+        <span class="c-sub">{{ ace.championName }} · {{ ace.role }}</span>
+        <div class="c-kpi-dual"><div class="c-col"><span class="c-stat-lbl">KDA</span><span class="c-kpi-num nf-mono">{{ ace.kdaRatio }}</span></div><div class="c-divider-v"></div><div class="c-col"><span class="c-stat-lbl">NOTA</span><span class="c-kpi-num c-text--purple nf-mono">{{ ace.score }}</span></div></div>
+      </div> }
+                    @case (4) { <div class="c-card c-card--split">
+        <div class="c-split-side">
+          <span class="c-badge c-badge--purple">ACE DERROTADO</span>
+          <div class="c-row c-row--center"><div class="c-avatar-wrap"><nf-avatar [src]="ace.championIconUrl" [fallback]="ace.championName" [size]="32" shape="square" /><span class="c-lvl-badge nf-mono">{{ ace.championLevel }}</span></div><div class="c-col"><span class="c-name">{{ ace.playerName }}</span><span class="c-sub">{{ ace.role }}</span></div></div>
+        </div>
+        <div class="c-divider-v"></div>
+        <div class="c-split-side c-col--center"><div class="c-score-giant c-text--purple nf-mono">{{ ace.score }}</div><span class="c-stat-sub nf-mono">{{ ace.kdaRatio }} KDA</span></div>
+      </div> }
+                    @case (5) { <div class="c-card c-card--dense">
+        <div class="c-row c-row--between">
+          <div class="c-row c-row--center"><span class="c-dot-pill c-dot-pill--purple">● SVP</span><span class="c-name">{{ ace.playerName }}</span><span class="c-badge c-badge--dim nf-mono">{{ ace.role }}</span></div>
+          <span class="c-badge c-badge--purple nf-mono">★ {{ ace.score }}</span>
+        </div>
+        <div class="c-data-inline nf-mono"><span>{{ ace.kills }}/{{ ace.deaths }}/{{ ace.assists }}</span><span class="c-dot-sep">·</span><span>{{ ace.damage }}</span></div>
+      </div> }
+                  }
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      </section>
+    }
+
+    <!-- ============================================================== -->
+    <!-- PESTAÑA 3: MENCIONES DE HONOR (COLORIDAS, SIN EMOJIS)           -->
+    <!-- ============================================================== -->
+    @if (showCategory('honors')) {
+      <section class="card-group">
+        <div class="card-group__header">
+          <span class="card-group__pill">TARJETA 2 · PISO 1 (CENTRO)</span>
+          <h2 class="card-group__title">Menciones de Honor (Alternativas Coloridas)</h2>
+          <p class="test-view__desc">
+            Rediseño completo con paleta semántica rica (rojo carmesí, cian zafiro, verde esmeralda e índigo cósmico). 0 emojis, iconos vectoriales nítidos y dinámicas de elevación y expansión interactiva.
+          </p>
+        </div>
+
+        <div class="variants-grid">
+          @for (n of [1, 2, 3, 4, 5]; track n) {
+            <div class="variant-box">
+              <div class="c-row c-row--between">
+                <div class="variant-box__num">[{{ n }}] MENCIONES VARIANTE {{ n }}</div>
+                <button type="button" class="c-step-btn" [class.is-active]="honorsVariant() === n" (click)="setVariant('honors', n)">✓ Activar V{{ n }} en cabecera</button>
+              </div>
+              @switch (n) {
+                @case (1) { <div class="c-card c-card--surface">
+        <div class="c-row c-row--between"><span class="c-badge c-badge--dim">MENCIONES DE HONOR</span><span class="c-stat-lbl">4 DESTACADOS</span></div>
+        <div class="c-grid-4">
+          @for (h of honors; track h.id) {
+            <div class="c-medallion c-medallion--{{ h.color }}" [class.is-hovered]="hoveredHonorId() === h.id" (mouseenter)="hoveredHonorId.set(h.id)" (mouseleave)="hoveredHonorId.set(null)">
+              <div class="c-icon-circle">@if (h.id === 'damage') { <svg viewBox="0 0 24 24" class="c-svg c-svg--crimson"><path fill="currentColor" d="M19 3l-4 4 1.5 1.5 4-4L19 3zm-7.5 7.5l-6 6V21h4.5l6-6-4.5-4.5zM3 19l4-4 1.5 1.5-4 4L3 19zm14.5-8.5l-3-3L16 6l3 3-1.5 1.5z"/></svg> } @else if (h.id === 'tank') { <svg viewBox="0 0 24 24" class="c-svg c-svg--cyan"><path fill="currentColor" d="M12 2L4 5v6.09c0 5.05 3.41 9.76 8 10.91 4.59-1.15 8-5.86 8-10.91V5l-8-3zm0 2.18l6 2.25v4.66c0 4.09-2.67 7.9-6 8.91-3.33-1.01-6-4.82-6-8.91V6.43l6-2.25z"/></svg> } @else if (h.id === 'vision') { <svg viewBox="0 0 24 24" class="c-svg c-svg--emerald"><path fill="currentColor" d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg> } @else { <svg viewBox="0 0 24 24" class="c-svg c-svg--indigo"><path fill="currentColor" d="M12 2L4 9l8 13 8-13-8-7zm0 3.2L17.5 9 12 18 6.5 9 12 5.2z"/></svg> }</div>
+              <span class="c-medallion-title">{{ h.title }}</span>
+              <strong class="c-medallion-val nf-mono">{{ h.val }}</strong>
+              <span class="c-sub">{{ h.player }}</span>
+              <div class="c-medallion-sub-pill">{{ h.sub }}</div>
+            </div>
+          }
+        </div>
+      </div> }
+                @case (2) { <div class="c-card c-card--surface">
+        <div class="c-eyebrow"><span class="c-accent-bar c-accent-bar--cyan"></span><span>HITOS DE LA PARTIDA</span></div>
+        <div class="c-grid-2x2">
+          @for (h of honors; track h.id) {
+            <div class="c-kpi-cell c-kpi-cell--{{ h.color }}">
+              <div class="c-row c-row--between"><span class="c-stat-lbl">{{ h.title }}</span><strong class="c-kpi-num nf-mono">{{ h.val }}</strong></div>
+              <div class="c-row c-row--between"><span class="c-sub">{{ h.player }} ({{ h.champ }})</span><span class="c-stat-lbl nf-mono">{{ h.pct }}% cuota</span></div>
+              <div class="c-bar-track"><div class="c-bar-fill c-bar-fill--{{ h.color }}" [style.width.%]="h.pct"></div></div>
+            </div>
+          }
+        </div>
+      </div> }
+                @case (3) { <div class="c-card c-card--surface">
+        <div class="c-row c-row--between"><span class="c-stat-lbl">ACORDEÓN DINÁMICO</span><span class="c-sub">Hover para expandir</span></div>
+        <div class="c-acc-row">
+          @for (h of honors; track h.id) {
+            <div class="c-acc-card c-acc-card--{{ h.color }}" [class.is-expanded]="hoveredHonorId() === h.id" (mouseenter)="hoveredHonorId.set(h.id)" (mouseleave)="hoveredHonorId.set(null)">
+              <div class="c-row c-row--between">
+                <div class="c-icon-circle">@if (h.id === 'damage') { <svg viewBox="0 0 24 24" class="c-svg c-svg--crimson"><path fill="currentColor" d="M19 3l-4 4 1.5 1.5 4-4L19 3zm-7.5 7.5l-6 6V21h4.5l6-6-4.5-4.5zM3 19l4-4 1.5 1.5-4 4L3 19zm14.5-8.5l-3-3L16 6l3 3-1.5 1.5z"/></svg> } @else if (h.id === 'tank') { <svg viewBox="0 0 24 24" class="c-svg c-svg--cyan"><path fill="currentColor" d="M12 2L4 5v6.09c0 5.05 3.41 9.76 8 10.91 4.59-1.15 8-5.86 8-10.91V5l-8-3zm0 2.18l6 2.25v4.66c0 4.09-2.67 7.9-6 8.91-3.33-1.01-6-4.82-6-8.91V6.43l6-2.25z"/></svg> } @else if (h.id === 'vision') { <svg viewBox="0 0 24 24" class="c-svg c-svg--emerald"><path fill="currentColor" d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg> } @else { <svg viewBox="0 0 24 24" class="c-svg c-svg--indigo"><path fill="currentColor" d="M12 2L4 9l8 13 8-13-8-7zm0 3.2L17.5 9 12 18 6.5 9 12 5.2z"/></svg> }</div>
+                <strong class="c-acc-val nf-mono">{{ h.val }}</strong>
+              </div>
+              <span class="c-name">{{ h.player }}</span>
+              <span class="c-acc-title">{{ h.title }}</span>
+              @if (hoveredHonorId() === h.id) {
+                <div class="c-acc-detail"><span class="c-sub">{{ h.champ }}</span><span class="c-stat-lbl">{{ h.sub }}</span></div>
+              }
+            </div>
+          }
+        </div>
+      </div> }
+                @case (4) { <div class="c-card c-card--surface">
+        <div class="c-grid-4">
+          @for (h of honors; track h.id) {
+            <div class="c-pillar-box">
+              <strong class="c-pillar-val nf-mono">{{ h.val }}</strong>
+              <div class="c-pillar-tube"><div class="c-pillar-fill c-pillar-fill--{{ h.color }}" [style.height.%]="h.pct"></div></div>
+              <span class="c-pillar-icon">@if (h.id === 'damage') { <svg viewBox="0 0 24 24" class="c-svg c-svg--crimson"><path fill="currentColor" d="M19 3l-4 4 1.5 1.5 4-4L19 3zm-7.5 7.5l-6 6V21h4.5l6-6-4.5-4.5zM3 19l4-4 1.5 1.5-4 4L3 19zm14.5-8.5l-3-3L16 6l3 3-1.5 1.5z"/></svg> } @else if (h.id === 'tank') { <svg viewBox="0 0 24 24" class="c-svg c-svg--cyan"><path fill="currentColor" d="M12 2L4 5v6.09c0 5.05 3.41 9.76 8 10.91 4.59-1.15 8-5.86 8-10.91V5l-8-3zm0 2.18l6 2.25v4.66c0 4.09-2.67 7.9-6 8.91-3.33-1.01-6-4.82-6-8.91V6.43l6-2.25z"/></svg> } @else if (h.id === 'vision') { <svg viewBox="0 0 24 24" class="c-svg c-svg--emerald"><path fill="currentColor" d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg> } @else { <svg viewBox="0 0 24 24" class="c-svg c-svg--indigo"><path fill="currentColor" d="M12 2L4 9l8 13 8-13-8-7zm0 3.2L17.5 9 12 18 6.5 9 12 5.2z"/></svg> }</span>
+              <span class="c-pillar-name">{{ h.player }}</span>
+              <span class="c-sub">{{ h.metric }}</span>
+            </div>
+          }
+        </div>
+      </div> }
+                @case (5) { <div class="c-card c-card--dense">
+        <div class="c-chips-wrap">
+          @for (h of honors; track h.id) {
+            <div class="c-chip-badge c-chip-badge--{{ h.color }}">
+              <span class="c-dot-pip c-dot-pip--{{ h.color }}"></span>
+              <span class="c-cell-icon">@if (h.id === 'damage') { <svg viewBox="0 0 24 24" class="c-svg c-svg--crimson"><path fill="currentColor" d="M19 3l-4 4 1.5 1.5 4-4L19 3zm-7.5 7.5l-6 6V21h4.5l6-6-4.5-4.5zM3 19l4-4 1.5 1.5-4 4L3 19zm14.5-8.5l-3-3L16 6l3 3-1.5 1.5z"/></svg> } @else if (h.id === 'tank') { <svg viewBox="0 0 24 24" class="c-svg c-svg--cyan"><path fill="currentColor" d="M12 2L4 5v6.09c0 5.05 3.41 9.76 8 10.91 4.59-1.15 8-5.86 8-10.91V5l-8-3zm0 2.18l6 2.25v4.66c0 4.09-2.67 7.9-6 8.91-3.33-1.01-6-4.82-6-8.91V6.43l6-2.25z"/></svg> } @else if (h.id === 'vision') { <svg viewBox="0 0 24 24" class="c-svg c-svg--emerald"><path fill="currentColor" d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg> } @else { <svg viewBox="0 0 24 24" class="c-svg c-svg--indigo"><path fill="currentColor" d="M12 2L4 9l8 13 8-13-8-7zm0 3.2L17.5 9 12 18 6.5 9 12 5.2z"/></svg> }</span>
+              <span class="c-name">{{ h.player }}:</span>
+              <strong class="nf-mono">{{ h.val }}</strong>
+              <span class="c-sub">({{ h.metric }})</span>
+            </div>
+          }
+        </div>
+      </div> }
+              }
+            </div>
+          }
+        </div>
+      </section>
+    }
+
+    <!-- ============================================================== -->
+    <!-- PESTAÑA 4: DOMINIO DE LA GRIETA                                -->
+    <!-- ============================================================== -->
+    @if (showCategory('rift')) {
+      <section class="card-group">
+        <div class="card-group__header">
+          <span class="card-group__pill">TARJETA 4 · PISO 2 (IZQUIERDA)</span>
+          <h2 class="card-group__title">Dominio de la Grieta (Objetivos)</h2>
+        </div>
+
+        <div class="variants-grid">
+          @for (n of [1, 2, 3, 4, 5]; track n) {
+            <div class="variant-box">
+              <div class="c-row c-row--between">
+                <div class="variant-box__num">[{{ n }}] OBJETIVOS VARIANTE {{ n }}</div>
+                <button type="button" class="c-step-btn" [class.is-active]="riftVariant() === n" (click)="setVariant('rift', n)">✓ Activar V{{ n }} en cabecera</button>
+              </div>
+              @switch (n) {
+                @case (1) { <div class="c-card c-card--surface">
+        <div class="c-row c-row--between"><span class="c-badge c-badge--blue">AZUL 20</span><span class="c-stat-lbl">CONTROL DE OBJETIVOS (87% vs 13%)</span><span class="c-badge c-badge--ruby">ROJO 3</span></div>
+        <div class="c-bar-track"><div class="c-bar-fill c-bar-fill--blue" style="width: 87%"></div></div>
+        <div class="c-col">
+          @for (obj of objectives; track obj.id) {
+            <div class="c-row c-row--between c-list-item" (mouseenter)="hoveredObjectiveId.set(obj.id)" (mouseleave)="hoveredObjectiveId.set(null)" [class.is-hovered]="hoveredObjectiveId() === obj.id">
+              <div class="c-row c-row--center"><img [src]="obj.icon" [alt]="obj.name" class="c-obj-img" /><span class="c-name">{{ obj.name }}</span></div>
+              <div class="c-row c-row--center nf-mono"><span class="c-badge c-badge--blue">{{ obj.blueScore }}</span><span class="c-dot-sep">-</span><span class="c-badge c-badge--ruby">{{ obj.redScore }}</span></div>
+            </div>
+          }
+        </div>
+      </div> }
+                @case (2) { <div class="c-card c-card--telemetry">
+        <div class="c-eyebrow"><span class="c-accent-bar c-accent-bar--gold"></span><span>DESGLOSE TÁCTICO</span></div>
+        <div class="c-kpi-grid">
+          @for (obj of objectives; track obj.id) {
+            <div class="c-kpi-cell">
+              <div class="c-row c-row--center"><img [src]="obj.icon" [alt]="obj.name" class="c-obj-img" /><span class="c-stat-lbl">{{ obj.name }}</span></div>
+              <div class="c-row c-row--between nf-mono"><strong class="c-text--blue">{{ obj.blueScore }}</strong><span class="c-dot-sep">vs</span><strong class="c-text--ruby">{{ obj.redScore }}</strong></div>
+            </div>
+          }
+        </div>
+      </div> }
+                @case (3) { <div class="c-card c-card--split">
+        <div class="c-split-side c-col--center"><span class="c-badge c-badge--blue">EQUIPO AZUL</span><span class="c-score-giant c-text--blue nf-mono">20</span><span class="c-sub">Objetivos</span></div>
+        <div class="c-divider-v"></div>
+        <div class="c-split-side c-col--center"><span class="c-badge c-badge--ruby">EQUIPO ROJO</span><span class="c-score-giant c-text--ruby nf-mono">3</span><span class="c-sub">Objetivos</span></div>
+      </div> }
+                @case (4) { <div class="c-card c-card--dense">
+        <div class="c-chips-wrap">
+          @for (obj of objectives; track obj.id) {
+            <div class="c-chip-badge"><img [src]="obj.icon" [alt]="obj.name" class="c-obj-img" /><span class="c-name">{{ obj.name }}:</span><strong class="c-text--blue nf-mono">{{ obj.blueScore }}</strong><span class="c-dot-sep">/</span><strong class="c-text--ruby nf-mono">{{ obj.redScore }}</strong></div>
+          }
+        </div>
+      </div> }
+                @case (5) { <div class="c-card c-card--dense">
+        <div class="c-row c-row--between"><span class="c-stat-lbl">CONTROL TOTAL</span><span class="c-badge c-badge--blue nf-mono">DOMINIO AZUL (87%)</span></div>
+        <div class="c-data-inline nf-mono"><span>Dragones 4-1</span><span class="c-dot-sep">·</span><span>Larvas 6-0</span><span class="c-dot-sep">·</span><span>Heraldo 1-0</span><span class="c-dot-sep">·</span><span>Barón 1-0</span><span class="c-dot-sep">·</span><span>Torres 8-2</span></div>
+      </div> }
+              }
+            </div>
+          }
+        </div>
+      </section>
+    }
+
+    <!-- ============================================================== -->
+    <!-- PESTAÑA 5: RADAR PENTAGONAL (INTERACTIVO)                      -->
+    <!-- ============================================================== -->
+    @if (showCategory('radar')) {
+      <section class="card-group">
+        <div class="card-group__header">
+          <span class="card-group__pill">TARJETA 5 · PISO 2 (DERECHA)</span>
+          <h2 class="card-group__title">Radar Pentagonal (Alternativas Dinámicas)</h2>
+        </div>
+
+        <div class="variants-grid">
+          @for (n of [1, 2, 3, 4, 5]; track n) {
+            <div class="variant-box">
+              <div class="c-row c-row--between">
+                <div class="variant-box__num">[{{ n }}] RADAR VARIANTE {{ n }}</div>
+                <button type="button" class="c-step-btn" [class.is-active]="radarVariant() === n" (click)="setVariant('radar', n)">✓ Activar V{{ n }} en cabecera</button>
+              </div>
+              @switch (n) {
+                @case (1) { <div class="c-card c-card--surface c-col--center">
+        <div class="c-row c-row--between" style="width: 100%"><span class="c-badge c-badge--blue">AZUL</span><span class="c-stat-lbl">HUELLA TÁCTICA</span><span class="c-badge c-badge--ruby">ROJO</span></div>
+        <svg viewBox="0 0 200 200" class="c-radar-svg">
+          <polygon points="100,20 176,75 147,165 53,165 24,75" class="c-radar-grid" />
+          <polygon points="100,50 148,85 130,141 70,141 52,85" class="c-radar-grid" />
+          <polygon points="100,80 120,95 113,117 87,117 80,95" class="c-radar-grid" />
+          <polygon points="100,36 176,75 147,165 53,165 39,80" class="c-radar-blue" />
+          <polygon points="100,84 115,90 109,113 91,113 85,90" class="c-radar-red" />
+          <circle cx="100" cy="36" r="4" class="c-radar-node" (mouseenter)="hoveredRadarAxis.set('dragons')" (mouseleave)="hoveredRadarAxis.set(null)" />
+          <circle cx="176" cy="75" r="4" class="c-radar-node" (mouseenter)="hoveredRadarAxis.set('grubs')" (mouseleave)="hoveredRadarAxis.set(null)" />
+          <circle cx="147" cy="165" r="4" class="c-radar-node" (mouseenter)="hoveredRadarAxis.set('herald')" (mouseleave)="hoveredRadarAxis.set(null)" />
+          <circle cx="53" cy="165" r="4" class="c-radar-node" (mouseenter)="hoveredRadarAxis.set('baron')" (mouseleave)="hoveredRadarAxis.set(null)" />
+          <circle cx="39" cy="80" r="4" class="c-radar-node" (mouseenter)="hoveredRadarAxis.set('towers')" (mouseleave)="hoveredRadarAxis.set(null)" />
+        </svg>
+        <div class="c-sub nf-mono">@if (hoveredRadarAxis(); as h) { <strong class="c-text--gold">{{ h.toUpperCase() }} ACTIVO</strong> } @else { Pasa el ratón por los vértices }</div>
+      </div> }
+                @case (2) { <div class="c-card c-card--telemetry">
+        <div class="c-eyebrow"><span class="c-accent-bar c-accent-bar--gold"></span><span>COMPARATIVA MIRROR</span></div>
+        <div class="c-col">
+          @for (m of radarMetrics; track m.label) {
+            <div class="c-row c-row--between c-mirror-row">
+              <span class="c-stat-lbl c-text--blue nf-mono">{{ m.blue }}%</span>
+              <span class="c-name">{{ m.label }}</span>
+              <span class="c-stat-lbl c-text--ruby nf-mono">{{ m.red }}%</span>
+            </div>
+          }
+        </div>
+      </div> }
+                @case (3) { <div class="c-card c-card--surface c-col--center">
+        <div class="c-badge c-badge--blue">CONTROL GLOBAL</div>
+        <div class="c-score-giant c-text--blue nf-mono">78%</div>
+        <span class="c-sub">Dominio del Equipo Azul</span>
+        <div class="c-bar-track"><div class="c-bar-fill c-bar-fill--blue" style="width: 78%"></div></div>
+      </div> }
+                @case (4) { <div class="c-card c-card--telemetry">
+        <div class="c-col">
+          @for (m of radarMetrics; track m.label) {
+            <div class="c-col">
+              <div class="c-row c-row--between"><span class="c-stat-lbl">{{ m.label }}</span><span class="c-stat-sub nf-mono">{{ m.blue }}% vs {{ m.red }}%</span></div>
+              <div class="c-bar-track"><div class="c-bar-fill c-bar-fill--blue" [style.width.%]="m.blue"></div></div>
+            </div>
+          }
+        </div>
+      </div> }
+                @case (5) { <div class="c-card c-card--dense">
+        <div class="c-col">
+          @for (m of radarMetrics; track m.label) {
+            <div class="c-row c-row--between c-list-item"><span class="c-name">{{ m.label }}</span><span class="c-badge c-badge--blue nf-mono">Azul +{{ m.blue - m.red }}%</span></div>
+          }
+        </div>
+      </div> }
+              }
+            </div>
+          }
+        </div>
+      </section>
+    }
+
+    <!-- ============================================================== -->
+    <!-- PESTAÑA 6: RITMO DE PARTIDA                                    -->
+    <!-- ============================================================== -->
+    @if (showCategory('pace')) {
+      <section class="card-group">
+        <div class="card-group__header">
+          <span class="card-group__pill">TARJETA 6 · PISO 3 (IZQUIERDA)</span>
+          <h2 class="card-group__title">Ritmo de Partida</h2>
+        </div>
+
+        <div class="variants-grid">
+          @for (n of [1, 2, 3, 4, 5]; track n) {
+            <div class="variant-box">
+              <div class="c-row c-row--between">
+                <div class="variant-box__num">[{{ n }}] RITMO VARIANTE {{ n }}</div>
+                <button type="button" class="c-step-btn" [class.is-active]="paceVariant() === n" (click)="setVariant('pace', n)">✓ Activar V{{ n }} en cabecera</button>
+              </div>
+              @switch (n) {
+                @case (1) { <div class="c-card c-card--surface">
+        <div class="c-row c-row--between"><span class="c-badge c-badge--dim"><svg viewBox="0 0 24 24" class="c-svg"><path fill="currentColor" d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg> TIEMPO</span><span class="c-score-pill nf-mono">2.0 KILLS/MIN</span></div>
+        <span class="c-score-giant nf-mono">{{ pace.duration }}</span>
+        <div class="c-row c-row--between c-list-item"><span class="c-stat-lbl"><svg viewBox="0 0 24 24" class="c-svg c-svg--crimson"><path fill="currentColor" d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg> Primera Sangre:</span><strong class="c-stat-val nf-mono">{{ pace.fbPlayer }} @ {{ pace.fbTime }}</strong></div>
+      </div> }
+                @case (2) { <div class="c-card c-card--telemetry">
+        <div class="c-eyebrow"><span class="c-accent-bar c-accent-bar--gold"></span><span>CADENCIA</span></div>
+        <div class="c-kpi-grid">
+          <div class="c-kpi-cell"><span class="c-stat-lbl">DURACIÓN</span><strong class="c-kpi-num nf-mono">{{ pace.duration }}</strong></div>
+          <div class="c-kpi-cell"><span class="c-stat-lbl">KILLS/MIN</span><strong class="c-kpi-num nf-mono">{{ pace.killsPerMin }}</strong></div>
+          <div class="c-kpi-cell"><span class="c-stat-lbl">FB</span><strong class="c-kpi-num nf-mono">{{ pace.fbTime }}</strong></div>
+        </div>
+      </div> }
+                @case (3) { <div class="c-card c-card--surface">
+        <div class="c-row c-row--between" style="width: 100%">
+          <div class="c-col"><span class="c-stat-lbl">0:00</span><span class="c-sub">Inicio</span></div>
+          <div class="c-col"><span class="c-stat-lbl">2:48</span><span class="c-text--crimson"><svg viewBox="0 0 24 24" class="c-svg c-svg--crimson"><path fill="currentColor" d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg> FB {{ pace.fbPlayer }}</span></div>
+          <div class="c-col"><span class="c-stat-lbl">31:24</span><span class="c-text--blue">Victoria Azul</span></div>
+        </div>
+        <div class="c-bar-track"><div class="c-bar-fill c-bar-fill--blue" style="width: 100%"></div></div>
+      </div> }
+                @case (4) { <div class="c-card c-card--split">
+        <div class="c-split-side c-col--center"><span class="c-stat-lbl">DURACIÓN</span><span class="c-score-giant nf-mono">{{ pace.duration }}</span></div>
+        <div class="c-divider-v"></div>
+        <div class="c-split-side c-col--center"><span class="c-stat-lbl">INTENSIDAD</span><span class="c-score-giant c-text--blue nf-mono">{{ pace.killsPerMin }}</span><span class="c-sub">k/min</span></div>
+      </div> }
+                @case (5) { <div class="c-card c-card--dense">
+        <div class="c-data-inline nf-mono"><span><svg viewBox="0 0 24 24" class="c-svg"><path fill="currentColor" d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg> {{ pace.duration }}</span><span class="c-dot-sep">·</span><span>{{ pace.killsPerMin }} k/min ({{ pace.totalKills }} kills)</span><span class="c-dot-sep">·</span><span>FB: {{ pace.fbPlayer }} ({{ pace.fbTime }})</span></div>
+      </div> }
+              }
+            </div>
+          }
+        </div>
+      </section>
+    }
+
+    <!-- ============================================================== -->
+    <!-- PESTAÑA 7: ECONOMÍA                                            -->
+    <!-- ============================================================== -->
+    @if (showCategory('economy')) {
+      <section class="card-group">
+        <div class="card-group__header">
+          <span class="card-group__pill">TARJETA 7 · PISO 3 (CENTRO)</span>
+          <h2 class="card-group__title">Economía (Oro & Ventajas Dinámicas)</h2>
+        </div>
+
+        <div class="variants-grid">
+          @for (n of [1, 2, 3, 4, 5]; track n) {
+            <div class="variant-box">
+              <div class="c-row c-row--between">
+                <div class="variant-box__num">[{{ n }}] ECONOMÍA VARIANTE {{ n }}</div>
+                <button type="button" class="c-step-btn" [class.is-active]="economyVariant() === n" (click)="setVariant('economy', n)">✓ Activar V{{ n }} en cabecera</button>
+              </div>
+              @switch (n) {
+                @case (1) { <div class="c-card c-card--surface">
+        <div class="c-row c-row--between">
+          <span class="c-badge c-badge--gold"><svg viewBox="0 0 24 24" class="c-svg c-svg--gold"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 14h-2v-2h2v2zm0-4h-2V7h2v5z"/></svg> ORO</span>
+          <div class="c-step-row">
+            <button type="button" class="c-step-btn" [class.is-active]="activeEconomyPhase() === 'final'" (click)="setEconomyPhase('final')">Final (+4.3k)</button>
+            <button type="button" class="c-step-btn" [class.is-active]="activeEconomyPhase() === '14min'" (click)="setEconomyPhase('14min')">Min 14 (+900g)</button>
+          </div>
+        </div>
+        <div class="c-bar-group">
+          <div class="c-row c-row--between">
+            <span class="c-stat-lbl c-text--blue">Azul {{ activeEconomyPhase() === 'final' ? economy.blueTotal : economy.blue14 }}</span>
+            <span class="c-stat-lbl c-text--ruby">Rojo {{ activeEconomyPhase() === 'final' ? economy.redTotal : economy.red14 }}</span>
+          </div>
+          <div class="c-bar-track"><div class="c-bar-fill c-bar-fill--blue" [style.width.%]="activeEconomyPhase() === 'final' ? economy.bluePct : 53"></div></div>
+        </div>
+        <div class="c-row c-row--between c-list-item"><span class="c-stat-lbl">Ventaja de oro activa:</span><strong class="c-stat-val c-text--blue nf-mono">{{ activeEconomyPhase() === 'final' ? economy.leadTotal : economy.lead14 }}</strong></div>
+      </div> }
+                @case (2) { <div class="c-card c-card--telemetry">
+        <div class="c-eyebrow"><span class="c-accent-bar c-accent-bar--gold"></span><span>FINANZAS</span></div>
+        <div class="c-kpi-grid">
+          <div class="c-kpi-cell"><span class="c-stat-lbl">FINAL</span><strong class="c-kpi-num nf-mono">{{ economy.leadTotal }}</strong></div>
+          <div class="c-kpi-cell"><span class="c-stat-lbl">@14 MIN</span><strong class="c-kpi-num nf-mono">{{ economy.lead14 }}</strong></div>
+          <div class="c-kpi-cell"><span class="c-stat-lbl">CUOTA</span><strong class="c-kpi-num nf-mono">{{ economy.bluePct }}%</strong></div>
+        </div>
+      </div> }
+                @case (3) { <div class="c-card c-card--split">
+        <div class="c-split-side c-col--center"><span class="c-stat-lbl">FASE DE LÍNEAS (14m)</span><span class="c-score-giant c-text--blue nf-mono">{{ economy.lead14 }}</span><span class="c-sub">{{ economy.blue14 }} vs {{ economy.red14 }}</span></div>
+        <div class="c-divider-v"></div>
+        <div class="c-split-side c-col--center"><span class="c-stat-lbl">FINAL DE PARTIDA</span><span class="c-score-giant c-text--blue nf-mono">{{ economy.leadTotal }}</span><span class="c-sub">{{ economy.blueTotal }} vs {{ economy.redTotal }}</span></div>
+      </div> }
+                @case (4) { <div class="c-card c-card--surface c-col--center">
+        <span class="c-badge c-badge--blue">VENTAJA NETA AZUL</span>
+        <div class="c-score-giant c-text--blue nf-mono">{{ economy.leadTotal }}</div>
+        <div class="c-bar-track"><div class="c-bar-fill c-bar-fill--blue" [style.width.%]="economy.bluePct"></div></div>
+      </div> }
+                @case (5) { <div class="c-card c-card--dense">
+        <div class="c-data-inline nf-mono"><span><svg viewBox="0 0 24 24" class="c-svg c-svg--gold"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 14h-2v-2h2v2zm0-4h-2V7h2v5z"/></svg> Ventaja: {{ economy.leadTotal }}</span><span class="c-dot-sep">·</span><span>Final: {{ economy.blueTotal }}-{{ economy.redTotal }}</span><span class="c-dot-sep">·</span><span>@14m: {{ economy.lead14 }}</span></div>
+      </div> }
+              }
+            </div>
+          }
+        </div>
+      </section>
+    }
+
+    <!-- ============================================================== -->
+    <!-- PESTAÑA 8: GUERRA DE VISIÓN                                    -->
+    <!-- ============================================================== -->
+    @if (showCategory('vision')) {
+      <section class="card-group">
+        <div class="card-group__header">
+          <span class="card-group__pill">TARJETA 8 · PISO 3 (DERECHA)</span>
+          <h2 class="card-group__title">Guerra de Visión</h2>
+        </div>
+
+        <div class="variants-grid">
+          @for (n of [1, 2, 3, 4, 5]; track n) {
+            <div class="variant-box">
+              <div class="c-row c-row--between">
+                <div class="variant-box__num">[{{ n }}] VISIÓN VARIANTE {{ n }}</div>
+                <button type="button" class="c-step-btn" [class.is-active]="visionVariant() === n" (click)="setVariant('vision', n)">✓ Activar V{{ n }} en cabecera</button>
+              </div>
+              @switch (n) {
+                @case (1) { <div class="c-card c-card--surface">
+        <div class="c-row c-row--between"><span class="c-badge c-badge--cyan"><svg viewBox="0 0 24 24" class="c-svg c-svg--cyan"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm1-13h-2v4h2V7zm0 6h-2v4h2v-4z"/></svg> VISIÓN</span><span class="c-score-pill nf-mono">+{{ vision.blueScore - vision.redScore }} PTS</span></div>
+        <div class="c-bar-group"><div class="c-row c-row--between"><span class="c-stat-lbl c-text--blue">Azul {{ vision.blueScore }} pts</span><span class="c-stat-lbl c-text--ruby">Rojo {{ vision.redScore }} pts</span></div><div class="c-bar-track"><div class="c-bar-fill c-bar-fill--cyan" style="width: 59%"></div></div></div>
+        <div class="c-col">
+          <div class="c-row c-row--between c-list-item"><span class="c-stat-lbl">Wards colocados:</span><strong class="c-stat-val nf-mono">{{ vision.placedBlue }} vs {{ vision.placedRed }}</strong></div>
+          <div class="c-row c-row--between c-list-item"><span class="c-stat-lbl">Wards destruidos:</span><strong class="c-stat-val nf-mono">{{ vision.killedBlue }} vs {{ vision.killedRed }}</strong></div>
+        </div>
+      </div> }
+                @case (2) { <div class="c-card c-card--telemetry">
+        <div class="c-eyebrow"><span class="c-accent-bar c-accent-bar--gold"></span><span>CONTROL VISIÓN</span></div>
+        <div class="c-kpi-grid">
+          <div class="c-kpi-cell"><span class="c-stat-lbl">PUNTOS</span><strong class="c-kpi-num nf-mono">{{ vision.blueScore }}-{{ vision.redScore }}</strong></div>
+          <div class="c-kpi-cell"><span class="c-stat-lbl">DESTRUIDOS</span><strong class="c-kpi-num nf-mono">{{ vision.killedBlue }}-{{ vision.killedRed }}</strong></div>
+          <div class="c-kpi-cell"><span class="c-stat-lbl">CONTROL</span><strong class="c-kpi-num nf-mono">{{ vision.controlBlue }}-{{ vision.controlRed }}</strong></div>
+        </div>
+      </div> }
+                @case (3) { <div class="c-card c-card--split">
+        <div class="c-split-side c-col--center"><span class="c-badge c-badge--blue">AZUL ({{ vision.blueScore }})</span><span class="c-score-giant c-text--blue nf-mono">{{ vision.placedBlue }}</span><span class="c-sub">wards puestos</span></div>
+        <div class="c-divider-v"></div>
+        <div class="c-split-side c-col--center"><span class="c-badge c-badge--ruby">ROJO ({{ vision.redScore }})</span><span class="c-score-giant c-text--ruby nf-mono">{{ vision.placedRed }}</span><span class="c-sub">wards puestos</span></div>
+      </div> }
+                @case (4) { <div class="c-card c-card--dense">
+        <div class="c-chips-wrap">
+          <div class="c-chip-badge"><span>Colocados:</span><strong class="c-text--blue nf-mono">{{ vision.placedBlue }}</strong>-<strong class="c-text--ruby nf-mono">{{ vision.placedRed }}</strong></div>
+          <div class="c-chip-badge"><span>Destruidos:</span><strong class="c-text--blue nf-mono">{{ vision.killedBlue }}</strong>-<strong class="c-text--ruby nf-mono">{{ vision.killedRed }}</strong></div>
+          <div class="c-chip-badge"><span>Control:</span><strong class="c-text--blue nf-mono">{{ vision.controlBlue }}</strong>-<strong class="c-text--ruby nf-mono">{{ vision.controlRed }}</strong></div>
+        </div>
+      </div> }
+                @case (5) { <div class="c-card c-card--dense">
+        <div class="c-data-inline nf-mono"><span><svg viewBox="0 0 24 24" class="c-svg c-svg--cyan"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm1-13h-2v4h2V7zm0 6h-2v4h2v-4z"/></svg> {{ vision.blueScore }} vs {{ vision.redScore }}</span><span class="c-dot-sep">·</span><span>Colocados: {{ vision.placedBlue }}-{{ vision.placedRed }}</span><span class="c-dot-sep">·</span><span>Control: {{ vision.controlBlue }}-{{ vision.controlRed }}</span></div>
+      </div> }
+              }
+            </div>
+          }
+        </div>
+      </section>
+    }
+
   </main>
 </div>

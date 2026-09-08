@@ -89,6 +89,8 @@ const ROUTE_TITLES: readonly (readonly [readonly string[], string])[] = [
   [['inicio'], 'Inicio'],
   [['historial'], 'Historial de partidas'],
   [['historial', ':id'], 'Partida'],
+  [['analisis-avanzado'], 'Partida'],
+  [['analisis-avanzado', ':id'], 'Partida'],
   [['tierlist'], 'Tierlist'],
 
   [['grupos'], 'Grupos'],
@@ -138,14 +140,36 @@ const ROUTE_TITLES: readonly (readonly [readonly string[], string])[] = [
  *
  * Devuelve `null` para `/app/grupos` a secas, que es el directorio y no un grupo concreto.
  */
-export function groupIdFromUrl(url: string): string | null {
-  const segments = (url ?? '')
-    .split('?')[0]
+export function groupIdFromUrl(
+  url: string,
+  matchResolver?: (matchId: string) => string | null,
+): string | null {
+  const [pathPart, queryPart] = (url ?? '').split('?');
+  const segments = pathPart
     .split('#')[0]
     .split('/')
     .filter(Boolean);
-  if (segments[0] !== 'app' || segments[1] !== 'grupos') return null;
-  return segments[2] ?? null;
+
+  if (segments[0] !== 'app') return null;
+
+  if (segments[1] === 'grupos') {
+    return segments[2] ?? null;
+  }
+
+  if (queryPart) {
+    const params = new URLSearchParams(queryPart);
+    const volver = params.get('volver');
+    if (volver && volver.startsWith('grupo:')) {
+      return volver.slice(6) || null;
+    }
+  }
+
+  if (((segments[1] === 'historial' && segments[2]) || segments[1] === 'analisis-avanzado') && matchResolver) {
+    const matchId = segments[2] || 'seed-001';
+    return matchResolver(matchId);
+  }
+
+  return null;
 }
 
 function urlSegments(url: string): string[] {

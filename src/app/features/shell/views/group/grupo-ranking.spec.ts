@@ -411,4 +411,64 @@ describe('GrupoRanking', () => {
     expect(component.pad(5)).toBe('05');
     expect(component.pad(42)).toBe('42');
   });
+
+  it('no renderiza el botón view-back en la cabecera', async () => {
+    const { fixture } = createComponent();
+    flushBoard();
+    await fixture.whenStable();
+    expect(fixture.nativeElement.querySelector('.view-back')).toBeNull();
+  });
+
+  it('reordena las filas en memoria al cambiar el orden', async () => {
+    const { component, fixture } = createComponent();
+    const testBoard = board();
+    testBoard.entries.content = [
+      { ...testBoard.entries.content[0], userId: 'p1', rank: 1, wins: 10, losses: 10, winrate: 50 },
+      { ...testBoard.entries.content[0], userId: 'p2', rank: 2, wins: 18, losses: 2, winrate: 90 },
+      { ...testBoard.entries.content[0], userId: 'p3', rank: 3, wins: 2, losses: 8, winrate: 20 },
+    ];
+    flushBoard(testBoard);
+    await fixture.whenStable();
+
+    expect(component.rows().map((r) => r.playerId)).toEqual(['p1', 'p2', 'p3']);
+
+    // Ordenar por winrate (descendente por defecto)
+    component.sortBy('wr');
+    expect(component.rows().map((r) => r.playerId)).toEqual(['p2', 'p1', 'p3']);
+
+    // Alternar a winrate ascendente
+    component.sortBy('wr');
+    expect(component.rows().map((r) => r.playerId)).toEqual(['p3', 'p1', 'p2']);
+
+    // Volver a rank (ascendente)
+    component.sortBy('rank');
+    expect(component.rows().map((r) => r.playerId)).toEqual(['p1', 'p2', 'p3']);
+  });
+
+  it('detecta dropup cuando el menú de acciones está cerca del borde inferior', () => {
+    const { component } = createComponent();
+    const mockBtnBottom = {
+      getBoundingClientRect: () => ({ bottom: window.innerHeight - 50 } as DOMRect),
+    };
+    const mockEventBottom = {
+      stopPropagation: () => {},
+      currentTarget: mockBtnBottom,
+    } as unknown as Event;
+
+    component.toggleMenu('p-last', mockEventBottom);
+    expect(component.menuFor()).toBe('p-last');
+    expect(component.menuDropup()).toBe(true);
+
+    const mockBtnTop = {
+      getBoundingClientRect: () => ({ bottom: 100 } as DOMRect),
+    };
+    const mockEventTop = {
+      stopPropagation: () => {},
+      currentTarget: mockBtnTop,
+    } as unknown as Event;
+
+    component.toggleMenu('p-first', mockEventTop);
+    expect(component.menuFor()).toBe('p-first');
+    expect(component.menuDropup()).toBe(false);
+  });
 });

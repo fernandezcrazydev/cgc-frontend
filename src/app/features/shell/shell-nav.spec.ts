@@ -38,6 +38,8 @@ describe('pageTitleFor', () => {
   it('distingue el historial personal de una partida suya, y del de un grupo', () => {
     expect(pageTitleFor('/app/historial')).toBe('Historial de partidas');
     expect(pageTitleFor('/app/historial/seed-001')).toBe('Partida');
+    expect(pageTitleFor('/app/analisis-avanzado')).toBe('Partida');
+    expect(pageTitleFor('/app/analisis-avanzado/seed-001')).toBe('Partida');
     expect(pageTitleFor('/app/grupos/abc-123/historial')).toBe('Historial');
   });
 
@@ -111,13 +113,24 @@ describe('groupIdFromUrl', () => {
     expect(groupIdFromUrl('/app/grupos')).toBeNull();
   });
 
-  it('las rutas que no son de grupo no seleccionan nada', () => {
+  it('las rutas que no son de grupo no seleccionan nada por defecto', () => {
     // Importa que devuelva null y no algo: el grupo activo es pegajoso, y una ruta ajena no
     // debe cambiarlo (Inicio depende de que siga puesto).
     expect(groupIdFromUrl('/app/inicio')).toBeNull();
     expect(groupIdFromUrl('/app/historial/seed-001')).toBeNull();
     expect(groupIdFromUrl('/app/versus/Pix3lQueen%23LAN')).toBeNull();
     expect(groupIdFromUrl('/')).toBeNull();
+  });
+
+  it('resuelve el grupo en /app/historial/:id desde ?volver=grupo:<id>', () => {
+    expect(groupIdFromUrl('/app/historial/seed-001?volver=grupo:ct')).toBe('ct');
+    expect(groupIdFromUrl('/app/historial/seed-001?otra=1&volver=grupo:grupo-42')).toBe('grupo-42');
+  });
+
+  it('resuelve el grupo en /app/historial/:id desde el resolver de partida', () => {
+    const resolver = (id: string) => (id === 'seed-001' ? 'grupo-resuelto' : null);
+    expect(groupIdFromUrl('/app/historial/seed-001', resolver)).toBe('grupo-resuelto');
+    expect(groupIdFromUrl('/app/historial/desconocida', resolver)).toBeNull();
   });
 });
 

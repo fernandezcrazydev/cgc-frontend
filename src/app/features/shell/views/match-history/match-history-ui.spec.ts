@@ -33,11 +33,24 @@ describe('MatchHistoryUiState [F5.5-03]', () => {
     ui.setPage(2);
     ui.toggleExpand('match-1');
     ui.toggleExpand('match-2');
-    ui.recordNavigation('match-1');
-    await router.navigateByUrl('/app/historial/match-1');
+    ui.recordNavigation('match-2');
+    await router.navigateByUrl('/app/historial/match-2');
   }
 
-  it('restaura página, acordeones y focusedId AL VOLVER del detalle', async () => {
+  it('solo permite una partida desplegada a la vez: abrir una pliega la anterior', () => {
+    ui.toggleExpand('match-1');
+    expect(ui.isExpanded('match-1')).toBe(true);
+    expect(ui.isExpanded('match-2')).toBe(false);
+
+    ui.toggleExpand('match-2');
+    expect(ui.isExpanded('match-1')).toBe(false);
+    expect(ui.isExpanded('match-2')).toBe(true);
+
+    ui.toggleExpand('match-2');
+    expect(ui.isExpanded('match-2')).toBe(false);
+  });
+
+  it('restaura página, acordeón y focusedId AL VOLVER del detalle', async () => {
     await saleAlDetalle();
     await router.navigateByUrl('/app/historial');
 
@@ -45,9 +58,9 @@ describe('MatchHistoryUiState [F5.5-03]', () => {
     otra.setContextKey('/app/historial');
 
     expect(otra.page()).toBe(2);
-    expect(otra.isExpanded('match-1')).toBe(true);
     expect(otra.isExpanded('match-2')).toBe(true);
-    expect(otra.focusedId()).toBe('match-1');
+    expect(otra.isExpanded('match-1')).toBe(false);
+    expect(otra.focusedId()).toBe('match-2');
   });
 
   it('NO restaura los acordeones al entrar de nuevo desde otra pantalla', async () => {
@@ -96,7 +109,7 @@ describe('MatchHistoryUiState [F5.5-03]', () => {
 
     const otra = TestBed.runInInjectionContext(() => new MatchHistoryUiState());
     otra.setContextKey('/app/historial');
-    expect(otra.focusedId()).toBe('match-1');
+    expect(otra.focusedId()).toBe('match-2');
 
     otra.clearFocusedId();
     expect(otra.focusedId()).toBeNull();

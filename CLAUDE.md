@@ -533,6 +533,18 @@ Cuando se acuerde uno, documentarlo aquí y borrar la línea de pendientes.
    (→ endpoint futuro: placeholder mínimo + `BACKEND NOTE:`).
 5. **Estado de UI ≠ estado de dominio**: modales, tabs y selección visual viven en signals del
    componente, no en stores de `core/`.
+6. **Un solo desplegable abierto a la vez.** Cuando una pantalla tiene varios elementos desplegables
+   del mismo tipo —tarjetas de partida, filas de una tabla, acordeones, cajones de detalle—, **abrir
+   uno pliega el que estuviera abierto**. Se comporta como un acordeón, no como una lista de
+   casillas independientes. Es norma de toda la aplicación, no de una pantalla.
+   - Hoy hay sitios que hacen lo contrario y hay que ir alineándolos: `MatchHistoryUiState` guarda un
+     `ReadonlySet` de desplegados, y la tabla de líderes de las estadísticas del grupo admite varias
+     filas abiertas.
+   - Si una superficie necesita la excepción —comparar dos filas es a veces justo para lo que
+     sirve—, se plantea antes de construirla; no se decide en silencio.
+   - **`npm run arch` no puede verificar esto**: no es una regla de ficheros, de capas ni de CSS.
+     Es de las que este documento clasifica como recomendación escrita y no como trinquete, así que
+     depende de que se aplique al construir cada pantalla.
 
 ## Angular idiomático (obligatorio en código nuevo)
 
