@@ -8,7 +8,6 @@ import {
   GroupNavItem,
   groupIdFromUrl,
   isGroupHubUrl,
-  isGroupMatchesUrl,
   pageTitleFor,
 } from './shell-nav';
 import { Auth, Session } from '../../core/auth';
@@ -20,9 +19,8 @@ import {
   InvitationsStore,
   groupRoleLabel,
 } from '../../core/groups';
-import { LobbiesStore, LobbyDetailStore, LobbyResponse } from '../../core/lobbies';
-import { MatchStore, MatchRoom } from '../../core/match-store';
-import { MatchHistoryStore } from '../../core/matches';
+import { LobbiesStore, LobbyDetailStore, LobbyParticipantResponse, LobbyResponse } from '../../core/lobbies';
+import { Match, MatchHistoryStore } from '../../core/matches';
 import { NotificationsStore, NotificationView, notificationView, NotificationSemanticLevel, SEED_NOTIFICATIONS } from '../../core/notifications';
 import { RiotAccountStore } from '../../core/riot';
 import { DevicesStore } from '../../core/devices';
@@ -48,6 +46,14 @@ function readRailed(): boolean {
   } catch {
     return false;
   }
+}
+
+export interface LiveRoomRow {
+  label: string;
+  link: unknown[];
+  isJoinAction: boolean;
+  lobbyId: string;
+  slotId: string;
 }
 
 /**
@@ -96,7 +102,6 @@ export class Shell {
   readonly session = inject(Session);
   private readonly auth = inject(Auth);
   readonly groups = inject(GroupsStore);
-  private readonly matches = inject(MatchStore);
   private readonly matchHistory = inject(MatchHistoryStore);
   /** Campana real: bandeja durable + stream SSE en vivo (reemplaza el mock legacy). */
   readonly notifs = inject(NotificationsStore);
@@ -251,35 +256,6 @@ export class Shell {
     const mandatoryIds = new Set(this.mandatoryNotifs().map((n) => n.id));
     return this.notifViews().filter((n) => !mandatoryIds.has(n.id));
   });
-
-  /**
-   * The selected group's open room still waiting for players, if any. Surfaced as
-   * a pending-room banner so members can jump in without hunting for the notification.
-   */
-  readonly pendingRoom = computed<LobbyResponse | null>(() => {
-    const g = this.groups.selected();
-    if (!g) return null;
-    // En el hub del grupo y en su panel de partidas, no: las dos pantallas ya enseñan la
-    // convocatoria en su sitio, y el banner encima repetía la misma frase dos veces seguidas.
-    // El banner existe para enterarte estando en OTRA pantalla; ahí sigue apareciendo.
-    const url = this.currentUrl();
-    const mine = groupIdFromUrl(url) === g.id;
-    if (mine && (isGroupHubUrl(url) || isGroupMatchesUrl(url))) return null;
-    // La primera que sigue esperando gente. Una ya confirmada no va aquí: el banner es para
-    // "falta gente, entra", no para recordarte una partida que ya tiene hora.
-    return this.lobbies.open().find((lobby) => lobby.status === 'POLLING') ?? null;
-  });
-
-  /** Cuánta gente ha juntado la franja que mejor va, para el contador del banner. */
-  pendingSignedUp(lobby: LobbyResponse): number {
-    return lobby.slots.reduce((best, slot) => Math.max(best, slot.signedUp), 0);
-  }
-
-  /** Jump into the pending room's lobby (also closes the mobile group sheet). */
-  openPendingRoom(room: LobbyResponse): void {
-    this.showGroupSheet.set(false);
-    this.router.navigate(['/app', 'grupos', room.groupId, 'partidas', room.id]);
-  }
 
   readonly mobileLeft = NAV.slice(0, 2);
   readonly mobileRight = NAV.slice(2);
@@ -475,46 +451,159 @@ export class Shell {
 
   // ── Secciones del grupo (segundo nivel del acordeón) ──────────────
 
-  /** Obtiene la sala activa para un grupo, si existe. */
-  activeRoomForGroup(groupId: string): MatchRoom | undefined {
-    const rooms = this.matches.activeOf(groupId);
-    return rooms.find((r) => r.status === 'waiting' || r.status === 'live');
+  /**
+   * ¿Este grupo tiene alguna sala en marcha? Es el punto verde del avatar, y a diferencia
+   * de la fila de abajo cuenta TODAS: el punto solo dice «aquí se está jugando».
+   */
+  private isLiveLobby(lobby: LobbyResponse, now = Date.now()): boolean {
+    if (lobby.status === 'FINISHED' || lobby.status === 'CANCELLED') return false;
+    if (lobby.status === 'LIVE') return true;
+    const slot = lobby.confirmedSlotId
+      ? lobby.slots.find((s) => s.id === lobby.confirmedSlotId)
+      : null;
+    if (!slot) return false;
+    const start = Date.parse(slot.startsAt);
+    if (Number.isNaN(start)) return false;
+    // Dentro de la ventana en directo (30 min antes de la hora o ya empezada)
+    return start - now <= 30 * 60 * 1000;
   }
 
-  /** ¿El usuario actual está en la sala activa de este grupo? */
-  isUserInActiveRoom(room: MatchRoom): boolean {
-    const user = this.session.user();
-    if (!user) return false;
-    return room.seats.some(
-      (s) =>
-        (s.userId && s.userId === user.userId) ||
-        s.name.toLowerCase() === user.discordUsername.toLowerCase() ||
-        s.tag.toLowerCase().startsWith(user.discordUsername.toLowerCase())
-    );
-  }
-
-  /** Rótulo dinámico para la acción de sala / crear partida. */
-  roomActionLabel(groupId: string): string {
-    const room = this.activeRoomForGroup(groupId);
-    if (!room) return 'Crear partida';
-    const inRoom = this.isUserInActiveRoom(room);
-    const count = `${room.seats.length}/10`;
-    return inRoom ? `Ir a la sala (${count})` : `Unirme a la sala (${count})`;
+  activeLobbiesFor(groupId: string): LobbyResponse[] {
+    const group = this.groups.byId(groupId);
+    const lobbies = this.lobbies.lobbiesForGroup(groupId, group?.name);
+    const now = Date.now();
+    return lobbies.filter((lb) => this.isLiveLobby(lb, now));
   }
 
   /**
-   * Rótulo de una sección del grupo. Es el texto de la fila y, con la barra plegada, también
-   * su `title`: en el rail solo se ve el icono, así que el nombre tiene que llegar por ahí.
+   * ¿Este grupo tiene alguna sala en marcha? Es el punto verde del avatar:
+   * brilla cuando ese grupo tiene salas activas.
    */
-  sectionLabel(groupId: string, item: GroupNavItem): string {
-    return item.path === 'crear-partida' ? this.roomActionLabel(groupId) : item.label;
+  hasLiveRoom(groupId: string): boolean {
+    return this.activeLobbiesFor(groupId).length > 0;
   }
 
-  /** Enlace dinámico para la acción de sala / crear partida. */
-  roomActionLink(groupId: string): unknown[] {
-    const room = this.activeRoomForGroup(groupId);
-    if (!room) return ['/app', 'grupos', groupId, 'crear-partida'];
-    return ['/app', 'grupos', groupId, 'partidas', room.id];
+  /**
+   * La fila contextual de sala/party:
+   * Solo aparece si hay una UNICA sala o party activa.
+   *
+   *   - Si el usuario YA está inscrito:
+   *     - En Room o Party con salas creadas: «Entrar a mi sala».
+   *     - En Party sin salas creadas (pool): «Entrar a mi party».
+   *   - Si el usuario NO está inscrito:
+   *     - En una Room activa con huecos libres (< 10): «Unirme a sala X/10».
+   *     - En una Party activa: «Unirme a party (X)».
+   *     - En salas llenas (>= 10) o con equipos ya formados: null (no aparece).
+   */
+  roomRowFor(groupId: string): LiveRoomRow | null {
+    const active = this.activeLobbiesFor(groupId);
+    if (active.length !== 1) return null;
+
+    const lobby = active[0];
+    const slot = lobby.confirmedSlotId
+      ? lobby.slots.find((s) => s.id === lobby.confirmedSlotId)
+      : lobby.slots[0];
+    if (!slot) return null;
+
+    const user = this.session.user();
+    const meId = user?.userId;
+    const meName = user?.discordUsername?.toLowerCase();
+    const isMe = (p: LobbyParticipantResponse) =>
+      (!!meId && p.userId === meId) ||
+      (!!meName && !!p.discordUsername && p.discordUsername.toLowerCase() === meName);
+
+    const isEnrolled =
+      [...slot.starters, ...(slot.secondaryStarters ?? []), ...(slot.bench ?? [])].some(isMe) ||
+      lobby.slots.some((s) =>
+        [...s.starters, ...(s.secondaryStarters ?? []), ...(s.bench ?? [])].some(isMe),
+      );
+
+    const isParty =
+      lobby.distribution === 'PARTY' ||
+      lobby.subType === 'PARTY_POOL' ||
+      lobby.subType === 'PARTY_ROUNDS';
+
+    const link = ['/app', 'grupos', groupId, 'sala', lobby.id];
+
+    if (isEnrolled) {
+      const isPartyWithoutRooms =
+        isParty &&
+        (lobby.subType === 'PARTY_POOL' ||
+          (!slot.secondaryStarters?.length && lobby.subType !== 'PARTY_ROUNDS'));
+      return {
+        label: isPartyWithoutRooms ? 'Entrar a mi party' : 'Entrar a mi sala',
+        link,
+        isJoinAction: false,
+        lobbyId: lobby.id,
+        slotId: slot.id,
+      };
+    }
+
+    if (isParty) {
+      const allParticipants = [
+        ...slot.starters,
+        ...(slot.secondaryStarters ?? []),
+        ...slot.bench,
+      ];
+      const totalPlayers = slot.signedUp ?? allParticipants.length;
+      return {
+        label: `Unirme a party (${totalPlayers})`,
+        link,
+        isJoinAction: true,
+        lobbyId: lobby.id,
+        slotId: slot.id,
+      };
+    }
+
+    const isSingleRoom =
+      lobby.subType !== 'CONTIGUOUS_ROOMS' &&
+      (!slot.secondaryStarters || slot.secondaryStarters.length === 0);
+    const capacity = lobby.capacity || 10;
+    const startersCount = slot.starters.length;
+
+    if (!isSingleRoom || startersCount >= capacity) {
+      return null;
+    }
+
+    return {
+      label: `Unirme a sala ${startersCount}/${capacity}`,
+      link,
+      isJoinAction: true,
+      lobbyId: lobby.id,
+      slotId: slot.id,
+    };
+  }
+
+  onLiveRoomClick(event: MouseEvent, groupId: string, room: LiveRoomRow): void {
+    this.selectGroupOnNavigate(groupId);
+    if (room.isJoinAction) {
+      this.joinLiveRoom(groupId, room.lobbyId, room.slotId);
+    }
+  }
+
+  private joinLiveRoom(groupId: string, lobbyId: string, slotId: string): void {
+    const user = this.session.user();
+    const participant: LobbyParticipantResponse = {
+      userId: user?.userId ?? 'u-daxlup',
+      discordUsername: user?.discordUsername ?? 'daxlup',
+      avatarUrl: user?.avatarUrl ?? null,
+      joinedAt: new Date().toISOString(),
+      isAdded: false,
+      isActive: true,
+      isHost: false,
+    };
+
+    this.lobbies.addParticipantToSlot(lobbyId, slotId, participant, groupId);
+    this.lobbyDetail.addParticipant(participant);
+
+    void this.lobbies.signUp(lobbyId, slotId).catch(() => {
+      // Ignorar fallo de red en modo mock
+    });
+  }
+
+  selectGroupOnNavigate(id: string): void {
+    this.groups.select(id);
+    this.expandedGroupId.set(id);
   }
 
   /**
@@ -527,22 +616,17 @@ export class Shell {
 
   /** Ruta absoluta de una sección. El hub es el grupo a secas, así que su segmento es vacío. */
   sectionLink(groupId: string, item: GroupNavItem): unknown[] {
-    if (item.path === 'crear-partida') {
-      return this.roomActionLink(groupId);
-    }
     return item.path ? ['/app', 'grupos', groupId, item.path] : ['/app', 'grupos', groupId];
   }
 
+  /** Grupo cuyas secciones están desplegadas en el menú lateral. */
+  readonly expandedGroupId = signal<string | null>(this.groups.selectedId() ?? null);
+
   /**
    * ¿Se despliegan las secciones de este grupo bajo su fila?
-   *
-   * Ya no depende del plegado: rail y barra desplegada pintan LA MISMA lista, solo que en
-   * el rail se queda en columna de iconos (ver `shell-sidebar-nav.scss`). Cuando eran dos
-   * listas distintas, plegar la barra desmontaba una y montaba la otra, y por eso el
-   * despliegue de un grupo solo se animaba en rail.
    */
   isExpandedGroup(id: string): boolean {
-    return this.groups.selectedId() === id;
+    return this.expandedGroupId() === id;
   }
 
   // ── Popover de secciones en rail ──────────────────────────────────
@@ -565,11 +649,86 @@ export class Shell {
     return count > 0 ? count : null;
   });
 
+  /** ID de la partida activa si la ruta es de detalle de partida */
+  readonly currentMatchId = computed<string | null>(() => {
+    const url = this.currentUrl();
+    const segments = url.split('?')[0].split('#')[0].split('/').filter(Boolean);
+    if (segments[0] !== 'app') return null;
+    if (segments[1] === 'historial' && segments[2]) return segments[2];
+    if (segments[1] === 'analisis-avanzado') return segments[2] || 'seed-001';
+    return null;
+  });
+
+  /** ¿Estamos en la pantalla de detalle/análisis de partida? */
+  readonly isMatchDetailPage = computed(() => {
+    return this.currentMatchId() !== null || this.pageTitle() === 'Partida';
+  });
+
+  /** Partida activa si estamos en detalle de partida */
+  readonly currentMatch = computed<Match | undefined>(() => {
+    const id = this.currentMatchId();
+    if (!id) return undefined;
+    const found = this.matchHistory.matchById(id);
+    if (found) return found;
+    const all = this.matchHistory.allMatches();
+    return all.length > 0 ? all[0] : undefined;
+  });
+
+  /** Nombre de la liga de la partida para la cabecera */
+  readonly matchLeagueName = computed<string>(() => {
+    const m = this.currentMatch();
+    return m?.leagueName ?? m?.group?.seasonName ?? this.groups.groups()[0]?.leagueName ?? 'LIGA COMPETITIVA';
+  });
+
+  /** Duración de la partida para la cabecera (ej: 31:24) */
+  readonly matchPaceDuration = computed<string>(() => {
+    const m = this.currentMatch();
+    if (!m) return '31:24';
+    const totalSec = m.durationSeconds || 1884;
+    const mins = Math.floor(totalSec / 60);
+    const secs = totalSec % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  });
+
+  /** Kills totales de la partida para la cabecera (ej: 38-24 KILLS) */
+  readonly matchPaceKills = computed<string>(() => {
+    const m = this.currentMatch();
+    if (!m) return '38-24 KILLS';
+    const blueKills = m.blueTeam?.totalKills ?? 38;
+    const redKills = m.redTeam?.totalKills ?? 24;
+    return `${blueKills}-${redKills} KILLS`;
+  });
+
+  readonly copiedMatchId = signal(false);
+
+  async copyMatchId(): Promise<void> {
+    const id = this.currentMatch()?.id ?? this.currentMatchId() ?? 'seed-001';
+    try {
+      await navigator.clipboard?.writeText(id);
+      this.copiedMatchId.set(true);
+      this.toasts.info(`ID de partida copiado: #${id}`);
+      setTimeout(() => this.copiedMatchId.set(false), 2000);
+    } catch {
+      this.toasts.error('No se pudo copiar el ID de partida');
+    }
+  }
+
   /** Grupo nombrado explícitamente en la URL activa (/app/grupos/:id/...). */
   readonly currentRouteGroup = computed<GroupView | null>(() => {
     const id = this.routeGroupId();
-    if (!id) return null;
-    return this.groups.groups().find((g) => g.id === id) ?? null;
+    if (id) {
+      const found = this.groups.groups().find((g) => g.id === id);
+      if (found) return found;
+    }
+    if (this.isMatchDetailPage()) {
+      const m = this.currentMatch();
+      if (m?.groupId) {
+        const found = this.groups.groups().find((g) => g.id === m.groupId);
+        if (found) return found;
+      }
+      return this.groups.groups()[0] ?? null;
+    }
+    return null;
   });
 
   /** ¿Estamos en el hub principal del grupo (/app/grupos/:id) y no en una sub-sección? */
@@ -637,10 +796,10 @@ export class Shell {
       return;
     }
 
-    if (this.groups.selectedId() === id) {
-      this.groups.select('');
+    if (this.expandedGroupId() === id) {
+      this.expandedGroupId.set(null);
     } else {
-      this.groups.select(id);
+      this.expandedGroupId.set(id);
     }
   }
 
@@ -786,7 +945,10 @@ export class Shell {
     // la lista.
     effect(() => {
       const id = this.routeGroupId();
-      if (id && this.groups.byId(id)) this.groups.select(id);
+      if (id && this.groups.byId(id)) {
+        this.groups.select(id);
+        this.expandedGroupId.set(id);
+      }
     });
 
     // Rol admin: lo lee del token (sin red). Si falla, se queda en false y el enlace no aparece.
@@ -863,7 +1025,10 @@ export class Shell {
         // desplegar sus secciones: solo el hub seleccionaba, porque solo el hub pasa por
         // `GroupDetailStore.load()`. Las rutas que no llevan grupo NO lo borran: es estado
         // pegajoso, e Inicio depende de que siga puesto.
-        const routeGroup = groupIdFromUrl(url ?? '');
+        const routeGroup = groupIdFromUrl(
+          url ?? '',
+          (matchId) => this.matchHistory.matchById(matchId)?.groupId ?? null,
+        );
         this.routeGroupId.set(routeGroup);
         // La cabecera dice miembros y rol en TODAS las secciones del grupo, no solo en el hub,
         // así que el detalle se pide aquí. `ensureLoaded` es idempotente: si la vista de destino

@@ -63,7 +63,7 @@ const FEEDBACK_EYEBROW: Record<string, string> = {
 function lobbyLink(n: NotificationResponse): readonly string[] | null {
   const groupId = n.data['groupId'];
   const lobbyId = n.data['lobbyId'];
-  return groupId && lobbyId ? ['/app', 'grupos', groupId, 'partidas', lobbyId] : null;
+  return groupId && lobbyId ? ['/app', 'grupos', groupId, 'convocatoria', lobbyId] : null;
 }
 
 function matchLink(n: NotificationResponse): readonly string[] | null {

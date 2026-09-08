@@ -12,9 +12,9 @@ import { Router } from '@angular/router';
 import { NfBadge, NfButton, NfSkeleton } from '../../../ui';
 import { Session } from '../../../core/auth';
 import { GroupsStore, GroupView } from '../../../core/groups';
-import { MatchRoom, MatchStore } from '../../../core/match-store';
 import { Match, MatchHistoryStore, MatchParticipant, nemesisOf } from '../../../core/matches';
 import { LeaguesStore } from '../../../core/leagues';
+import { LobbiesStore } from '../../../core/lobbies';
 import { hash } from '../../../core/group-ranking';
 
 interface RivalRow {
@@ -29,6 +29,13 @@ interface RivalSummary {
   calloutText: string;
   isLeader: boolean;
   hasData: boolean;
+}
+
+/** Lo poco que este widget necesita de una sala: cuántas plazas hay y quién las ocupa. */
+interface ActiveRoomView {
+  id: string;
+  capacity: number;
+  seats: { userId: string; name: string }[];
 }
 
 interface SlotView {
@@ -180,7 +187,7 @@ function build18MatchTrajectory(targetLp: number, seedKey: string): number[] {
 export class Inicio {
   readonly groupsStore = inject(GroupsStore);
   readonly leaguesStore = inject(LeaguesStore);
-  private readonly matchStore = inject(MatchStore);
+  private readonly lobbies = inject(LobbiesStore);
   private readonly matchHistoryStore = inject(MatchHistoryStore);
   private readonly router = inject(Router);
 
@@ -558,43 +565,34 @@ export class Inicio {
     });
   });
 
-  /** Primera sala activa del grupo protagonista (con mock realista para LAN Challenger). */
-  readonly activeRoom = computed<MatchRoom | null>(() => {
+  /**
+   * La sala en marcha del grupo protagonista, si la hay.
+   *
+   * Sale de las convocatorias reales (`LobbiesStore`, que el shell mantiene cargadas para
+   * el grupo activo). Antes salía del mock `MatchStore` y, si no había nada, de una lista
+   * de nombres inventada en este mismo fichero: el widget enseñaba una sala que no existía
+   * y, al pulsarla, llevaba a una pantalla vacía.
+   */
+  readonly activeRoom = computed<ActiveRoomView | null>(() => {
     const g = this.activeGroup();
     if (!g) return null;
-    const rooms = this.matchStore.activeOf(g.id);
-    if (rooms.length > 0) return rooms[0];
 
-    // Mock realista de sala activa para LAN y Escuadrón Prueba
-    const nameLower = (g.name || '').toLowerCase().trim();
-    const isMockTarget =
-      g.id === 'grp-1' ||
-      nameLower === 'lan' ||
-      nameLower.includes('lan') ||
-      nameLower.includes('escuadron') ||
-      nameLower.includes('escuadrón') ||
-      nameLower.includes('prueba');
+    const lobby = this.lobbies
+      .open()
+      .find((l) => l.groupId === g.id && l.confirmedSlotId !== null);
+    if (!lobby) return null;
 
-    if (isMockTarget) {
-      return {
-        id: `room-${g.id}-5v5`,
-        groupId: g.id,
-        name: `Custom 5v5 Equilibrada · ${g.name}`,
-        capacity: 10,
-        createdAt: '2026-09-01T18:00:00Z',
-        seats: [
-          { userId: 'u-1', name: 'daxlup#EUW', role: 'CAPTAIN' },
-          { userId: 'u-2', name: 'EduUC#EUW', role: 'MEMBER' },
-          { userId: 'u-3', name: 'Nightstalker#EUW', role: 'MEMBER' },
-          { userId: 'u-4', name: 'FakerClone#EUW', role: 'MEMBER' },
-          { userId: 'u-5', name: 'Chronoshift#EUW', role: 'MEMBER' },
-          { userId: 'u-6', name: 'ViperX#EUW', role: 'MEMBER' },
-        ],
-        draftStatus: 'WAITING_PLAYERS',
-      } as unknown as MatchRoom;
-    }
+    const slot = lobby.slots.find((sl) => sl.id === lobby.confirmedSlotId);
+    if (!slot) return null;
 
-    return null;
+    return {
+      id: lobby.id,
+      capacity: lobby.capacity,
+      seats: slot.starters.map((p) => ({
+        userId: p.userId,
+        name: p.discordUsername ?? 'Sin nombre',
+      })),
+    };
   });
 
   /** Indica si el usuario actual ya ocupa una plaza en la sala activa. */
@@ -770,17 +768,17 @@ export class Inicio {
     };
   });
 
-  /** Navega a crear/convocar partida en el grupo activo. */
+  /** Lleva al Tablón del grupo activo, que es donde se convoca. */
   crearPartida(): void {
     const g = this.activeGroup() ?? this.groupsStore.groups()[0] ?? null;
-    this.router.navigate(g ? ['/app', 'grupos', g.id, 'crear-partida'] : ['/app', 'grupos']);
+    this.router.navigate(g ? ['/app', 'grupos', g.id, 'tablon'] : ['/app', 'grupos']);
   }
 
-  /** Navega a una sala de espera en curso. */
-  entrarSala(roomId: string): void {
+  /** Entra en la sala en marcha. */
+  entrarSala(salaId: string): void {
     const g = this.activeGroup();
     if (!g) return;
-    this.router.navigate(['/app', 'grupos', g.id, 'partidas', roomId]);
+    this.router.navigate(['/app', 'grupos', g.id, 'sala', salaId]);
   }
 
   /** Navega al perfil de un jugador (MVP, etc.). */

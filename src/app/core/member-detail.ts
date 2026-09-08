@@ -74,32 +74,6 @@ function matchup(rnd: () => number, foe: Member, flavor: 'high' | 'low'): Member
   };
 }
 
-/**
- * Derive the expanded-card details for `member`, drawing duo/victim/nightmare
- * opponents from the rest of `roster` (falling back to synthetic foes when the
- * roster is too small for three distinct players).
- */
-export function memberDetail(member: Member, roster: readonly Member[]): MemberDetail {
-  const rnd = seeded(hash(member.tag));
-
-  const championIds = pickDistinct(rnd, REAL_CHAMPION_IDS, 3);
-
-  // ~45% of members are flexible across roles; the rest main one or two.
-  const roles = rnd() < 0.45 ? ['FLEX'] : pickDistinct(rnd, ROLE_POOL, 1 + (rnd() < 0.4 ? 1 : 0));
-
-  // Three distinct opponents from real roster mates, topped up with fallbacks.
-  const others = roster.filter((m) => m.tag !== member.tag);
-  const foes = pickDistinct(rnd, [...others, ...FALLBACK_FOES], 3);
-
-  return {
-    championIds,
-    roles,
-    bestDuo: matchup(rnd, foes[0], 'high'),
-    favoriteVictim: matchup(rnd, foes[1], 'high'),
-    worstNightmare: matchup(rnd, foes[2], 'low'),
-  };
-}
-
 /** Build an OP.GG profile URL for a "Name#TAG" Riot tag. */
 export function opggUrl(tag: string): string {
   const [name, line = ''] = tag.split('#');

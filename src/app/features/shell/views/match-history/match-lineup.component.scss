@@ -1,0 +1,18 @@
+﻿.m-lineup__champ-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.m-player-row__lvl {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  font-size: var(--fs-label);
+  font-weight: 700;
+  background: var(--nf-void);
+  border: 1px solid var(--nf-border);
+  border-radius: 3px;
+  padding: 0 2px;
+  color: var(--nf-text);
+  line-height: 1;
+}

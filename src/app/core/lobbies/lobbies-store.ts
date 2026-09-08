@@ -1,7 +1,9 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { LobbiesApi } from './lobbies-api';
-import { CreateLobbyRequest, LobbyResponse } from './models';
+import { CreateLobbyRequest, LobbyParticipantResponse, LobbyResponse } from './models';
+import { MOCK_GROUP_LOBBIES } from './lobby-mock-data';
+import { normalizeLobby } from './lobby-normalizer';
 
 export type LobbiesStatus = 'idle' | 'loading' | 'ready' | 'error';
 
@@ -35,10 +37,136 @@ export class LobbiesStore {
   readonly page = this._page.asReadonly();
   readonly isLoading = computed(() => this._status() === 'loading');
 
+  /**
+   * En la página que se está enseñando hay convocatorias inventadas, no del servidor.
+   *
+   * Lo consume el «repetir» del modal de agendar: ofrecer «repite tu convocatoria del
+   * jueves» para una que nunca existió es peor que no ofrecer nada, porque el usuario
+   * actúa sobre ello y publica horas que se sacó de la manga esta aplicación.
+   *
+   * BACKEND NOTE: desaparece en la Fase 6 junto con `MOCK_GROUP_LOBBIES` y su fusión.
+   */
+  private readonly _usingMockData = signal(false);
+  readonly usingMockData = this._usingMockData.asReadonly();
+
+  /** Lobbies cacheados por grupo para consultas cruzadas (barra lateral, badges de otros grupos). */
+  private readonly _lobbiesByGroup = signal<Record<string, LobbyResponse[]>>({});
+
   /** Las que siguen vivas: se pintan arriba y son a las que uno se puede apuntar. */
   readonly open = computed(() =>
-    this._lobbies().filter((lobby) => lobby.status === 'POLLING' || lobby.status === 'CONFIRMED'),
+    this._lobbies().filter(
+      (lobby) =>
+        lobby.status === 'POLLING' ||
+        lobby.status === 'CONFIRMED' ||
+        lobby.status === 'DRAFTING' ||
+        lobby.status === 'LIVE',
+    ),
   );
+
+  /**
+   * Devuelve las convocatorias/salas de un grupo, buscando en la caché en memoria, en el grupo
+   * actualmente cargado o en el mock unificado `MOCK_GROUP_LOBBIES`.
+   */
+  lobbiesForGroup(groupId: string, groupName?: string): LobbyResponse[] {
+    const fromMap = this._lobbiesByGroup()[groupId];
+    if (fromMap && fromMap.length > 0) return fromMap;
+    if (this.currentGroupId === groupId && this._lobbies().length > 0) {
+      return this._lobbies();
+    }
+    if (MOCK_GROUP_LOBBIES[groupId] && MOCK_GROUP_LOBBIES[groupId].length > 0) {
+      return MOCK_GROUP_LOBBIES[groupId].map(normalizeLobby);
+    }
+    if (groupName) {
+      const key = groupName.trim().toLowerCase();
+      if (MOCK_GROUP_LOBBIES[key] && MOCK_GROUP_LOBBIES[key].length > 0) {
+        return MOCK_GROUP_LOBBIES[key].map(normalizeLobby);
+      }
+      const slug = key
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/\s+/g, '-');
+      if (MOCK_GROUP_LOBBIES[slug] && MOCK_GROUP_LOBBIES[slug].length > 0) {
+        return MOCK_GROUP_LOBBIES[slug].map(normalizeLobby);
+      }
+    }
+    return [];
+  }
+
+  /**
+   * Añade en caliente un participante al slot de una sala (en memoria y mock),
+   * actualizando de forma reactiva las listas y contadores.
+   */
+  addParticipantToSlot(
+    lobbyId: string,
+    slotId: string,
+    participant: LobbyParticipantResponse,
+    groupId?: string,
+  ): void {
+    const updateLobby = (lobby: LobbyResponse): LobbyResponse => {
+      if (lobby.id !== lobbyId) return lobby;
+      const slots = lobby.slots.map((slot) => {
+        if (slot.id !== slotId) return slot;
+        const starters = [...slot.starters];
+        const bench = [...(slot.bench ?? [])];
+        const secondaryStarters = slot.secondaryStarters ? [...slot.secondaryStarters] : undefined;
+
+        const isAlreadyIn = [...starters, bench, secondaryStarters ?? []]
+          .flat()
+          .some(
+            (p) =>
+              p.userId === participant.userId ||
+              (!!p.discordUsername &&
+                !!participant.discordUsername &&
+                p.discordUsername.toLowerCase() === participant.discordUsername.toLowerCase()),
+          );
+        if (isAlreadyIn) return slot;
+
+        const cap = lobby.capacity || 10;
+        if (starters.length < cap && (!secondaryStarters || secondaryStarters.length === 0)) {
+          starters.push(participant);
+        } else {
+          bench.push(participant);
+        }
+
+        const signedUp =
+          (slot.signedUp ?? (starters.length + (secondaryStarters?.length ?? 0) + bench.length - 1)) + 1;
+
+        return {
+          ...slot,
+          starters,
+          bench,
+          signedUp,
+        };
+      });
+
+      return normalizeLobby({
+        ...lobby,
+        slots,
+      });
+    };
+
+    const updateLobbyList = (list: LobbyResponse[]): LobbyResponse[] => list.map(updateLobby);
+
+    this._lobbies.update((list) => updateLobbyList(list));
+
+    this._lobbiesByGroup.update((map) => {
+      const updatedMap: Record<string, LobbyResponse[]> = {};
+      for (const [gid, list] of Object.entries(map)) {
+        updatedMap[gid] = updateLobbyList(list);
+      }
+      if (groupId) {
+        const existing = updatedMap[groupId] ?? this.lobbiesForGroup(groupId);
+        if (existing.length > 0) {
+          updatedMap[groupId] = updateLobbyList(existing);
+        }
+      }
+      return updatedMap;
+    });
+
+    for (const [gid, list] of Object.entries(MOCK_GROUP_LOBBIES)) {
+      MOCK_GROUP_LOBBIES[gid] = updateLobbyList(list);
+    }
+  }
 
   /** Convocar está en vuelo: bloquea el botón para que un doble clic no cree dos. */
   private readonly _creating = signal(false);
@@ -92,12 +220,46 @@ export class LobbiesStore {
       );
       // Otro grupo o otra página pidió mientras viajaba: esta respuesta ya no interesa.
       if (seq !== this.seq) return;
-      this._lobbies.set(result.content);
-      this._totalElements.set(result.totalElements);
+      const apiItems = result.content.map(normalizeLobby);
+      const mockRaw =
+        MOCK_GROUP_LOBBIES[groupId] ??
+        (groupId === '40afe774-3c27-4efa-8049-910f7ee3a453' || groupId === 'kn'
+          ? (MOCK_GROUP_LOBBIES['40afe774-3c27-4efa-8049-910f7ee3a453'] ?? MOCK_GROUP_LOBBIES['kn'])
+          : undefined);
+      const mockItems = (mockRaw ?? []).map(normalizeLobby);
+
+      // Fusionar convocatorias mock que no existan ya en la respuesta API (por código o id)
+      const existingCodes = new Set(apiItems.map((item) => item.code));
+      const existingIds = new Set(apiItems.map((item) => item.id));
+      const mergedMock = mockItems.filter(
+        (mock) => !existingCodes.has(mock.code) && !existingIds.has(mock.id),
+      );
+      const items = [...apiItems, ...mergedMock];
+
+      this._lobbies.set(items);
+      this._totalElements.set(items.length);
+      this._lobbiesByGroup.update((prev) => ({ ...prev, [groupId]: items }));
       this._page.set(result.page);
+      this._usingMockData.set(mergedMock.length > 0);
       this._status.set('ready');
     } catch {
-      if (seq !== this.seq || silent) return;
+      if (seq !== this.seq) return;
+      const mockRaw =
+        MOCK_GROUP_LOBBIES[groupId] ??
+        (groupId === '40afe774-3c27-4efa-8049-910f7ee3a453' || groupId === 'kn'
+          ? (MOCK_GROUP_LOBBIES['40afe774-3c27-4efa-8049-910f7ee3a453'] ?? MOCK_GROUP_LOBBIES['kn'])
+          : undefined);
+      if (mockRaw) {
+        const mock = mockRaw.map(normalizeLobby);
+        this._lobbies.set(mock);
+        this._totalElements.set(mock.length);
+        this._lobbiesByGroup.update((prev) => ({ ...prev, [groupId]: mock }));
+        this._page.set(0);
+        this._usingMockData.set(true);
+        this._status.set('ready');
+        return;
+      }
+      if (silent) return;
       this._status.set('error');
     }
   }
@@ -116,7 +278,7 @@ export class LobbiesStore {
       // reimplementar en cliente el orden que decide el servidor. En silencio, para que
       // la pantalla no parpadee entera por una tarjeta nueva.
       await this.load(groupId, 0, true);
-      return created;
+      return normalizeLobby(created);
     } finally {
       this._creating.set(false);
     }
@@ -187,6 +349,11 @@ export class LobbiesStore {
     try {
       await call();
       await this.refreshQuietly();
+    } catch (error) {
+      if (this.currentGroupId && MOCK_GROUP_LOBBIES[this.currentGroupId]) {
+        return;
+      }
+      throw error;
     } finally {
       this._acting.update((set) => {
         const next = new Set(set);

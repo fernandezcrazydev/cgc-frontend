@@ -15,7 +15,7 @@ import {
 export type LeaguesStatus = 'idle' | 'loading' | 'ready' | 'error';
 
 /** Filas por página. El backend usa el mismo valor por defecto. */
-export const LEADERBOARD_PAGE_SIZE = 15;
+const LEADERBOARD_PAGE_SIZE = 15;
 
 /**
  * La clasificación del grupo: una página de la tabla, el podio y la liga activa.

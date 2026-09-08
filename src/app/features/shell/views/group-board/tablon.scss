@@ -1,0 +1,109 @@
+@use 'breakpoints' as *;
+
+.gm-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+  gap: 12px;
+}
+
+.gm-tabs {
+  display: none;
+}
+
+@media (max-width: $bp-compact) {
+  .gm-tabs {
+    display: flex;
+    gap: 6px;
+    width: 100%;
+    padding: 3px;
+    border-radius: var(--nf-radius-md, 8px);
+    background: var(--nf-surface-card, #1a1c26);
+    border: 1px solid var(--nf-border, #2a2d3d);
+  }
+}
+
+.gm-tab {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  color: var(--nf-text-muted, #94a3b8);
+  border-radius: 6px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &.is-active {
+    color: var(--nf-text-main, #f0f2f5);
+    background: var(--nf-surface-raised, #242738);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+  }
+}
+
+.gm-tab__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  font-size: var(--fs-label);
+  background: color-mix(in srgb, var(--nf-primary) 20%, transparent);
+  color: #a5b4fc;
+}
+
+.gm-deck {
+  display: grid;
+  grid-template-columns: 6fr 4fr;
+  align-items: start;
+  gap: 14px;
+}
+
+.gm-live,
+.gm-schedule {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-height: 680px;
+  overflow-y: auto;
+  padding-right: 4px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--nf-border, #2a2d3d) transparent;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: var(--nf-border, #2a2d3d);
+    border-radius: 4px;
+  }
+  &::-webkit-scrollbar-thumb:hover {
+    background: var(--nf-border-strong, #3a3d52);
+  }
+}
+
+@media (max-width: $bp-compact) {
+  .gm-deck {
+    grid-template-columns: 1fr;
+  }
+  .gm-live,
+  .gm-schedule {
+    max-height: none;
+    overflow-y: visible;
+    padding-right: 0;
+  }
+  .is-hidden-mobile {
+    display: none !important;
+  }
+}
+

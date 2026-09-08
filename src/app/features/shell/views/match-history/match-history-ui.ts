@@ -15,13 +15,16 @@ export class MatchHistoryUiState {
 
   private _contextKey = '/app/historial';
   private readonly _filters = signal<MatchFilterState>(EMPTY_FILTERS);
-  private readonly _expandedIds = signal<ReadonlySet<string>>(new Set());
+  private readonly _expandedId = signal<string | null>(null);
   private readonly _page = signal(1);
   private readonly _focusedId = signal<string | null>(null);
 
   readonly filters = this._filters.asReadonly();
   readonly page = this._page.asReadonly();
-  readonly expandedIds = this._expandedIds.asReadonly();
+  readonly expandedId = this._expandedId.asReadonly();
+  readonly expandedIds = computed<ReadonlySet<string>>(
+    () => (this._expandedId() ? new Set([this._expandedId()!]) : new Set()),
+  );
   readonly focusedId = this._focusedId.asReadonly();
 
   readonly hasSearch = computed(() => this._filters().searchQuery.trim().length > 0);
@@ -44,12 +47,12 @@ export class MatchHistoryUiState {
       this._page.set(returning.page);
     }
     if (returning.expandedIds && returning.expandedIds.length > 0) {
-      this._expandedIds.set(new Set(returning.expandedIds));
+      this._expandedId.set(returning.expandedIds[0]);
     }
     const focused = this.viewMemory.consumeFocusedId(key);
     if (focused) {
       this._focusedId.set(focused);
-      this._expandedIds.update((s) => new Set(s).add(focused));
+      this._expandedId.set(focused);
     }
   }
 
@@ -64,7 +67,7 @@ export class MatchHistoryUiState {
       {
         scrollY,
         page: this._page(),
-        expandedIds: Array.from(this._expandedIds()),
+        expandedIds: this._expandedId() ? [this._expandedId()!] : [],
         lastFocusedId: matchId ?? null,
         filters: this._filters(),
       },
@@ -105,17 +108,13 @@ export class MatchHistoryUiState {
   }
 
   isExpanded(matchId: string): boolean {
-    return this._expandedIds().has(matchId);
+    return this._expandedId() === matchId;
   }
 
   toggleExpand(matchId: string): void {
-    this._expandedIds.update((current) => {
-      const next = new Set(current);
-      if (!next.delete(matchId)) next.add(matchId);
-      return next;
-    });
+    this._expandedId.update((current) => (current === matchId ? null : matchId));
     this.viewMemory.save(this._contextKey, {
-      expandedIds: Array.from(this._expandedIds()),
+      expandedIds: this._expandedId() ? [this._expandedId()!] : [],
       page: this._page(),
     });
   }

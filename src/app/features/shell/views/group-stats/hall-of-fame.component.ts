@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
-import { NfSkeleton } from '../../../../ui';
+import { NfAvatar, NfSkeleton } from '../../../../ui';
 import { MEDAL_FAMILY_LABELS, MedalBoard, MedalFamily } from '../../../../core/group-medals';
 import { MedalIconComponent } from './medal-icon.component';
 
@@ -25,13 +25,13 @@ interface MedalGroup {
   selector: 'app-hall-of-fame',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [NfSkeleton, MedalIconComponent],
+  imports: [NfSkeleton, NfAvatar, MedalIconComponent],
   template: `
     <section class="hof" [attr.aria-busy]="loading() ? 'true' : null">
       @if (loading()) {
         <div class="hof-grid">
-          @for (s of [0, 1, 2, 3, 4, 5, 6, 7]; track s) {
-            <nf-skeleton width="100%" height="128px" radius="12px" />
+          @for (s of [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]; track s) {
+            <nf-skeleton width="100%" height="168px" radius="12px" />
           }
         </div>
       } @else if (boards().length) {
@@ -48,31 +48,42 @@ interface MedalGroup {
                     [class.is-mine]="board.me && board.me.rank === 1"
                     (click)="open.emit(board.medal.id)"
                   >
-                    <span class="hof-medal__icon" aria-hidden="true">
-                      <app-medal-icon [icon]="board.medal.icon" />
-                    </span>
-
-                    <span class="hof-medal__title">{{ board.medal.title }}</span>
+                    <div class="hof-medal__top">
+                      <span class="hof-medal__trophy" aria-hidden="true">
+                        <app-medal-icon [icon]="board.medal.icon" />
+                      </span>
+                      <span class="hof-medal__title">{{ board.medal.title }}</span>
+                    </div>
 
                     @if (board.leader; as leader) {
-                      <span class="hof-medal__leader">
-                        Líder: {{ leader.member.name }}
-                        <span class="nf-mono">{{ leader.value }}</span>
-                      </span>
+                      <div class="hof-medal__center">
+                        <div class="hof-medal__avatar-wrap">
+                          <nf-avatar
+                            [src]="leader.member.avatar ?? null"
+                            [fallback]="leader.member.name"
+                            [tint]="leader.member.hue"
+                            [size]="28"
+                            shape="round"
+                          />
+                          <span class="hof-medal__crown" aria-hidden="true">👑</span>
+                        </div>
+                        <span class="hof-medal__leader-name">{{ leader.member.name }}</span>
+                        <span class="hof-medal__leader-val nf-mono">{{ leader.value }}</span>
+                      </div>
                     } @else {
-                      <span class="hof-medal__leader hof-medal__leader--vacant">
-                        Todavía no la tiene nadie
-                      </span>
+                      <div class="hof-medal__center hof-medal__center--vacant">
+                        <span class="hof-medal__vacant-text">Sin líder todavía</span>
+                      </div>
                     }
 
                     @if (board.me; as me) {
-                      <span class="hof-medal__me nf-mono" [class.is-first]="me.rank === 1">
+                      <div class="hof-medal__me nf-mono" [class.is-first]="me.rank === 1">
                         @if (me.rank === 1) {
-                          La tienes tú
+                          <span class="hof-medal__me-status">👑 La tienes tú</span>
                         } @else {
-                          Tu puesto: {{ me.rank }}.º · {{ me.value }}
+                          <span class="hof-medal__me-status">Tu puesto: {{ me.rank }}.º · {{ me.value }}</span>
                         }
-                      </span>
+                      </div>
                     }
                   </button>
                 </li>

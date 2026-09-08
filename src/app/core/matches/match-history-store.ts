@@ -183,11 +183,15 @@ export class MatchHistoryStore {
 
     const [topMvpName, topMvpCount] = topEntry(mvpCounts, (v) => v);
 
+    const blueWinrate = total === 0 ? 0 : Math.round((blueWins / total) * 100);
+    const redWinrate = total === 0 ? 0 : 100 - blueWinrate;
+
     return {
       totalMatches: total,
       blueSideWins: blueWins,
       redSideWins: total - blueWins,
-      blueWinrate: Math.round((blueWins / total) * 100),
+      blueWinrate,
+      redWinrate,
       avgDurationMinutes: Math.round(totalDuration / total / 60),
       topMvpName,
       topMvpCount,
@@ -345,6 +349,7 @@ const EMPTY_GROUP_SUMMARY: GroupMatchHistorySummary = {
   blueSideWins: 0,
   redSideWins: 0,
   blueWinrate: 0,
+  redWinrate: 0,
   avgDurationMinutes: 0,
   topMvpName: null,
   topMvpCount: 0,

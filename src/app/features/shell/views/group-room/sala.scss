@@ -1,0 +1,77 @@
+@use 'breakpoints' as *;
+
+/* La sala: los diez que juegan.
+   La parrilla es 2x5 con orden alterno —impares arriba, pares abajo (§5.5.6)—, la misma
+   que la vista previa del Tablón, porque es la misma sala vista de cerca. Las tarjetas
+   son `app-room-pod`, reutilizadas de `group-board/`: duplicarlas habría dado dos cartas
+   del mismo jugador que se desalinean en cuanto una se toca. */
+
+.sl {
+  width: 100%;
+}
+
+.sl .nf-window {
+  box-shadow: 0 16px 42px color-mix(in srgb, var(--nf-tertiary) 16%, rgba(8, 1, 16, 0.55));
+}
+
+.sl-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.sl-head__titles {
+  min-width: 0;
+}
+
+.sl-head__sub {
+  margin-top: 4px;
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+}
+
+.sl-back {
+  margin-bottom: 0;
+  flex: none;
+}
+
+.sl-pad {
+  padding: 20px;
+}
+
+/* Los mismos escalones que la vista previa del Tablón: es la misma parrilla, así que
+   plegarla en otro píxel las dejaría desalineadas al comparar las dos pantallas. */
+.sl-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+
+  @media (max-width: $bp-compact) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  @media (max-width: $bp-narrow) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* El aviso de espectador. Ámbar y no rojo: mirar no es un error, es un estado. */
+.sl-spectator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 10px 14px;
+  border: 1px solid color-mix(in srgb, var(--nf-gold) 40%, transparent);
+  border-radius: var(--nf-radius-lg);
+  background: color-mix(in srgb, var(--nf-gold) 8%, transparent);
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+}
+
+.sl-spectator__glyph {
+  font-size: var(--fs-body);
+}

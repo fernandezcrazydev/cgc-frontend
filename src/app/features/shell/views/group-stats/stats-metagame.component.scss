@@ -1,87 +1,60 @@
 @use 'breakpoints' as *;
 
-/* Metagame del grupo (§5.5.5): tres tableros de tres campeones. */
+/* Metagame del grupo (§5.5.5): cuatro tableros de tres campeones con podio visual. */
 
-.mg-boards {
-  grid-template-columns: repeat(3, 1fr);
-}
+.mg-boards { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 
 .mg-board {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 13px 14px;
-  border-radius: 10px;
-  background: var(--nf-surface-2);
-  border: 1px solid var(--nf-border);
+  display: flex; flex-direction: column; gap: 4px; padding: 13px 14px;
+  border-radius: 10px; background: var(--nf-surface-2); border: 1px solid var(--nf-border);
 }
 
-.mg-board__title {
-  margin: 0;
-  font-size: 13px;
-  font-weight: var(--fw-semibold);
-  color: var(--nf-text);
-}
-
-.mg-board__note {
-  margin: 0 0 6px;
-  font-size: 11.5px;
-  color: var(--nf-text-dim);
-}
+.mg-board__title { margin: 0; font-size: 13px; font-weight: var(--fw-semibold); color: var(--nf-text); }
+.mg-board__note { margin: 0 0 6px; font-size: var(--fs-label); color: var(--nf-text-dim); }
 
 .mg-board__list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  counter-reset: none;
+  display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none;
+
+  > li {
+    display: flex; min-width: 0;
+  }
 }
 
 .mg-entry {
-  display: grid;
-  grid-template-columns: 14px 30px minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 9px;
-  padding: 5px 0;
+  display: grid; grid-template-columns: 22px 30px minmax(0, 1fr) auto;
+  align-items: center; gap: 8px; padding: 5px 6px; border-radius: 6px; transition: background 0.14s;
+  width: 100%; text-decoration: none; color: inherit; cursor: pointer;
 }
 
-.mg-entry__rank {
-  font-size: 11.5px;
-  color: var(--nf-text-dim);
+.mg-entry[data-podium='1'] { --podium-accent: var(--nf-gold); }
+.mg-entry[data-podium='2'] { --podium-accent: var(--nf-silver); }
+.mg-entry[data-podium='3'] { --podium-accent: var(--nf-bronze); }
+
+.mg-entry[data-podium] {
+  position: relative; border-left: 3px solid var(--podium-accent);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--podium-accent) 14%, transparent), transparent 75%);
+  &:hover { background: linear-gradient(90deg, color-mix(in srgb, var(--podium-accent) 22%, transparent), transparent 80%); }
 }
 
-.mg-entry__meta {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  min-width: 0;
+.mg-entry[data-worst] {
+  .mg-entry__value { color: var(--nf-danger); }
 }
 
-.mg-entry__name {
-  overflow: hidden;
-  font-size: 12.5px;
-  color: var(--nf-text);
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.mg-entry__trophy {
+  width: 22px; height: 22px; object-fit: contain;
+  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--podium-accent) 55%, transparent));
 }
 
-.mg-entry__sub {
-  font-size: var(--fs-label);
-  color: var(--nf-text-dim);
-}
+.mg-entry__rank { font-size: var(--fs-label); color: var(--nf-text-dim); text-align: center; }
+.mg-entry__meta { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.mg-entry__name { overflow: hidden; font-size: 12.5px; color: var(--nf-text); text-overflow: ellipsis; white-space: nowrap; }
+.mg-entry__sub { font-size: var(--fs-label); color: var(--nf-text-dim); }
+.mg-entry__value { font-size: 12px; font-weight: var(--fw-semibold); color: var(--nf-secondary); text-align: right; white-space: nowrap; }
 
-.mg-entry__value {
-  font-size: 12px;
-  font-weight: var(--fw-semibold);
-  color: var(--nf-secondary);
-  text-align: right;
-  white-space: nowrap;
+@media (max-width: 1200px) {
+  .mg-boards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: $bp-compact) {
-  .mg-boards {
-    grid-template-columns: 1fr;
-  }
+  .mg-boards { grid-template-columns: 1fr; }
 }

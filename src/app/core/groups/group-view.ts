@@ -30,7 +30,7 @@ export function groupView(membership: GroupMembershipResponse): GroupView {
 }
 
 /** Un grupo + el rol del llamante → modelo de presentación (para el detalle). */
-export function groupViewFrom(group: GroupResponse, role: GroupRole): GroupView {
+function groupViewFrom(group: GroupResponse, role: GroupRole): GroupView {
   const { c1, c2 } = bannerColors(group.groupId);
   return {
     id: group.groupId,

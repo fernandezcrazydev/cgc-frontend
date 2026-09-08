@@ -46,7 +46,7 @@ export function participantFixture(
   };
 }
 
-export function teamFixture(
+function teamFixture(
   side: TeamSide,
   won: boolean,
   participants: MatchParticipant[],

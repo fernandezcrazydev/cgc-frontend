@@ -1,0 +1,142 @@
+<div class="view gm">
+  @switch (bridge.status()) {
+    @case ('loading') {
+      <ng-container [ngTemplateOutlet]="skeleton" />
+    }
+    @case ('idle') {
+      <ng-container [ngTemplateOutlet]="skeleton" />
+    }
+    @case ('error') {
+      <div class="view__head">
+        <h1 class="view__title">No hemos podido cargar el grupo</h1>
+        <p class="view__lead">La conexión ha fallado. Vuelve a intentarlo en un momento.</p>
+      </div>
+      <button nfButton variant="secondary" size="md" (click)="retryGroup()">Reintentar</button>
+    }
+    @default {
+      @if (group(); as g) {
+        <div class="gm-header">
+          <div class="gm-tabs" role="tablist">
+            <button
+              type="button"
+              class="gm-tab"
+              [class.is-active]="activeTab() === 'live'"
+              (click)="activeTab.set('live')"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                <circle cx="12" cy="12" r="9" />
+                <circle cx="12" cy="12" r="3" fill="currentColor" />
+              </svg>
+              <span>En Vivo</span>
+              @if (liveLobbies().length) {
+                <span class="gm-tab__badge nf-mono">{{ liveLobbies().length }}</span>
+              }
+            </button>
+            <button
+              type="button"
+              class="gm-tab"
+              [class.is-active]="activeTab() === 'schedule'"
+              (click)="activeTab.set('schedule')"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                <rect x="3" y="4" width="18" height="18" rx="2" />
+                <path d="M16 2v4M8 2v4M3 10h18" />
+              </svg>
+              <span>Convocatorias</span>
+              @if (scheduled().length) {
+                <span class="gm-tab__badge nf-mono">{{ scheduled().length }}</span>
+              }
+            </button>
+          </div>
+        </div>
+
+        <div class="gm-deck">
+          <div class="gm-live" [class.is-hidden-mobile]="activeTab() !== 'live'">
+            @if (liveLobbies().length) {
+              @for (lb of liveLobbies(); track lb.id) {
+                <app-live-room-deck
+                  [lobby]="lb"
+                  [slot]="slotOf(lb)"
+                  [groupId]="g.id"
+                  [kickoff]="kickoffOf(lb)"
+                  [loading]="lobbiesLoading()"
+                  [canJoin]="canJoinLive(lb)"
+                  [joining]="joiningLive(lb)"
+                  (join)="joinLive(lb)"
+                  (schedule)="scheduling.set(true)"
+                />
+              }
+            } @else {
+              <app-live-room-deck
+                [lobby]="null"
+                [slot]="null"
+                [groupId]="g.id"
+                [kickoff]="''"
+                [loading]="lobbiesLoading()"
+                [canJoin]="false"
+                [joining]="false"
+                (schedule)="scheduling.set(true)"
+              />
+            }
+          </div>
+
+          <div class="gm-schedule" [class.is-hidden-mobile]="activeTab() !== 'schedule'">
+            <app-schedule-panel
+              [entries]="scheduled()"
+              [loading]="lobbiesLoading()"
+              [failed]="lobbiesFailed()"
+              [myUserId]="myUserId()"
+              (signUp)="signUp($event)"
+              (withdraw)="withdraw($event)"
+              (openAvailability)="openConvocatoria($event)"
+              (openDetail)="openConvocatoria($event)"
+              (schedule)="scheduling.set(true)"
+              (retry)="reloadLobbies()"
+            />
+          </div>
+        </div>
+
+        @if (scheduling()) {
+          <nf-modal title="Agendar una custom" width="760px" (closed)="scheduling.set(false)">
+            <app-schedule-modal
+              [pending]="lobbies.creating()"
+              [recent]="repeatOptions()"
+              (create)="publish(g.id, $event)"
+            />
+          </nf-modal>
+        }
+
+        @if (selectedConvocatoria(); as lb) {
+          <nf-modal title="Detalles de la convocatoria" width="580px" (closed)="selectedConvocatoria.set(null)">
+            <app-convocatoria-modal
+              [lobby]="lb"
+              [slot]="slotOf(lb)"
+              [myUserId]="myUserId()"
+              [pending]="lobbies.savingAvailability()"
+              [acting]="isActingConvocatoria(lb)"
+              (signUp)="onModalSignUp(lb, $event)"
+              (withdraw)="onModalWithdraw(lb, $event)"
+              (saveAvailability)="saveAvailability(lb.id, $event)"
+            />
+          </nf-modal>
+        }
+      } @else {
+        <div class="view__head">
+          <div class="view__eyebrow nf-mono">Error 404</div>
+          <h1 class="view__title">Grupo no encontrado</h1>
+          <p class="view__lead">El grupo que buscas no existe o ya no perteneces a él.</p>
+        </div>
+        <button nfButton variant="secondary" size="md" [routerLink]="['/app', 'grupos']">
+          Volver a grupos
+        </button>
+      }
+    }
+  }
+</div>
+
+<ng-template #skeleton>
+  <div class="gm-deck">
+    <nf-skeleton width="100%" height="220px" radius="10px" />
+    <nf-skeleton width="100%" height="220px" radius="10px" />
+  </div>
+</ng-template>

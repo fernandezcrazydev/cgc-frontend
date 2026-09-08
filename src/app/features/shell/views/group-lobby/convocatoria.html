@@ -1,0 +1,177 @@
+<div class="view">
+  @if (loading()) {
+    <div class="cv" aria-busy="true">
+      <div class="cv-head">
+        <div class="cv-head__titles"><nf-skeleton width="180px" height="30px" /></div>
+      </div>
+      <nf-window title="Convocatoria" bodyPadding="0">
+        <div class="cv-pad">
+          <nf-skeleton width="100%" height="72px" radius="12px" />
+          <nf-skeleton width="100%" height="72px" radius="12px" />
+        </div>
+      </nf-window>
+    </div>
+  } @else if (detail.status() === 'error') {
+    <div class="empty-state">
+      <div class="empty-state__icon">⚠</div>
+      <div class="empty-state__text nf-mono">Error al cargar</div>
+      <p class="empty-state__hint">No se pudo cargar la convocatoria.</p>
+      <button nfButton variant="secondary" size="md" (click)="retry()">Reintentar</button>
+    </div>
+  } @else if (lobby(); as lb) {
+    <div class="cv">
+      <div class="cv-head">
+        <div class="cv-head__titles">
+          <h1 class="view__title">Convocatoria {{ lb.code }}</h1>
+        </div>
+        <a class="view-back cv-back" [routerLink]="['/app', 'grupos', lb.groupId, 'tablon']">
+          <span class="view-back__arrow">←</span> Tablón
+        </a>
+      </div>
+
+      <nf-window title="Convocatoria" bodyPadding="0">
+        <div class="cv-bar">
+          <div class="cv-bar__meta">
+            <div class="cv-bar__sub nf-mono">
+              @switch (lb.status) {
+                @case ('POLLING') { ¿A qué horas puedes? · toca las que te vengan bien }
+                @case ('CONFIRMED') { Hora confirmada · {{ formatKickoff(confirmedStartsAt()) }} }
+                @case ('CANCELLED') { Esta convocatoria se canceló }
+                @default { {{ lb.status }} }
+              }
+            </div>
+            @if (lb.note) {
+              <div class="cv-bar__note">{{ lb.note }}</div>
+            }
+          </div>
+          <nf-badge [color]="statusColor(lb.status)">{{ statusLabel(lb.status) }}</nf-badge>
+        </div>
+
+        <div class="cv-pad">
+          <!-- Confirmada: lo que importa ya no son las horas sino la sala. Hoy una
+               convocatoria rinde exactamente una; con las tandas de FlujoJuego §6 serán
+               varias y esta lista crecerá sin cambiar de sitio. -->
+          @if (lb.status === 'CONFIRMED') {
+            <div class="cv-room">
+              <div class="cv-room__meta">
+                <div class="cv-room__title">Sala {{ lb.code }}</div>
+                <div class="cv-room__sub nf-mono">
+                  {{ starters().length }}/{{ lb.capacity }} jugadores
+                  @if (bench().length) { · {{ bench().length }} en el banquillo }
+                </div>
+              </div>
+              <button
+                nfButton
+                variant="primary"
+                size="md"
+                [routerLink]="['/app', 'grupos', lb.groupId, 'sala', lb.id]"
+              >{{ amInLobby() ? 'Entrar a mi sala' : 'Ver la sala' }}</button>
+            </div>
+          }
+
+          @for (slot of slots(); track slot.id) {
+            <div class="lb-slot" [class.is-confirmed]="slot.id === lb.confirmedSlotId">
+              <div class="lb-slot__head">
+                <span class="lb-slot__when nf-mono">{{ formatKickoff(slot.startsAt) }}</span>
+                <span class="lb-slot__count nf-mono">{{ slot.signedUp }}/{{ lb.capacity }}</span>
+                @if (lb.status !== 'CANCELLED') {
+                  <button
+                    nfButton
+                    variant="secondary"
+                    size="sm"
+                    class="lb-slot__cta"
+                    [class.is-in]="amIn(slot)"
+                    [disabled]="detail.isActing(slot.id)"
+                    [attr.aria-label]="slotCtaLabel(slot)"
+                    [title]="slotCtaLabel(slot)"
+                    (click)="toggleSlot(slot)"
+                  >
+                    {{ detail.isActing(slot.id) ? '…' : amIn(slot) ? '✓ Apuntado' : 'Apuntarse' }}
+                  </button>
+                }
+              </div>
+
+              <div class="lb-slot__bar" aria-hidden="true">
+                <div class="lb-slot__fill" [style.width.%]="fillPercent(slot, lb.capacity)"></div>
+              </div>
+
+              @if (slot.starters.length) {
+                <div class="lb-slot__label nf-mono">
+                  {{ lb.status === 'CONFIRMED' ? 'Juegan' : 'Apuntados' }}
+                </div>
+                <div class="lb-people">
+                  @for (p of slot.starters; track p.userId) {
+                    <span class="lb-person" [class.is-me]="isMe(p.userId)">
+                      <nf-avatar [src]="p.avatarUrl" [fallback]="p.discordUsername ?? '?'" [tint]="tintOf(p.userId)" [size]="26" />
+                      <span class="lb-person__name nf-mono">{{ p.discordUsername ?? 'Sin nombre' }}</span>
+                    </span>
+                  }
+                </div>
+              }
+
+              @if (slot.bench.length) {
+                <div class="lb-slot__label nf-mono">Suplentes · por orden de llegada</div>
+                <div class="lb-people lb-people--bench">
+                  @for (p of slot.bench; track p.userId; let i = $index) {
+                    <span class="lb-person" [class.is-me]="isMe(p.userId)">
+                      <span class="lb-person__pos nf-mono">{{ i + 1 }}</span>
+                      <nf-avatar [src]="p.avatarUrl" [fallback]="p.discordUsername ?? '?'" [tint]="tintOf(p.userId)" [size]="22" />
+                      <span class="lb-person__name nf-mono">{{ p.discordUsername ?? 'Sin nombre' }}</span>
+                    </span>
+                  }
+                </div>
+              }
+
+              @if (!slot.signedUp) {
+                <div class="lb-slot__empty nf-mono">Nadie ha dicho todavía que pueda a esta hora.</div>
+              }
+            </div>
+          }
+        </div>
+      </nf-window>
+
+      <div class="cv-foot">
+        <a class="view-back" [routerLink]="['/app', 'grupos', lb.groupId, 'tablon']">← Tablón</a>
+        <div class="cv-foot__status nf-mono">
+          Convocó {{ lb.openedBy.discordUsername ?? '—' }}
+        </div>
+        @if (lb.status !== 'CANCELLED') {
+          <button
+            nfButton
+            variant="danger"
+            size="md"
+            [disabled]="detail.cancelling()"
+            (click)="confirmCancel.set(true)"
+          >Cancelar convocatoria</button>
+        }
+      </div>
+    </div>
+
+    @if (confirmCancel()) {
+      <div class="modal-overlay" (click)="confirmCancel.set(false)">
+        <div class="modal" (click)="$event.stopPropagation()">
+          <nf-window title="Cancelar convocatoria" bodyPadding="24px">
+            <div class="settings-eyebrow nf-mono">Cancelar convocatoria</div>
+            <p class="remove-msg">¿Seguro que quieres cancelar esta convocatoria?</p>
+            <div class="remove-warn nf-mono">
+              ⚠ Se avisará a todos los que se habían apuntado. Esto no se puede deshacer.
+            </div>
+            <div class="form-foot">
+              <button nfButton variant="ghost" size="md" (click)="confirmCancel.set(false)">Volver</button>
+              <button nfButton variant="danger" size="md" [disabled]="detail.cancelling()" (click)="doCancel()">
+                {{ detail.cancelling() ? 'Cancelando…' : 'Cancelar convocatoria' }}
+              </button>
+            </div>
+          </nf-window>
+        </div>
+      </div>
+    }
+  } @else {
+    <div class="view__head">
+      <div class="view__eyebrow nf-mono">Error 404</div>
+      <h1 class="view__title">Convocatoria no encontrada</h1>
+      <p class="view__lead">La convocatoria que buscas no existe o ya no perteneces al grupo.</p>
+    </div>
+    <a class="view-back" [routerLink]="['/app', 'grupos']">← Volver a grupos</a>
+  }
+</div>

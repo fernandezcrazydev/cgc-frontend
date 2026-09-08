@@ -1,0 +1,143 @@
+<div class="view gs">
+  @switch (bridge.status()) {
+    @case ('loading') {
+      <ng-container [ngTemplateOutlet]="skeleton" />
+    }
+    @case ('idle') {
+      <ng-container [ngTemplateOutlet]="skeleton" />
+    }
+    @case ('error') {
+      <div class="view__head">
+        <h1 class="view__title">No hemos podido cargar el grupo</h1>
+        <p class="view__lead">
+          La conexión ha fallado. Vuelve a intentarlo en un momento.
+        </p>
+      </div>
+      <button nfButton variant="secondary" size="md" (click)="retry()">Reintentar</button>
+    }
+    @default {
+      @if (group(); as g) {
+        <nav class="gs-tabs">
+          <nf-segmented
+            variant="tabs"
+            [options]="tabOptions"
+            [value]="tab()"
+            (valueChange)="setTab($event)"
+            ariaLabel="Secciones de las estadísticas del grupo"
+          />
+        </nav>
+
+        <div class="gs-controls">
+          <nf-combobox
+            class="gs-controls__season"
+            [options]="seasonOptions()"
+            [value]="seasonId()"
+            (valueChange)="setSeason($event)"
+            placeholder="Todas"
+            ariaLabel="Filtrar por temporada"
+            emptyText="Ninguna temporada coincide"
+            [clearable]="false"
+          />
+
+          <nf-segmented
+            class="gs-controls__modality"
+            [options]="modalityOptions()"
+            [value]="modality()"
+            (valueChange)="setModality($event)"
+            ariaLabel="Modalidad competitiva"
+          />
+        </div>
+
+        @if (tab() === 'rendimiento') {
+          <div class="gs-stack">
+            <div class="gs-telemetry-row">
+              <app-stats-map-telemetry
+                [telemetry]="telemetry()"
+                [highlightedObjectiveId]="hoveredObjectiveId()"
+                (objectiveHover)="hoveredObjectiveId.set($event)"
+                [loading]="statsLoading()"
+              />
+              <app-stats-radar
+                [telemetry]="telemetry()"
+                [(hoveredId)]="hoveredObjectiveId"
+                [loading]="statsLoading()"
+              />
+            </div>
+            <app-stats-metagame [boards]="metagame()" [groupId]="id()" [loading]="statsLoading()" />
+            <div class="gs-duos-row">
+              <app-stats-golden-duo [duo]="goldenDuo()" [loading]="statsLoading()" />
+              <app-stats-golden-duo variant="wood" [duo]="woodenDuo()" [loading]="statsLoading()" />
+            </div>
+            <div class="gs-insights-row">
+              <app-stats-lane-impact [lanes]="laneImpact()" [loading]="statsLoading()" />
+              <div class="gs-insights-stack">
+                <app-stats-multikills [multikills]="multikills()" [loading]="statsLoading()" />
+                <app-stats-vision [vision]="vision()" [loading]="statsLoading()" />
+              </div>
+            </div>
+            <app-stats-records [records]="records()" [loading]="statsLoading()" />
+            <app-stats-leaders
+              [players]="players()"
+              [loading]="statsLoading()"
+              [expandedTag]="expandedTag()"
+              (toggle)="togglePlayer($event)"
+            />
+          </div>
+        } @else {
+          <app-hall-of-fame
+            [boards]="medals()"
+            [loading]="statsLoading()"
+            (open)="openMedal($event)"
+          />
+        }
+
+        @if (openBoard(); as board) {
+          <nf-modal
+            [title]="board.medal.title"
+            width="520px"
+            (closed)="closeMedal()"
+          >
+            <app-medal-detail [board]="board" />
+          </nf-modal>
+        }
+      } @else {
+        <div class="view__head">
+          <div class="view__eyebrow nf-mono">Error 404</div>
+          <h1 class="view__title">Grupo no encontrado</h1>
+          <p class="view__lead">El grupo que buscas no existe o ya no perteneces a él.</p>
+        </div>
+        <button nfButton variant="secondary" size="md" [routerLink]="['/app', 'grupos']">
+          Volver a grupos
+        </button>
+      }
+    }
+  }
+</div>
+
+<ng-template #skeleton>
+  <nf-skeleton width="100%" height="40px" radius="8px" />
+  <div class="gs-controls" style="margin: 12px 0 16px;">
+    <nf-skeleton width="160px" height="32px" radius="8px" />
+    <nf-skeleton width="220px" height="32px" radius="8px" />
+  </div>
+  <div class="gs-stack">
+    <div class="gs-telemetry-row">
+      <nf-skeleton width="100%" height="220px" radius="12px" />
+      <nf-skeleton width="100%" height="220px" radius="12px" />
+    </div>
+    @for (s of [0, 1]; track s) {
+      <nf-skeleton width="100%" height="180px" radius="12px" />
+    }
+    <div class="gs-duos-row">
+      <nf-skeleton width="100%" height="86px" radius="12px" />
+      <nf-skeleton width="100%" height="86px" radius="12px" />
+    </div>
+    <div class="gs-insights-row">
+      <nf-skeleton width="100%" height="280px" radius="12px" />
+      <div class="gs-insights-stack">
+        <nf-skeleton width="100%" height="133px" radius="12px" />
+        <nf-skeleton width="100%" height="133px" radius="12px" />
+      </div>
+    </div>
+  </div>
+</ng-template>

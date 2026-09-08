@@ -37,21 +37,30 @@ function createComponent(board: MedalBoard | null) {
 }
 
 describe('MedalDetailComponent', () => {
-  it('encabeza con el líder actual y su cifra', () => {
+  it('encabeza con el líder actual, su cifra y su trofeo dorado', () => {
     const board = claimed(ROSTER[0].tag);
     const fixture = createComponent(board);
 
     const nombre = fixture.nativeElement.querySelector('.md__leader-name').textContent.trim();
     expect(nombre).toBe(board.leader!.member.name);
+    const trofeo = fixture.nativeElement.querySelector('.md__leader-trophy');
+    expect(trofeo).not.toBeNull();
+    expect(trofeo.getAttribute('src')).toBe('/assets/trofeos/Trofeo1.webp');
   });
 
-  it('enseña el podio, como mucho de tres', () => {
+  it('enseña el podio, como mucho de tres con sus trofeos de metagame', () => {
     const board = claimed(ROSTER[0].tag);
     const fixture = createComponent(board);
 
     const filas = fixture.nativeElement.querySelectorAll('.md__podium-row');
     expect(filas.length).toBe(3);
     expect(filas[0].getAttribute('data-podium')).toBe('1');
+    const trofeo1 = filas[0].querySelector('.md__podium-trophy');
+    const trofeo2 = filas[1].querySelector('.md__podium-trophy');
+    const trofeo3 = filas[2].querySelector('.md__podium-trophy');
+    expect(trofeo1?.getAttribute('src')).toBe('/assets/trofeos/Trofeo1.webp');
+    expect(trofeo2?.getAttribute('src')).toBe('/assets/trofeos/Trofeo2.webp');
+    expect(trofeo3?.getAttribute('src')).toBe('/assets/trofeos/Trofeo3.webp');
   });
 
   it('a quien no lidera le dice cuánto le falta para el primer puesto', () => {

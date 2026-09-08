@@ -1,0 +1,141 @@
+@use 'breakpoints' as *;
+
+/* Agendar una custom (§5.5.6). Vive dentro de `<nf-modal>`: aquí no hay fondo ni cierre,
+   solo el formulario.
+
+   Nada de inputs nativos de fecha: se pintan distinto en cada navegador y en un móvil
+   abren un diálogo del sistema en mitad del flujo. Calendario propio y rejilla de horas,
+   todo con altura de dedo.
+
+   Escrito en una declaración por línea como su vecina `convocatoria-modal.component.scss`.
+   No es capricho: `css-total-size` de `npm run arch` está al límite y solo baja, así que
+   este rediseño tiene que caber en lo que libera la tira de días que sustituye. */
+
+.sm { display: flex; flex-direction: column; gap: 16px; }
+.sm__legend { margin: 0; font-size: var(--fs-caption); line-height: 1.5; color: var(--nf-text-mid); }
+.sm__block { display: flex; flex-direction: column; gap: 8px; }
+.sm__label { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0; font-size: var(--fs-label); font-weight: var(--fw-semibold); color: var(--nf-text-dim); }
+.sm__count { font-size: var(--fs-label); font-weight: var(--fw-regular); color: var(--nf-text-dim); font-variant-numeric: tabular-nums; }
+/* A partir del 90% avisa; antes sería gritar durante novecientos caracteres. */
+.sm__count.is-near { color: var(--nf-gold); }
+.sm__empty, .sm__hint { margin: 0; font-size: var(--fs-label); line-height: 1.45; color: var(--nf-text-dim); }
+
+/* Dos columnas: el calendario no desaparece al bajar a elegir horas, que es justo cuando
+   hace falta verlo para no equivocarse de día. */
+.sm__cols { display: grid; grid-template-columns: minmax(0, 290px) minmax(0, 1fr); gap: 18px; align-items: start; }
+
+/* ---- Repetir una anterior ---- */
+
+.sm-repeat { display: flex; flex-wrap: wrap; gap: 7px; margin: 0; padding: 0; list-style: none; }
+.sm-repeat__chip {
+  display: flex; flex-direction: column; gap: 2px; padding: 7px 11px; background: var(--nf-surface-2);
+  border: 1px solid var(--nf-border); border-radius: 9px; color: var(--nf-text-mid); font: inherit;
+  text-align: left; cursor: pointer; transition: border-color 0.14s, background 0.14s, color 0.14s;
+  &:hover { border-color: var(--nf-border-strong); color: var(--nf-text); }
+  &.is-on { background: color-mix(in srgb, var(--nf-primary) 16%, var(--nf-surface-2)); border-color: color-mix(in srgb, var(--nf-primary) 55%, var(--nf-border)); color: var(--nf-text); }
+  &:focus-visible { outline: var(--nf-focus-ring, 2px) solid var(--nf-focus); outline-offset: 2px; }
+}
+.sm-repeat__times { font-size: var(--fs-caption); font-variant-numeric: tabular-nums; }
+.sm-repeat__note { font-size: var(--fs-label); color: var(--nf-text-dim); }
+
+/* ---- Calendario ---- */
+
+.sm-cal { display: flex; flex-direction: column; gap: 8px; }
+.sm-cal__head { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.sm-cal__month { margin: 0; flex: 1; text-align: center; font-size: var(--fs-caption); font-weight: var(--fw-semibold); color: var(--nf-text); }
+.sm-cal__month::first-letter { text-transform: uppercase; }
+.sm-cal__nav {
+  display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; flex: none;
+  background: var(--nf-surface-2); border: 1px solid var(--nf-border); border-radius: 8px;
+  color: var(--nf-text-mid); cursor: pointer; transition: border-color 0.14s, color 0.14s;
+  svg { width: 15px; height: 15px; }
+  &:hover:not(:disabled) { border-color: var(--nf-border-strong); color: var(--nf-text); }
+  &:disabled { opacity: 0.3; cursor: default; }
+  &:focus-visible { outline: var(--nf-focus-ring, 2px) solid var(--nf-focus); outline-offset: 2px; }
+}
+.sm-cal__dow, .sm-cal__grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+.sm-cal__dow span { text-align: center; font-size: var(--fs-label); color: var(--nf-text-dim); }
+.sm-cal__cell {
+  padding: 7px 0; background: transparent; border: 1px solid transparent; border-radius: 8px;
+  color: var(--nf-text-mid); font: inherit; font-size: var(--fs-caption); font-variant-numeric: tabular-nums;
+  cursor: pointer; transition: border-color 0.14s, background 0.14s, color 0.14s;
+  /* El finde se distingue porque es cuando se juegan las customs: ahorra contar columnas. */
+  &.is-weekend { color: var(--nf-secondary); }
+  &.is-today { font-weight: var(--fw-bold); }
+  &:hover:not(:disabled) { background: var(--nf-surface-2); border-color: var(--nf-border-strong); color: var(--nf-text); }
+  &.is-on { background: color-mix(in srgb, var(--nf-primary) 18%, var(--nf-surface-2)); border-color: color-mix(in srgb, var(--nf-primary) 55%, var(--nf-border)); color: var(--nf-text); font-weight: var(--fw-bold); }
+  /* Convocar para ayer no existe. Apagado y no escondido: el hueco ayuda a leer la rejilla. */
+  &:disabled { opacity: 0.22; cursor: default; }
+  &.is-filler { opacity: 0; }
+  &:focus-visible { outline: var(--nf-focus-ring, 2px) solid var(--nf-focus); outline-offset: 1px; }
+}
+/* El día elegido escrito entero: la confirmación de que has pulsado lo que creías. Solo la
+   primera letra, porque `capitalize` daba "Viernes, 4 De Septiembre". */
+.sm-cal__chosen { margin: 0; font-size: var(--fs-caption); color: var(--nf-text); }
+.sm-cal__chosen::first-letter { text-transform: uppercase; }
+
+/* ---- Horas, en bandas plegables ---- */
+
+.sm-right { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.sm-bands { display: flex; flex-direction: column; gap: 6px; max-height: 300px; overflow-y: auto; }
+.sm-band { display: flex; flex-direction: column; gap: 7px; }
+.sm-band__head {
+  display: flex; align-items: center; gap: 6px; padding: 4px 0; background: none; border: 0;
+  color: var(--nf-text-dim); font: inherit; font-size: var(--fs-label); font-weight: var(--fw-semibold);
+  cursor: pointer;
+  &:hover { color: var(--nf-text); }
+  &:focus-visible { outline: var(--nf-focus-ring, 2px) solid var(--nf-focus); outline-offset: 2px; }
+}
+.sm-band__caret { display: flex; transition: transform 0.14s; svg { width: 13px; height: 13px; } }
+.sm-band__caret.is-open { transform: rotate(90deg); }
+.sm-band__count { margin-left: auto; color: var(--nf-text-dim); }
+.sm-hours { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 6px; }
+.sm-hour {
+  padding: 9px 0; background: var(--nf-surface-2); border: 1px solid var(--nf-border); border-radius: 9px;
+  color: var(--nf-text-mid); font: inherit; font-size: var(--fs-caption); font-variant-numeric: tabular-nums;
+  cursor: pointer; transition: border-color 0.14s, background 0.14s, color 0.14s;
+  &:hover:not(:disabled) { border-color: var(--nf-border-strong); color: var(--nf-text); }
+  &.is-on { background: color-mix(in srgb, var(--nf-emerald) 16%, var(--nf-surface-2)); border-color: color-mix(in srgb, var(--nf-emerald) 55%, var(--nf-border)); color: var(--nf-text); }
+  /* Al llegar al tope las demás se apagan, en vez de dejar pulsar y no pasar nada. */
+  &:disabled { opacity: 0.35; cursor: default; }
+  &:focus-visible { outline: var(--nf-focus-ring, 2px) solid var(--nf-focus); outline-offset: 2px; }
+}
+
+/* ---- La propuesta que se está montando ---- */
+
+.sm-basket { display: flex; flex-direction: column; gap: 8px; padding: 12px 13px; border-radius: 10px; background: var(--nf-inset); border: 1px solid var(--nf-border); }
+.sm-basket.is-empty { border-style: dashed; }
+.sm-basket__list { display: flex; flex-wrap: wrap; gap: 7px; margin: 0; padding: 0; list-style: none; }
+.sm-chip {
+  display: inline-flex; align-items: center; gap: 7px; padding: 6px 9px 6px 11px; border-radius: 999px;
+  background: color-mix(in srgb, var(--nf-emerald) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--nf-emerald) 45%, transparent);
+  color: var(--nf-text); font: inherit; font-size: var(--fs-caption); font-variant-numeric: tabular-nums;
+  cursor: pointer; transition: background 0.14s, border-color 0.14s;
+  &:hover { background: color-mix(in srgb, var(--nf-danger) 14%, transparent); border-color: color-mix(in srgb, var(--nf-danger) 45%, transparent); }
+  &:hover .sm-chip__x { color: var(--nf-danger); }
+  &:focus-visible { outline: var(--nf-focus-ring, 2px) solid var(--nf-focus); outline-offset: 2px; }
+}
+.sm-chip__x { display: flex; align-items: center; color: var(--nf-text-dim); svg { width: 13px; height: 13px; } }
+
+/* ---- Descripción y pie ---- */
+
+.sm__note {
+  width: 100%; padding: 10px 12px; background: var(--nf-inset); border: 1px solid var(--nf-border);
+  border-radius: 9px; color: var(--nf-text); font: inherit; font-size: var(--fs-body); resize: vertical;
+  &::placeholder { color: var(--nf-text-dim); }
+  &:focus-visible { outline: var(--nf-focus-ring, 2px) solid var(--nf-focus); outline-offset: 1px; }
+}
+.sm__foot { display: flex; justify-content: flex-end; padding-top: 14px; border-top: 1px solid var(--nf-border); }
+
+/* Por debajo del ancho del propio modal las dos columnas no caben: se apilan en el orden
+   del DOM, que ya es el correcto, así que no hace falta ningún `order`. */
+@media (max-width: $bp-mobile) {
+  .sm__cols { grid-template-columns: minmax(0, 1fr); }
+  .sm-bands { max-height: none; }
+  .sm-cal__cell, .sm-hour { min-height: $touch; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sm-cal__cell, .sm-cal__nav, .sm-hour, .sm-chip, .sm-repeat__chip, .sm-band__caret { transition: none; }
+}

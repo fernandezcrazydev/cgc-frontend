@@ -1,0 +1,18 @@
+@use 'breakpoints' as *;
+
+.m-summary__wr-row--symmetric {
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.m-summary__side {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.m-summary__side-badge {
+  font-weight: var(--fw-bold);
+  font-size: var(--fs-label);
+}
+

@@ -29,8 +29,11 @@ export const GROUP_NAV: readonly GroupNavItem[] = [
   // El hub encabeza la lista: es la puerta del grupo, y pulsar el grupo en la barra lateral
   // despliega estas secciones en vez de entrar, así que tiene que ser lo primero que se ofrece.
   { path: '', label: 'Hub del grupo', glyph: '◇' },
-  { path: 'crear-partida', label: 'Crear partida', glyph: '＋', primary: true },
-  { path: 'partidas', label: 'Partidas', glyph: '▤' },
+  // «Partidas» se llamaba así y el nombre mentía: ahí no hay ninguna partida, hay
+  // convocatorias y salas (`FlujoJuego.md` §2). Una partida es una custom ya jugada, y eso
+  // está en Historial. Un tablón anuncia lo que pasa ahora y lo que viene, que es
+  // exactamente sus dos columnas.
+  { path: 'tablon', label: 'Tablón', glyph: '▤', primary: true },
   { path: 'ranking', label: 'Ranking', glyph: '▲' },
   { path: 'tierlist', label: 'Tierlist', glyph: '⚔' },
   { path: 'estadisticas', label: 'Estadísticas', glyph: '◔' },
@@ -86,14 +89,16 @@ const ROUTE_TITLES: readonly (readonly [readonly string[], string])[] = [
   [['inicio'], 'Inicio'],
   [['historial'], 'Historial de partidas'],
   [['historial', ':id'], 'Partida'],
+  [['analisis-avanzado'], 'Partida'],
+  [['analisis-avanzado', ':id'], 'Partida'],
   [['tierlist'], 'Tierlist'],
 
   [['grupos'], 'Grupos'],
   [['grupos', ':id'], 'Hub del grupo'],
   [['grupos', ':id', 'perfil'], 'Perfil del grupo'],
-  [['grupos', ':id', 'crear-partida'], 'Crear partida'],
-  [['grupos', ':id', 'partidas'], 'Partidas'],
-  [['grupos', ':id', 'partidas', ':roomId'], 'Sala'],
+  [['grupos', ':id', 'tablon'], 'Tablón'],
+  [['grupos', ':id', 'convocatoria', ':lobbyId'], 'Convocatoria'],
+  [['grupos', ':id', 'sala', ':salaId'], 'Sala'],
   [['grupos', ':id', 'ranking'], 'Ranking'],
   [['grupos', ':id', 'tierlist'], 'Tierlist'],
   [['grupos', ':id', 'estadisticas'], 'Estadísticas'],
@@ -115,6 +120,7 @@ const ROUTE_TITLES: readonly (readonly [readonly string[], string])[] = [
   [['jugador', ':playerId', 'juntos'], 'Sinergia de dúo'],
   [['jugador', ':playerId', 'juntos', ':matchId'], 'Sinergia en la partida'],
 
+  [['pruebas'], 'Pruebas'],
   [['ajustes'], 'Ajustes'],
 
   [['admin'], 'Administración'],
@@ -134,14 +140,36 @@ const ROUTE_TITLES: readonly (readonly [readonly string[], string])[] = [
  *
  * Devuelve `null` para `/app/grupos` a secas, que es el directorio y no un grupo concreto.
  */
-export function groupIdFromUrl(url: string): string | null {
-  const segments = (url ?? '')
-    .split('?')[0]
+export function groupIdFromUrl(
+  url: string,
+  matchResolver?: (matchId: string) => string | null,
+): string | null {
+  const [pathPart, queryPart] = (url ?? '').split('?');
+  const segments = pathPart
     .split('#')[0]
     .split('/')
     .filter(Boolean);
-  if (segments[0] !== 'app' || segments[1] !== 'grupos') return null;
-  return segments[2] ?? null;
+
+  if (segments[0] !== 'app') return null;
+
+  if (segments[1] === 'grupos') {
+    return segments[2] ?? null;
+  }
+
+  if (queryPart) {
+    const params = new URLSearchParams(queryPart);
+    const volver = params.get('volver');
+    if (volver && volver.startsWith('grupo:')) {
+      return volver.slice(6) || null;
+    }
+  }
+
+  if (((segments[1] === 'historial' && segments[2]) || segments[1] === 'analisis-avanzado') && matchResolver) {
+    const matchId = segments[2] || 'seed-001';
+    return matchResolver(matchId);
+  }
+
+  return null;
 }
 
 function urlSegments(url: string): string[] {
@@ -155,30 +183,11 @@ function urlSegments(url: string): string[] {
 /**
  * ¿La ruta es el HUB de un grupo (`/app/grupos/:id`), y no una de sus secciones?
  *
- * Lo usa el banner de sala abierta del shell para callarse ahí: desde la Fase 2 el hub tiene su
- * propio bloque «Requiere tu atención» con la misma convocatoria, y las dos cosas juntas eran la
- * misma información dos veces en la misma pantalla. El banner sigue apareciendo en cualquier otra
- * pantalla, que es para lo que existe: enterarte sin que nadie te pase un enlace.
+ * Lo usa el breadcrumb de la barra superior: en el hub el nombre del grupo es el final del
+ * camino y se pinta como rótulo, mientras que en cualquier sección es un escalón más y se
+ * pinta como botón que vuelve al hub.
  */
 export function isGroupHubUrl(url: string): boolean {
   const segments = urlSegments(url);
   return segments.length === 3 && segments[0] === 'app' && segments[1] === 'grupos';
-}
-
-/**
- * ¿La ruta es el panel de partidas de un grupo (`/app/grupos/:id/partidas`)?
- *
- * Mismo motivo que el hub, y desde §5.5.6 con más razón: esta pantalla ES el panel de
- * convocatorias, así que el banner encima repetía literalmente la tarjeta que hay debajo.
- * El detalle de una convocatoria (`/partidas/:roomId`) no cuenta: allí solo se ve UNA, y
- * el banner sigue sirviendo para enterarte de que hay otra.
- */
-export function isGroupMatchesUrl(url: string): boolean {
-  const segments = urlSegments(url);
-  return (
-    segments.length === 4 &&
-    segments[0] === 'app' &&
-    segments[1] === 'grupos' &&
-    segments[3] === 'partidas'
-  );
 }

@@ -5,23 +5,39 @@
    Solo el armazón de la pantalla: cada bloque trae su propia hoja. El chrome de
    tarjeta compartido está en `stats-card.scss`. */
 
-.gs-head {
-  gap: 20px;
+.gs-tabs {
+  margin-bottom: 12px;
 }
 
 .gs-controls {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 10px;
   flex-wrap: wrap;
+  margin-bottom: 16px;
 }
 
-.gs-controls__season {
-  min-width: 190px;
+.gs-controls__season { width: 155px; }
+
+.gs-telemetry-row {
+  display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 14px; align-items: stretch;
 }
 
-.gs-tabs {
-  margin-bottom: 20px;
+.gs-duos-row {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; align-items: stretch;
+}
+
+.gs-insights-row {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; align-items: stretch;
+}
+
+.gs-insights-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  height: 100%;
+  min-height: 0;
 }
 
 /* Los bloques de rendimiento se apilan a lo ancho: la pantalla es un informe que
@@ -32,13 +48,18 @@
   gap: 14px;
 }
 
+@media (max-width: 1100px) {
+  .gs-telemetry-row { grid-template-columns: 1fr; }
+}
+
 @media (max-width: $bp-compact) {
   .gs-controls {
     width: 100%;
+    justify-content: flex-start;
   }
 
-  .gs-controls__season {
-    min-width: 0;
-    flex: 1 1 100%;
-  }
+  .gs-controls__season { width: 100%; max-width: 200px; }
+  .gs-duos-row,
+  .gs-insights-row { grid-template-columns: 1fr; }
+  .gs-insights-stack { height: auto; }
 }

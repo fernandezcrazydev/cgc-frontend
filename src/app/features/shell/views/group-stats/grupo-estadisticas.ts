@@ -11,27 +11,45 @@ import { NgTemplateOutlet } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
-import { NfButton, NfCombobox, NfModal, NfSegmented, NfSkeleton } from '../../../../ui';
+import {
+  NfButton,
+  NfCombobox,
+  NfComboboxOption,
+  NfModal,
+  NfSegmentOption,
+  NfSegmented,
+  NfSkeleton,
+} from '../../../../ui';
 import { Session } from '../../../../core/auth';
 import { GroupStore } from '../../../../core/group-store';
 import { GroupBridge, GroupsStore } from '../../../../core/groups';
 import { GameDataStore } from '../../../../core/game-data';
-import { hubSeasonsFor } from '../../../../core/group-hub';
 import { medalBoardsFor, medalById } from '../../../../core/group-medals';
 import {
-  SCOPE_OPTIONS,
+  StatModality,
   StatScope,
   epicRecordsFor,
+  goldenDuoFor,
+  woodenDuoFor,
+  groupModalitiesConfig,
+  groupVisionFor,
+  laneImpactFor,
   mapTelemetryFor,
   metagameFor,
+  multikillsFor,
   statsFor,
 } from '../../../../core/group-stats';
 import { HallOfFameComponent } from './hall-of-fame.component';
 import { MedalDetailComponent } from './medal-detail.component';
+import { StatsGoldenDuoComponent } from './stats-golden-duo.component';
+import { StatsLaneImpactComponent } from './stats-lane-impact.component';
 import { StatsLeadersComponent } from './stats-leaders.component';
 import { StatsMapTelemetryComponent } from './stats-map-telemetry.component';
 import { StatsMetagameComponent } from './stats-metagame.component';
+import { StatsMultikillsComponent } from './stats-multikills.component';
+import { StatsRadarComponent } from './stats-radar.component';
 import { StatsRecordsComponent } from './stats-records.component';
+import { StatsVisionComponent } from './stats-vision.component';
 
 /** Las dos pestañas de §5.5.5. La lista es a la vez el tipo y el validador. */
 const STAT_TABS = ['rendimiento', 'medallas'] as const;
@@ -42,10 +60,8 @@ type StatTab = (typeof STAT_TABS)[number];
  * rendimiento competitivo y Hall of Fame.
  *
  * La vista orquesta y navega; cada bloque de la pantalla es un componente propio de
- * esta carpeta con su hoja de estilos. Dos cosas viven en la URL a propósito, porque
- * las dos son destinos a los que se llega desde fuera:
- *   - `?medalla=<id>` abre el detalle de una medalla — es lo que usa la vitrina de
- *     trofeos del hub para aterrizar aquí con SU tarjeta ya abierta (§5.5.4).
+ * esta carpeta con su hoja de estilos. Dos cosas viven en la URL a propósito:
+ *   - `?medalla=<id>` abre el detalle de una medalla.
  *   - `?jugador=<tag>` despliega la fila de alguien en la tabla de líderes.
  */
 @Component({
@@ -62,131 +78,17 @@ type StatTab = (typeof STAT_TABS)[number];
     NfSkeleton,
     HallOfFameComponent,
     MedalDetailComponent,
+    StatsGoldenDuoComponent,
+    StatsLaneImpactComponent,
     StatsLeadersComponent,
     StatsMapTelemetryComponent,
     StatsMetagameComponent,
+    StatsMultikillsComponent,
+    StatsRadarComponent,
     StatsRecordsComponent,
+    StatsVisionComponent,
   ],
-  template: `
-    <div class="view gs">
-      @switch (bridge.status()) {
-        @case ('loading') {
-          <ng-container [ngTemplateOutlet]="skeleton" />
-        }
-        @case ('idle') {
-          <ng-container [ngTemplateOutlet]="skeleton" />
-        }
-        @case ('error') {
-          <div class="view__head">
-            <h1 class="view__title">No hemos podido cargar el grupo</h1>
-            <p class="view__lead">
-              La conexión ha fallado. Vuelve a intentarlo en un momento.
-            </p>
-          </div>
-          <button nfButton variant="secondary" size="md" (click)="retry()">Reintentar</button>
-        }
-        @default {
-          @if (group(); as g) {
-            <a class="view-back" [routerLink]="['/app', 'grupos', g.id]">
-              <span class="view-back__arrow" aria-hidden="true">←</span>
-              {{ g.name }}
-            </a>
-
-            <header class="view__head view__head--row gs-head">
-              <div>
-                <div class="view__eyebrow nf-mono">Estadísticas y telemetría</div>
-                <h1 class="view__title">{{ g.name }}</h1>
-                <p class="view__lead">
-                  Cómo juega este grupo y quién manda en cada apartado.
-                </p>
-              </div>
-
-              <div class="gs-controls">
-                @if (seasons().length > 1) {
-                  <nf-combobox
-                    class="gs-controls__season"
-                    [options]="seasonOptions()"
-                    [value]="seasonId()"
-                    (valueChange)="setSeason($event)"
-                    ariaLabel="Temporada"
-                    [clearable]="false"
-                  />
-                }
-
-                <nf-segmented
-                  [options]="scopeOptions()"
-                  [value]="scope()"
-                  (valueChange)="setScope($event)"
-                  ariaLabel="Alcance temporal de las estadísticas"
-                />
-              </div>
-            </header>
-
-            <nav class="gs-tabs">
-              <nf-segmented
-                variant="tabs"
-                [options]="tabOptions"
-                [value]="tab()"
-                (valueChange)="setTab($event)"
-                ariaLabel="Secciones de las estadísticas del grupo"
-              />
-            </nav>
-
-            @if (tab() === 'rendimiento') {
-              <div class="gs-stack">
-                <app-stats-map-telemetry [telemetry]="telemetry()" [loading]="statsLoading()" />
-                <app-stats-metagame [boards]="metagame()" [loading]="statsLoading()" />
-                <app-stats-records [records]="records()" [loading]="statsLoading()" />
-                <app-stats-leaders
-                  [players]="players()"
-                  [loading]="statsLoading()"
-                  [expandedTag]="expandedTag()"
-                  (toggle)="togglePlayer($event)"
-                />
-              </div>
-            } @else {
-              <app-hall-of-fame
-                [boards]="medals()"
-                [loading]="statsLoading()"
-                (open)="openMedal($event)"
-              />
-            }
-
-            @if (openBoard(); as board) {
-              <nf-modal
-                [title]="board.medal.title"
-                width="520px"
-                (closed)="closeMedal()"
-              >
-                <app-medal-detail [board]="board" />
-              </nf-modal>
-            }
-          } @else {
-            <div class="view__head">
-              <div class="view__eyebrow nf-mono">Error 404</div>
-              <h1 class="view__title">Grupo no encontrado</h1>
-              <p class="view__lead">El grupo que buscas no existe o ya no perteneces a él.</p>
-            </div>
-            <button nfButton variant="secondary" size="md" [routerLink]="['/app', 'grupos']">
-              Volver a grupos
-            </button>
-          }
-        }
-      }
-    </div>
-
-    <ng-template #skeleton>
-      <nf-skeleton width="180px" height="34px" radius="6px" />
-      <div class="view__head">
-        <nf-skeleton width="240px" height="30px" />
-      </div>
-      <div class="gs-stack">
-        @for (s of [0, 1, 2]; track s) {
-          <nf-skeleton width="100%" height="180px" radius="12px" />
-        }
-      </div>
-    </ng-template>
-  `,
+  templateUrl: './grupo-estadisticas.html',
   styleUrl: './grupo-estadisticas.scss',
 })
 export class GrupoEstadisticas {
@@ -198,7 +100,7 @@ export class GrupoEstadisticas {
   private readonly gameData = inject(GameDataStore);
   readonly bridge = inject(GroupBridge);
 
-  private readonly id = toSignal(
+  readonly id = toSignal(
     this.route.paramMap.pipe(map((p) => p.get('id'))),
     { initialValue: this.route.snapshot.paramMap.get('id') },
   );
@@ -221,32 +123,44 @@ export class GrupoEstadisticas {
     return this.groupStore.byId(id) ?? this.groupsStore.byId(id) ?? null;
   });
 
-  /* ---- Control temporal ---- */
+  /* ---- Control temporal y modalidad ---- */
 
-  readonly seasons = computed(() => {
+  readonly modality = signal<StatModality>('COMPETITIVE');
+  readonly seasonId = signal<string>('all');
+
+  readonly modalities = computed(() => {
     const g = this.group();
-    return g ? hubSeasonsFor(g.id) : [];
+    return g ? groupModalitiesConfig(g.id) : [];
   });
 
-  readonly seasonOptions = computed(() =>
-    this.seasons().map((s) => ({ value: s.id, label: s.label })),
+  readonly modalityOptions = computed<readonly NfSegmentOption[]>(() =>
+    this.modalities().map((m) => ({
+      value: m.modality,
+      label: m.label,
+      disabled: !m.played,
+    })),
   );
 
-  readonly seasonId = signal('current');
+  readonly activeModality = computed(() =>
+    this.modalities().find((m) => m.modality === this.modality()) ?? this.modalities()[0] ?? null,
+  );
 
-  /**
-   * Con una sola temporada, el histórico repetiría exactamente las cifras de la
-   * temporada actual (§5.5.5): un botón que no cambia nada es ruido.
-   */
-  readonly scopeOptions = computed(() => {
-    const multi = this.seasons().length > 1;
-    return SCOPE_OPTIONS.filter((s) => multi || s.id !== 'historico').map((s) => ({
-      value: s.id,
-      label: s.label,
-    }));
+  readonly seasonOptions = computed<readonly NfComboboxOption[]>(() => {
+    const active = this.activeModality();
+    if (!active || !active.played) {
+      return [{ value: 'all', label: 'Todas' }];
+    }
+
+    const playedSeasons = active.seasons.filter((s) => s.played);
+    return [
+      { value: 'all', label: 'Todas' },
+      ...playedSeasons.map((s) => ({ value: s.id, label: s.label })),
+    ];
   });
 
-  readonly scope = signal<StatScope>('temporada');
+  readonly scope = computed<StatScope>(() =>
+    this.seasonId() === 'all' ? 'historico' : 'temporada',
+  );
 
   /* ---- Pestañas ---- */
 
@@ -261,10 +175,8 @@ export class GrupoEstadisticas {
     computation: (medal, prev) => (medal ? 'medallas' : (prev?.value ?? 'rendimiento')),
   });
 
-  readonly expandedTag = linkedSignal<string | null, string | null>({
-    source: this.focusedTag,
-    computation: (tag, prev) => tag ?? prev?.value ?? null,
-  });
+  readonly expandedTag = signal<string | null>(this.route.snapshot.queryParamMap.get('jugador'));
+  readonly hoveredObjectiveId = signal<string | null>(null);
 
   /* ---- Datos ---- */
 
@@ -277,15 +189,16 @@ export class GrupoEstadisticas {
   );
 
   /**
-   * Clave de siembra de las estadísticas. La temporada actual usa el id del grupo a
-   * secas para que estas cifras coincidan con las del hub y las de los distintivos;
-   * una temporada pasada siembra distinto, que es justo lo que se espera de ella.
+   * Clave de siembra de las estadísticas por grupo, modalidad y temporada.
    */
   private readonly statsKey = computed(() => {
     const g = this.group();
     if (!g) return '';
+    const active = this.activeModality();
+    if (active && !active.played) return '';
+    const mod = this.modality();
     const season = this.seasonId();
-    return season === 'current' ? g.id : g.id + '@' + season;
+    return `${g.id}@${mod}@${season}`;
   });
 
   private readonly roster = computed(() => {
@@ -299,14 +212,49 @@ export class GrupoEstadisticas {
   });
 
   readonly players = computed(() => this.stats());
-  readonly telemetry = computed(() => mapTelemetryFor(this.statsKey(), this.stats(), this.scope()));
-  readonly metagame = computed(() => metagameFor(this.statsKey(), this.stats()));
-  readonly records = computed(() => epicRecordsFor(this.statsKey(), this.stats()));
+  readonly telemetry = computed(() => {
+    const key = this.statsKey();
+    const st = this.stats();
+    return key && st.length ? mapTelemetryFor(key, st, this.scope()) : null;
+  });
+  readonly metagame = computed(() => {
+    const key = this.statsKey();
+    const st = this.stats();
+    return key && st.length ? metagameFor(key, st) : [];
+  });
+  readonly goldenDuo = computed(() => {
+    const key = this.statsKey();
+    const r = this.roster();
+    const st = this.stats();
+    return key && r.length >= 2 ? goldenDuoFor(key, r, st) : null;
+  });
+  readonly woodenDuo = computed(() => {
+    const key = this.statsKey();
+    const r = this.roster();
+    const st = this.stats();
+    return key && r.length >= 2 ? woodenDuoFor(key, r, st) : null;
+  });
+  readonly multikills = computed(() => {
+    const st = this.stats();
+    return st.length ? multikillsFor(st) : null;
+  });
+  readonly vision = computed(() => {
+    const key = this.statsKey();
+    const st = this.stats();
+    return key && st.length ? groupVisionFor(key, st) : null;
+  });
+  readonly laneImpact = computed(() => {
+    const key = this.statsKey();
+    return key ? laneImpactFor(key, this.scope()) : [];
+  });
+  readonly records = computed(() => {
+    const key = this.statsKey();
+    const st = this.stats();
+    return key && st.length ? epicRecordsFor(key, st) : [];
+  });
 
   /**
    * El tag del usuario activo DENTRO de este roster, o nulo si no pertenece al grupo.
-   * Se cruza por `userId`, que es el identificador estable del backend; el tag es solo
-   * lo que se pinta.
    */
   private readonly meTag = computed(() => {
     const myId = this.session.user()?.userId;
@@ -333,6 +281,10 @@ export class GrupoEstadisticas {
       const id = this.id();
       if (id) void this.bridge.ensure(id);
     });
+    effect(() => {
+      const tag = this.focusedTag();
+      this.expandedTag.set(tag);
+    });
   }
 
   /* ---- Acciones ---- */
@@ -342,24 +294,33 @@ export class GrupoEstadisticas {
     if (id) void this.bridge.ensure(id);
   }
 
-  setScope(value: string): void {
-    this.scope.set(SCOPE_OPTIONS.find((s) => s.id === value)?.id ?? 'temporada');
+  setModality(value: string): void {
+    const mod = value as StatModality;
+    this.modality.set(mod);
+    const active = this.modalities().find((m) => m.modality === mod);
+    if (active) {
+      const isSeasonPlayed =
+        this.seasonId() === 'all' || active.seasons.some((s) => s.id === this.seasonId() && s.played);
+      if (!isSeasonPlayed) {
+        this.seasonId.set('all');
+      }
+    }
   }
 
   setSeason(value: string): void {
-    this.seasonId.set(this.seasons().some((s) => s.id === value) ? value : 'current');
+    this.seasonId.set(value || 'all');
   }
 
   setTab(value: string): void {
     const tab = STAT_TABS.find((t) => t === value) ?? 'rendimiento';
     this.tab.set(tab);
-    // Cambiar de pestaña a mano deja de ser "vengo a por esta medalla": si el
-    // parámetro se quedara, volver a Hall of Fame reabriría el modal solo.
     if (tab !== 'medallas' && this.focusedMedal()) this.writeParams({ medalla: null });
   }
 
   togglePlayer(tag: string): void {
-    this.writeParams({ jugador: this.expandedTag() === tag ? null : tag });
+    const next = this.expandedTag() === tag ? null : tag;
+    this.expandedTag.set(next);
+    this.writeParams({ jugador: next });
   }
 
   openMedal(id: string): void {

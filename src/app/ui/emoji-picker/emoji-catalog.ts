@@ -18,7 +18,7 @@ export interface EmojiGroup {
   emojis: readonly EmojiEntry[];
 }
 
-export const EMOJI_GROUPS: readonly EmojiGroup[] = [
+const EMOJI_GROUPS: readonly EmojiGroup[] = [
   {
     id: 'reacciones',
     label: 'Reacciones',

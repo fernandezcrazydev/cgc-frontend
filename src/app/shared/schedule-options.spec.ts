@@ -1,51 +1,84 @@
-import { buildDays, buildHours } from './schedule-options';
+import { buildHours, buildMonth, describeDay, shiftMonth } from './schedule-options';
 
 /**
- * Las dos funciones puras del selector de día y hora. Reciben el instante en vez de leer el
+ * Las funciones puras del selector de día y hora. Reciben el instante en vez de leer el
  * reloj, precisamente para poder probar los bordes sin tocar la hora del sistema.
  */
-describe('buildDays', () => {
-  it('empieza en hoy y ofrece tantos días como se le pidan', () => {
-    const days = buildDays(new Date(2026, 7, 3, 18, 0), 14);
+describe('buildMonth', () => {
+  it('siempre son seis semanas de siete días, para que la rejilla no cambie de alto', () => {
+    const grid = buildMonth('2026-09', new Date(2026, 8, 7, 12, 0));
 
-    expect(days).toHaveLength(14);
-    expect(days[0].value).toBe('2026-08-03');
-    expect(days[13].value).toBe('2026-08-16');
+    expect(grid.weeks).toHaveLength(6);
+    for (const week of grid.weeks) expect(week).toHaveLength(7);
   });
 
-  it('los dos primeros días se nombran hoy y mañana, el resto por su día de la semana', () => {
-    const days = buildDays(new Date(2026, 7, 3, 18, 0), 4);
+  /** Septiembre de 2026 empieza en martes, así que la primera casilla es un filler previo al 1 de sept. */
+  it('la semana empieza en lunes y se rellena con huecos filler', () => {
+    const grid = buildMonth('2026-09', new Date(2026, 8, 7, 12, 0));
 
-    expect(days.map((d) => d.weekday)).toEqual(['HOY', 'MAÑ', 'MIÉ', 'JUE']);
-    expect(days.map((d) => d.longLabel)).toEqual(['hoy', 'mañana', 'mié 5', 'jue 6']);
+    expect(grid.weeks[0][0].isFiller).toBe(true);
+    expect(grid.weeks[0][1].value).toBe('2026-09-01');
+    expect(grid.weeks[0][1].isFiller).toBe(false);
   });
 
-  it('el número es el del día del mes, para el chip', () => {
-    const days = buildDays(new Date(2026, 7, 3, 18, 0), 3);
+  it('marca los fines de semana, que es cuando se juegan las customs', () => {
+    const grid = buildMonth('2026-09', new Date(2026, 8, 7, 12, 0));
 
-    expect(days.map((d) => d.dayNumber)).toEqual(['3', '4', '5']);
+    expect(grid.weeks[0].map((d) => d.isWeekend)).toEqual([
+      false, false, false, false, false, true, true,
+    ]);
   });
 
-  /** Sin esto, un cambio de mes daría "2026-08-32" y ninguna hora de ese día ligaría. */
-  it('cruza bien el fin de mes y el fin de año', () => {
-    expect(buildDays(new Date(2026, 7, 31, 12, 0), 2)[1].value).toBe('2026-09-01');
-    expect(buildDays(new Date(2026, 11, 31, 12, 0), 2)[1].value).toBe('2027-01-01');
+  /** No se puede convocar para ayer: esos días van deshabilitados. */
+  it('los días anteriores a hoy quedan marcados como pasados, y hoy no', () => {
+    const grid = buildMonth('2026-09', new Date(2026, 8, 7, 23, 30));
+    const days = grid.weeks.flat();
+
+    expect(days.find((d) => d.value === '2026-09-06')?.isPast).toBe(true);
+    expect(days.find((d) => d.value === '2026-09-07')?.isPast).toBe(false);
+    expect(days.find((d) => d.value === '2026-09-08')?.isPast).toBe(false);
+  });
+
+  it('hacia atrás no se puede pasar del mes actual, hacia delante no hay tope', () => {
+    const now = new Date(2026, 8, 7, 12, 0);
+
+    expect(buildMonth('2026-09', now).canGoBack).toBe(false);
+    expect(buildMonth('2026-10', now).canGoBack).toBe(true);
+    expect(buildMonth('2027-03', now).canGoBack).toBe(true);
+  });
+
+  it('rotula el mes con su año, que a seis meses vista deja de ser obvio', () => {
+    expect(buildMonth('2027-01', new Date(2026, 8, 7)).label).toContain('2027');
+  });
+});
+
+describe('shiftMonth', () => {
+  it('cruza bien el fin de año en los dos sentidos', () => {
+    expect(shiftMonth('2026-12', 1)).toBe('2027-01');
+    expect(shiftMonth('2027-01', -1)).toBe('2026-12');
+  });
+});
+
+describe('describeDay', () => {
+  it('escribe el día entero, porque un número suelto no confirma nada', () => {
+    expect(describeDay('2026-09-14')).toBe('lunes, 14 de septiembre');
   });
 });
 
 describe('buildHours', () => {
-  it('ofrece la franja de tarde-noche en tramos de media hora', () => {
+  /** Antes empezaba a las 17:00 y una custom de sábado por la mañana no se podía convocar. */
+  it('ofrece las veinticuatro horas en tramos de media hora', () => {
     const hours = buildHours('2026-08-10', new Date(2026, 7, 3, 12, 0));
 
-    expect(hours[0].label).toBe('17:00');
+    expect(hours[0].label).toBe('00:00');
     expect(hours[hours.length - 1].label).toBe('23:30');
-    expect(hours).toHaveLength(14);
+    expect(hours).toHaveLength(48);
   });
 
   it('el valor ya viene listo para la lista de propuestas', () => {
     const hours = buildHours('2026-08-10', new Date(2026, 7, 3, 12, 0));
 
-    expect(hours[0].value).toBe('2026-08-10T17:00');
+    expect(hours[0].value).toBe('2026-08-10T00:00');
   });
 
   /** Ofrecer las 17:00 a las 22:15 sería ofrecer un 400 `SLOT_IN_THE_PAST`. */
@@ -63,9 +96,9 @@ describe('buildHours', () => {
     expect(buildHours('2026-08-03', new Date(2026, 7, 3, 23, 45))).toEqual([]);
   });
 
-  it('un día futuro ofrece la franja entera aunque hoy esté agotado', () => {
+  it('un día futuro ofrece el día entero aunque hoy esté agotado', () => {
     const hours = buildHours('2026-08-04', new Date(2026, 7, 3, 23, 45));
 
-    expect(hours).toHaveLength(14);
+    expect(hours).toHaveLength(48);
   });
 });

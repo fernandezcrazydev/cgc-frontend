@@ -91,19 +91,28 @@ describe('GrupoEstadisticas', () => {
     expect(hubSeasonsFor(variasTemporadas).length).toBeGreaterThan(1);
   });
 
-  it('con una sola temporada no ofrece el histórico, que repetiría las mismas cifras', () => {
+  it('ofrece las tres modalidades y desactiva las no jugadas', () => {
     const { component, fixture } = createComponent(unaTemporada);
 
-    const alcances = component.scopeOptions().map((o) => o.value);
-    expect(alcances).toEqual(['sesion', 'temporada']);
-    expect(fixture.nativeElement.querySelector('.gs-controls__season')).toBeNull();
+    const mods = component.modalityOptions();
+    expect(mods.map((m) => m.value)).toEqual(['COMPETITIVE', 'BALANCED', 'CHAOS']);
+    expect(fixture.nativeElement.querySelector('.gs-controls__modality')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.gs-controls__season')).not.toBeNull();
+
+    const controls = fixture.nativeElement.querySelector('.gs-controls');
+    expect(controls.firstElementChild.classList.contains('gs-controls__season')).toBe(true);
+    expect(controls.lastElementChild.classList.contains('gs-controls__modality')).toBe(true);
   });
 
-  it('con varias temporadas aparecen el histórico y el selector', () => {
-    const { component, fixture } = createComponent(variasTemporadas);
+  it('el selector de temporadas incluye "all" por defecto y solo temporadas jugadas', () => {
+    const { component } = createComponent(unaTemporada);
 
-    expect(component.scopeOptions().map((o) => o.value)).toContain('historico');
-    expect(fixture.nativeElement.querySelector('.gs-controls__season')).not.toBeNull();
+    expect(component.seasonId()).toBe('all');
+    expect(component.scope()).toBe('historico');
+
+    const seasons = component.seasonOptions();
+    expect(seasons[0]).toEqual({ value: 'all', label: 'Todas' });
+    expect(seasons.length).toBeGreaterThan(1);
   });
 
   it('arranca en rendimiento competitivo', () => {
@@ -161,9 +170,18 @@ describe('GrupoEstadisticas', () => {
     const { component } = createComponent(unaTemporada);
 
     expect(component.players()).toHaveLength(ROSTER.length);
-    expect(component.telemetry()?.objectives).toHaveLength(4);
-    expect(component.metagame()).toHaveLength(3);
-    expect(component.records()).toHaveLength(3);
+    expect(component.telemetry()?.objectives).toHaveLength(5);
+    expect(component.metagame()).toHaveLength(4);
+    expect(component.records()).toHaveLength(9);
+  });
+
+  it('renderiza la fila de telemetría con la tarjeta de mapa y el radar de objetivos', () => {
+    const { fixture } = createComponent(unaTemporada);
+
+    const row = fixture.nativeElement.querySelector('.gs-telemetry-row');
+    expect(row).not.toBeNull();
+    expect(row.querySelector('app-stats-map-telemetry')).not.toBeNull();
+    expect(row.querySelector('app-stats-radar')).not.toBeNull();
   });
 
   it('cada récord enlaza a una partida que existe en el historial', () => {
@@ -195,5 +213,41 @@ describe('GrupoEstadisticas', () => {
       [],
       expect.objectContaining({ queryParams: { jugador: null } }),
     );
+  });
+
+  it('el metagame incluye los cuatro tableros (picks, bans, mayor winrate y menor winrate)', () => {
+    const { component } = createComponent(unaTemporada);
+    const boards = component.metagame();
+    expect(boards.map((b) => b.id)).toEqual(['picks', 'bans', 'winrate', 'worst-winrate']);
+  });
+
+  it('muestra las secciones de impacto de líneas, masacres y guerra de visión del grupo', () => {
+    const { fixture, component } = createComponent(unaTemporada);
+
+    const insightsRow = fixture.nativeElement.querySelector('.gs-insights-row');
+    expect(insightsRow).not.toBeNull();
+    expect(insightsRow.querySelector('app-stats-lane-impact')).not.toBeNull();
+    expect(insightsRow.querySelector('app-stats-multikills')).not.toBeNull();
+    expect(insightsRow.querySelector('app-stats-vision')).not.toBeNull();
+
+    const lanes = component.laneImpact();
+    expect(lanes).toHaveLength(5);
+    // Orden estricto descendente por impacto/winrate
+    for (let i = 0; i < lanes.length - 1; i++) {
+      expect(lanes[i].winrate).toBeGreaterThanOrEqual(lanes[i + 1].winrate);
+      expect(lanes[i].impactOrder).toBe(i + 1);
+    }
+
+    const mk = component.multikills();
+    expect(mk).not.toBeNull();
+    expect(mk?.pentas).toBeGreaterThanOrEqual(0);
+    expect(mk?.quadras).toBeGreaterThanOrEqual(0);
+    expect(mk?.triples).toBeGreaterThanOrEqual(0);
+
+    const vision = component.vision();
+    expect(vision).not.toBeNull();
+    expect(vision?.wardsPlaced).toBeGreaterThan(0);
+    expect(vision?.wardsCleared).toBeGreaterThan(0);
+    expect(vision?.visionPerMin).toBeGreaterThan(0);
   });
 });

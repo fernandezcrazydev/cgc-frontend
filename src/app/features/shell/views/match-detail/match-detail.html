@@ -1,0 +1,1181 @@
+<div class="md-view">
+  @if (hasDetailedStats()) {
+    <!-- ============================================================== -->
+    <!-- FRANJA SUPERIOR DE ESTADÍSTICAS (3 PISOS SELECCIONADOS)        -->
+    <!-- ============================================================== -->
+    <section class="c-stats-stage" aria-label="Estadísticas de la partida">
+
+      <!-- PISO 1: MVP · ACE · MENCIONES (ORDEN APROBADO) -->
+      <div class="c-floor c-floor--floor1">
+        <!-- 1. MVP (Alternativa 2: Lateral simétrica con foto de perfil y nota destacada) -->
+        <div class="c-card c-card--trophy">
+          <div class="c-row c-row--between">
+            <span class="c-badge c-badge--gold">
+              <svg viewBox="0 0 24 24" class="c-svg c-svg--gold" aria-hidden="true"><path fill="currentColor" d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+              MVP
+            </span>
+            <span class="c-tag-sub nf-mono">{{ mvp.role }} · {{ mvp.sideLabel }}</span>
+          </div>
+
+          <div class="c-hero-grid">
+            <div class="c-player-col">
+              <nf-avatar [src]="mvp.playerAvatarUrl" [fallback]="mvp.playerName" [size]="42" shape="round" />
+              <span class="c-name">{{ mvp.playerName }}</span>
+            </div>
+
+            <div class="c-champ-col">
+              <div class="c-avatar-wrap">
+                <nf-avatar [src]="mvp.championIconUrl" [fallback]="mvp.championName" [size]="34" shape="square" />
+                <span class="c-lvl-badge nf-mono">{{ mvp.championLevel }}</span>
+              </div>
+              <span class="c-stat-main nf-mono">{{ mvp.kills }}/{{ mvp.deaths }}/{{ mvp.assists }}</span>
+            </div>
+
+            <div class="c-score-col c-score-col--gold">
+              <span class="c-score-label nf-mono">NOTA</span>
+              <span class="c-score-num nf-mono">{{ mvp.score }}</span>
+            </div>
+          </div>
+
+          <div class="c-bar-group">
+            <div class="c-row c-row--between">
+              <span class="c-stat-lbl">Daño infligido</span>
+              <strong class="c-stat-val nf-mono">{{ mvp.damage }} ({{ mvp.damageShare }}%)</strong>
+            </div>
+            <div class="c-bar-track">
+              <div class="c-bar-fill c-bar-fill--gold" [style.width.%]="mvp.damageShare"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. ACE (Alternativa 2: Lateral simétrica púrpura con foto de perfil y nota destacada) -->
+        <div class="c-card c-card--purple-glow">
+          <div class="c-row c-row--between">
+            <span class="c-badge c-badge--purple">
+              <svg viewBox="0 0 24 24" class="c-svg c-svg--purple" aria-hidden="true"><path fill="currentColor" d="M12 2L3 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5zm0 2.8l7 3.9v4.3c0 4.2-2.9 8.1-7 9.2-4.1-1.1-7-5-7-9.2V8.7l7-3.9z"/></svg>
+              ACE
+            </span>
+            <span class="c-tag-sub nf-mono">{{ ace.role }} · {{ ace.sideLabel }}</span>
+          </div>
+
+          <div class="c-hero-grid">
+            <div class="c-player-col">
+              <nf-avatar [src]="ace.playerAvatarUrl" [fallback]="ace.playerName" [size]="42" shape="round" />
+              <span class="c-name">{{ ace.playerName }}</span>
+            </div>
+
+            <div class="c-champ-col">
+              <div class="c-avatar-wrap">
+                <nf-avatar [src]="ace.championIconUrl" [fallback]="ace.championName" [size]="34" shape="square" />
+                <span class="c-lvl-badge nf-mono">{{ ace.championLevel }}</span>
+              </div>
+              <span class="c-stat-main nf-mono">{{ ace.kills }}/{{ ace.deaths }}/{{ ace.assists }}</span>
+            </div>
+
+            <div class="c-score-col c-score-col--purple">
+              <span class="c-score-label nf-mono">NOTA</span>
+              <span class="c-score-num nf-mono">{{ ace.score }}</span>
+            </div>
+          </div>
+
+          <div class="c-bar-group">
+            <div class="c-row c-row--between">
+              <span class="c-stat-lbl">Daño infligido</span>
+              <strong class="c-stat-val nf-mono">{{ ace.damage }} ({{ ace.damageShare }}%)</strong>
+            </div>
+            <div class="c-bar-track">
+              <div class="c-bar-fill c-bar-fill--purple" [style.width.%]="ace.damageShare"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. Menciones de honor (Variante 4: Pilares de laboratorio con burbujas) -->
+        <div class="c-card c-card--surface c-card--pillars">
+          <div class="c-row c-row--between">
+            <span class="c-card-title nf-mono">MENCIONES DE HONOR</span>
+            <span class="c-tag-sub nf-mono">Rendimiento singular</span>
+          </div>
+
+          <div class="c-grid-4">
+            @for (h of honors; track h.id) {
+              <div class="c-pillar-box">
+                <div class="c-pillar-tube">
+                  <div class="c-pillar-fill c-pillar-fill--{{ h.color }}" [style.height.%]="h.pct">
+                    <span class="c-bubble c-bubble--1"></span>
+                    <span class="c-bubble c-bubble--2"></span>
+                    <span class="c-bubble c-bubble--3"></span>
+                    <span class="c-bubble c-bubble--4"></span>
+                    <span class="c-bubble c-bubble--5"></span>
+                  </div>
+                </div>
+
+                <div class="c-col c-col--center">
+                  <span class="c-pillar-val nf-mono">{{ h.val }}</span>
+                  <span class="c-stat-lbl nf-mono">{{ h.metric }}</span>
+                </div>
+
+                <div class="c-pillar-icon">
+                  @if (h.id === 'damage') {
+                    <svg viewBox="0 0 24 24" class="c-svg c-svg--crimson" aria-hidden="true"><path fill="currentColor" d="M19 3l-4 4 1.5 1.5 4-4L19 3zm-7.5 7.5l-6 6V21h4.5l6-6-4.5-4.5zM3 19l4-4 1.5 1.5-4 4L3 19zm14.5-8.5l-3-3L16 6l3 3-1.5 1.5z"/></svg>
+                  } @else if (h.id === 'tank') {
+                    <svg viewBox="0 0 24 24" class="c-svg c-svg--cyan" aria-hidden="true"><path fill="currentColor" d="M12 2L4 5v6.09c0 5.05 3.41 9.76 8 10.91 4.59-1.15 8-5.86 8-10.91V5l-8-3zm0 2.18l6 2.25v4.66c0 4.09-2.67 7.9-6 8.91-3.33-1.01-6-4.82-6-8.91V6.43l6-2.25z"/></svg>
+                  } @else if (h.id === 'vision') {
+                    <svg viewBox="0 0 24 24" class="c-svg c-svg--emerald" aria-hidden="true"><path fill="currentColor" d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+                  } @else {
+                    <svg viewBox="0 0 24 24" class="c-svg c-svg--indigo" aria-hidden="true"><path fill="currentColor" d="M12 2L4 9l8 13 8-13-8-7zm0 3.2L17.5 9 12 18 6.5 9 12 5.2z"/></svg>
+                  }
+                </div>
+
+                <span class="c-pillar-name" [title]="h.player">{{ h.player }}</span>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+
+      <!-- PISO 2: GRIETA + RADAR + TOP DAÑO (DISTRIBUCIÓN 50% - 25% - 25%) -->
+      <div class="c-floor c-floor--floor2">
+        <!-- 1. Dominio de la Grieta (50% de ancho) -->
+        <div class="c-card c-card--surface">
+          <div class="c-row c-row--between">
+            <span class="c-card-title nf-mono">DOMINIO DE LA GRIETA</span>
+            <div class="c-row c-row--center">
+              <span class="c-badge c-badge--blue nf-mono">Azul</span>
+              <span class="c-badge c-badge--ruby nf-mono">Rojo</span>
+            </div>
+          </div>
+
+          <div class="c-obj-list">
+            @for (obj of objectives; track obj.id) {
+              <div
+                class="c-row c-row--between c-list-item"
+                [class.is-hovered]="hoveredObjectiveId() === obj.id"
+                (mouseenter)="setHoveredObjective(obj.id)"
+                (mouseleave)="setHoveredObjective(null)"
+              >
+                <div class="c-row c-row--center">
+                  <img [src]="obj.icon" [alt]="obj.name" class="c-obj-img" />
+                  <span class="c-name">{{ obj.name }}</span>
+                </div>
+
+                @if (obj.isDragons) {
+                  <div class="c-dragons-center">
+                    <div class="c-dragons-team">
+                      @for (d of blueDragons; track $index) {
+                        <img [src]="d.icon" [alt]="d.name" [title]="'Dragón de ' + d.name" class="c-drake-icon" />
+                      }
+                    </div>
+                    <span class="c-drake-vs nf-mono">vs</span>
+                    <div class="c-dragons-team">
+                      @for (d of redDragons; track $index) {
+                        <img [src]="d.icon" [alt]="d.name" [title]="'Dragón de ' + d.name" class="c-drake-icon" />
+                      }
+                    </div>
+                  </div>
+                }
+
+                <div class="c-row c-row--center nf-mono">
+                  <strong class="c-stat-main c-text--blue">{{ obj.blueScore }}</strong>
+                  <span class="c-dot-sep">·</span>
+                  <strong class="c-stat-main c-text--ruby">{{ obj.redScore }}</strong>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- 2. Huella Táctica (Radar Pentagonal interactivo, 25% de ancho) -->
+        <div class="c-card c-card--surface">
+          <div class="c-row c-row--between">
+            <span class="c-card-title nf-mono">HUELLA TÁCTICA</span>
+            <span class="c-tag-sub nf-mono">Comparativa</span>
+          </div>
+
+          <div class="c-radar-container">
+            <svg viewBox="0 0 240 240" class="c-radar-svg">
+              <polygon points="120,40 186,88 161,164 79,164 54,88" class="c-radar-grid" />
+              <polygon points="120,60 166,93 148,149 92,149 74,93" class="c-radar-grid" />
+              <polygon points="120,80 145,99 135,134 105,134 95,99" class="c-radar-grid" />
+
+              <polygon points="120,48 186,88 155,160 83,160 54,88" class="c-radar-blue" />
+              <polygon points="120,84 120,90 125,120 115,120 102,90" class="c-radar-red" />
+
+              <circle cx="120" cy="48" r="4.5" class="c-radar-node c-radar-node--blue" [class.is-active]="hoveredObjectiveId() === 'dragons'" (mouseenter)="setHoveredObjective('dragons')" (mouseleave)="setHoveredObjective(null)" />
+              <circle cx="186" cy="88" r="4.5" class="c-radar-node c-radar-node--blue" [class.is-active]="hoveredObjectiveId() === 'grubs'" (mouseenter)="setHoveredObjective('grubs')" (mouseleave)="setHoveredObjective(null)" />
+              <circle cx="155" cy="160" r="4.5" class="c-radar-node c-radar-node--blue" [class.is-active]="hoveredObjectiveId() === 'herald'" (mouseenter)="setHoveredObjective('herald')" (mouseleave)="setHoveredObjective(null)" />
+              <circle cx="83" cy="160" r="4.5" class="c-radar-node c-radar-node--blue" [class.is-active]="hoveredObjectiveId() === 'baron'" (mouseenter)="setHoveredObjective('baron')" (mouseleave)="setHoveredObjective(null)" />
+              <circle cx="54" cy="88" r="4.5" class="c-radar-node c-radar-node--blue" [class.is-active]="hoveredObjectiveId() === 'towers'" (mouseenter)="setHoveredObjective('towers')" (mouseleave)="setHoveredObjective(null)" />
+
+              <circle cx="120" cy="84" r="4.5" class="c-radar-node c-radar-node--red" [class.is-active]="hoveredObjectiveId() === 'dragons'" (mouseenter)="setHoveredObjective('dragons')" (mouseleave)="setHoveredObjective(null)" />
+              <circle cx="120" cy="90" r="4.5" class="c-radar-node c-radar-node--red" [class.is-active]="hoveredObjectiveId() === 'grubs'" (mouseenter)="setHoveredObjective('grubs')" (mouseleave)="setHoveredObjective(null)" />
+              <circle cx="125" cy="120" r="4.5" class="c-radar-node c-radar-node--red" [class.is-active]="hoveredObjectiveId() === 'herald'" (mouseenter)="setHoveredObjective('herald')" (mouseleave)="setHoveredObjective(null)" />
+              <circle cx="115" cy="120" r="4.5" class="c-radar-node c-radar-node--red" [class.is-active]="hoveredObjectiveId() === 'baron'" (mouseenter)="setHoveredObjective('baron')" (mouseleave)="setHoveredObjective(null)" />
+              <circle cx="102" cy="90" r="4.5" class="c-radar-node c-radar-node--red" [class.is-active]="hoveredObjectiveId() === 'towers'" (mouseenter)="setHoveredObjective('towers')" (mouseleave)="setHoveredObjective(null)" />
+
+              <image href="/assets/objectives/dragon.png" x="108" y="10" width="24" height="24" class="c-radar-icon" [class.is-active]="hoveredObjectiveId() === 'dragons'" (mouseenter)="setHoveredObjective('dragons')" (mouseleave)="setHoveredObjective(null)" />
+              <image href="/assets/objectives/grubs.png" x="195" y="75" width="24" height="24" class="c-radar-icon" [class.is-active]="hoveredObjectiveId() === 'grubs'" (mouseenter)="setHoveredObjective('grubs')" (mouseleave)="setHoveredObjective(null)" />
+              <image href="/assets/objectives/herald.png" x="165" y="175" width="24" height="24" class="c-radar-icon" [class.is-active]="hoveredObjectiveId() === 'herald'" (mouseenter)="setHoveredObjective('herald')" (mouseleave)="setHoveredObjective(null)" />
+              <image href="/assets/objectives/baron.png" x="50" y="175" width="24" height="24" class="c-radar-icon" [class.is-active]="hoveredObjectiveId() === 'baron'" (mouseenter)="setHoveredObjective('baron')" (mouseleave)="setHoveredObjective(null)" />
+              <image href="/assets/objectives/tower.png" x="20" y="75" width="24" height="24" class="c-radar-icon" [class.is-active]="hoveredObjectiveId() === 'towers'" (mouseenter)="setHoveredObjective('towers')" (mouseleave)="setHoveredObjective(null)" />
+            </svg>
+          </div>
+        </div>
+
+        <!-- 3. Top Daño (Podio con trofeos oficiales, 25% de ancho) -->
+        <div class="c-card c-card--surface">
+          <div class="c-row c-row--between">
+            <span class="c-card-title nf-mono">TOP DAÑO</span>
+            <span class="c-tag-sub nf-mono">Podio</span>
+          </div>
+
+          <div class="c-podium-list">
+            @for (p of topDamagePodium; track p.rank) {
+              <div class="c-podium-item">
+                <img
+                  [src]="p.rank === 1 ? '/assets/ranking/trophy-gold.png' : p.rank === 2 ? '/assets/ranking/trophy-silver.png' : '/assets/ranking/trophy-bronze.png'"
+                  [alt]="'Puesto ' + p.rank"
+                  class="c-podium-trophy"
+                />
+
+                <div class="c-avatar-wrap">
+                  <nf-avatar [src]="p.champIcon" [fallback]="p.champ" [size]="24" shape="square" />
+                  <span class="c-lvl-badge nf-mono">{{ p.level }}</span>
+                </div>
+
+                <div class="c-podium-meta">
+                  <div class="c-row c-row--between">
+                    <span class="c-podium-name" [title]="p.player">{{ p.player }}</span>
+                    <span class="c-podium-val nf-mono">{{ p.damage }}</span>
+                  </div>
+                  <div class="c-bar-track c-bar-track--sm">
+                    <div
+                      class="c-bar-fill"
+                      [class.c-bar-fill--blue]="p.team === 'blue'"
+                      [class.c-bar-fill--ruby]="p.team === 'red'"
+                      [style.width.%]="p.pct"
+                    ></div>
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+
+      <!-- PISO 3: RITMO · ECONOMÍA · GUERRA DE VISIÓN -->
+      <div class="c-floor c-floor--floor3">
+        <!-- 1. Ritmo de Partida (Alineación horizontal continua y Primera Sangre minimalista) -->
+        <div class="c-card c-card--surface c-card--pace">
+          <div class="c-row c-row--between">
+            <span class="c-card-title nf-mono">RITMO DE PARTIDA</span>
+            <span class="c-tag-sub nf-mono">Intensidad</span>
+          </div>
+
+          <div class="c-pace-horizontal">
+            <div class="c-pace-item">
+              <span class="c-pace-val nf-mono">{{ pace.duration }}</span>
+              <span class="c-pace-lbl">Duración</span>
+            </div>
+
+            <span class="c-pace-sep">·</span>
+
+            <div class="c-pace-item">
+              <span class="c-pace-val nf-mono">{{ pace.killsPerMin }}</span>
+              <span class="c-pace-lbl">Kills / min</span>
+            </div>
+
+            <span class="c-pace-sep">·</span>
+
+            <div class="c-pace-item">
+              <div class="c-avatar-wrap">
+                <nf-avatar [src]="pace.fbChampIcon" [fallback]="pace.fbChamp" [size]="28" shape="square" />
+              </div>
+              <span class="c-pace-lbl nf-mono">{{ pace.fbTime }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. Economía y Ventaja (Donut circular con hover y totales a los lados) -->
+        <div class="c-card c-card--surface">
+          <div class="c-row c-row--between">
+            <span class="c-card-title nf-mono">FINANZAS</span>
+            <div class="c-step-row">
+              <button
+                type="button"
+                class="c-step-btn"
+                [class.is-active]="activeEconomyPhase() === 'final'"
+                (click)="setEconomyPhase('final')"
+              >
+                Final
+              </button>
+              <button
+                type="button"
+                class="c-step-btn"
+                [class.is-active]="activeEconomyPhase() === '14min'"
+                (click)="setEconomyPhase('14min')"
+              >
+                14 min
+              </button>
+            </div>
+          </div>
+
+          <div class="c-donut-layout">
+            <div
+              class="c-donut-side c-donut-side--blue"
+              [class.is-hovered]="hoveredEconomySide() === 'blue'"
+              (mouseenter)="hoveredEconomySide.set('blue')"
+              (mouseleave)="hoveredEconomySide.set(null)"
+            >
+              <span class="c-donut-team nf-mono">AZUL</span>
+              <strong class="c-donut-num c-text--blue nf-mono">
+                {{ activeEconomyPhase() === 'final' ? economy.blueTotal : economy.blue14 }}
+              </strong>
+              <span class="c-donut-sub nf-mono">{{ economy.bluePct }}% oro</span>
+            </div>
+
+            <div class="c-donut-wrap">
+              <svg viewBox="0 0 100 100" class="c-donut-svg">
+                <circle
+                  cx="50" cy="50" r="38"
+                  fill="transparent"
+                  stroke="var(--nf-primary)"
+                  stroke-width="10"
+                  stroke-dasharray="136 238"
+                  stroke-dashoffset="0"
+                  transform="rotate(-90 50 50)"
+                  class="c-donut-arc c-donut-arc--blue"
+                  [class.is-hovered]="hoveredEconomySide() === 'blue'"
+                  (mouseenter)="hoveredEconomySide.set('blue')"
+                  (mouseleave)="hoveredEconomySide.set(null)"
+                />
+                <circle
+                  cx="50" cy="50" r="38"
+                  fill="transparent"
+                  stroke="var(--nf-team-red)"
+                  stroke-width="10"
+                  stroke-dasharray="102 238"
+                  stroke-dashoffset="-136"
+                  transform="rotate(-90 50 50)"
+                  class="c-donut-arc c-donut-arc--red"
+                  [class.is-hovered]="hoveredEconomySide() === 'red'"
+                  (mouseenter)="hoveredEconomySide.set('red')"
+                  (mouseleave)="hoveredEconomySide.set(null)"
+                />
+              </svg>
+              <div class="c-donut-center">
+                <img src="/assets/objectives/gold.png" alt="Oro" class="c-gold-img" />
+              </div>
+            </div>
+
+            <div
+              class="c-donut-side c-donut-side--red"
+              [class.is-hovered]="hoveredEconomySide() === 'red'"
+              (mouseenter)="hoveredEconomySide.set('red')"
+              (mouseleave)="hoveredEconomySide.set(null)"
+            >
+              <span class="c-donut-team nf-mono">ROJO</span>
+              <strong class="c-donut-num c-text--ruby nf-mono">
+                {{ activeEconomyPhase() === 'final' ? economy.redTotal : economy.red14 }}
+              </strong>
+              <span class="c-donut-sub nf-mono">{{ 100 - economy.bluePct }}% oro</span>
+            </div>
+          </div>
+
+          <div class="c-row c-row--between c-econ-footer">
+            <span class="c-stat-lbl">Ventaja neta</span>
+            <strong class="c-stat-val c-text--blue nf-mono">
+              {{ activeEconomyPhase() === 'final' ? economy.leadTotal : economy.lead14 }} a favor de Azul
+            </strong>
+          </div>
+        </div>
+
+        <!-- 3. Guerra de Visión (Slider animado interactivo estilo Trivia) -->
+        <div
+          class="c-card c-card--surface c-card--vision"
+          (mouseenter)="pauseVision()"
+          (mouseleave)="resumeVision()"
+        >
+          <div class="c-row c-row--between">
+            <div class="c-row c-row--center">
+              <span class="c-card-title nf-mono">GUERRA DE VISIÓN</span>
+              <svg viewBox="0 0 24 24" class="c-svg c-svg--cyan" aria-hidden="true"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm1-13h-2v4h2V7zm0 6h-2v4h2v-4z"/></svg>
+            </div>
+            <div class="c-row c-row--center">
+              <button
+                type="button"
+                class="c-nav-arrow"
+                (click)="prevVision()"
+                title="Diapositiva anterior"
+                aria-label="Diapositiva anterior"
+              >
+                ‹
+              </button>
+              <button
+                type="button"
+                class="c-nav-arrow"
+                (click)="nextVision()"
+                title="Siguiente diapositiva"
+                aria-label="Siguiente diapositiva"
+              >
+                ›
+              </button>
+            </div>
+          </div>
+
+          <div class="c-vision-slide">
+            <div class="c-row c-row--between">
+              <span class="c-vision-title">{{ currentVisionSlide().title }}</span>
+              <span class="c-tag-sub nf-mono">{{ activeVisionIndex() + 1 }} / {{ visionSlides.length }}</span>
+            </div>
+            <span class="c-sub">{{ currentVisionSlide().subtitle }}</span>
+
+            <div class="c-vision-nums nf-mono">
+              <div class="c-col c-col--center">
+                <span class="c-stat-lbl">AZUL</span>
+                <strong class="c-score-giant c-text--blue">{{ currentVisionSlide().blueScore }}</strong>
+              </div>
+              <span class="c-divider-v"></span>
+              <div class="c-col c-col--center">
+                <span class="c-stat-lbl">ROJO</span>
+                <strong class="c-score-giant c-text--ruby">{{ currentVisionSlide().redScore }}</strong>
+              </div>
+            </div>
+
+            <div class="c-vision-dual-bar">
+              <div class="c-bar-dual">
+                <div class="c-bar-dual__blue" [style.width.%]="currentVisionSlide().bluePct"></div>
+                <div class="c-bar-dual__red" [style.width.%]="100 - currentVisionSlide().bluePct"></div>
+              </div>
+              <div class="c-row c-row--between c-vision-dual-labels nf-mono">
+                <span class="c-text--blue">{{ currentVisionSlide().bluePct }}%</span>
+                <span class="c-text--ruby">{{ 100 - currentVisionSlide().bluePct }}%</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="c-trivia-dots">
+            @for (s of visionSlides; track s.id; let idx = $index) {
+              <button
+                type="button"
+                class="c-trivia-dot"
+                [class.is-active]="idx === activeVisionIndex()"
+                [class.is-paused]="isVisionPaused()"
+                (click)="goVision(idx)"
+                [title]="s.title"
+                [attr.aria-label]="s.title"
+              >
+                <span
+                  class="c-trivia-dot-fill"
+                  [style.width.%]="idx === activeVisionIndex() ? visionPercent() : idx < activeVisionIndex() ? 100 : 0"
+                ></span>
+              </button>
+            }
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- PESTAÑAS DEL CUERPO ANALÍTICO (F5.5-07 B.4)                    -->
+    <!-- ============================================================== -->
+    <section class="md-body">
+      <nav class="md-tabs-bar">
+        <nf-segmented
+          variant="tabs"
+          [options]="mainTabOptions()"
+          [value]="activeMainTab()"
+          (valueChange)="setMainTab($event)"
+          ariaLabel="Secciones del detalle de la partida"
+        />
+      </nav>
+
+      <div class="md-tab-content">
+        @if (activeMainTab() === 'scoreboard') {
+          @if (match(); as m) {
+            <app-match-scoreboard [match]="m" tab="overview" [showTabs]="false" />
+          } @else {
+            <div class="c-card c-card--surface c-col--center" style="padding: 40px">
+              <p class="c-name">Cargando datos de la partida...</p>
+            </div>
+          }
+        } @else if (activeMainTab() === 'ranking') {
+          @if (match(); as m) {
+            <app-match-scoreboard [match]="m" tab="charts" [showTabs]="false" />
+          }
+        } @else if (activeMainTab() === 'duels') {
+          @if (match(); as m) {
+            <app-match-scoreboard [match]="m" tab="lanes" [showTabs]="false" />
+          }
+        } @else if (activeMainTab() === 'heatmap') {
+          <!-- MAPA TÁCTICO: PRESENCIA TÉRMICA & CONTROL DE VISIÓN -->
+          <div class="md-heatmap-stage">
+            <!-- Barra superior de selección de modo -->
+            <div class="md-heatmap-mode-selector">
+              <button
+                type="button"
+                class="md-mode-tab-btn"
+                [class.is-active]="mapAnalysisMode() === 'presence'"
+                (click)="setAnalysisMode('presence')"
+              >
+                <span class="md-mode-tab-icon">🔥</span>
+                <span>Presencia Térmica del Jugador</span>
+              </button>
+              <button
+                type="button"
+                class="md-mode-tab-btn"
+                [class.is-active]="mapAnalysisMode() === 'vision'"
+                (click)="setAnalysisMode('vision')"
+              >
+                <span class="md-mode-tab-icon">👁</span>
+                <span>Control y Calor de Visión</span>
+              </button>
+            </div>
+
+            <!-- CONTROLES: MODO PRESENCIA -->
+            @if (mapAnalysisMode() === 'presence') {
+              <div class="md-heatmap-selector-bar">
+                <div class="md-heatmap-team md-heatmap-team--blue">
+                  <span class="md-heatmap-team__label nf-mono">AZUL</span>
+                  <div class="md-heatmap-team__champs">
+                    @for (p of match()?.blueTeam?.participants; track p.id) {
+                      <button
+                        type="button"
+                        class="md-heatmap-champ-btn md-heatmap-champ-btn--blue"
+                        [class.is-selected]="activeHeatmapPlayer()?.id === p.id"
+                        (click)="setHeatmapPlayer(p.id)"
+                        [title]="p.riotId + ' (' + championName(p.championId) + ')'"
+                      >
+                        <div class="c-avatar-wrap">
+                          <nf-avatar [src]="championIcon(p.championId)" [fallback]="p.championName" [size]="32" shape="square" />
+                          <span class="c-lvl-badge nf-mono">{{ p.championLevel }}</span>
+                        </div>
+                        <nf-lane-icon class="md-heatmap-lane-ico" [lane]="p.role" mode="original" />
+                      </button>
+                    }
+                  </div>
+                </div>
+
+                <span class="md-heatmap-vs nf-mono">VS</span>
+
+                <div class="md-heatmap-team md-heatmap-team--red">
+                  <div class="md-heatmap-team__champs">
+                    @for (p of match()?.redTeam?.participants; track p.id) {
+                      <button
+                        type="button"
+                        class="md-heatmap-champ-btn md-heatmap-champ-btn--red"
+                        [class.is-selected]="activeHeatmapPlayer()?.id === p.id"
+                        (click)="setHeatmapPlayer(p.id)"
+                        [title]="p.riotId + ' (' + championName(p.championId) + ')'"
+                      >
+                        <div class="c-avatar-wrap">
+                          <nf-avatar [src]="championIcon(p.championId)" [fallback]="p.championName" [size]="32" shape="square" />
+                          <span class="c-lvl-badge nf-mono">{{ p.championLevel }}</span>
+                        </div>
+                        <nf-lane-icon class="md-heatmap-lane-ico" [lane]="p.role" mode="original" />
+                      </button>
+                    }
+                  </div>
+                  <span class="md-heatmap-team__label nf-mono">ROJO</span>
+                </div>
+              </div>
+
+              <!-- Filtros de fase de juego y datos del jugador activo -->
+              <div class="md-heatmap-filters">
+                <div class="c-row c-row--center">
+                  <span class="c-stat-lbl">Fase temporal:</span>
+                  <div class="c-step-row">
+                    <button type="button" class="c-step-btn" [class.is-active]="heatmapPhase() === 'all'" (click)="setHeatmapPhase('all')">Toda la partida</button>
+                    <button type="button" class="c-step-btn" [class.is-active]="heatmapPhase() === 'early'" (click)="setHeatmapPhase('early')">Líneas (0-14m)</button>
+                    <button type="button" class="c-step-btn" [class.is-active]="heatmapPhase() === 'late'" (click)="setHeatmapPhase('late')">Agrupada (14m+)</button>
+                  </div>
+                </div>
+
+                @if (activeHeatmapPlayer(); as act) {
+                  <div class="c-row c-row--center md-heatmap-active-desc">
+                    <nf-avatar [src]="championIcon(act.championId)" [fallback]="act.championName" [size]="24" shape="square" />
+                    <span class="c-name">{{ act.riotId }}</span>
+                    <span class="c-tag-sub nf-mono">{{ act.role }} · {{ act.team === 'blue' ? 'Azul' : 'Rojo' }}</span>
+                  </div>
+                }
+              </div>
+            } @else {
+              <!-- CONTROLES: MODO VISIÓN -->
+              <div class="md-heatmap-vision-bar">
+                <div class="c-row c-row--center">
+                  <span class="c-stat-lbl">Bando de visión:</span>
+                  <div class="c-step-row">
+                    <button type="button" class="c-step-btn" [class.is-active]="visionTeam() === 'blue'" (click)="setVisionTeam('blue')">🔵 Bando Azul</button>
+                    <button type="button" class="c-step-btn" [class.is-active]="visionTeam() === 'red'" (click)="setVisionTeam('red')">🔴 Bando Rojo</button>
+                    <button type="button" class="c-step-btn" [class.is-active]="visionTeam() === 'both'" (click)="setVisionTeam('both')">⚖ Disputa (Ambos)</button>
+                  </div>
+                </div>
+
+                <div class="c-row c-row--center">
+                  <span class="c-stat-lbl">Tipos de centinela:</span>
+                  <div class="c-step-row">
+                    <button type="button" class="c-step-btn" [class.is-active]="showPinkWards()" (click)="togglePinkWards()">
+                      👁‍🗨 Pink Wards / Control ({{ visionMetrics().pinksPlaced }})
+                    </button>
+                    <button type="button" class="c-step-btn" [class.is-active]="showYellowWards()" (click)="toggleYellowWards()">
+                      👁 Wards de Visión ({{ visionMetrics().yellowsPlaced }})
+                    </button>
+                  </div>
+                </div>
+              </div>
+            }
+
+            <!-- VISOR DEL MAPA Y PANEL LATERAL -->
+            <div class="md-heatmap-layout">
+              <!-- Marco del mapa de la Grieta -->
+              <div class="md-heatmap-map-frame" (mouseleave)="setHoveredPin(null); setHoveredWard(null)">
+                <img src="/assets/map/summoners-rift.webp" alt="Summoner's Rift" class="md-heatmap-bg" />
+
+                <!-- Canvas de renderizado térmico continuo -->
+                <canvas #heatCanvas class="md-heatmap-canvas" width="500" height="500"></canvas>
+
+                @if (mapAnalysisMode() === 'presence') {
+                  @for (pin of filteredEventPins(); track pin.id) {
+                    <button
+                      type="button"
+                      class="md-event-pin md-event-pin--{{ pin.type }}"
+                      [class.is-hovered]="hoveredEventPin()?.id === pin.id"
+                      [style.left.%]="pin.x"
+                      [style.top.%]="pin.y"
+                      (mouseenter)="setHoveredPin(pin)"
+                      [title]="pin.time + ' · ' + pin.title"
+                    >
+                      <span class="md-event-pin__icon">{{ pin.icon }}</span>
+                    </button>
+                  }
+                } @else {
+                  @for (ward of filteredVisionWards(); track ward.id) {
+                    <button
+                      type="button"
+                      class="md-ward-pin md-ward-pin--{{ ward.type }} md-ward-pin--{{ ward.team }}"
+                      [class.is-hovered]="hoveredWard()?.id === ward.id"
+                      [style.left.%]="ward.x"
+                      [style.top.%]="ward.y"
+                      (mouseenter)="setHoveredWard(ward)"
+                      [title]="ward.locationName + ' (' + ward.placedBy + ')'"
+                    >
+                      <span class="md-ward-pin__icon">{{ ward.type === 'pink' ? '👁‍🗨' : '👁' }}</span>
+                    </button>
+                  }
+                }
+              </div>
+
+              <!-- PANEL LATERAL DE TELEMETRÍA -->
+              <div class="md-heatmap-sidebar">
+                @if (mapAnalysisMode() === 'presence') {
+                  <!-- PANEL MODO PRESENCIA -->
+                  <div class="c-card c-card--surface md-heatmap-info-card">
+                    <span class="c-card-title nf-mono">ESCALA TÉRMICA Y DIAGNÓSTICO</span>
+
+                    <div class="md-thermal-scale-box">
+                      <div class="md-thermal-gradient-bar"></div>
+                      <div class="md-thermal-labels">
+                        <span class="md-thermal-lbl md-thermal-lbl--hot">▲ Zona Caliente / Máx. permanencia (&gt;60%)</span>
+                        <span class="md-thermal-lbl md-thermal-lbl--warm">Tránsito frecuente</span>
+                        <span class="md-thermal-lbl md-thermal-lbl--mild">Rotaciones medias</span>
+                        <span class="md-thermal-lbl md-thermal-lbl--cold">▼ Zona Fría / Sin actividad</span>
+                      </div>
+                    </div>
+
+                    <div class="md-presence-breakdown">
+                      <div class="c-row c-row--between">
+                        <span class="c-badge c-badge--purple">{{ playerZoneBreakdown().diagnosisBadge }}</span>
+                        <span class="c-tag-sub nf-mono">{{ activeHeatmapPlayer()?.riotId }}</span>
+                      </div>
+
+                      <div class="md-presence-stats">
+                        <div class="md-presence-row">
+                          <span class="c-stat-lbl">{{ playerZoneBreakdown().mainLane.name }}</span>
+                          <strong class="c-stat-main nf-mono">{{ playerZoneBreakdown().mainLane.pct }}% ({{ playerZoneBreakdown().mainLane.minutes }}m)</strong>
+                        </div>
+                        <div class="md-presence-row">
+                          <span class="c-stat-lbl">{{ playerZoneBreakdown().objectives.name }}</span>
+                          <strong class="c-stat-main nf-mono">{{ playerZoneBreakdown().objectives.pct }}% ({{ playerZoneBreakdown().objectives.minutes }}m)</strong>
+                        </div>
+                        <div class="md-presence-row">
+                          <span class="c-stat-lbl">{{ playerZoneBreakdown().base.name }}</span>
+                          <strong class="c-stat-main nf-mono">{{ playerZoneBreakdown().base.pct }}% ({{ playerZoneBreakdown().base.minutes }}m)</strong>
+                        </div>
+                        <div class="md-presence-row">
+                          <span class="c-stat-lbl">{{ playerZoneBreakdown().roam.name }}</span>
+                          <strong class="c-stat-main nf-mono">{{ playerZoneBreakdown().roam.pct }}% ({{ playerZoneBreakdown().roam.minutes }}m)</strong>
+                        </div>
+                      </div>
+
+                      <p class="md-presence-diagnosis">{{ playerZoneBreakdown().diagnosisText }}</p>
+                    </div>
+
+                    @if (hoveredEventPin(); as pin) {
+                      <div class="md-event-preview">
+                        <div class="c-row c-row--between">
+                          <span class="c-badge" [class.c-badge--ruby]="pin.type === 'kill' || pin.type === 'death'" [class.c-badge--gold]="pin.type === 'objective'" [class.c-badge--cyan]="pin.type === 'ward'">
+                            {{ pin.type === 'kill' ? 'BAJA' : pin.type === 'death' ? 'MUERTE' : pin.type === 'objective' ? 'OBJETIVO' : 'VISIÓN' }}
+                          </span>
+                          <span class="c-stat-main nf-mono">{{ pin.time }}</span>
+                        </div>
+                        <h4 class="md-event-preview__title">{{ pin.title }}</h4>
+                        <p class="md-event-preview__desc">{{ pin.desc }}</p>
+                      </div>
+                    }
+                  </div>
+                } @else {
+                  <!-- PANEL MODO CONTROL DE VISIÓN -->
+                  <div class="c-card c-card--surface md-heatmap-info-card">
+                    <div class="c-row c-row--between">
+                      <span class="c-card-title nf-mono">CONTROL DE VISIÓN TERRITORIAL</span>
+                      <span class="c-badge" [class.c-badge--blue]="visionTeam() === 'blue'" [class.c-badge--ruby]="visionTeam() === 'red'" [class.c-badge--gold]="visionTeam() === 'both'">
+                        {{ visionMetrics().teamName }}
+                      </span>
+                    </div>
+
+                    <div class="md-vision-metric-grid">
+                      <div class="md-vision-tile">
+                        <span class="c-stat-lbl">Control de Río</span>
+                        <span class="md-vision-tile__val nf-mono">{{ visionMetrics().riverControl }}%</span>
+                        <div class="c-bar-track c-bar-track--sm">
+                          <div class="c-bar-fill" [class.c-bar-fill--blue]="visionTeam() !== 'red'" [class.c-bar-fill--ruby]="visionTeam() === 'red'" [style.width.%]="visionMetrics().riverControl"></div>
+                        </div>
+                      </div>
+                      <div class="md-vision-tile">
+                        <span class="c-stat-lbl">Fosa de Dragón</span>
+                        <span class="md-vision-tile__val nf-mono">{{ visionMetrics().dragonControl }}%</span>
+                        <div class="c-bar-track c-bar-track--sm">
+                          <div class="c-bar-fill" [class.c-bar-fill--blue]="visionTeam() !== 'red'" [class.c-bar-fill--ruby]="visionTeam() === 'red'" [style.width.%]="visionMetrics().dragonControl"></div>
+                        </div>
+                      </div>
+                      <div class="md-vision-tile">
+                        <span class="c-stat-lbl">Invasión Jungla</span>
+                        <span class="md-vision-tile__val nf-mono">{{ visionMetrics().invadeControl }}%</span>
+                        <div class="c-bar-track c-bar-track--sm">
+                          <div class="c-bar-fill" [class.c-bar-fill--blue]="visionTeam() !== 'red'" [class.c-bar-fill--ruby]="visionTeam() === 'red'" [style.width.%]="visionMetrics().invadeControl"></div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="md-vision-counts">
+                      <div class="md-count-pill">
+                        <span class="md-count-pill__icon">👁‍🗨</span>
+                        <div class="c-col">
+                          <strong class="c-stat-main nf-mono">{{ visionMetrics().pinksPlaced }}</strong>
+                          <span class="c-stat-lbl">Pinks puestos</span>
+                        </div>
+                      </div>
+                      <div class="md-count-pill">
+                        <span class="md-count-pill__icon">👁</span>
+                        <div class="c-col">
+                          <strong class="c-stat-main nf-mono">{{ visionMetrics().yellowsPlaced }}</strong>
+                          <span class="c-stat-lbl">Wards amarillos</span>
+                        </div>
+                      </div>
+                      <div class="md-count-pill">
+                        <span class="md-count-pill__icon">⚔️</span>
+                        <div class="c-col">
+                          <strong class="c-stat-main nf-mono">{{ visionMetrics().wardsDenied }}</strong>
+                          <span class="c-stat-lbl">Destruidos</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="md-vision-mvp-card">
+                      <span class="c-stat-lbl">LÍDER DE VISIÓN DEL BANDO</span>
+                      <div class="c-row c-row--between" style="margin-top: 4px;">
+                        <span class="c-name">{{ visionMetrics().mvpName }} ({{ visionMetrics().mvpRole }})</span>
+                        <span class="c-badge c-badge--gold nf-mono">{{ visionMetrics().mvpScore }} pts</span>
+                      </div>
+                    </div>
+
+                    @if (hoveredWard(); as w) {
+                      <div class="md-event-preview md-event-preview--ward">
+                        <div class="c-row c-row--between">
+                          <span class="c-badge" [class.c-badge--purple]="w.type === 'pink'" [class.c-badge--cyan]="w.type === 'yellow'">
+                            {{ w.type === 'pink' ? 'WARD DE CONTROL (PINK)' : 'WARD DE VISIÓN (TÓTEM)' }}
+                          </span>
+                          <span class="c-stat-main nf-mono">{{ w.placedAt }}</span>
+                        </div>
+                        <h4 class="md-event-preview__title">{{ w.locationName }}</h4>
+                        <p class="md-event-preview__desc">Colocado por <strong>{{ w.placedBy }}</strong> ({{ w.champ }}). {{ w.durationStr }}</p>
+                        @if (w.deniedEnemyWards) {
+                          <span class="c-stat-lbl nf-mono" style="color: var(--nf-gold)">★ Denegó {{ w.deniedEnemyWards }} centinelas rivales</span>
+                        }
+                      </div>
+                    } @else {
+                      <div class="md-event-empty c-col--center" style="padding: 18px 12px;">
+                        <span class="md-event-empty__ico">👁‍🗨</span>
+                        <p class="c-name">Pasa el cursor sobre un ward</p>
+                        <p class="c-sub">Inspecciona arbustos, duración y centinelas denegados en el mapa.</p>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+        } @else if (activeMainTab() === 'performance') {
+          <!-- MI RENDIMIENTO (B.4) -->
+          @if (userParticipant(); as up) {
+            @if (userPerformanceMetrics(); as pm) {
+              <div class="md-perf-stage">
+                <!-- Hero de rendimiento -->
+                <div class="c-card c-card--surface md-perf-hero">
+                  <div class="c-row c-row--between">
+                    <div class="c-row c-row--center md-perf-identity">
+                      <div class="c-avatar-wrap">
+                        <nf-avatar [src]="championIcon(up.championId)" [fallback]="up.championName" [size]="48" shape="square" />
+                        <span class="c-lvl-badge nf-mono">{{ up.championLevel }}</span>
+                      </div>
+                      <div class="c-col">
+                        <div class="c-row c-row--center">
+                          <strong class="c-name">{{ up.riotId }}</strong>
+                          <span class="c-tag-sub nf-mono">({{ championName(up.championId) }} · {{ up.role }})</span>
+                        </div>
+                        <span class="c-stat-lbl nf-mono">
+                          {{ match()?.winningTeam === up.team ? 'Victoria oficial en ' : 'Derrota oficial en ' }}
+                          {{ match()?.leagueName ?? 'Liga de Grupo' }}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div class="c-row c-row--center">
+                      @if (userScoreItem(); as sc) {
+                        <div class="c-score-col c-score-col--gold">
+                          <span class="c-score-label nf-mono">TU NOTA</span>
+                          <span class="c-score-num nf-mono">{{ sc.score }}</span>
+                        </div>
+                      }
+                      <div class="md-perf-lp-box" [class.is-win]="up.lpDelta > 0">
+                        <span class="c-stat-lbl nf-mono">CLASIFICACIÓN</span>
+                        <strong class="md-perf-lp-val nf-mono">{{ up.lpDelta > 0 ? '+' + up.lpDelta : up.lpDelta }} LP</strong>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 3 Bloques analíticos -->
+                <div class="md-perf-grid">
+                  <!-- 1. CÓMO TE FUE -->
+                  <div class="c-card c-card--surface md-perf-card">
+                    <div class="c-row c-row--between">
+                      <span class="c-card-title nf-mono">CÓMO TE FUE</span>
+                      <span class="c-tag-sub nf-mono">vs tu media con {{ up.championName }}</span>
+                    </div>
+
+                    <div class="md-perf-stat-list">
+                      <div class="md-perf-stat-row">
+                        <div class="c-col">
+                          <span class="c-stat-lbl">KDA de la partida</span>
+                          <strong class="c-stat-main nf-mono">{{ up.stats.kills }}/{{ up.stats.deaths }}/{{ up.stats.assists }} ({{ pm.kdaRatio }})</strong>
+                        </div>
+                        <span class="md-diff-badge nf-mono" [class.is-pos]="pm.kdaDiff >= 0" [class.is-neg]="pm.kdaDiff < 0">
+                          {{ pm.kdaDiff >= 0 ? '+' + pm.kdaDiff : pm.kdaDiff }} KDA
+                        </span>
+                      </div>
+
+                      <div class="md-perf-stat-row">
+                        <div class="c-col">
+                          <span class="c-stat-lbl">CS por minuto</span>
+                          <strong class="c-stat-main nf-mono">{{ pm.csPerMin }}/min ({{ up.stats.cs }} CS)</strong>
+                        </div>
+                        <span class="md-diff-badge nf-mono" [class.is-pos]="pm.csPerMinDiff >= 0" [class.is-neg]="pm.csPerMinDiff < 0">
+                          {{ pm.csPerMinDiff >= 0 ? '+' + pm.csPerMinDiff : pm.csPerMinDiff }}/min
+                        </span>
+                      </div>
+
+                      <div class="md-perf-stat-row">
+                        <div class="c-col">
+                          <span class="c-stat-lbl">Daño / minuto (DPM)</span>
+                          <strong class="c-stat-main nf-mono">{{ pm.dpm }} DPM</strong>
+                        </div>
+                        <span class="md-diff-badge nf-mono" [class.is-pos]="pm.dpmDiff >= 0" [class.is-neg]="pm.dpmDiff < 0">
+                          {{ pm.dpmDiff >= 0 ? '+' + pm.dpmDiff : pm.dpmDiff }} DPM
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- 2. TU PESO EN EL EQUIPO -->
+                  <div class="c-card c-card--surface md-perf-card">
+                    <div class="c-row c-row--between">
+                      <span class="c-card-title nf-mono">TU PESO EN EL EQUIPO</span>
+                      <span class="c-tag-sub nf-mono">Aportación al bando {{ up.team === 'blue' ? 'Azul' : 'Rojo' }}</span>
+                    </div>
+
+                    <div class="md-perf-stat-list">
+                      <div class="c-bar-group">
+                        <div class="c-row c-row--between">
+                          <span class="c-stat-lbl">Cuota de daño a campeones</span>
+                          <strong class="c-stat-val nf-mono">{{ formatNumber(up.stats.totalDamageToChampions) }} ({{ pm.damageShare }}%)</strong>
+                        </div>
+                        <div class="c-bar-track">
+                          <div class="c-bar-fill c-bar-fill--blue" [style.width.%]="pm.damageShare"></div>
+                        </div>
+                      </div>
+
+                      <div class="c-bar-group">
+                        <div class="c-row c-row--between">
+                          <span class="c-stat-lbl">Cuota de oro obtenido</span>
+                          <strong class="c-stat-val nf-mono">{{ formatGold(up.stats.gold) }} ({{ pm.goldShare }}%)</strong>
+                        </div>
+                        <div class="c-bar-track">
+                          <div class="c-bar-fill c-bar-fill--gold" [style.width.%]="pm.goldShare"></div>
+                        </div>
+                      </div>
+
+                      <div class="c-bar-group">
+                        <div class="c-row c-row--between">
+                          <span class="c-stat-lbl">Participación en bajas (KP)</span>
+                          <strong class="c-stat-val nf-mono">{{ pm.kp }}%</strong>
+                        </div>
+                        <div class="c-bar-track">
+                          <div class="c-bar-fill c-bar-fill--purple" [style.width.%]="pm.kp"></div>
+                        </div>
+                      </div>
+
+                      <div class="c-row c-row--between md-perf-vision-mini">
+                        <span class="c-stat-lbl">Visión total</span>
+                        <strong class="c-stat-main nf-mono">{{ up.stats.visionScore }} pts ({{ up.stats.wardsPlaced }} wards / {{ up.stats.wardsKilled }} rotos)</strong>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- 3. DUELO DIRECTO DE LÍNEA -->
+                  <div class="c-card c-card--surface md-perf-card">
+                    <div class="c-row c-row--between">
+                      <span class="c-card-title nf-mono">DUELO DE LÍNEA (14 MIN)</span>
+                      <span class="c-badge" [class.c-badge--gold]="pm.wonLane" [class.c-badge--ruby]="!pm.wonLane">
+                        {{ pm.wonLane ? 'LÍNEA GANADA' : 'LÍNEA PERDIDA' }}
+                      </span>
+                    </div>
+
+                    @if (userOpponent(); as opp) {
+                      <div class="md-perf-opp-box">
+                        <div class="c-row c-row--between">
+                          <div class="c-row c-row--center">
+                            <nf-avatar [src]="championIcon(opp.championId)" [fallback]="opp.championName" [size]="28" shape="square" />
+                            <div class="c-col">
+                              <strong class="c-name">{{ opp.riotId }}</strong>
+                              <span class="c-tag-sub nf-mono">{{ opp.championName }}</span>
+                            </div>
+                          </div>
+                          <span class="c-stat-lbl nf-mono">Rival de línea</span>
+                        </div>
+                      </div>
+
+                      <div class="md-perf-stat-list">
+                        <div class="md-perf-stat-row">
+                          <span class="c-stat-lbl">Ventaja de oro @ 14min</span>
+                          <strong class="md-diff-badge nf-mono" [class.is-pos]="pm.goldDiff14 >= 0" [class.is-neg]="pm.goldDiff14 < 0">
+                            {{ pm.goldDiff14 >= 0 ? '+' + pm.goldDiff14 : pm.goldDiff14 }} oro
+                          </strong>
+                        </div>
+                        <div class="md-perf-stat-row">
+                          <span class="c-stat-lbl">Ventaja de súbditos @ 14min</span>
+                          <strong class="md-diff-badge nf-mono" [class.is-pos]="pm.csDiff14 >= 0" [class.is-neg]="pm.csDiff14 < 0">
+                            {{ pm.csDiff14 >= 0 ? '+' + pm.csDiff14 : pm.csDiff14 }} CS
+                          </strong>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                </div>
+              </div>
+            }
+          }
+        }
+      </div>
+    </section>
+  } @else {
+    <!-- ============================================================== -->
+    <!-- PARTIDAS SIN ESTADÍSTICAS (B.7 · REGISTRO MANUAL)             -->
+    <!-- ============================================================== -->
+    <div class="md-manual-view">
+      <div class="md-manual-hero" [class.is-blue-win]="match()?.winningTeam === 'blue'" [class.is-red-win]="match()?.winningTeam === 'red'">
+        <div class="c-row c-row--between md-manual-hero__top">
+          <span class="c-badge c-badge--dim nf-mono">REGISTRO MANUAL</span>
+          <span class="c-stat-lbl nf-mono">{{ match()?.leagueName ?? 'Liga de Grupo' }} · {{ formatDuration(match()?.durationSeconds ?? 0) }}</span>
+        </div>
+
+        <div class="md-manual-hero__body">
+          <div class="md-manual-team" [class.is-winner]="match()?.winningTeam === 'blue'">
+            <span class="md-manual-team__dot md-manual-team__dot--blue"></span>
+            <strong class="md-manual-team__name">Equipo Azul</strong>
+            <span class="md-manual-team__badge nf-mono">{{ match()?.winningTeam === 'blue' ? 'Victoria' : 'Derrota' }}</span>
+          </div>
+          <span class="md-manual-vs nf-mono">VS</span>
+          <div class="md-manual-team" [class.is-winner]="match()?.winningTeam === 'red'">
+            <span class="md-manual-team__dot md-manual-team__dot--red"></span>
+            <strong class="md-manual-team__name">Equipo Rojo</strong>
+            <span class="md-manual-team__badge nf-mono">{{ match()?.winningTeam === 'red' ? 'Victoria' : 'Derrota' }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="md-manual-notice">
+        <svg viewBox="0 0 24 24" class="md-manual-notice__ico" aria-hidden="true">
+          <path fill="currentColor" d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
+        </svg>
+        <div class="c-col">
+          <strong class="md-manual-notice__title">Partida registrada manualmente sin scraper telemétrico</strong>
+          <p class="md-manual-notice__desc">
+            Esta partida fue introducida a mano por el anfitrión de la sala. Por esta razón no se dispone de datos de telemetría (KDA, oro, daño, inventarios ni mapa táctico). La concesión de Puntos de Liga (LP) y el resultado oficial sí son válidos para la clasificación del grupo.
+          </p>
+        </div>
+      </div>
+
+      <div class="md-manual-rosters">
+        <div class="md-manual-roster md-manual-roster--blue">
+          <div class="md-manual-roster__head">
+            <span class="md-manual-roster__side-dot md-manual-roster__side-dot--blue"></span>
+            <strong>Equipo Azul</strong>
+            <span class="md-manual-roster__lp-summary nf-mono">{{ match()?.winningTeam === 'blue' ? '+LP otorgados' : '-LP descontados' }}</span>
+          </div>
+          <div class="md-manual-roster__list">
+            @for (p of match()?.blueTeam?.participants; track p.id) {
+              <div class="md-manual-player-row" [class.is-current-user]="isCurrentUser(p.id)">
+                <nf-lane-icon class="md-manual-player__role" [lane]="p.role" mode="original" />
+                <nf-avatar [src]="championIcon(p.championId)" [fallback]="p.championName" [size]="28" shape="square" />
+                <div class="c-col min-w-0" style="flex: 1">
+                  <span class="md-manual-player__name">{{ p.riotId }}</span>
+                  <span class="md-manual-player__champ nf-mono">{{ p.championName }}</span>
+                </div>
+                <span class="md-manual-player__lp nf-mono" [class.is-positive]="p.lpDelta > 0" [class.is-negative]="p.lpDelta < 0">
+                  {{ p.lpDelta > 0 ? '+' + p.lpDelta : p.lpDelta }} LP
+                </span>
+              </div>
+            }
+          </div>
+        </div>
+
+        <div class="md-manual-roster md-manual-roster--red">
+          <div class="md-manual-roster__head">
+            <span class="md-manual-roster__side-dot md-manual-roster__side-dot--red"></span>
+            <strong>Equipo Rojo</strong>
+            <span class="md-manual-roster__lp-summary nf-mono">{{ match()?.winningTeam === 'red' ? '+LP otorgados' : '-LP descontados' }}</span>
+          </div>
+          <div class="md-manual-roster__list">
+            @for (p of match()?.redTeam?.participants; track p.id) {
+              <div class="md-manual-player-row" [class.is-current-user]="isCurrentUser(p.id)">
+                <nf-lane-icon class="md-manual-player__role" [lane]="p.role" mode="original" />
+                <nf-avatar [src]="championIcon(p.championId)" [fallback]="p.championName" [size]="28" shape="square" />
+                <div class="c-col min-w-0" style="flex: 1">
+                  <span class="md-manual-player__name">{{ p.riotId }}</span>
+                  <span class="md-manual-player__champ nf-mono">{{ p.championName }}</span>
+                </div>
+                <span class="md-manual-player__lp nf-mono" [class.is-positive]="p.lpDelta > 0" [class.is-negative]="p.lpDelta < 0">
+                  {{ p.lpDelta > 0 ? '+' + p.lpDelta : p.lpDelta }} LP
+                </span>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ============================================================== -->
+  <!-- COMENTARIOS INMUTABLES DE LA PARTIDA (B.6)                    -->
+  <!-- ============================================================== -->
+  <footer class="md-comments-box">
+    <div class="c-row c-row--between">
+      <div class="c-row c-row--center">
+        <span class="c-badge c-badge--dim">COMENTARIOS DE LA PARTIDA</span>
+        <span class="c-stat-lbl">Solo los 10 jugadores · 1 por jugador · Inmutable</span>
+      </div>
+      <span class="c-stat-lbl nf-mono">{{ comments().length }} Comentarios</span>
+    </div>
+
+    <div class="md-comment-input-box">
+      <div class="c-row c-row--center">
+        <nf-avatar src="https://cdn.discordapp.com/embed/avatars/2.png" fallback="EduUC" [size]="28" shape="round" />
+        <span class="c-name">Tu comentario como <strong>EduUC</strong> (TOP · Ornn)</span>
+      </div>
+
+      <textarea
+        class="md-comment-textarea"
+        placeholder="Escribe aquí tu análisis o vivencia de la partida (máximo 300 caracteres)..."
+        [value]="newCommentText()"
+        (input)="newCommentText.set($any($event.target).value)"
+        maxlength="300"
+      ></textarea>
+
+      <div class="c-row c-row--between">
+        <span class="c-stat-lbl nf-mono">{{ 300 - newCommentText().length }} caracteres restantes</span>
+        <button
+          type="button"
+          class="md-comment-publish-btn"
+          [disabled]="!newCommentText().trim() || newCommentText().length > 300"
+          (click)="postComment()"
+        >
+          Publicar comentario
+        </button>
+      </div>
+    </div>
+
+    <div class="md-comments-list">
+      @for (c of comments(); track c.id) {
+        <div class="md-comment-card">
+          <div class="md-comment-header">
+            <div class="md-comment-author">
+              <nf-avatar [src]="c.authorAvatarUrl" [fallback]="c.authorName" [size]="26" shape="round" />
+              <div class="c-row c-row--center">
+                <strong class="c-name">{{ c.authorName }}</strong>
+                <span class="c-tag-sub nf-mono">({{ c.authorChampion }} · {{ c.authorRole }})</span>
+                <span class="c-badge nf-mono" [class.c-badge--blue]="c.authorSide === 'blue'" [class.c-badge--ruby]="c.authorSide === 'red'">
+                  {{ c.authorSide === 'blue' ? 'Azul' : 'Rojo' }}
+                </span>
+              </div>
+            </div>
+            <span class="c-stat-lbl nf-mono">{{ c.createdAt }}</span>
+          </div>
+
+          <p class="md-comment-text">«{{ c.text }}»</p>
+
+          <div class="md-comment-reactions-bar">
+            @for (r of c.reactions; track r.emoji) {
+              <button
+                type="button"
+                class="md-reaction-btn"
+                [class.is-mine]="r.mine"
+                (click)="toggleCommentReaction(c.id, r.emoji)"
+                [title]="r.mine ? 'Quitar tu reacción' : 'Reaccionar con ' + r.emoji"
+              >
+                <span>{{ r.emoji }}</span>
+                <span class="nf-mono">{{ r.count }}</span>
+              </button>
+            }
+
+            <div style="position: relative">
+              <button
+                type="button"
+                class="md-add-reaction-btn"
+                (click)="toggleReactionPicker(c.id)"
+                title="Añadir reacción emoji"
+                aria-label="Añadir reacción emoji"
+              >
+                +
+              </button>
+
+              @if (activePickerCommentId() === c.id) {
+                <div class="md-quick-picker">
+                  @for (em of quickEmojis; track em) {
+                    <button
+                      type="button"
+                      class="md-picker-emoji-btn"
+                      (click)="toggleCommentReaction(c.id, em)"
+                      [title]="'Reaccionar ' + em"
+                    >
+                      {{ em }}
+                    </button>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  </footer>
+</div>

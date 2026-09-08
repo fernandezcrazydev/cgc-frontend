@@ -61,7 +61,15 @@ let panelSeq = 0;
         <ng-content />
 
         <div class="m-card__end">
-          <span class="m-card__date nf-mono">{{ dateLabel() }}</span>
+          <div class="m-card__end-meta">
+            @if (leagueName(); as l) {
+              <span class="m-card__league nf-mono">{{ l }}</span>
+            }
+            @if (modeLabel(); as m) {
+              <span class="m-card__mode nf-mono">{{ m }}</span>
+            }
+            <span class="m-card__date nf-mono">{{ dateLabel() }}</span>
+          </div>
           <div class="m-card__end-extra">
             @if (lpDelta(); as lp) {
               <span
@@ -180,6 +188,12 @@ export class MatchCardShellComponent {
   }
 
   protected readonly dateLabel = computed(() => formatMatchDate(this.match().decidedAt));
+  protected readonly leagueName = computed(
+    () => this.match().leagueName ?? this.match().group.seasonName ?? this.match().group.name,
+  );
+  protected readonly modeLabel = computed(
+    () => this.match().modeLabel ?? 'Competitivo · Party',
+  );
 
   // El grupo es el único que no lo pinta: ahí la fila es el registro colectivo y los LP son
   // de quien mira, no de la partida.

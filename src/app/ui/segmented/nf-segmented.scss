@@ -35,17 +35,19 @@
   transition: background 0.18s, color 0.18s;
 }
 
-.nf-seg__btn:hover:not(.nf-seg__btn--on) {
-  color: var(--nf-text);
-}
+.nf-seg__btn:hover:not(.nf-seg__btn--on):not(:disabled) { color: var(--nf-text); }
+
+.nf-seg__btn:disabled, .nf-seg__btn--disabled { opacity: 0.38; cursor: not-allowed; pointer-events: none; }
+
 
 .nf-seg__btn--on {
-  background: var(--nf-elevated);
-  color: var(--nf-text);
+  background: color-mix(in srgb, var(--nf-primary) 18%, var(--nf-elevated));
+  color: #fff;
+  font-weight: var(--fw-semibold);
 }
 
 .nf-seg__btn:focus-visible {
-  outline: 2px solid var(--nf-secondary);
+  outline: 2px solid var(--nf-primary);
   outline-offset: 1px;
 }
 
@@ -70,9 +72,10 @@
   display: flex;
   gap: 0;
   padding: 0;
-  border: 0;
-  border-radius: 0;
+  border-radius: var(--nf-radius);
   background: var(--nf-inset);
+  overflow: hidden;
+  border: var(--bw-hair) solid var(--nf-border);
 }
 
 .nf-seg--tabs .nf-seg__btn {
@@ -80,12 +83,14 @@
   min-width: 0;
   padding: 11px 16px;
   border-radius: 0;
-  border-bottom: var(--bw-hair) solid var(--nf-border);
+  border-bottom: 2px solid transparent;
   /* Separador entre pestañas; la última no lo lleva (regla de abajo). */
   border-right: var(--bw-hair) solid var(--nf-border);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  color: var(--nf-text-dim);
+  font-weight: var(--fw-medium);
   transition: background 0.18s, color 0.18s, border-color 0.18s;
 }
 
@@ -95,11 +100,14 @@
 
 .nf-seg--tabs .nf-seg__btn:hover:not(.nf-seg__btn--on) {
   background: var(--nf-elevated);
+  color: var(--nf-text);
 }
 
 .nf-seg--tabs .nf-seg__btn--on {
-  background: var(--nf-surface);
-  border-bottom-color: transparent;
+  background: color-mix(in srgb, var(--nf-primary) 16%, var(--nf-surface));
+  color: #fff;
+  font-weight: var(--fw-bold);
+  border-bottom: 2px solid var(--nf-primary);
 }
 
 .nf-seg--tabs .nf-seg__btn:focus-visible {

@@ -30,6 +30,13 @@ import { MedalIconComponent } from './medal-icon.component';
           <section class="md__leader">
             <span class="md__label">Líder actual</span>
             <div class="md__leader-row">
+              <img
+                class="md__leader-trophy"
+                src="/assets/trofeos/Trofeo1.webp"
+                alt="Líder"
+                width="24"
+                height="24"
+              />
               <nf-avatar
                 [src]="leader.member.avatar ?? null"
                 [fallback]="leader.member.name"
@@ -56,7 +63,17 @@ import { MedalIconComponent } from './medal-icon.component';
             <ol class="md__podium-list">
               @for (row of b.podium; track row.member.tag) {
                 <li class="md__podium-row" [attr.data-podium]="row.rank">
-                  <span class="md__podium-rank nf-mono">{{ row.rank }}.º</span>
+                  @if (row.rank <= 3) {
+                    <img
+                      class="md__podium-trophy"
+                      [src]="'/assets/trofeos/Trofeo' + row.rank + '.webp'"
+                      [alt]="'Puesto ' + row.rank"
+                      width="22"
+                      height="22"
+                    />
+                  } @else {
+                    <span class="md__podium-rank nf-mono">{{ row.rank }}</span>
+                  }
                   <nf-avatar
                     [src]="row.member.avatar ?? null"
                     [fallback]="row.member.name"

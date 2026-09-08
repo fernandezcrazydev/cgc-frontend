@@ -27,6 +27,15 @@ export type LobbyStatus =
   | 'FINISHED'
   | 'CANCELLED';
 
+export type LobbyModality = 'COMPETITIVE' | 'BALANCED' | 'CHAOS';
+export type LobbyDistribution = 'ROOMS' | 'PARTY';
+export type LobbySubType =
+  | 'STANDARD'
+  | 'CONTIGUOUS_ROOMS'
+  | 'PARTY_POOL'
+  | 'PARTY_ROUNDS'
+  | 'TEAMS_GENERATED';
+
 /**
  * Una persona en una franja. `userId` es el UUID público de `app_user`: es la clave con la que
  * se decide si una fila eres tú, nunca el nombre de Discord.
@@ -40,6 +49,18 @@ export interface LobbyParticipantResponse {
   avatarUrl: string | null;
   /** ISO-8601. El orden de llegada: es lo único que decide quién juega y quién espera. */
   joinedAt: string;
+  /** Si fue añadido a mano por el host (FlujoJuego.md §4.3) o entró voluntariamente. */
+  isAdded?: boolean;
+  /** Si está activo o inactivo en banquillo tras expulsión (FlujoJuego.md §5.1, §5.2). */
+  isActive?: boolean;
+  /** Si es el host actual con corona de mando. */
+  isHost?: boolean;
+  /** Línea asignada si los equipos ya fueron generados por el balanceador. */
+  assignedLane?: 'TOP' | 'JUNGLE' | 'MID' | 'BOTTOM' | 'SUPPORT';
+  /** Equipo asignado al generar partida. */
+  team?: 'BLUE' | 'RED';
+  /** Deuda de rotación acumulada en Party (FlujoJuego.md §7). */
+  rotationDebt?: number;
 }
 
 /**
@@ -59,6 +80,14 @@ export interface LobbySlotResponse {
   signedUp: number;
   starters: LobbyParticipantResponse[];
   bench: LobbyParticipantResponse[];
+  /** Titulares de la segunda sala en caso de salas contiguas (ej. 23 personas = 2 salas de 10). */
+  secondaryStarters?: LobbyParticipantResponse[];
+  /** Nombre personalizado de la sala principal (ej. "Sala 1" o "Sala A"). */
+  roomName?: string;
+  /** Nombre de la segunda sala contigua (ej. "Sala 2" o "Sala B"). */
+  secondaryRoomName?: string;
+  /** Número de tanda en Party (ej. Tanda 1). */
+  partyRound?: number;
 }
 
 /**
@@ -78,6 +107,16 @@ export interface LobbyResponse {
   status: LobbyStatus;
   capacity: number;
   note: string | null;
+  /** Modalidad competitiva de la partida (FlujoJuego.md §3). */
+  modality?: LobbyModality;
+  /** Reparto de jugadores: salas independientes o party (FlujoJuego.md §4.5). */
+  distribution?: LobbyDistribution;
+  /** Subtipo de presentación para preview en Tablón. */
+  subType?: LobbySubType;
+  /** Si hay al menos un participante con la app de escritorio emparejada (FlujoJuego.md §9.1). */
+  scraperActive?: boolean;
+  /** Minuto de juego si la partida está en curso. */
+  matchDurationMinutes?: number;
   /** Quien convocó. `joinedAt` aquí es la fecha de creación: convocar no es apuntarse. */
   openedBy: LobbyParticipantResponse;
   /** La franja que se llenó, o null mientras se recoge disponibilidad. */
@@ -107,5 +146,9 @@ export interface CreateLobbyRequest {
  */
 export const MAX_SLOTS = 6;
 
-/** Longitud máxima de la nota. Espejo de `LobbyPolicy.MAX_NOTE_LENGTH`. */
-export const MAX_NOTE_LENGTH = 200;
+/**
+ * Longitud máxima de la descripción. **Espejo de `LobbyPolicy.MAX_NOTE_LENGTH`**, y los dos
+ * se mueven en el mismo commit: el cliente solo puede ser más estricto que el servidor,
+ * nunca más laxo, o todo lo que pase del tope real vuelve como un 422.
+ */
+export const MAX_NOTE_LENGTH = 1000;

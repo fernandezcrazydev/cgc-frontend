@@ -1,0 +1,187 @@
+@if (lobby(); as lb) {
+  <article
+    class="sc"
+    [class.sc--party]="isParty()"
+    [attr.data-state]="participationState()"
+    (click)="onCardClick($event)"
+  >
+    <header class="sc__head">
+      <div class="sc__head-row">
+        <span class="sc__when">{{ when() }}</span>
+
+        <div class="sc__badges">
+          <!-- Modalidad (Solo Icono) -->
+          <span
+            class="sc__badge-modality"
+            [attr.data-mod]="modality()"
+            [title]="'Modalidad ' + modalityLabel()"
+            [attr.aria-label]="'Modalidad ' + modalityLabel()"
+          >
+            @switch (modality()) {
+              @case ('COMPETITIVE') {
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11" aria-hidden="true">
+                  <path d="M14.5 17.5L3 6V3h3l11.5 11.5M13 19l6 2 2-6-4.5-4.5" />
+                </svg>
+              }
+              @case ('CHAOS') {
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11" aria-hidden="true">
+                  <rect x="3" y="3" width="18" height="18" rx="3" />
+                  <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor" />
+                  <circle cx="15.5" cy="15.5" r="1.5" fill="currentColor" />
+                </svg>
+              }
+              @default {
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11" aria-hidden="true">
+                  <path d="M12 3v18M3 7l9-4 9 4M6 17l-3-6h6l-3 6zM18 17l-3-6h6l-3 6z" />
+                </svg>
+              }
+            }
+          </span>
+
+          <!-- Formato de Reparto: siempre Party o Room -->
+          @if (isParty()) {
+            <span class="sc__badge-party" title="Party · Rotación simultánea">Party</span>
+          } @else {
+            <span class="sc__badge-room" title="Room · Salas independientes">Room</span>
+          }
+
+          <!-- Salas generadas (solo si >= 2 salas) -->
+          @if (isContiguous() || isPartyRounds()) {
+            <span class="sc__badge-rooms-count" title="2 Salas simultáneas">2 Salas</span>
+          }
+
+          <!-- Badge de estado con color -->
+          @switch (participationState()) {
+            @case ('confirmed-starter') {
+              <span class="sc-status-pill sc-status-pill--starter">
+                <span class="sc-status-dot"></span>
+                Inscrito (Titular)
+              </span>
+            }
+            @case ('confirmed-bench') {
+              <span class="sc-status-pill sc-status-pill--bench">
+                <span class="sc-status-dot"></span>
+                En banquillo
+              </span>
+            }
+            @case ('confirmed-out') {
+              <span class="sc-status-pill sc-status-pill--out">
+                No inscrito
+              </span>
+            }
+            @case ('polling-voted') {
+              <span class="sc-status-pill sc-status-pill--voted">
+                <span class="sc-status-dot"></span>
+                Votado ({{ votedHoursCount() }})
+              </span>
+            }
+            @case ('polling-unvoted') {
+              <span class="sc-status-pill sc-status-pill--unvoted">
+                <span class="sc-status-dot"></span>
+                Sin votar
+              </span>
+            }
+          }
+        </div>
+      </div>
+
+      <div class="sc__meta">
+        <span class="sc__meta-text">Convocó {{ lb.openedBy.discordUsername ?? 'alguien' }}</span>
+        <span class="sc__meta-sep">·</span>
+        <span class="sc__meta-summary nf-mono">{{ cardSummaryText() }}</span>
+      </div>
+    </header>
+
+    <div class="sc__body">
+      <!-- Barra compacta de progreso -->
+      <div class="sc__bar">
+        <span
+          class="sc__bar-fill"
+          [style.width.%]="barProgressPercent()"
+        ></span>
+      </div>
+
+      <!-- Fila de participantes y acciones -->
+      <div class="sc__bottom-row">
+        @if (previewParticipants(); as preview) {
+          @if (preview.list.length > 0) {
+            <ul class="sc__avatars" aria-label="Participantes inscritos">
+              @for (p of preview.list; track p.userId) {
+                <li class="sc__avatar-item">
+                  <a
+                    class="sc__person-link"
+                    [routerLink]="['/app', 'perfil', p.userId]"
+                    (click)="$event.stopPropagation()"
+                    [attr.aria-label]="'Ver perfil de ' + (p.discordUsername ?? 'jugador')"
+                  >
+                    <nf-avatar
+                      [src]="p.avatarUrl"
+                      [fallback]="p.discordUsername ?? ''"
+                      [tint]="tintOf(p.userId)"
+                      [size]="20"
+                      shape="round"
+                      [alt]="p.discordUsername ?? 'Jugador'"
+                    />
+                  </a>
+                </li>
+              }
+              @if (preview.extraCount > 0) {
+                <li class="sc__avatar-more nf-mono" [title]="preview.extraCount + ' participantes más'">
+                  +{{ preview.extraCount }}
+                </li>
+              }
+            </ul>
+          } @else {
+            <span class="sc__no-players nf-mono">Sin inscritos aún</span>
+          }
+        }
+
+        <div class="sc__actions">
+          @if (lb.status === 'CONFIRMED' && slot(); as s) {
+            @if (standing().kind === 'out') {
+              <button
+                nfButton
+                variant="primary"
+                size="sm"
+                [disabled]="acting()"
+                (click)="onSignUp($event, s.id)"
+              >
+                Inscribirme
+              </button>
+            } @else {
+              <button
+                nfButton
+                variant="ghost"
+                size="sm"
+                [disabled]="acting()"
+                (click)="onWithdraw($event, s.id)"
+              >
+                Ya no puedo
+              </button>
+            }
+          } @else {
+            @if (hasVoted()) {
+              <button
+                nfButton
+                variant="secondary"
+                size="sm"
+                (click)="onOpenAvailability($event)"
+              >
+                Modificar
+              </button>
+            } @else {
+              <button
+                nfButton
+                variant="primary"
+                size="sm"
+                (click)="onOpenAvailability($event)"
+              >
+                Votar horas
+              </button>
+            }
+          }
+        </div>
+      </div>
+    </div>
+  </article>
+}

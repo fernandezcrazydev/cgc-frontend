@@ -159,3 +159,61 @@ function sumBy(team: TeamSummary, pick: (stats: ParticipantStats) => number): nu
 function share(value: number, total: number): number {
   return total > 0 ? Math.min(100, Math.max(0, Math.round((value / total) * 100))) : 0;
 }
+
+export interface PlayerScoreItem {
+  rank: number;
+  score: string;
+  display: string;
+}
+
+/**
+ * Cálculo determinista de la nota de cada participante en una partida.
+ *
+ * REGLA DE ARQUITECTURA: Es la fuente única de verdad para la nota del jugador en
+ * el historial (`match-lineup`), en el marcador (`match-scoreboard`) y en el detalle
+ * (`match-detail`). MVP y ACE tienen suelos ponderados altos; el resto evalúa KDA,
+ * farm y victoria.
+ */
+export function computeMatchScores(match: {
+  winningTeam: TeamSide;
+  mvpParticipantId?: string;
+  aceParticipantId?: string;
+  blueTeam: { participants: MatchParticipant[] };
+  redTeam: { participants: MatchParticipant[] };
+}): Map<string, PlayerScoreItem> {
+  const all = [...match.blueTeam.participants, ...match.redTeam.participants];
+  const rated = all.map((p) => {
+    const isMvp = p.id === match.mvpParticipantId;
+    const isAce = p.id === match.aceParticipantId;
+    const kills = p.stats.kills;
+    const deaths = Math.max(1, p.stats.deaths);
+    const assists = p.stats.assists;
+    const cs = p.stats.cs;
+    const won = p.team === match.winningTeam;
+    let raw = isMvp
+      ? 9.5 + ((p.riotId.length + kills) % 5) / 10
+      : isAce
+        ? 8.7 + ((p.riotId.length + kills) % 5) / 10
+        : 4.2 + (kills * 2.2 + assists * 1.3 - deaths * 1.4) / 6 + (cs / 120) + (won ? 0.8 : 0);
+    raw = Math.min(9.9, Math.max(3.0, raw));
+    return { id: p.id, raw, isMvp, isAce };
+  });
+
+  rated.sort((a, b) => {
+    if (a.isMvp) return -1;
+    if (b.isMvp) return 1;
+    return b.raw - a.raw;
+  });
+
+  const map = new Map<string, PlayerScoreItem>();
+  rated.forEach((item, index) => {
+    const rank = index + 1;
+    const scoreStr = item.raw.toFixed(1);
+    map.set(item.id, {
+      rank,
+      score: scoreStr,
+      display: `${rank} · ${scoreStr}`,
+    });
+  });
+  return map;
+}
