@@ -182,6 +182,7 @@ export const routes: Routes = [
       {
         path: 'pruebas',
         title: 'Pruebas Hall of Fame · Sale Custom',
+        canActivate: [adminGuard],
         loadComponent: () =>
           import('./features/shell/views/pruebas/pruebas-hof').then((m) => m.PruebasHof),
       },

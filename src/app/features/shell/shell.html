@@ -77,22 +77,24 @@
             <span class="shell__nav-label shell__collapsible">Historial</span>
           </a>
 
-          <!-- Pruebas (Laboratorio) -->
-          <a
-            class="shell__nav-item"
-            [routerLink]="['/app', 'pruebas']"
-            routerLinkActive="is-active"
-            [attr.title]="railed() ? 'Pruebas' : null"
-          >
-            <span class="shell__nav-glyph">
-              <svg class="shell__nav-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M10 2v7.31L4.89 17.5A2 2 0 0 0 6.54 20h10.92a2 2 0 0 0 1.65-2.5L14 9.31V2z" />
-                <path d="M8.5 2h7" />
-                <path d="M7 16h10" />
-              </svg>
-            </span>
-            <span class="shell__nav-label shell__collapsible">Pruebas</span>
-          </a>
+          <!-- Pruebas (Laboratorio, solo administradores) -->
+          @if (isAdmin()) {
+            <a
+              class="shell__nav-item"
+              [routerLink]="['/app', 'pruebas']"
+              routerLinkActive="is-active"
+              [attr.title]="railed() ? 'Pruebas' : null"
+            >
+              <span class="shell__nav-glyph">
+                <svg class="shell__nav-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M10 2v7.31L4.89 17.5A2 2 0 0 0 6.54 20h10.92a2 2 0 0 0 1.65-2.5L14 9.31V2z" />
+                  <path d="M8.5 2h7" />
+                  <path d="M7 16h10" />
+                </svg>
+              </span>
+              <span class="shell__nav-label shell__collapsible">Pruebas</span>
+            </a>
+          }
 
           <!-- Lista de grupos siempre presente (un único grupo abierto a la vez) -->
           <div class="shell__grouplist">
