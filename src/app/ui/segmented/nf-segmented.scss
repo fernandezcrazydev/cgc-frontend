@@ -35,9 +35,10 @@
   transition: background 0.18s, color 0.18s;
 }
 
-.nf-seg__btn:hover:not(.nf-seg__btn--on) {
-  color: var(--nf-text);
-}
+.nf-seg__btn:hover:not(.nf-seg__btn--on):not(:disabled) { color: var(--nf-text); }
+
+.nf-seg__btn:disabled, .nf-seg__btn--disabled { opacity: 0.38; cursor: not-allowed; pointer-events: none; }
+
 
 .nf-seg__btn--on {
   background: color-mix(in srgb, var(--nf-primary) 18%, var(--nf-elevated));

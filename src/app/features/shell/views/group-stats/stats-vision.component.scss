@@ -1,0 +1,111 @@
+@use 'breakpoints' as *;
+
+:host {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.vi-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.vi-card__note {
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+}
+
+.vi-card__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.vi-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--nf-surface-2);
+  border: 1px solid var(--nf-border);
+  transition: border-color 0.14s ease, transform 0.14s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+  }
+
+  &--placed {
+    border-color: color-mix(in srgb, var(--nf-primary) 35%, var(--nf-border));
+    background: linear-gradient(135deg, color-mix(in srgb, var(--nf-primary) 8%, transparent), transparent 70%), var(--nf-surface-2);
+
+    .vi-item__count { color: var(--nf-secondary); }
+  }
+
+  &--cleared {
+    border-color: color-mix(in srgb, var(--nf-danger) 30%, var(--nf-border));
+    background: linear-gradient(135deg, color-mix(in srgb, var(--nf-danger) 7%, transparent), transparent 70%), var(--nf-surface-2);
+
+    .vi-item__count { color: var(--nf-danger); }
+  }
+
+  &--leader {
+    border-color: color-mix(in srgb, var(--nf-gold) 35%, var(--nf-border));
+    background: linear-gradient(135deg, color-mix(in srgb, var(--nf-gold) 9%, transparent), transparent 70%), var(--nf-surface-2);
+
+    .vi-item__count { color: var(--nf-gold); }
+  }
+}
+
+.vi-item__badge {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--nf-surface);
+  border: 1px solid var(--nf-border);
+}
+
+.vi-item__tier {
+  font-size: var(--fs-label);
+  font-weight: var(--fw-semibold);
+  color: var(--nf-text);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.vi-item__count {
+  font-size: var(--fs-h3);
+  font-weight: var(--fw-bold);
+  line-height: 1.1;
+}
+
+.vi-item__unit {
+  font-size: var(--fs-label);
+  font-weight: var(--fw-normal);
+  color: var(--nf-text-dim);
+}
+
+.vi-item__sub {
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vi-item__leader strong {
+  color: var(--nf-text);
+  font-weight: var(--fw-semibold);
+}
+
+@media (max-width: $bp-compact) {
+  .vi-card__grid {
+    grid-template-columns: 1fr;
+  }
+}

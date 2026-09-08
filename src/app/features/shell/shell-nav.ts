@@ -118,7 +118,7 @@ const ROUTE_TITLES: readonly (readonly [readonly string[], string])[] = [
   [['jugador', ':playerId', 'juntos'], 'Sinergia de dúo'],
   [['jugador', ':playerId', 'juntos', ':matchId'], 'Sinergia en la partida'],
 
-  [['pruebas'], 'Laboratorio Hall of Fame'],
+  [['pruebas'], 'Pruebas'],
   [['ajustes'], 'Ajustes'],
 
   [['admin'], 'Administración'],

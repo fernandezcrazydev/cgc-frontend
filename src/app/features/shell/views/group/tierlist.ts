@@ -585,6 +585,14 @@ export class Tierlist {
     void this.groups.ensureLoaded();
     void this.gameData.ensureLoaded();
 
+    const paramChamp = this.route.snapshot?.queryParamMap?.get('campeon');
+    if (paramChamp) {
+      const champId = Number(paramChamp);
+      if (!isNaN(champId) && champId > 0) {
+        this.expandedChampId.set(champId);
+      }
+    }
+
     afterNextRender(() => {
       const key = this.group() ? `/app/grupos/${this.group()!.id}/tierlist` : '/app/tierlist';
       // Scroll y fila desplegada describen dónde estabas: se recuperan solo al volver.

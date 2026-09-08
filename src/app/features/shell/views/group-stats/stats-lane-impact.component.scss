@@ -1,0 +1,122 @@
+@use 'breakpoints' as *;
+
+:host {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.li-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.li-card__note {
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+}
+
+.li-card__list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.li-entry {
+  display: grid;
+  grid-template-columns: 22px 28px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  background: var(--nf-surface-2);
+  border: 1px solid var(--nf-border);
+  transition: background 0.14s ease;
+
+  &:hover {
+    background: color-mix(in srgb, var(--nf-surface-2) 85%, #ffffff 15%);
+  }
+}
+
+.li-entry[data-podium='1'] { --podium-accent: var(--nf-gold); }
+.li-entry[data-podium='2'] { --podium-accent: var(--nf-silver); }
+.li-entry[data-podium='3'] { --podium-accent: var(--nf-bronze); }
+
+.li-entry[data-podium] {
+  position: relative;
+  border-left: 3px solid var(--podium-accent);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--podium-accent) 14%, transparent), transparent 75%);
+
+  &:hover {
+    background: linear-gradient(90deg, color-mix(in srgb, var(--podium-accent) 22%, transparent), transparent 80%);
+  }
+}
+
+.li-entry__trophy {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--podium-accent) 55%, transparent));
+}
+
+.li-entry__rank {
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+  text-align: center;
+}
+
+.li-entry__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  font-size: var(--fs-h3);
+}
+
+.li-entry__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.li-entry__name {
+  overflow: hidden;
+  font-size: var(--fs-caption);
+  font-weight: var(--fw-semibold);
+  color: var(--nf-text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.li-entry__sub {
+  overflow: hidden;
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.li-entry__value {
+  font-size: var(--fs-caption);
+  font-weight: var(--fw-semibold);
+  color: var(--nf-secondary);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.li-entry[data-podium='1'] .li-entry__value {
+  color: var(--nf-gold);
+}
+
+@media (max-width: $bp-compact) {
+  .li-entry__sub {
+    display: none;
+  }
+}

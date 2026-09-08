@@ -1,10 +1,10 @@
-<div class="test-view">
+﻿<div class="test-view">
   <header class="test-view__header">
     <div class="test-view__badge">LABORATORIO UX/UI</div>
-    <h1 class="test-view__title">Comparativa de Diseño: Cards del Hall of Fame</h1>
+    <h1 class="test-view__title">Comparativa de Diseño: Cards de Objetivos y Telemetría</h1>
     <p class="test-view__desc">
-      Evaluación visual de las 5 alternativas verticales propuestas frente a la versión horizontal actual.
-      Compara el tamaño y protagonismo del icono de medalla vs el avatar, la legibilidad del nombre del líder y el feedback de progreso personal.
+      Evaluación interactiva de las 5 opciones propuestas para las cards de objetivos («Primer dragón», «Larvas del vacío», «Primer heraldo», «Primer barón» y «Primera torre»).
+      Prueba los diferentes estados hover, animaciones y jerarquías de datos.
     </p>
 
     <div class="test-view__controls">
@@ -17,349 +17,316 @@
   </header>
 
   <main class="test-view__content">
-    <!-- 0. ACTUAL -->
-    @if (showSection('all') || showSection('actual')) {
-      <section class="test-section">
-        <div class="test-section__header">
-          <span class="test-section__tag">REFERENCIA ACTUAL</span>
-          <h2 class="test-section__title">0. Versión Horizontal (Championship Spotlight)</h2>
-          <p class="test-section__note">Sub-tarjeta horizontal integrada con avatar de 36px y métrica tabular.</p>
-        </div>
-
-        <div class="test-grid test-grid--4">
-          @for (item of sampleCards; track item.board.medal.id) {
-            <div class="card-actual" [class.is-mine]="item.board.me?.rank === 1">
-              <div class="card-actual__header">
-                <span class="card-actual__icon">
-                  <app-medal-icon [icon]="item.board.medal.icon" />
-                </span>
-                <span class="card-actual__title">{{ item.board.medal.title }}</span>
-              </div>
-
-              @if (item.board.leader; as leader) {
-                <div class="card-actual__spotlight">
-                  <div class="card-actual__avatar-wrap">
-                    <nf-avatar
-                      [src]="leader.member.avatar ?? null"
-                      [fallback]="leader.member.name"
-                      [tint]="leader.member.hue"
-                      [size]="36"
-                      shape="round"
-                    />
-                    <span class="card-actual__crown">👑</span>
-                  </div>
-                  <div class="card-actual__leader-info">
-                    <span class="card-actual__leader-name">{{ leader.member.name }}</span>
-                    <span class="card-actual__leader-val nf-mono">{{ leader.value }}</span>
-                  </div>
-                </div>
-              } @else {
-                <div class="card-actual__spotlight card-actual__spotlight--vacant">
-                  <span class="card-actual__vacant-text">Sin líder todavía</span>
-                </div>
-              }
-
-              @if (item.board.me; as me) {
-                <div class="card-actual__me nf-mono" [class.is-first]="me.rank === 1">
-                  @if (me.rank === 1) {
-                    <span>👑 La tienes tú</span>
-                  } @else {
-                    <span>Tu puesto: {{ me.rank }}.º · {{ me.value }}</span>
-                  }
-                </div>
-              }
-            </div>
-          }
-        </div>
-      </section>
-    }
-
-    <!-- 1. OPCIÓN A -->
+    <!-- 1. HEXTECH RADIAL TOKENS -->
     @if (showSection('all') || showSection('opt1')) {
       <section class="test-section">
         <div class="test-section__header">
-          <span class="test-section__tag test-section__tag--gold">OPCIÓN A</span>
-          <h2 class="test-section__title">1. Vertical Trophy Pillar (Columna Centrada con Trofeo Superior)</h2>
-          <p class="test-section__note">Icono de medalla protagonista (40px) centrado, avatar compacto (28px) con corona y nombre en negrita.</p>
+          <span class="test-section__tag">OPCIÓN 1</span>
+          <h2 class="test-section__title">1. Hextech Radial Tokens (Anillos Circulares SVG)</h2>
+          <p class="test-section__note">
+            Aro exterior de progreso SVG alrededor del icono oficial de Riot. El arco se llena según el winrate y resplandece al pasar el ratón.
+          </p>
         </div>
 
         <div class="test-grid test-grid--5">
-          @for (item of sampleCards; track item.board.medal.id) {
-            <div class="card-v1" [class.is-mine]="item.board.me?.rank === 1">
-              <div class="card-v1__top">
-                <span class="card-v1__trophy">
-                  <app-medal-icon [icon]="item.board.medal.icon" />
-                </span>
-                <span class="card-v1__title">{{ item.board.medal.title }}</span>
+          @for (o of objectives; track o.id) {
+            <div class="radial-card" [attr.data-impact]="o.impact">
+              <div class="radial-card__badge-wrap">
+                <span class="radial-card__badge" [attr.data-impact]="o.impact">{{ o.impact }}</span>
               </div>
 
-              @if (item.board.leader; as leader) {
-                <div class="card-v1__center">
-                  <div class="card-v1__avatar-wrap">
-                    <nf-avatar
-                      [src]="leader.member.avatar ?? null"
-                      [fallback]="leader.member.name"
-                      [tint]="leader.member.hue"
-                      [size]="28"
-                      shape="round"
-                    />
-                    <span class="card-v1__crown">👑</span>
-                  </div>
-                  <span class="card-v1__leader-name">{{ leader.member.name }}</span>
-                  <span class="card-v1__leader-val nf-mono">{{ leader.value }}</span>
+              <div class="radial-card__gauge">
+                <svg class="radial-card__svg" viewBox="0 0 80 80" aria-hidden="true">
+                  <circle class="radial-card__track" cx="40" cy="40" r="34" />
+                  <circle
+                    class="radial-card__arc"
+                    cx="40"
+                    cy="40"
+                    r="34"
+                    [attr.stroke-dasharray]="213.6"
+                    [attr.stroke-dashoffset]="213.6 - (213.6 * o.winrate) / 100"
+                  />
+                </svg>
+                <div class="radial-card__icon-wrap">
+                  <img
+                    class="radial-card__icon"
+                    [src]="o.iconUrl"
+                    [alt]="o.label"
+                    width="42"
+                    height="42"
+                    loading="lazy"
+                    (error)="onIconError($event, o.id)"
+                  />
                 </div>
-              } @else {
-                <div class="card-v1__center card-v1__center--vacant">
-                  <span class="card-v1__vacant-text">Sin líder todavía</span>
-                </div>
-              }
+              </div>
 
-              @if (item.board.me; as me) {
-                <div class="card-v1__me nf-mono" [class.is-first]="me.rank === 1">
-                  @if (me.rank === 1) {
-                    <span>👑 La tienes tú</span>
-                  } @else {
-                    <span>Tu puesto: {{ me.rank }}.º · {{ me.value }}</span>
-                  }
-                </div>
-              }
+              <span class="radial-card__name">{{ o.label }}</span>
+              <span class="radial-card__value nf-mono">{{ o.winrate }}%</span>
+              <span class="radial-card__sub">{{ o.wins }}/{{ o.games }} partidas</span>
             </div>
           }
         </div>
       </section>
     }
 
-    <!-- 2. OPCIÓN B -->
+    <!-- 2. PILARES DE ENERGÍA VERTICALES -->
     @if (showSection('all') || showSection('opt2')) {
       <section class="test-section">
         <div class="test-section__header">
-          <span class="test-section__tag test-section__tag--gold">OPCIÓN B</span>
-          <h2 class="test-section__title">2. Stacked Badge Deck (Flujo Vertical Escalonado a la Izquierda)</h2>
-          <p class="test-section__note">Icono de medalla (36px), avatar de 26px junto a nombre destacado y pastilla dorada con récord.</p>
+          <span class="test-section__tag">OPCIÓN 2</span>
+          <h2 class="test-section__title">2. Pilares de Energía Verticales (Ecualizador Táctico)</h2>
+          <p class="test-section__note">
+            Barras verticales continuas que suben desde la base con degradado luminoso. Permite comparar las 5 alturas de un vistazo como un ecualizador de mesa de retransmisión.
+          </p>
         </div>
 
-        <div class="test-grid test-grid--4">
-          @for (item of sampleCards; track item.board.medal.id) {
-            <div class="card-v2" [class.is-mine]="item.board.me?.rank === 1">
-              <div class="card-v2__badge-head">
-                <span class="card-v2__icon">
-                  <app-medal-icon [icon]="item.board.medal.icon" />
-                </span>
-                <span class="card-v2__title">{{ item.board.medal.title }}</span>
+        <div class="test-grid test-grid--5">
+          @for (o of objectives; track o.id) {
+            <div class="pillar-card" [attr.data-impact]="o.impact">
+              <div class="pillar-card__head">
+                <img
+                  class="pillar-card__icon"
+                  [src]="o.iconUrl"
+                  [alt]="o.label"
+                  width="36"
+                  height="36"
+                  loading="lazy"
+                  (error)="onIconError($event, o.id)"
+                />
+                <div class="pillar-card__meta">
+                  <span class="pillar-card__name">{{ o.label }}</span>
+                  <span class="pillar-card__impact" [attr.data-impact]="o.impact">{{ o.impact }}</span>
+                </div>
               </div>
 
-              @if (item.board.leader; as leader) {
-                <div class="card-v2__leader-box">
-                  <div class="card-v2__leader-row">
-                    <nf-avatar
-                      [src]="leader.member.avatar ?? null"
-                      [fallback]="leader.member.name"
-                      [tint]="leader.member.hue"
-                      [size]="26"
-                      shape="round"
-                    />
-                    <span class="card-v2__leader-name">{{ leader.member.name }}</span>
-                    <span class="card-v2__crown">👑</span>
-                  </div>
-                  <div class="card-v2__val-pill nf-mono">{{ leader.value }}</div>
+              <div class="pillar-card__body">
+                <div class="pillar-card__meter">
+                  <span class="pillar-card__meter-fill" [style.height.%]="o.winrate"></span>
                 </div>
-              } @else {
-                <div class="card-v2__leader-box card-v2__leader-box--vacant">
-                  <span class="card-v2__vacant-text">Sin líder todavía</span>
+                <div class="pillar-card__stats">
+                  <strong class="pillar-card__pct nf-mono">{{ o.winrate }}%</strong>
+                  <span class="pillar-card__label">winrate</span>
+                  <span class="pillar-card__sub nf-mono">{{ o.wins }}/{{ o.games }}</span>
                 </div>
-              }
-
-              @if (item.board.me; as me) {
-                <div class="card-v2__me nf-mono" [class.is-first]="me.rank === 1">
-                  @if (me.rank === 1) {
-                    <span>👑 La tienes tú</span>
-                  } @else {
-                    <span>Tu puesto: {{ me.rank }}.º · {{ me.value }}</span>
-                  }
-                </div>
-              }
+              </div>
             </div>
           }
         </div>
       </section>
     }
 
-    <!-- 3. OPCIÓN C -->
+    <!-- 3. BANNERS BROADCAST PRO -->
     @if (showSection('all') || showSection('opt3')) {
       <section class="test-section">
         <div class="test-section__header">
-          <span class="test-section__tag test-section__tag--gold">OPCIÓN C</span>
-          <h2 class="test-section__title">3. Dual Emblem Card (Medalla Protagonista + Pastilla Integrada)</h2>
-          <p class="test-section__note">Gran medalla (42px) centrada con título superior y cápsula inferior del líder (avatar 28px).</p>
+          <span class="test-section__tag">OPCIÓN 3</span>
+          <h2 class="test-section__title">3. Banners Broadcast Pro (Retransmisión Esports)</h2>
+          <p class="test-section__note">
+            Formato en tiras apiladas con barra de recorrido ancho y marca de equilibrio al 50%. Máxima legibilidad sin comprimir textos.
+          </p>
         </div>
 
-        <div class="test-grid test-grid--4">
-          @for (item of sampleCards; track item.board.medal.id) {
-            <div class="card-v3" [class.is-mine]="item.board.me?.rank === 1">
-              <div class="card-v3__emblem">
-                <span class="card-v3__icon">
-                  <app-medal-icon [icon]="item.board.medal.icon" />
-                </span>
-                <span class="card-v3__title">{{ item.board.medal.title }}</span>
+        <div class="banner-list">
+          @for (o of objectives; track o.id) {
+            <div class="banner-card" [attr.data-impact]="o.impact">
+              <div class="banner-card__who">
+                <div class="banner-card__icon-box">
+                  <img
+                    class="banner-card__icon"
+                    [src]="o.iconUrl"
+                    [alt]="o.label"
+                    width="40"
+                    height="40"
+                    loading="lazy"
+                    (error)="onIconError($event, o.id)"
+                  />
+                </div>
+                <div class="banner-card__info">
+                  <span class="banner-card__name">{{ o.label }}</span>
+                  <span class="banner-card__tag" [attr.data-impact]="o.impact">Impacto {{ o.impact.toLowerCase() }}</span>
+                </div>
               </div>
 
-              @if (item.board.leader; as leader) {
-                <div class="card-v3__capsule">
-                  <div class="card-v3__avatar-wrap">
-                    <nf-avatar
-                      [src]="leader.member.avatar ?? null"
-                      [fallback]="leader.member.name"
-                      [tint]="leader.member.hue"
-                      [size]="28"
-                      shape="round"
-                    />
-                    <span class="card-v3__crown">👑</span>
-                  </div>
-                  <div class="card-v3__meta">
-                    <span class="card-v3__leader-name">{{ leader.member.name }}</span>
-                    <span class="card-v3__leader-val nf-mono">{{ leader.value }}</span>
-                  </div>
+              <div class="banner-card__track-wrap">
+                <div class="banner-card__track">
+                  <span class="banner-card__fill" [style.width.%]="o.winrate"></span>
+                  <span class="banner-card__midpoint" title="50% Paridad"></span>
                 </div>
-              } @else {
-                <div class="card-v3__capsule card-v3__capsule--vacant">
-                  <span class="card-v3__vacant-text">Sin líder todavía</span>
+                <div class="banner-card__track-labels">
+                  <span>0%</span>
+                  <span class="banner-card__paridad">50% paridad</span>
+                  <span>100%</span>
                 </div>
-              }
+              </div>
 
-              @if (item.board.me; as me) {
-                <div class="card-v3__me nf-mono" [class.is-first]="me.rank === 1">
-                  @if (me.rank === 1) {
-                    <span>👑 La tienes tú</span>
-                  } @else {
-                    <span>Tu puesto: {{ me.rank }}.º · {{ me.value }}</span>
-                  }
-                </div>
-              }
+              <div class="banner-card__data">
+                <span class="banner-card__pct nf-mono">{{ o.winrate }}%</span>
+                <span class="banner-card__score nf-mono">{{ o.ratioText }} ({{ o.games }} part.)</span>
+              </div>
             </div>
           }
         </div>
       </section>
     }
 
-    <!-- 4. OPCIÓN D -->
+    <!-- 4. RELIQUIAS ÉPICAS CON MARCA DE AGUA -->
     @if (showSection('all') || showSection('opt4')) {
       <section class="test-section">
         <div class="test-section__header">
-          <span class="test-section__tag test-section__tag--gold">OPCIÓN D</span>
-          <h2 class="test-section__title">4. Stat Header Pillar (Medalla con Cifra Récord Arriba)</h2>
-          <p class="test-section__note">Icono de medalla (38px) alineado con la cifra récord gigante y fila del líder (26px) abajo.</p>
+          <span class="test-section__tag">OPCIÓN 4</span>
+          <h2 class="test-section__title">4. Reliquias Épicas con Marca de Agua (Estilo Cliente LoL)</h2>
+          <p class="test-section__note">
+            Inspiradas en las cartas y trofeos del cliente de LoL. Icono oficial en marca de agua tenue al fondo, borde neón superior y micro-barra segmentada.
+          </p>
         </div>
 
-        <div class="test-grid test-grid--4">
-          @for (item of sampleCards; track item.board.medal.id) {
-            <div class="card-v4" [class.is-mine]="item.board.me?.rank === 1">
-              <div class="card-v4__stat-head">
-                <span class="card-v4__icon">
-                  <app-medal-icon [icon]="item.board.medal.icon" />
-                </span>
-                <div class="card-v4__stat-val">
-                  @if (item.board.leader; as leader) {
-                    <span class="card-v4__big-val nf-mono">{{ leader.value }}</span>
-                    <span class="card-v4__stat-sub">Récord</span>
-                  } @else {
-                    <span class="card-v4__big-val card-v4__big-val--empty nf-mono">—</span>
-                    <span class="card-v4__stat-sub">Vacante</span>
-                  }
+        <div class="test-grid test-grid--5">
+          @for (o of objectives; track o.id) {
+            <div class="relic-card" [attr.data-impact]="o.impact">
+              <!-- Marca de agua ambiental de fondo -->
+              <img
+                class="relic-card__watermark"
+                [src]="o.iconUrl"
+                alt=""
+                aria-hidden="true"
+                (error)="onIconError($event, o.id)"
+              />
+
+              <div class="relic-card__top">
+                <span class="relic-card__tag" [attr.data-impact]="o.impact">★ {{ o.impact }}</span>
+                <div class="relic-card__icon-halo">
+                  <img
+                    class="relic-card__icon"
+                    [src]="o.iconUrl"
+                    [alt]="o.label"
+                    width="44"
+                    height="44"
+                    loading="lazy"
+                    (error)="onIconError($event, o.id)"
+                  />
                 </div>
               </div>
 
-              <span class="card-v4__title">{{ item.board.medal.title }}</span>
+              <div class="relic-card__middle">
+                <span class="relic-card__name">{{ o.label }}</span>
+                <span class="relic-card__value nf-mono">{{ o.winrate }}%</span>
+              </div>
 
-              @if (item.board.leader; as leader) {
-                <div class="card-v4__leader-row">
-                  <nf-avatar
-                    [src]="leader.member.avatar ?? null"
-                    [fallback]="leader.member.name"
-                    [tint]="leader.member.hue"
-                    [size]="26"
-                    shape="round"
-                  />
-                  <span class="card-v4__leader-name">👑 {{ leader.member.name }}</span>
+              <div class="relic-card__bottom">
+                <div class="relic-card__segments" aria-hidden="true">
+                  <span class="relic-card__seg is-on"></span>
+                  <span class="relic-card__seg is-on"></span>
+                  <span class="relic-card__seg" [class.is-on]="o.winrate >= 70"></span>
+                  <span class="relic-card__seg" [class.is-on]="o.winrate >= 80"></span>
                 </div>
-              } @else {
-                <div class="card-v4__leader-row card-v4__leader-row--vacant">
-                  <span class="card-v4__vacant-text">Sin líder todavía</span>
-                </div>
-              }
-
-              @if (item.board.me; as me) {
-                <div class="card-v4__me nf-mono" [class.is-first]="me.rank === 1">
-                  @if (me.rank === 1) {
-                    <span>👑 La tienes tú</span>
-                  } @else {
-                    <span>Tu puesto: {{ me.rank }}.º · {{ me.value }}</span>
-                  }
-                </div>
-              }
+                <span class="relic-card__games nf-mono">{{ o.wins }} victorias en {{ o.games }} part.</span>
+              </div>
             </div>
           }
         </div>
       </section>
     }
 
-    <!-- 5. OPCIÓN E -->
+    <!-- 5. RADAR PENTAGONAL + SATÉLITES -->
     @if (showSection('all') || showSection('opt5')) {
       <section class="test-section">
         <div class="test-section__header">
-          <span class="test-section__tag test-section__tag--gold">OPCIÓN E</span>
-          <h2 class="test-section__title">5. Esports Showcase Totem (Tótem con Micro-Barra de Progreso)</h2>
-          <p class="test-section__note">Icono de medalla (40px) centrado, avatar (30px) y micro-barra indicando tu proximidad al líder.</p>
+          <span class="test-section__tag">OPCIÓN 5</span>
+          <h2 class="test-section__title">5. Radar Pentagonal + Fichas Satélite (Analítica Avanzada)</h2>
+          <p class="test-section__note">
+            Gráfico pentagonal interactivo de tela de araña que dibuja la huella global de control del equipo. Pasa el ratón por cualquier ficha para iluminar su vértice.
+          </p>
         </div>
 
-        <div class="test-grid test-grid--4">
-          @for (item of sampleCards; track item.board.medal.id) {
-            <div class="card-v5" [class.is-mine]="item.board.me?.rank === 1">
-              <div class="card-v5__top">
-                <span class="card-v5__trophy">
-                  <app-medal-icon [icon]="item.board.medal.icon" />
-                </span>
-                <span class="card-v5__title">{{ item.board.medal.title }}</span>
-              </div>
+        <div class="radar-layout">
+          <!-- Columna izquierda: Gráfico SVG de Radar -->
+          <div class="radar-box">
+            <svg class="radar-svg" viewBox="0 0 280 280">
+              <defs>
+                <radialGradient id="radarFillGrad" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%" stop-color="var(--nf-primary)" stop-opacity="0.55" />
+                  <stop offset="100%" stop-color="var(--nf-secondary)" stop-opacity="0.15" />
+                </radialGradient>
+              </defs>
 
-              @if (item.board.leader; as leader) {
-                <div class="card-v5__center">
-                  <div class="card-v5__avatar-wrap">
-                    <nf-avatar
-                      [src]="leader.member.avatar ?? null"
-                      [fallback]="leader.member.name"
-                      [tint]="leader.member.hue"
-                      [size]="30"
-                      shape="round"
-                    />
-                    <span class="card-v5__crown">👑</span>
+              <!-- Mallas concéntricas de referencia (50% y 100%) -->
+              <circle cx="140" cy="140" r="47" class="radar-grid-circle" />
+              <circle cx="140" cy="140" r="95" class="radar-grid-circle" />
+              <polygon [attr.points]="radarData().outerPoints" class="radar-outer-poly" />
+
+              <!-- Ejes radiales -->
+              @for (p of radarData().points; track p.id) {
+                <line
+                  x1="140"
+                  y1="140"
+                  [attr.x2]="p.axisX"
+                  [attr.y2]="p.axisY"
+                  class="radar-axis"
+                />
+              }
+
+              <!-- Área poligonal de control rellena -->
+              <polygon [attr.points]="radarData().polygonPoints" class="radar-data-poly" fill="url(#radarFillGrad)" />
+
+              <!-- Vértices interactivos -->
+              @for (p of radarData().points; track p.id) {
+                <g
+                  class="radar-node"
+                  [class.is-hovered]="hoveredObjective() === p.id"
+                  (mouseenter)="setHovered(p.id)"
+                  (mouseleave)="setHovered(null)"
+                >
+                  <circle
+                    [attr.cx]="p.x"
+                    [attr.cy]="p.y"
+                    r="5"
+                    class="radar-node__dot"
+                  />
+                  <text
+                    [attr.x]="p.labelX"
+                    [attr.y]="p.labelY"
+                    class="radar-node__text nf-mono"
+                  >
+                    {{ p.winrate }}%
+                  </text>
+                </g>
+              }
+            </svg>
+            <span class="radar-box__caption">Huella de dominio táctico</span>
+          </div>
+
+          <!-- Columna derecha: Fichas satélite interactivas -->
+          <div class="satellite-list">
+            @for (o of objectives; track o.id) {
+              <div
+                class="satellite-card"
+                [class.is-highlight]="hoveredObjective() === o.id"
+                [attr.data-impact]="o.impact"
+                (mouseenter)="setHovered(o.id)"
+                (mouseleave)="setHovered(null)"
+              >
+                <img
+                  class="satellite-card__icon"
+                  [src]="o.iconUrl"
+                  [alt]="o.label"
+                  width="36"
+                  height="36"
+                  loading="lazy"
+                  (error)="onIconError($event, o.id)"
+                />
+                <div class="satellite-card__main">
+                  <div class="satellite-card__row">
+                    <span class="satellite-card__name">{{ o.label }}</span>
+                    <span class="satellite-card__tag" [attr.data-impact]="o.impact">{{ o.impact }}</span>
                   </div>
-                  <span class="card-v5__leader-name">{{ leader.member.name }}</span>
-                  <span class="card-v5__leader-val nf-mono">{{ leader.value }}</span>
+                  <div class="satellite-card__row">
+                    <span class="satellite-card__sub nf-mono">{{ o.wins }}/{{ o.games }} victorias</span>
+                    <strong class="satellite-card__pct nf-mono">{{ o.winrate }}%</strong>
+                  </div>
                 </div>
-              } @else {
-                <div class="card-v5__center card-v5__center--vacant">
-                  <span class="card-v5__vacant-text">Sin líder todavía</span>
-                </div>
-              }
-
-              @if (item.board.me; as me) {
-                <div class="card-v5__me">
-                  @if (me.rank === 1) {
-                    <span class="card-v5__me-text card-v5__me-text--gold nf-mono">👑 Líder del grupo</span>
-                  } @else {
-                    <div class="card-v5__progress-wrap">
-                      <div class="card-v5__progress-bar">
-                        <span class="card-v5__progress-fill" [style.width.%]="item.board.progress ?? 40"></span>
-                      </div>
-                      <span class="card-v5__progress-text nf-mono">
-                        {{ me.rank }}.º ({{ me.value }})
-                      </span>
-                    </div>
-                  }
-                </div>
-              }
-            </div>
-          }
+              </div>
+            }
+          </div>
         </div>
       </section>
     }

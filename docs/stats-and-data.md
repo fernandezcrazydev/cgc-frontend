@@ -15,13 +15,18 @@ entrada siempre da los mismos números (estable entre renders, sin backend).
 **fuente única**), seedeado por `tag + scope + groupId`. `scope ∈ noche | temporada |
 historico` escala el volumen de partidas (`SCOPE_GAMES`).
 
-De ahí se proyectan 4 superficies:
+De ahí se proyectan las superficies analíticas y competitivas del grupo:
 
-- `summaryFor` → RESUMEN (MVP, mejor combo, racha, totales).
-- `leaderboardsFor` → mini-leaderboards por métrica (winrate, KDA, main, daño, CS, visión).
-- `awardsFor` → PREMIOS (granjero, carry silencioso, ward simp, penta hunter, señor del
-  CC, donante) — "métricas para reírse".
-- `playerTiles` → tiles del panel expandido de un jugador.
+- `mapTelemetryFor` → Telemetría de mapa (Balance Azul vs Rojo, 5 objetivos de la grieta con nivel de impacto y franja superior de ritmo con duración media, KPM y winrate con Primera Sangre).
+- `metagameFor` → 4 tableros de metagame (*Más jugados*, *Baneados*, *Mayor winrate* y *Menor winrate*) con podio y enlaces a la Tierlist/Ficha de Campeón.
+- `goldenDuoFor` / `woodenDuoFor` → Fila dual de sinergias (*Dúo de oro* con química élite y *Dúo de madera* con donantes de LP).
+- `laneImpactFor` → Ordenación estricta de las 5 líneas por porcentaje de winrate cuando van por delante a min 14.
+- `multikillsFor` → Masacres grupales (Pentakills, Cuádruples, Triples) y líderes de cada categoría.
+- `groupVisionFor` → Guerra de visión (Wards colocados, destruidos y Rey de la visión por VPM).
+- `epicRecordsFor` → Carrusel de 9 récords históricos épicos con enlace a partidas reales de la semilla.
+- `playerTiles` → 12 métricas simétricas por jugador (KDA, CS, daño, visión, oro, kill participation, torres, primer objetivo, racha actual, pos. ranking, mejor/peor racha y enlaces a *Mejor Dúo* y *Némesis*).
+- `awardsFor` → PREMIOS (granjero, carry silencioso, ward simp, penta hunter, señor del CC, donante) consumidos por `group-badges.ts`.
+- `groupMedalsFor` → Hall of Fame con 20 medallas en 6 familias (Combate, Objetivos, Economía, Equipo, Constancia y Con cariño).
 
 El **MVP** es el de mayor `rating` compuesto (winrate + KDA + daño).
 

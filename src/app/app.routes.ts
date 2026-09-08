@@ -165,6 +165,8 @@ export const routes: Routes = [
       { path: 'synergy/:playerId', redirectTo: 'jugador/:playerId/juntos' },
       { path: 'synergy/:playerId/:matchId', redirectTo: 'jugador/:playerId/juntos/:matchId' },
       { path: 'historial-cruzado/:playerId', redirectTo: 'jugador/:playerId' },
+      { path: 'grupos/:id/campeon/:championId', redirectTo: 'grupos/:id/tierlist' },
+      { path: 'campeon/:championId', redirectTo: 'tierlist' },
       {
         path: 'pruebas',
         title: 'Pruebas Hall of Fame · Sale Custom',
