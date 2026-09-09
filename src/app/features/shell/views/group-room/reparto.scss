@@ -1,0 +1,220 @@
+@use 'breakpoints' as *;
+
+/* Monitoreo del reparto: por qué salió ESE y no otro.
+
+   La pantalla la manda el contrato, no la estética. Tres cosas no se tocan: la
+   diferencia global nunca aparece sin su margen de error (`.rp-gap` las pinta en
+   la misma línea a propósito, para que no se puedan separar en un rediseño
+   distraído); el aviso de provisional va arriba del todo; y los desempates
+   —repetición y familiaridad— tienen su propia ventana en vez de quedar como una
+   nota al pie, porque son la mitad que faltaba de la explicación.
+
+   El marco (`.view__head--row`, `.view-back`, `.empty-state`) es el global de
+   `styles/app.scss`: aquí solo va lo que esta pantalla no comparte con nadie. */
+
+.rp-titles {
+  min-width: 0;
+}
+
+.rp-back {
+  margin-bottom: 0;
+  flex: none;
+}
+
+/* Las ventanas se apilan; sin esto se pegan entre sí. */
+.view > nf-window {
+  display: block;
+  margin-bottom: 18px;
+}
+
+.rp-skeleton {
+  display: grid;
+  gap: 18px;
+}
+
+.rp-pad {
+  padding: 20px;
+}
+
+/* El aviso de provisional. Ámbar: no es un error del sistema, es una advertencia
+   sobre lo poco que sabía cuando repartió. */
+.rp-provisional {
+  margin: 0 0 18px;
+  padding: 14px 16px;
+  border: 1px solid color-mix(in srgb, var(--nf-gold) 45%, transparent);
+  border-radius: var(--nf-radius-lg);
+  background: color-mix(in srgb, var(--nf-gold) 10%, transparent);
+  font-size: var(--fs-caption);
+  line-height: var(--lh-body);
+  color: var(--nf-text-mid);
+
+  strong {
+    display: block;
+    margin-bottom: 4px;
+    font-size: var(--fs-body);
+    color: var(--nf-text);
+  }
+}
+
+/* La diferencia y su margen, en la misma línea y de la misma familia: separarlos
+   es exactamente lo que el contrato prohíbe. */
+.rp-gap {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+}
+
+.rp-gap__value {
+  font-size: var(--fs-h1);
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-tighter);
+  color: var(--nf-text);
+}
+
+.rp-gap__margin {
+  font-size: var(--fs-h3);
+  color: var(--nf-gold);
+}
+
+.rp-gap__unit,
+.rp-hint {
+  font-size: var(--fs-caption);
+  line-height: var(--lh-body);
+  color: var(--nf-text-dim);
+}
+
+.rp-hint {
+  margin: 8px 0 0;
+  max-width: var(--measure);
+}
+
+.rp-hint--flip,
+.rp-hint--warn {
+  color: var(--nf-gold);
+}
+
+.rp-hint--lead {
+  margin: 0 0 16px;
+  color: var(--nf-text-mid);
+}
+
+.rp-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+  margin: 18px 0 0;
+}
+
+.rp-metric {
+  padding: 10px 12px;
+  border: 1px solid var(--nf-border);
+  border-radius: var(--nf-radius);
+  background: var(--nf-inset);
+}
+
+.rp-metric__label,
+.rp-metric__hint {
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+}
+
+.rp-metric__hint {
+  margin: 4px 0 0;
+  line-height: var(--lh-snug);
+}
+
+.rp-metric__value {
+  margin: 2px 0 0;
+  font-size: var(--fs-body-lg);
+  font-weight: var(--fw-semibold);
+  color: var(--nf-text);
+}
+
+.rp-duels {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Tres columnas y la del centro fija: así los cinco duelos alinean sus números y
+   se leen en vertical, que es como se compara un reparto. */
+.rp-duel {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border: 1px solid var(--nf-border);
+  border-radius: var(--nf-radius);
+  background: var(--nf-surface-2);
+
+  @media (max-width: $bp-narrow) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.rp-duel__side {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.rp-duel__side--red {
+  justify-content: flex-end;
+}
+
+/* Los bandos de LoL son dominio, no tema: aquí el color SÍ nombra lo que es. */
+.rp-duel__side--blue .rp-duel__name {
+  color: var(--nf-team-blue);
+}
+
+.rp-duel__side--red .rp-duel__name {
+  color: var(--nf-team-red);
+}
+
+.rp-duel__name {
+  font-size: var(--fs-caption);
+  font-weight: var(--fw-medium);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rp-duel__score,
+.rp-duel__lanename {
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+}
+
+.rp-duel__autofill {
+  flex: none;
+  padding: 1px 6px;
+  border-radius: var(--nf-radius-sm);
+  background: color-mix(in srgb, var(--nf-danger) 16%, transparent);
+  font-size: var(--fs-label);
+  color: var(--nf-danger);
+}
+
+.rp-duel__lane {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 132px;
+}
+
+.rp-duel__diff {
+  min-width: 44px;
+  padding: 2px 8px;
+  border-radius: var(--nf-radius-sm);
+  background: var(--nf-inset);
+  font-size: var(--fs-label);
+  font-weight: var(--fw-semibold);
+  text-align: center;
+  color: var(--nf-text);
+}

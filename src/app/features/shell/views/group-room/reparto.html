@@ -1,0 +1,210 @@
+<div class="view">
+  <div class="view__head view__head--row">
+    <div class="rp-titles">
+      <div class="view__eyebrow nf-mono">Monitoreo del reparto</div>
+      <h1 class="view__title">Por qué salió este reparto</h1>
+      @if (loading()) {
+        <div aria-busy="true"><nf-skeleton width="220px" height="15px" /></div>
+      } @else if (lobby(); as lb) {
+        <p class="view__lead">Sala {{ lb.code }}@if (kickoff()) { · {{ kickoff() }} }</p>
+      }
+    </div>
+    <a class="view-back rp-back" [routerLink]="backLink()">
+      <span class="view-back__arrow">←</span> Sala
+    </a>
+  </div>
+
+  @if (loading()) {
+    <div class="rp-skeleton" aria-busy="true">
+      <nf-skeleton width="100%" height="72px" radius="16px" />
+      <nf-skeleton width="100%" height="200px" radius="16px" />
+      <nf-skeleton width="100%" height="320px" radius="16px" />
+    </div>
+  } @else if (balance.status() === 'forbidden') {
+    <div class="empty-state">
+      <div class="empty-state__icon">🔒</div>
+      <div class="empty-state__text nf-mono">Solo para administradores</div>
+      <p class="empty-state__hint">
+        Aquí se ve lo que valía cada jugador en cada línea, así que solo lo abren los
+        administradores del grupo. Haber convocado esta partida no basta.
+      </p>
+    </div>
+  } @else if (balance.status() === 'not-recorded') {
+    <div class="empty-state">
+      <div class="empty-state__icon">∅</div>
+      <div class="empty-state__text nf-mono">Sin explicación guardada</div>
+      <p class="empty-state__hint">{{ notRecordedMessage }}</p>
+    </div>
+  } @else if (balance.status() === 'not-found') {
+    <div class="empty-state">
+      <div class="empty-state__icon">404</div>
+      <div class="empty-state__text nf-mono">Sala no encontrada</div>
+      <p class="empty-state__hint">La sala que buscas no existe o ya no perteneces al grupo.</p>
+    </div>
+  } @else if (balance.status() === 'error') {
+    <div class="empty-state">
+      <div class="empty-state__icon">⚠</div>
+      <div class="empty-state__text nf-mono">Error al cargar</div>
+      <p class="empty-state__hint">No se pudo cargar la explicación del reparto.</p>
+      <button nfButton variant="secondary" size="md" (click)="retry()">Reintentar</button>
+    </div>
+  } @else if (explanation(); as ex) {
+    <!-- Regla (b) del contrato: `provisional` va arriba y bien visible. Si viene true, esta
+         sala NO se equilibró para customs: se equilibró con rangos de SoloQ y rellenos. -->
+    @if (ex.provisional) {
+      <p class="rp-provisional">
+        <strong>Reparto provisional</strong>
+        El sistema conocía de verdad a {{ ex.ratedPlayers }} de {{ ex.poolSize }}. Esta sala no
+        se equilibró para customs: se equilibró con rangos de SoloQ y rellenos.
+      </p>
+    }
+
+    <!-- Regla (a): la diferencia y su margen de error se pintan JUNTOS o no se pintan. Una
+         cifra sola, con una suposición dentro, es peor que no dar cifra: la gente se la cree. -->
+    <nf-window title="Lo equilibrada que salió" bodyPadding="0">
+      <div class="rp-pad">
+        <p class="rp-gap">
+          <span class="rp-gap__value nf-mono">{{ num(ex.globalDifference) }}</span>
+          <span class="rp-gap__margin nf-mono">± {{ num(ex.uncertainty) }}</span>
+          <span class="rp-gap__unit">puntos de diferencia entre los dos equipos</span>
+        </p>
+        @if (coinFlip()) {
+          <p class="rp-hint rp-hint--flip">
+            El margen se come la diferencia: con lo que el sistema sabía, este reparto fue una
+            moneda al aire.
+          </p>
+        } @else {
+          <p class="rp-hint">
+            El margen es lo que el sistema no sabía. Cuanto más grande, menos vale la cifra de
+            la izquierda.
+          </p>
+        }
+
+        <dl class="rp-metrics">
+          <div class="rp-metric">
+            <dt class="rp-metric__label nf-mono">Suma por líneas</dt>
+            <dd class="rp-metric__value nf-mono">{{ num(ex.laneDifferenceSum) }}</dd>
+          </div>
+          <div class="rp-metric">
+            <dt class="rp-metric__label nf-mono">Peor línea</dt>
+            <dd class="rp-metric__value nf-mono">{{ num(ex.worstLaneDifference) }}</dd>
+          </div>
+          <div class="rp-metric">
+            <dt class="rp-metric__label nf-mono">Deuda de rol</dt>
+            <dd class="rp-metric__value nf-mono">{{ num(ex.staleness) }}</dd>
+          </div>
+          <div class="rp-metric">
+            <dt class="rp-metric__label nf-mono">Coste ponderado</dt>
+            <dd class="rp-metric__value nf-mono">{{ num(ex.weightedCost) }}</dd>
+          </div>
+        </dl>
+
+        @if (ex.laneCeilingExceeded) {
+          <p class="rp-hint rp-hint--warn">
+            Alguna línea pasó del techo de diferencia que el grupo permite.
+          </p>
+        }
+      </div>
+    </nf-window>
+
+    <nf-window title="Los cinco duelos" bodyPadding="0">
+      <div class="rp-pad">
+        <p class="rp-hint rp-hint--lead">
+          Lo que valía cada uno <strong>en esa línea</strong>, que no es su clasificación: el
+          mismo jugador no vale lo mismo donde juega siempre que donde le tocó.
+        </p>
+
+        <ul class="rp-duels">
+          @for (d of duels(); track d.lane) {
+            <li class="rp-duel">
+              <div class="rp-duel__side rp-duel__side--blue">
+                <nf-avatar
+                  [src]="d.blue.avatarUrl"
+                  [fallback]="d.blue.name ?? '?'"
+                  [tint]="d.blue.hue"
+                  [size]="28"
+                />
+                <span class="rp-duel__name">{{ d.blue.name ?? 'Sin nombre' }}</span>
+                @if (d.blue.autofill) {
+                  <span
+                    class="rp-duel__autofill nf-mono"
+                    [title]="'Le tocó ' + laneLabel(d.lane) + ' sin pedirla'"
+                  >autofill</span>
+                }
+                <span class="rp-duel__score nf-mono">{{ num(d.blue.effective) }}</span>
+              </div>
+
+              <div class="rp-duel__lane">
+                <nf-lane-icon [lane]="d.lane" />
+                <span class="rp-duel__lanename nf-mono">{{ laneLabel(d.lane) }}</span>
+                <span class="rp-duel__diff nf-mono">{{ num(d.difference) }}</span>
+              </div>
+
+              <div class="rp-duel__side rp-duel__side--red">
+                <span class="rp-duel__score nf-mono">{{ num(d.red.effective) }}</span>
+                @if (d.red.autofill) {
+                  <span
+                    class="rp-duel__autofill nf-mono"
+                    [title]="'Le tocó ' + laneLabel(d.lane) + ' sin pedirla'"
+                  >autofill</span>
+                }
+                <span class="rp-duel__name">{{ d.red.name ?? 'Sin nombre' }}</span>
+                <nf-avatar
+                  [src]="d.red.avatarUrl"
+                  [fallback]="d.red.name ?? '?'"
+                  [tint]="d.red.hue"
+                  [size]="28"
+                />
+              </div>
+            </li>
+          }
+        </ul>
+
+        <p class="rp-hint">
+          A la izquierda el lado azul, a la derecha el rojo. El número del centro es lo que se
+          llevan en esa línea.
+          @if (ex.autofills.length) {
+            Los marcados como autofill acabaron en una línea que no habían pedido.
+          }
+        </p>
+      </div>
+    </nf-window>
+
+    <!-- Regla (c): sin `repetition` y `familiarity` la explicación se queda en «uno de los N
+         más baratos», que es justo donde los equipos parecen arbitrarios. -->
+    <nf-window title="Qué desempató" bodyPadding="0">
+      <div class="rp-pad">
+        <p class="rp-hint rp-hint--lead">
+          El algoritmo declaró <strong>{{ num(ex.nearTies) }}</strong> repartos igual de buenos
+          que este. Entre todos ellos, el elegido lo fue por repetir menos compañeros y, a
+          igualdad de eso, por tener los duelos menos vistos.
+        </p>
+
+        <dl class="rp-metrics">
+          <div class="rp-metric">
+            <dt class="rp-metric__label nf-mono">Empataban</dt>
+            <dd class="rp-metric__value nf-mono">{{ num(ex.nearTies) }}</dd>
+          </div>
+          <div class="rp-metric">
+            <dt class="rp-metric__label nf-mono">Repetición · desempate 1</dt>
+            <dd class="rp-metric__value nf-mono">{{ num(ex.repetition) }}</dd>
+            <dd class="rp-metric__hint">Cuánto repite parejas de compañeros.</dd>
+          </div>
+          <div class="rp-metric">
+            <dt class="rp-metric__label nf-mono">Familiaridad · desempate 2</dt>
+            <dd class="rp-metric__value nf-mono">{{ num(ex.familiarity) }}</dd>
+            <dd class="rp-metric__hint">{{ familiarityHint() }} El azar puro ronda 0,56.</dd>
+          </div>
+        </dl>
+
+        @if (ex.searchTruncated) {
+          <p class="rp-hint rp-hint--warn">
+            La búsqueda topó con el límite de candidatos, así que la variedad eligió entre menos
+            opciones de las que había. No cambia el reparto elegido; explica por qué había poco
+            donde elegir.
+          </p>
+        }
+      </div>
+    </nf-window>
+  }
+</div>

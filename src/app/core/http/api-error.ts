@@ -62,6 +62,11 @@ function parseFieldErrors(raw: unknown): ApiFieldError[] {
  */
 const MESSAGES_BY_CODE: Record<string, string> = {
   ALREADY_MEMBER: 'Este usuario ya es miembro del grupo.',
+  // Es un 404, y el backend NO distingue "nunca se repartió" de "se repartió antes de que
+  // existiera la columna": la acción del usuario es la misma —no hay nada que pintar— y
+  // separarlo metería una fecha de migración dentro de la API.
+  BALANCE_NOT_RECORDED:
+    'Esta partida no tiene guardado el porqué del reparto. Puede que no se llegara a generar, o que se generara antes de que empezáramos a guardarlo.',
   CANNOT_SANCTION_PLAYER: 'Solo puedes sancionar a jugadores por debajo de ti en el grupo.',
   CHAMPION_NOT_FOUND: 'No se ha encontrado ese campeón.',
   CURRENT_SESSION_NOT_REVOCABLE:
