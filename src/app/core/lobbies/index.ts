@@ -4,6 +4,10 @@
 export { LobbiesStore, type LobbiesStatus } from './lobbies-store';
 export { LobbyDetailStore, type LobbyDetailStatus } from './lobby-detail-store';
 export {
+  BalanceExplanationStore,
+  type BalanceExplanationStatus,
+} from './balance-explanation-store';
+export {
   MAX_SLOTS,
   MAX_NOTE_LENGTH,
   type LobbyMode,
@@ -15,5 +19,9 @@ export {
   type LobbySlotResponse,
   type LobbyParticipantResponse,
   type CreateLobbyRequest,
+  type BalanceLane,
+  type BalanceMatchup,
+  type BalanceAutofill,
+  type BalanceExplanationResponse,
 } from './models';
 export { buildRepeatOptions, type RepeatOption } from './repeat-options';

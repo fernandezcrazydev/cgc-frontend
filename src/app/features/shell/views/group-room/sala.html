@@ -23,12 +23,24 @@
               {{ starters().length }}/{{ lb.capacity }} jugadores · {{ kickoff() }}
             </p>
           </div>
-          <a
-            class="view-back sl-back"
-            [routerLink]="['/app', 'grupos', lb.groupId, 'convocatoria', lb.id]"
-          >
-            <span class="view-back__arrow">←</span> Convocatoria
-          </a>
+          <div class="sl-head__actions">
+            <!-- Solo administradores del grupo: la explicación del reparto dice lo que valía
+                 cada jugador en cada línea. Ver `Reparto`. -->
+            @if (canSeeBalance()) {
+              <button
+                nfButton
+                variant="secondary"
+                size="sm"
+                [routerLink]="['/app', 'grupos', lb.groupId, 'sala', lb.id, 'reparto']"
+              >Por qué salió este reparto</button>
+            }
+            <a
+              class="view-back sl-back"
+              [routerLink]="['/app', 'grupos', lb.groupId, 'convocatoria', lb.id]"
+            >
+              <span class="view-back__arrow">←</span> Convocatoria
+            </a>
+          </div>
         </div>
 
         <!-- Solo lectura: puedes abrir cualquier sala de la convocatoria, pero mandar en

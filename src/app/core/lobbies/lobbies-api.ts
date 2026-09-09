@@ -3,7 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { PageResponse } from '../http';
-import { CreateLobbyRequest, LobbyResponse } from './models';
+import { BalanceExplanationResponse, CreateLobbyRequest, LobbyResponse } from './models';
 
 /**
  * Único sitio que conoce las URLs de la API de convocatorias. Nadie más monta strings con
@@ -66,5 +66,24 @@ export class LobbiesApi {
   /** Cancela la convocatoria. Solo quien la abrió, o un owner/admin del grupo. 204 sin cuerpo. */
   cancel(lobbyId: string): Observable<void> {
     return this.http.delete<void>(`${environment.apiUrl}/lobbies/${lobbyId}`);
+  }
+
+  /**
+   * Por qué salió ESE reparto: los cinco duelos con lo que valía cada uno en su línea, quién
+   * comió autofill, cuánta de aquella cifra era una suposición y qué desempató entre los
+   * repartos que empataban.
+   *
+   * **Solo admins del grupo**: 403 para todos los demás, incluido el convocante que generó el
+   * reparto. No es un descuido del backend —la respuesta dice lo que vale cada jugador en cada
+   * línea— así que la UI esconde la entrada en vez de enseñarla y comerse el 403.
+   *
+   * 404 `BALANCE_NOT_RECORDED` si esa sala no tiene explicación guardada (nunca se repartió, o
+   * se repartió antes de que se guardara: el backend no los distingue a propósito), 404
+   * `LOBBY_NOT_FOUND` si la convocatoria no existe.
+   */
+  balanceExplanation(lobbyId: string): Observable<BalanceExplanationResponse> {
+    return this.http.get<BalanceExplanationResponse>(
+      `${environment.apiUrl}/lobbies/${lobbyId}/balance/explanation`,
+    );
   }
 }

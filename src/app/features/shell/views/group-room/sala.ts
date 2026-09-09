@@ -11,7 +11,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
 import { NfButton, NfSkeleton, NfWindow } from '../../../../ui';
 import { Session } from '../../../../core/auth';
-import { GroupsStore } from '../../../../core/groups';
+import { GroupDetailStore, GroupsStore } from '../../../../core/groups';
 import { LobbyDetailStore } from '../../../../core/lobbies';
 import { NotificationsStore } from '../../../../core/notifications';
 import { lobbyRanksFor } from '../../../../core/lobby-extras';
@@ -48,6 +48,7 @@ export class Sala {
   private readonly destroyRef = inject(DestroyRef);
   private readonly session = inject(Session);
   private readonly groups = inject(GroupsStore);
+  private readonly groupDetail = inject(GroupDetailStore);
   private readonly notifs = inject(NotificationsStore);
 
   readonly detail = inject(LobbyDetailStore);
@@ -88,6 +89,14 @@ export class Sala {
       (p) => (me && p.userId === me) || (meName && p.discordUsername?.toLowerCase() === meName),
     );
   });
+
+  /**
+   * La entrada al monitoreo del reparto. Solo administradores del grupo: la explicación dice
+   * lo que valía cada jugador en cada línea, y eso el grupo no ha acordado enseñárselo entre
+   * ellos —ni siquiera al convocante que pulsó el botón—. El backend responde 403 igualmente;
+   * esconder el enlace es solo no ofrecer una puerta cerrada.
+   */
+  readonly canSeeBalance = computed(() => this.groupDetail.canManage());
 
   readonly kickoff = computed(() => {
     const iso = this.detail.confirmedSlot()?.startsAt;

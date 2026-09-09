@@ -345,7 +345,8 @@ nueva, va dentro de su carpeta; si estrena dominio, se crea la carpeta.
 
 ### La zona de juego del grupo
 
-Tres pantallas, una por objeto del dominio de `FlujoJuego.md` §2. **El vocabulario no es
+Tres pantallas, una por objeto del dominio de `FlujoJuego.md` §2, más el monitoreo del reparto
+colgando de la sala. **El vocabulario no es
 decorativo: es lo que decide el nombre de cada ruta, cada carpeta y cada rótulo.**
 
 | ruta | pantalla | qué es |
@@ -353,6 +354,7 @@ decorativo: es lo que decide el nombre de cada ruta, cada carpeta y cada rótulo
 | `grupos/:id/tablon` | **Tablón** (`group-board/`) | Lo que hay ahora y lo que viene |
 | `grupos/:id/convocatoria/:lobbyId` | **Convocatoria** (`group-lobby/`) | La llamada a jugar: sus franjas, sus salas, su banquillo |
 | `grupos/:id/sala/:salaId` | **Sala** (`group-room/`) | Los diez que juegan. Sobrevive a cada partida (§10) |
+| `grupos/:id/sala/:salaId/reparto` | **Reparto** (`group-room/`) | Por qué salió ese reparto y no otro. **Solo admins del grupo** |
 
 **Una «partida» es una custom ya jugada, y eso está en Historial.** Por eso la sección dejó de
 llamarse «Partidas»: no contenía ninguna. Y por eso el botón del host se llama **`Formar
@@ -371,6 +373,17 @@ lobbyId ── la convocatoria (con franjas, o sin ellas si es «jugar ahora»)
 `partyId` **no es un nivel intermedio**: §2 la define como el contenedor de *una* convocatoria en
 rotación, o sea 1:1 con ella, así que no aparece en ninguna URL. La **tanda** tampoco: es una
 sección dentro de la pantalla de convocatoria.
+
+El **reparto** cuelga de la sala porque es esa sala vista por dentro, no una sección aparte.
+Lo lee `GET /lobbies/{id}/balance/explanation` y **solo lo abren los admins del grupo**: la
+respuesta dice lo que valía cada jugador en cada línea, y eso el grupo no ha acordado
+enseñárselo entre ellos — el backend responde 403 a todos los demás, incluido el convocante que
+generó el reparto, así que la entrada se esconde en vez de ofrecer una puerta cerrada. Tres
+cosas de esa pantalla vienen del contrato y no son estilo: `globalDifference` no se pinta nunca
+sin `uncertainty` (una cifra sola, con una suposición dentro, es peor que no dar cifra),
+`provisional` va arriba y bien visible, y `repetition`/`familiarity` son la mitad que faltaba de
+la explicación. Hasta que el front no genere los equipos contra el backend, esa pantalla
+responderá `BALANCE_NOT_RECORDED` en las salas que existan.
 
 **BACKEND NOTE — `salaId` es hoy el `lobbyId`.** El servidor todavía no crea filas de sala y una
 convocatoria rinde exactamente una (`starters` + `bench`). La ruta ya tiene su forma definitiva:
