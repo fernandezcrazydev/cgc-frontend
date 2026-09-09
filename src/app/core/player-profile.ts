@@ -236,6 +236,7 @@ export interface PlayerProfile {
   topChampions: ProfileChampion[];
   groupCount: number;
   groups: ProfileGroupRecord[];
+  isPrivate?: boolean;
 }
 
 /** Perfil completo de un miembro para la vista de terceros `/app/perfil/:id` */
@@ -617,9 +618,11 @@ export function buildMemberProfile(
   );
 
   const combinedGroups = [...baseProfile.groups, ...externalGroupsFor(tag)];
+  const isPrivate = targetMember?.isPrivate ?? (tag.toLowerCase().includes('secret') || tag.toLowerCase().includes('privad') || targetTag.toLowerCase().includes('secret') || targetTag.toLowerCase().includes('privad'));
 
   return {
     ...baseProfile,
+    isPrivate,
     groups: combinedGroups,
     groupCount: combinedGroups.length,
     targetUserId: targetMember?.userId ?? tag,

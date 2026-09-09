@@ -54,6 +54,38 @@
   --nf-silver: #94a3b8;
   --nf-bronze: #d97706;
 
+  /* ---- Los dos lados de un cruce entre dos jugadores ----
+     Cuando se resume la relación con otro jugador hay exactamente dos: las partidas en las que
+     estabais **juntos** y aquellas en las que estabais **enfrentados**. Azul y rojo porque es la
+     lectura inmediata de "de mi lado" y "del otro", y porque quien juega a este juego ya lee esos
+     dos colores así.
+
+     No son `--nf-team-blue` / `--nf-team-red`: esos son los bandos azul y rojo de UNA partida, y
+     tu aliado de hoy puede haber jugado en el bando rojo. Tampoco son `--nf-primary` y
+     `--nf-danger`: el rival de un cara a cara no es un error ni un peligro, y atarlo al color de
+     acento de la app haría que cambiara de significado el día que se retoque la paleta.
+
+     Colores de dominio, como los bandos y los metales del podio: NO siguen al acento. */
+  --nf-ally: #3d8bfd;
+  --nf-rival: #ef4d4d;
+
+  /* ---- Las tres ligas del grupo (FlujoJuego.md §3.1) ----
+     Un grupo tiene siempre las mismas tres ligas, y sus curvas se pintan juntas en la misma
+     gráfica: hace falta un color estable por modalidad para que la línea, su interruptor y su
+     fila del tooltip se reconozcan como la misma cosa. Son colores de dominio, como los bandos
+     de LoL o los metales del podio: NO siguen al acento de la app si `primary` cambia.
+
+     La elección no es decorativa. Competitivo se queda con el azul de la app porque es la liga
+     seria y la que siempre está en marcha; Equilibrado toma el verde de "sala abierta", que es
+     el semáforo de lo que va bien sin más; y Caos se lleva el violeta, que es el único hueco de
+     la paleta que no significa ya ni éxito, ni aviso, ni peligro —Caos no es ninguna de las
+     tres—. Los tres pasan AA sobre `surface` y se distinguen entre sí en escala de grises, que
+     es lo que necesita quien no separa rojo de verde: van a 25, 47 y 58 de luminancia relativa.
+     Ninguna liga se identifica SOLO por su color: la leyenda las nombra. */
+  --nf-league-competitive: #4c9aff;
+  --nf-league-balanced: #3fb950;
+  --nf-league-chaos: #a371f7;
+
   /* ---- Lados de equipo (semántico de dominio, no de tema) ----
      Literales a propósito: son los azul/rojo de LoL, no el acento de la
      app. Si mañana `primary` cambia de tono, estos NO deben seguirlo. */

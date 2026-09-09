@@ -21,8 +21,8 @@ import { RankEntry, mapLeaderboardEntries } from '../../../../core/group-ranking
 import {
   duelsFor,
   hubCommentsFor,
-  hubSeasonsFor,
-  lpSeriesFor,
+  SeasonChoice,
+  leagueSeriesFor,
   triviaFor,
 } from '../../../../core/group-hub';
 import { SHOWCASE_MEDAL_IDS, medalBoardsFor } from '../../../../core/group-medals';
@@ -32,7 +32,7 @@ import { errorMessage } from '../../../../core/http';
 import { HubCommentsComponent } from '../group-hub/hub-comments.component';
 import { HubDuelsComponent } from '../group-hub/hub-duels.component';
 import { HubLiveRoomComponent } from '../group-hub/hub-live-room.component';
-import { HubLpChartComponent } from '../group-hub/hub-lp-chart.component';
+import { HubLpChartComponent, LeagueSeasonChange } from '../group-hub/hub-lp-chart.component';
 import { HubRosterPanelComponent, RosterAction } from '../group-hub/hub-roster-panel.component';
 import { HubTriviaComponent } from '../group-hub/hub-trivia.component';
 import { HubTrophyCaseComponent } from '../group-hub/hub-trophy-case.component';
@@ -127,11 +127,9 @@ const SECTIONS: HubSection[] = [
                 <div class="gd-hub__row">
                   <app-hub-lp-chart
                     class="gd-hub__chart"
-                    [series]="lpSeries()"
-                    [seasons]="seasons()"
-                    [seasonId]="seasonId()"
+                    [leagues]="lpSeries()"
                     [loading]="hubLoading()"
-                    (seasonChange)="seasonId.set($event)"
+                    (leagueSeasonChange)="pickSeason($event)"
                   />
                   <app-hub-trophy-case
                     class="gd-hub__trophies"
@@ -416,7 +414,18 @@ export class GrupoDetalle {
 
   // ── Maqueta del hub (placeholder de `core/group-hub.ts`) ─────────────
   /** Temporada elegida en la gráfica de LP. Estado de interfaz. */
-  readonly seasonId = signal('current');
+  /**
+   * Qué temporada se está mirando de cada liga. Vacío = la más reciente de cada una.
+   *
+   * Es por liga y no del grupo porque **la «temporada del grupo» no existe**: cada modalidad lleva
+   * su propia cuenta y sus propias fechas (`FlujoJuego.md` §3.1, §3.2), y con 6, 3 y 2 meses de
+   * duración en un año caben ~2 de Competitivo frente a ~6 de Caos.
+   */
+  readonly leagueSeasons = signal<SeasonChoice>({});
+
+  protected pickSeason(change: LeagueSeasonChange): void {
+    this.leagueSeasons.update((current) => ({ ...current, [change.modality]: change.seasonId }));
+  }
 
   /** El roster del hub no llega con el detalle, sino con el puente: mientras viaja, esqueletos. */
   readonly hubLoading = computed(
@@ -431,8 +440,7 @@ export class GrupoDetalle {
     return id ? this.groupStore.rosterOf(id) : [];
   });
 
-  readonly seasons = computed(() => hubSeasonsFor(this.routeId()));
-  readonly lpSeries = computed(() => lpSeriesFor(this.routeId(), this.seasonId()));
+  readonly lpSeries = computed(() => leagueSeriesFor(this.routeId(), this.leagueSeasons()));
   /**
    * Los cuatro hitos de la vitrina salen del catálogo de medallas del Hall of Fame
    * (§5.5.5), no de una lista propia: al pulsar uno se abre exactamente esa medalla.

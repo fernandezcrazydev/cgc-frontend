@@ -52,6 +52,8 @@ export interface Member {
   hue: number;
   /** Foto de Discord (URL absoluta del backend); ausente ⇒ iniciales sobre el degradado de `hue`. */
   avatar?: string;
+  /** Estado de privacidad del perfil */
+  isPrivate?: boolean;
 }
 
 export const CURRENT_USER = {

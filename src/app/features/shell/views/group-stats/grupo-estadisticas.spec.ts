@@ -7,7 +7,6 @@ import { Session } from '../../../../core/auth';
 import { GameDataStore } from '../../../../core/game-data';
 import { GroupStore } from '../../../../core/group-store';
 import { GroupBridge, GroupsStore } from '../../../../core/groups';
-import { hubSeasonsFor } from '../../../../core/group-hub';
 import { Member } from '../../../../core/lobby';
 
 const ME = 'user-edu';
@@ -80,19 +79,20 @@ function createComponent(groupId: string, query: Record<string, string> = {}) {
 }
 
 describe('GrupoEstadisticas', () => {
-  /** Ids elegidos por lo que produce la semilla, no por su nombre. */
-  let unaTemporada: string;
-  let variasTemporadas: string;
-
-  beforeEach(() => {
-    unaTemporada = 'grp-3';
-    variasTemporadas = 'grp-1';
-    expect(hubSeasonsFor(unaTemporada)).toHaveLength(1);
-    expect(hubSeasonsFor(variasTemporadas).length).toBeGreaterThan(1);
-  });
+  /**
+   * Id de grupo cualquiera: la semilla lo convierte en las mismas modalidades y temporadas cada
+   * vez, que es lo único que estos tests necesitan.
+   *
+   * Aquí hubo una guarda que exigía «una temporada» y «varias» comprobándolo con `hubSeasonsFor`,
+   * la función de la gráfica del hub. Nunca midió lo de esta vista —que usa
+   * `groupModalitiesConfig`, con temporadas POR MODALIDAD— y coincidía solo porque las dos partían
+   * del id del grupo. Al separar de verdad las temporadas por liga se cayó, y no se ha sustituido
+   * por otra guarda porque ningún test de aquí depende de cuántas temporadas haya.
+   */
+  const grupo = 'grp-3';
 
   it('ofrece las tres modalidades y desactiva las no jugadas', () => {
-    const { component, fixture } = createComponent(unaTemporada);
+    const { component, fixture } = createComponent(grupo);
 
     const mods = component.modalityOptions();
     expect(mods.map((m) => m.value)).toEqual(['COMPETITIVE', 'BALANCED', 'CHAOS']);
@@ -105,7 +105,7 @@ describe('GrupoEstadisticas', () => {
   });
 
   it('el selector de temporadas incluye "all" por defecto y solo temporadas jugadas', () => {
-    const { component } = createComponent(unaTemporada);
+    const { component } = createComponent(grupo);
 
     expect(component.seasonId()).toBe('all');
     expect(component.scope()).toBe('historico');
@@ -116,27 +116,27 @@ describe('GrupoEstadisticas', () => {
   });
 
   it('arranca en rendimiento competitivo', () => {
-    const { component } = createComponent(unaTemporada);
+    const { component } = createComponent(grupo);
 
     expect(component.tab()).toBe('rendimiento');
     expect(component.openBoard()).toBeNull();
   });
 
   it('llegar con una medalla en la URL abre el Hall of Fame con esa medalla', () => {
-    const { component } = createComponent(unaTemporada, { medalla: 'demolisher' });
+    const { component } = createComponent(grupo, { medalla: 'demolisher' });
 
     expect(component.tab()).toBe('medallas');
     expect(component.openBoard()?.medal.id).toBe('demolisher');
   });
 
   it('una medalla que no existe no rompe la pantalla', () => {
-    const { component } = createComponent(unaTemporada, { medalla: 'no-existe' });
+    const { component } = createComponent(grupo, { medalla: 'no-existe' });
 
     expect(component.openBoard()).toBeNull();
   });
 
   it('cerrar el modal borra el parámetro sin apilar historial', () => {
-    const { component, navigate } = createComponent(unaTemporada, { medalla: 'demolisher' });
+    const { component, navigate } = createComponent(grupo, { medalla: 'demolisher' });
 
     component.closeMedal();
 
@@ -147,7 +147,7 @@ describe('GrupoEstadisticas', () => {
   });
 
   it('salir a mano de la pestaña de medallas suelta la medalla abierta', () => {
-    const { component, navigate } = createComponent(unaTemporada, { medalla: 'demolisher' });
+    const { component, navigate } = createComponent(grupo, { medalla: 'demolisher' });
 
     component.setTab('rendimiento');
 
@@ -159,7 +159,7 @@ describe('GrupoEstadisticas', () => {
   });
 
   it('reconoce al usuario dentro del roster para poder decirle su puesto', () => {
-    const { component } = createComponent(unaTemporada);
+    const { component } = createComponent(grupo);
 
     const conPuesto = component.medals().filter((b) => b.me !== null);
     expect(conPuesto).toHaveLength(component.medals().length);
@@ -167,7 +167,7 @@ describe('GrupoEstadisticas', () => {
   });
 
   it('los tres bloques de rendimiento salen de la misma pasada de estadísticas', () => {
-    const { component } = createComponent(unaTemporada);
+    const { component } = createComponent(grupo);
 
     expect(component.players()).toHaveLength(ROSTER.length);
     expect(component.telemetry()?.objectives).toHaveLength(5);
@@ -176,7 +176,7 @@ describe('GrupoEstadisticas', () => {
   });
 
   it('renderiza la fila de telemetría con la tarjeta de mapa y el radar de objetivos', () => {
-    const { fixture } = createComponent(unaTemporada);
+    const { fixture } = createComponent(grupo);
 
     const row = fixture.nativeElement.querySelector('.gs-telemetry-row');
     expect(row).not.toBeNull();
@@ -185,7 +185,7 @@ describe('GrupoEstadisticas', () => {
   });
 
   it('cada récord enlaza a una partida que existe en el historial', () => {
-    const { component } = createComponent(unaTemporada);
+    const { component } = createComponent(grupo);
 
     for (const record of component.records()) {
       expect(record.matchId).toMatch(/^seed-\d{3}$/);
@@ -193,7 +193,7 @@ describe('GrupoEstadisticas', () => {
   });
 
   it('desplegar un jugador viaja en la URL, para poder enlazar a alguien', () => {
-    const { component, navigate } = createComponent(unaTemporada);
+    const { component, navigate } = createComponent(grupo);
 
     component.togglePlayer('Adri#EUW');
 
@@ -204,7 +204,7 @@ describe('GrupoEstadisticas', () => {
   });
 
   it('volver a pulsar al mismo jugador lo cierra', () => {
-    const { component, navigate } = createComponent(unaTemporada, { jugador: 'Adri#EUW' });
+    const { component, navigate } = createComponent(grupo, { jugador: 'Adri#EUW' });
 
     expect(component.expandedTag()).toBe('Adri#EUW');
     component.togglePlayer('Adri#EUW');
@@ -216,13 +216,13 @@ describe('GrupoEstadisticas', () => {
   });
 
   it('el metagame incluye los cuatro tableros (picks, bans, mayor winrate y menor winrate)', () => {
-    const { component } = createComponent(unaTemporada);
+    const { component } = createComponent(grupo);
     const boards = component.metagame();
     expect(boards.map((b) => b.id)).toEqual(['picks', 'bans', 'winrate', 'worst-winrate']);
   });
 
   it('muestra las secciones de impacto de líneas, masacres y guerra de visión del grupo', () => {
-    const { fixture, component } = createComponent(unaTemporada);
+    const { fixture, component } = createComponent(grupo);
 
     const insightsRow = fixture.nativeElement.querySelector('.gs-insights-row');
     expect(insightsRow).not.toBeNull();

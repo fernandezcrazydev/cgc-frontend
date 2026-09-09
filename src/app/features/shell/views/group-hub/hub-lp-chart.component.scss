@@ -1,29 +1,159 @@
+/* Gráfica de LP de las tres ligas del grupo (`FlujoJuego.md` §3.1).
+
+   El color de cada liga sale de los tokens `--nf-league-*` y NO se escribe aquí: la misma liga
+   tiene que ser del mismo color en la leyenda, en la línea, en el marcador y en el tooltip, y con
+   cuatro copias del valor una acaba desalineada. Las clases `is-competitive` / `is-balanced` /
+   `is-chaos` solo hacen una cosa: elegir cuál de los tres tokens vive en `--hub-lp-ink`. */
+
 .hub-lp {
   height: 100%;
 }
 
-/* Lectura del punto activo, siempre visible: sin cursor encima habla del último día. */
-.hub-lp__meta {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  font-size: 12px;
-  color: var(--nf-text-dim);
+.is-competitive { --hub-lp-ink: var(--nf-league-competitive); }
+.is-balanced    { --hub-lp-ink: var(--nf-league-balanced); }
+.is-chaos       { --hub-lp-ink: var(--nf-league-chaos); }
+
+/* ── Leyenda, interruptores, estado y temporada de cada liga ─────────────
+   Las cuatro cosas viven en la misma tarjeta a propósito: el usuario mira aquí para saber cómo va
+   una liga, de qué color es su línea, en qué temporada, y para quitarla de en medio.
+
+   La tarjeta NO es un botón: dentro va un `nf-select` cuando la liga tiene más de una temporada, y
+   un `select` dentro de un `button` no es HTML válido. El interruptor es el bloque de arriba, que
+   ocupa todo el ancho; el desplegable va debajo, separado, para que no compitan al pulsar. */
+
+.hub-lp__legend {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
-.hub-lp__meta-lp {
-  font-size: var(--fs-body-lg);
+.hub-lp__league {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  height: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--nf-border);
+  border-radius: 9px;
+  background: var(--nf-surface-2);
+  color: var(--nf-text);
+  transition: border-color 0.14s, opacity 0.14s, background 0.14s;
+}
+
+.hub-lp__league:has(.hub-lp__league-toggle:hover:not(:disabled)) {
+  border-color: var(--hub-lp-ink, var(--nf-border-strong));
+}
+
+/* Apagada: sigue ahí y sigue diciendo cómo va, pero deja claro que no está en la gráfica. */
+.hub-lp__league.is-off {
+  opacity: 0.45;
+  background: transparent;
+}
+
+.hub-lp__league.is-off .hub-lp__dot {
+  background: transparent;
+  border-color: var(--hub-lp-ink, var(--nf-text-dim));
+}
+
+/* Una liga que no ha jugado ninguna temporada no se puede encender (§3.2). */
+.hub-lp__league:has(.hub-lp__league-toggle:disabled) {
+  opacity: 0.4;
+  background: transparent;
+}
+
+.hub-lp__league-toggle {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: 0;
+  text-align: left;
+  background: none;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+}
+
+.hub-lp__league-toggle:focus-visible {
+  outline: 2px solid var(--nf-secondary);
+  outline-offset: 3px;
+  border-radius: 5px;
+}
+
+.hub-lp__league-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.hub-lp__dot {
+  width: 9px;
+  height: 9px;
+  flex: none;
+  border-radius: 50%;
+  border: 1px solid var(--hub-lp-ink, var(--nf-text-dim));
+  background: var(--hub-lp-ink, var(--nf-text-dim));
+}
+
+.hub-lp__league-name {
+  font-size: var(--fs-caption);
+  font-weight: var(--fw-bold);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hub-lp__league-state {
+  font-size: 13px;
   font-weight: var(--fw-bold);
   color: var(--nf-text);
 }
 
-.hub-lp__meta-delta {
-  color: var(--nf-emerald, #3fb950);
+.hub-lp__league-sub {
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.hub-lp__meta-delta.is-down {
+/* Un diferencial negativo se dice en rojo; no se esconde ni se pinta como si fuera bueno. */
+.hub-lp__league-sub .is-down {
   color: var(--nf-danger);
 }
+
+/* La temporada que se está mirando: desplegable si hay varias, texto si solo hay una. Las dos
+   formas ocupan la misma altura para que las tres tarjetas queden a la par. */
+/* Se ajusta con las custom properties de la primitiva, que es lo único que atraviesa su
+   encapsulación; una regla hacia `.nf-select__field` desde aquí no casaría con nada. */
+.hub-lp__league-season {
+  --nf-select-font-size: var(--fs-label);
+  --nf-select-padding: 5px 26px 5px 8px;
+  display: block;
+  margin-top: auto;
+}
+
+.hub-lp__league-season-name {
+  margin-top: auto;
+  padding: 4px 0;
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 860px) {
+  .hub-lp__legend {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ── El lienzo ───────────────────────────────────────────────────────── */
 
 .hub-lp__plot {
   position: relative;
@@ -53,12 +183,12 @@
 }
 
 .hub-lp__area {
-  fill: color-mix(in srgb, var(--nf-primary) 16%, transparent);
+  fill: color-mix(in srgb, var(--hub-lp-ink) 16%, transparent);
 }
 
 .hub-lp__line {
   fill: none;
-  stroke: var(--nf-primary);
+  stroke: var(--hub-lp-ink);
   stroke-width: 2;
   stroke-linejoin: round;
   stroke-linecap: round;
@@ -73,32 +203,35 @@
   pointer-events: none;
 }
 
-.hub-lp__dot {
-  fill: var(--nf-primary);
+.hub-lp__marker {
+  fill: var(--hub-lp-ink);
   stroke: var(--nf-surface);
   stroke-width: 2;
   pointer-events: none;
 }
 
+/* ── Tooltip: una fila por liga visible ──────────────────────────────── */
+
 .hub-lp__tooltip {
   position: absolute;
+  top: 8px;
   z-index: 5;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
   padding: 7px 10px;
   border-radius: 9px;
-  background: var(--nf-surface-2, rgba(28, 28, 30, 0.98));
+  background: var(--nf-surface-2);
   border: 1px solid var(--nf-border-strong);
   box-shadow: 0 10px 26px rgba(0, 0, 0, 0.5);
-  transform: translate(14px, -50%);
+  transform: translateX(14px);
   pointer-events: none;
   white-space: nowrap;
 }
 
-/* Cerca del borde derecho el tooltip se pasa al otro lado del punto para no salirse. */
+/* Cerca del borde derecho el tooltip se pasa al otro lado del crosshair para no salirse. */
 .hub-lp__tooltip.is-left {
-  transform: translate(calc(-100% - 14px), -50%);
+  transform: translateX(calc(-100% - 14px));
 }
 
 .hub-lp__tooltip-date {
@@ -106,7 +239,19 @@
   color: var(--nf-text-dim);
 }
 
+.hub-lp__tooltip-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hub-lp__tooltip-league {
+  font-size: var(--fs-label);
+  color: var(--nf-text-mid);
+}
+
 .hub-lp__tooltip-lp {
+  margin-left: auto;
   font-size: 13px;
   font-weight: var(--fw-bold);
   color: var(--nf-text);
@@ -114,7 +259,7 @@
 
 .hub-lp__tooltip-delta {
   font-size: var(--fs-label);
-  color: var(--nf-emerald, #3fb950);
+  color: var(--nf-emerald);
 }
 
 .hub-lp__tooltip-delta.is-down {
@@ -126,18 +271,4 @@
   justify-content: space-between;
   font-size: var(--fs-label);
   color: var(--nf-text-dim);
-}
-
-.hub-lp__summary {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 14px;
-  margin: 0;
-  font-size: 12px;
-  color: var(--nf-text);
-}
-
-/* Un diferencial negativo se dice en rojo; no se esconde ni se pinta como si fuera bueno. */
-.hub-lp__stat.is-down {
-  color: var(--nf-danger);
 }

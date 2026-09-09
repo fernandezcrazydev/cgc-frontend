@@ -1,0 +1,193 @@
+/* Vitrina de trofeos del perfil propio (§5.5.13).
+
+   El nombre del trofeo es lo que se lee primero: la copa lo acompaña, no al revés. Antes iba en
+   `--fs-label` gris y competía con la temporada, así que ni se leía ni se sabía cuál de las tres
+   líneas era el trofeo. La jerarquía de ahora es nombre → grupo → temporada, y solo la última
+   queda atenuada.
+
+   El oro/plata/bronce sale de los tokens del podio (`--nf-gold`, `--nf-silver`, `--nf-bronze`),
+   los mismos que usa el ranking del grupo: si se escribieran a mano aquí, un día el primer puesto
+   sería de un oro en el ranking y de otro en el perfil. */
+
+:host {
+  display: block;
+}
+
+.pf-trophies-card {
+  padding: 16px 18px;
+  border-radius: 12px;
+  background: var(--nf-surface);
+  border: 1px solid var(--nf-border);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Flex y no `repeat(auto-fit, minmax(0, 1fr))`: con un mínimo de 0 y un máximo en `fr` el
+   navegador resuelve UNA sola columna, y la vitrina enseñaba el primer trofeo con los otros
+   dos apilados fuera de la tarjeta. */
+.pf-trophies__row {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pf-trophy {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  /* Con un solo trofeo no se estira a lo ancho de la tarjeta: se queda de su tamaño, centrado. */
+  max-width: 33.333%;
+  text-align: center;
+}
+
+.pf-trophy__cup {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.25));
+  transition: transform 0.2s cubic-bezier(0.2, 0, 0, 1);
+}
+
+.pf-trophy:hover .pf-trophy__cup {
+  transform: scale(1.08);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pf-trophy__cup { transition: none; }
+  .pf-trophy:hover .pf-trophy__cup { transform: none; }
+}
+
+/* El nombre del trofeo: la línea que tiene que verse desde lejos. */
+.pf-trophy__name {
+  margin-top: 2px;
+  font-size: var(--fs-body);
+  font-weight: var(--fw-bold, 700);
+  line-height: 1.15;
+  color: var(--nf-gold);
+}
+
+.pf-trophy--p2 .pf-trophy__name { color: var(--nf-silver, var(--nf-text)); }
+.pf-trophy--p3 .pf-trophy__name { color: var(--nf-bronze, var(--nf-text-mid)); }
+
+/* De quién es ese trofeo. Se recorta con puntos suspensivos en vez de partir la fila. */
+.pf-trophy__group {
+  max-width: 100%;
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--nf-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pf-trophy__season {
+  font-size: var(--fs-label);
+  line-height: 1.2;
+  color: var(--nf-text-dim);
+}
+
+/* ── Modal: elegir qué trofeos se enseñan ───────────────────────────────── */
+
+.pf-trophies__hint {
+  margin: 0 0 14px;
+  font-size: var(--fs-caption);
+  color: var(--nf-text-dim);
+}
+
+.pf-trophies__picker {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  /* Con muchas temporadas el modal no debe crecer hasta salirse de la pantalla. */
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.pf-trophy-pick {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border: 1px solid var(--nf-border);
+  border-radius: 10px;
+  background: var(--nf-surface);
+  cursor: pointer;
+  transition: border-color 0.14s, background 0.14s;
+}
+
+.pf-trophy-pick:hover {
+  border-color: var(--nf-border-strong);
+}
+
+.pf-trophy-pick.is-on {
+  border-color: var(--nf-primary);
+  background: color-mix(in srgb, var(--nf-primary) 10%, transparent);
+}
+
+/* Una casilla deshabilitada (vitrina llena) tiene que decirlo sin desaparecer de la lista. */
+.pf-trophy-pick:has(.pf-trophy-pick__box:disabled) {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pf-trophy-pick__box {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--nf-primary);
+  cursor: inherit;
+}
+
+.pf-trophy-pick__cup {
+  width: 34px;
+  height: 34px;
+  flex: none;
+  object-fit: contain;
+}
+
+.pf-trophy-pick__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pf-trophy-pick__name {
+  font-size: var(--fs-caption);
+  font-weight: var(--fw-bold, 700);
+  color: var(--nf-text);
+}
+
+.pf-trophy-pick__sub {
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pf-trophies__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+/* Cuántos llevas elegidos, empujado a la izquierda para que no se pegue a los botones. */
+.pf-trophies__count {
+  margin-right: auto;
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+}

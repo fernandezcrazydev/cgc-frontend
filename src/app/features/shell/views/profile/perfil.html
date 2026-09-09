@@ -218,12 +218,14 @@
                   </div>
                   <div class="pf-mini-champ__stats nf-mono">
                     <span class="pf-mini-champ__wr" [class.pf-neg]="c.wr < 50">{{ c.wr }}%</span>
-                    <span class="pf-mini-champ__games">{{ c.games }}p · {{ c.kda }} KDA</span>
+                    <span class="pf-mini-champ__games">{{ c.games }}P · {{ c.kda }} KDA</span>
                   </div>
                 </a>
               }
             </div>
           </section>
+
+          <app-profile-lp-chart [groups]="p.groups" [playerTag]="p.tag" />
         </div>
 
         <!-- ── Columna Lateral (40%) ── -->
@@ -305,6 +307,8 @@
           </section>
 
           <app-profile-groups-card [groups]="p.groups" title="Tus grupos" />
+
+          <app-profile-trophies-card [groups]="p.groups" [editable]="true" />
         </div>
       </div>
     }

@@ -38,6 +38,8 @@ import { hash } from '../../../../core/group-ranking';
 import { wireConnectModalOnRiotEvent } from './perfil-connect-modal';
 import { ProfileGroupsCard } from './profile-groups-card.component';
 import { ProfileStreakCard } from './profile-streak-card.component';
+import { ProfileLpChartComponent } from './profile-lp-chart.component';
+import { ProfileTrophiesCardComponent } from './profile-trophies-card.component';
 
 const MEMBER_SINCE_FMT = new Intl.DateTimeFormat('es-ES', { month: 'short', year: 'numeric' });
 
@@ -80,6 +82,8 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
     NfSegmented,
     ProfileStreakCard,
     ProfileGroupsCard,
+    ProfileLpChartComponent,
+    ProfileTrophiesCardComponent,
   ],
   styleUrl: './perfil.scss',
   templateUrl: './perfil.html',

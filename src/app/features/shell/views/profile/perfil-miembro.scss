@@ -8,11 +8,73 @@
    los alcanza. Si necesitas ajustar el interior de una primitiva, expon una custom
    property en ella y fijala sobre el host (ver `nf-pagination.scss`). Nunca `::ng-deep`. */
 
-/* ── Módulo VS Battle Card (Perfil Miembro) ────────────────────────── */
+/* ── La tarjeta del cruce ──────────────────────────────────────────────
+   Resume la relación con otro jugador y es la puerta a sus tres pantallas.
+
+   Dos colores y solo dos, de los tokens de dominio: `--nf-ally` para lo que hicisteis juntos y
+   `--nf-rival` para lo que hicisteis enfrentados. Los lleva la barra de reparto y los repiten las
+   columnas, que es lo que permite leer la barra sin leyenda. */
 
 .pf-vs-card {
-  border-left: 3px solid var(--nf-secondary);
+  /* Ancla del enlace estirado de la cabecera: sin esto su `::after` se posicionaría contra la
+     vista entera en vez de contra la tarjeta. */
+  position: relative;
 }
+
+.pf-vs-card:hover {
+  border-color: var(--nf-border-strong);
+}
+
+/* Enlace estirado: el botón de la cabecera cubre toda la tarjeta, así que pulsar en cualquier
+   hueco lleva al historial cruzado. Sigue siendo un `<a>` de verdad —tabulable y con `href`—, y
+   las dos columnas se montan por encima con `z-index` para conservar su propio destino. */
+.pf-vs-card__all::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+
+/* Solo las fichas se montan sobre el enlace estirado, NO la rejilla entera: subiendo la rejilla,
+   su hueco entre columnas y su relleno quedaban por encima del enlace y eran zona muerta —el
+   único trozo de la tarjeta que no navegaba—. */
+.pf-vs-tile {
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Reparto de la relación ──────────────────────────────────────────── */
+
+.pf-vs-split {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: var(--fs-label);
+  color: var(--nf-text-mid);
+}
+
+.pf-vs-split__side {
+  flex: none;
+  white-space: nowrap;
+}
+
+.pf-vs-split__bar {
+  flex: 1;
+  height: 6px;
+  min-width: 0;
+  border-radius: 3px;
+  /* El fondo ES la parte de "enfrentados": así solo hay que pintar un relleno, no dos. */
+  background: var(--nf-rival);
+  overflow: hidden;
+}
+
+.pf-vs-split__fill {
+  display: block;
+  height: 100%;
+  background: var(--nf-ally);
+}
+
+/* ── Las dos columnas ─────────────────────────────────────────────────── */
 
 .pf-vs-grid {
   display: grid;
@@ -27,23 +89,21 @@
   background: var(--nf-surface);
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 
 .pf-vs-tile--synergy {
-  border-left: 2px solid var(--nf-secondary);
+  border-top: 2px solid var(--nf-ally);
 }
 
 .pf-vs-tile--rivalry {
-  border-left: 2px solid var(--nf-primary);
+  border-top: 2px solid var(--nf-rival);
 }
 
 .pf-vs-tile--interactive {
   color: inherit;
   text-decoration: none;
   cursor: pointer;
-  text-align: left;
-  font-family: inherit;
   transition: transform 0.14s ease, border-color 0.14s ease, background 0.14s ease;
 }
 
@@ -62,69 +122,98 @@
   color: var(--nf-text-dim);
 }
 
-.pf-vs-tile__val {
+.pf-vs-tile__sub {
+  font-size: var(--fs-label);
+  color: var(--nf-text-mid);
+}
+
+/* La racha va pegada al récord, como continuación de la misma frase. */
+.pf-vs-tile__streak {
+  color: var(--nf-text-dim);
+}
+
+/* ── El marcador, con la cara de cada uno ──────────────────────────────
+   La simetría es lo que hace que dos cifras se lean como un duelo: tu avatar y tus victorias a la
+   izquierda, las suyas y su avatar a la derecha, en espejo. */
+
+.pf-vs-duel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.pf-vs-duel__side {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  /* Las dos mitades miden lo mismo aunque los números tengan distinto ancho. */
+  flex: 1;
+  min-width: 0;
+}
+
+.pf-vs-duel__side--them {
+  justify-content: flex-end;
+}
+
+.pf-vs-duel__avatar {
+  flex: none;
+}
+
+.pf-vs-duel__val {
   font-size: 22px;
   font-weight: 800;
   color: var(--nf-text);
   line-height: 1.1;
 }
 
-.pf-vs-tile__sub {
-  font-size: var(--fs-label);
-  color: var(--nf-text-mid);
+.pf-vs-duel__dash {
+  flex: none;
+  font-size: var(--fs-body-lg);
+  color: var(--nf-text-dim);
+}
+
+/* Juntos no hay dos lados que enfrentar: los avatares van pegados y la cifra a su derecha. */
+.pf-vs-duel--together {
+  justify-content: flex-start;
+  gap: 10px;
+}
+
+.pf-vs-duel__pair {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 4px;
+  flex: none;
 }
 
-.pf-compare-compact {
+/* ── El emparejamiento de campeones más repetido ──────────────────────
+   Con iconos y no con nombres: `myChampionName` es el nombre que trae la partida, y pintado
+   crudo salía «Tu Campeón 33 vs su Campeón 64». */
+
+.pf-vs-matchup {
   display: flex;
-  flex-direction: column;
-  border-radius: 8px;
-  border: 1px solid var(--nf-border);
-  background: var(--nf-surface);
-  overflow: hidden;
-}
-
-.pf-compare-compact__head,
-.pf-compare-compact__row {
-  display: grid;
-  grid-template-columns: 1fr 2fr 1fr;
-  padding: 8px 14px;
   align-items: center;
-  font-size: 11.5px;
+  gap: 6px;
+  margin-top: 2px;
+  min-width: 0;
 }
 
-.pf-compare-compact__head {
-  background: var(--nf-surface-2);
-  font-weight: 700;
+.pf-vs-matchup__champ {
+  flex: none;
+}
+
+.pf-vs-matchup__op {
+  flex: none;
   font-size: var(--fs-label);
   color: var(--nf-text-dim);
-  border-bottom: 1px solid var(--nf-border);
 }
 
-.pf-compare-compact__row {
-  border-bottom: 1px solid var(--nf-border);
-}
-
-.pf-compare-compact__row:last-child { border-bottom: none; }
-
-.pf-compare-compact__col--me,
-.pf-compare-compact__val--me {
-  text-align: left;
-  font-weight: 700;
-}
-
-.pf-compare-compact__col--metric,
-.pf-compare-compact__label {
-  text-align: center;
-  color: var(--nf-text-mid);
-}
-
-.pf-compare-compact__col--foe,
-.pf-compare-compact__val--foe {
-  text-align: right;
-  font-weight: 700;
+.pf-vs-matchup__record {
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 @media (max-width: 600px) {
@@ -132,3 +221,66 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ── Estado de Perfil Privado ────────────────────────────────────── */
+
+.pf-private-state {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px 16px;
+  min-height: 280px;
+}
+
+.pf-private-card {
+  max-width: 480px;
+  width: 100%;
+  background: var(--nf-surface);
+  border: 1px solid var(--nf-border);
+  border-radius: 12px;
+  padding: 32px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 14px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+}
+
+.pf-private-icon-wrap {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--nf-gold) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--nf-gold) 35%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--nf-gold);
+}
+
+.pf-private-icon {
+  width: 28px;
+  height: 28px;
+}
+
+.pf-private-title {
+  margin: 0;
+  font-size: var(--fs-h3);
+  font-weight: 700;
+  color: var(--nf-text);
+  letter-spacing: -0.02em;
+}
+
+.pf-private-desc {
+  margin: 0;
+  font-size: var(--fs-caption);
+  color: var(--nf-text-mid);
+  line-height: 1.55;
+  max-width: 380px;
+}
+
+.pf-private-actions {
+  margin-top: 8px;
+}
+

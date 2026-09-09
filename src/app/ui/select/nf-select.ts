@@ -22,7 +22,12 @@ export interface NfSelectOption {
   standalone: true,
   template: `
     <div class="nf-select">
-      <select class="nf-select__field" [value]="value" (change)="onChange($event)">
+      <select
+        class="nf-select__field"
+        [value]="value"
+        [attr.aria-label]="ariaLabel || null"
+        (change)="onChange($event)"
+      >
         @for (opt of normalized; track opt.value) {
           <option [value]="opt.value">{{ opt.label }}</option>
         }
@@ -43,6 +48,8 @@ export class NfSelect {
   protected normalized: NfSelectOption[] = [];
 
   @Input() value = '';
+  /** Nombre accesible del control cuando no hay una etiqueta visible a su lado. */
+  @Input() ariaLabel = '';
   @Output() valueChange = new EventEmitter<string>();
 
   onChange(event: Event): void {

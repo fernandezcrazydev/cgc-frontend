@@ -54,6 +54,9 @@ describe('PerfilMiembro Component', () => {
           provide: Session,
           useValue: {
             displayName: signal('User'),
+            // La tarjeta del cruce pinta tu cara junto a tus victorias: sin esto el doble de
+            // `Session` se queda corto y la plantilla revienta al renderizar.
+            avatarUrl: signal(null),
             status: signal('ready'),
             user: signal({ ...CURRENT_USER, id: 'u1' }),
             activeProfile: signal(null),
@@ -96,7 +99,10 @@ function historial(): Match[] {
  * pintar lo que no toca— al renderizarse: es lo único que lo detecta.
  */
 describe('PerfilMiembro · refactor de la vista', () => {
-  async function montar(): Promise<{ el: HTMLElement; comp: PerfilMiembro; detect: () => void }> {
+  /** `sinCruce` monta la vista de alguien con quien no has coincidido nunca. */
+  async function montar(
+    { sinCruce = false }: { sinCruce?: boolean } = {},
+  ): Promise<{ el: HTMLElement; comp: PerfilMiembro; detect: () => void }> {
     const groupStore = new GroupStore();
     const matches = historial();
     await TestBed.configureTestingModule({
@@ -125,7 +131,7 @@ describe('PerfilMiembro · refactor de la vista', () => {
             allMatches: signal(matches),
             allPersonalMatches: signal(matches),
             crossWith: (playerId: string) => {
-              const all = buildCrossMatches(matches, playerId);
+              const all = sinCruce ? [] : buildCrossMatches(matches, playerId);
               return {
                 all,
                 allies: all.filter((c) => c.relation === 'ally'),
@@ -149,6 +155,9 @@ describe('PerfilMiembro · refactor de la vista', () => {
           provide: Session,
           useValue: {
             displayName: signal('User'),
+            // La tarjeta del cruce pinta tu cara junto a tus victorias: sin esto el doble de
+            // `Session` se queda corto y la plantilla revienta al renderizar.
+            avatarUrl: signal(null),
             status: signal('ready'),
             user: signal({ ...CURRENT_USER, id: 'u1' }),
             activeProfile: signal(null),
@@ -199,22 +208,139 @@ describe('PerfilMiembro · refactor de la vista', () => {
   });
 
   /**
-   * Cada ficha abre las medias acumuladas de su lado del cruce y el chip abre la lista de
-   * partidas. Antes las tres llevaban al mismo sitio, así que dos de los tres controles
-   * prometían cosas distintas y hacían lo mismo.
+   * La tarjeta del cruce es una puerta a tres pantallas y cada control lleva a la suya. Antes las
+   * tres llevaban al mismo sitio, así que dos de los tres prometían cosas distintas.
+   *
+   * Las rutas se comprueban **canónicas** (`/app/jugador/:tag/...`) a propósito: las viejas
+   * (`/app/synergy/:tag`, `/app/versus/:tag`, `/app/historial-cruzado/:tag`) siguen existiendo,
+   * pero solo como redirecciones de compatibilidad en `app.routes.ts`, y enlazar a ellas obliga a
+   * navegar dos veces.
    */
-  it('las fichas llevan a las medias de su lado y el chip al historial cruzado', async () => {
+  it('cada control de la tarjeta del cruce lleva a su pantalla, por la ruta canónica', async () => {
     const { el } = await montar();
 
-    const synergy = el.querySelector<HTMLAnchorElement>('a.pf-vs-tile--synergy');
-    expect(synergy?.getAttribute('href')).toContain('/app/synergy/');
+    const sinergia = el.querySelector<HTMLAnchorElement>('a.pf-vs-tile--synergy');
+    expect(sinergia?.getAttribute('href')).toMatch(/^\/app\/jugador\/.+\/juntos$/);
 
-    const versus = el.querySelector<HTMLAnchorElement>('a.pf-vs-tile--rivalry');
-    expect(versus?.getAttribute('href')).toContain('/app/versus/');
+    const caraACara = el.querySelector<HTMLAnchorElement>('a.pf-vs-tile--rivalry');
+    expect(caraACara?.getAttribute('href')).toMatch(/^\/app\/jugador\/.+\/contra$/);
 
-    const chipHistorial = el.querySelector<HTMLAnchorElement>('a.pf-meta-chip--action');
-    expect(chipHistorial?.getAttribute('href')).toContain('/app/historial-cruzado/');
-    expect(chipHistorial?.textContent?.trim()).toBe('Historial cruzado');
+    // El usuario pidió un botón del kit, no un chip con una flecha.
+    const historial = el.querySelector<HTMLAnchorElement>('.pf-vs-card .pf-card__header a');
+    expect(historial?.classList.contains('nf-btn')).toBe(true);
+    expect(historial?.getAttribute('href')).toMatch(/^\/app\/jugador\/[^/]+$/);
+    expect(historial?.textContent?.trim()).toBe('Historial cruzado');
+  });
+
+  it('la tarjeta del cruce resume la relación: reparto, racha y emparejamiento', async () => {
+    const { el } = await montar();
+
+    // La barra reparte las partidas entre las dos relaciones; se lee sin leyenda, y lo que la
+    // hace accesible es su etiqueta, no los colores.
+    const barra = el.querySelector('.pf-vs-split__bar');
+    expect(barra?.getAttribute('aria-label')).toMatch(/\d+ partidas juntos y \d+ enfrentados/);
+    expect(el.querySelector<HTMLElement>('.pf-vs-split__fill')?.style.width).toMatch(/%$/);
+
+    // La racha sale de `CrossAggregate`. Si el cruce sembrado no la trae, la línea no se pinta
+    // —y eso también es correcto—, así que se comprueba su forma, no su presencia.
+    for (const racha of Array.from(el.querySelectorAll('.pf-vs-tile__streak'))) {
+      expect(racha.textContent).toMatch(/racha \d+[VD]/);
+    }
+
+    /* El emparejamiento se pinta con los ICONOS de los dos campeones, no con sus nombres:
+       `myChampionName` es el nombre que trae la partida y crudo salía «Tu Campeón 33 vs su
+       Campeón 64», que no dice nada. El nombre sobrevive solo como texto accesible. */
+    const emparejamientos = Array.from(el.querySelectorAll('.pf-vs-matchup'));
+    expect(emparejamientos.length).toBeGreaterThan(0);
+    for (const linea of emparejamientos) {
+      expect(linea.querySelectorAll('nf-avatar.pf-vs-matchup__champ').length).toBe(2);
+      expect(linea.getAttribute('aria-label')).toMatch(/(más repetido)/);
+      expect(linea.querySelector('.pf-vs-matchup__record')?.textContent).toMatch(
+        /\d+P · \d+V-\d+D/,
+      );
+      // Ni rastro de la frase con el número del campeón dentro.
+      expect(linea.textContent).not.toMatch(/Tu Campeón/);
+    }
+  });
+
+  /**
+   * Lo pidió el usuario: dos cifras sueltas no se leen como un duelo. Con la cara de cada uno
+   * pegada a sus victorias, y en espejo, sí.
+   */
+  it('el marcador del cara a cara es simétrico: avatar y victorias de cada uno', async () => {
+    const { el } = await montar();
+
+    const duelo = el.querySelector('.pf-vs-tile--rivalry .pf-vs-duel')!;
+    const lados = duelo.querySelectorAll('.pf-vs-duel__side');
+    expect(lados.length).toBe(2);
+
+    for (const lado of Array.from(lados)) {
+      expect(lado.querySelector('nf-avatar.pf-vs-duel__avatar')).not.toBeNull();
+      expect(lado.querySelector('.pf-vs-duel__val')?.textContent?.trim()).toMatch(/^\d+$/);
+    }
+    // El segundo lado va en espejo, con la cifra antes del avatar.
+    expect(lados[1].classList).toContain('pf-vs-duel__side--them');
+  });
+
+  /**
+   * Toda la tarjeta lleva al historial cruzado, no solo el botón. Se resuelve estirando el
+   * `::after` del propio botón sobre la tarjeta, así que sigue habiendo un `<a>` de verdad
+   * —tabulable y con `href`— en vez de un `div` con un `(click)`.
+   */
+  it('la tarjeta entera es pulsable, sin dejar de ser un enlace de verdad', async () => {
+    const { el } = await montar();
+
+    const tarjeta = el.querySelector('.pf-vs-card')!;
+    const estirado = tarjeta.querySelector('a.pf-vs-card__all');
+    expect(estirado).not.toBeNull();
+    expect(estirado?.tagName).toBe('A');
+    expect(estirado?.getAttribute('href')).toMatch(/^\/app\/jugador\/[^/]+$/);
+
+    // Las dos columnas conservan su destino propio: si el enlace estirado las tapara, pulsar en
+    // ellas llevaría al historial en vez de a su pantalla.
+    expect(tarjeta.querySelectorAll('a.pf-vs-tile--interactive').length).toBe(2);
+  });
+
+  /** Sin partidas en común no hay relación que describir: la tarjeta no existe. */
+  it('sin historial cruzado la tarjeta del cruce no se pinta', async () => {
+    const { el } = await montar({ sinCruce: true });
+
+    expect(el.querySelector('.pf-vs-card')).toBeNull();
+  });
+
+  /**
+   * La tabla de medias vivía dentro de esta tarjeta y la hacía dos cosas a la vez. Sus cuatro
+   * filas se pintan enteras en las dos pantallas de destino, así que aquí sobraban.
+   */
+  it('la tarjeta ya no lleva la tabla de medias comparadas', async () => {
+    const { el } = await montar();
+
+    expect(el.querySelector('.pf-compare-compact')).toBeNull();
+  });
+
+  /**
+   * La gráfica es la misma del perfil propio y del hub, y solo habla de los grupos que
+   * compartís: de los ajenos no se enseña clasificación, igual que hace la tarjeta de grupos.
+   */
+  it('pinta la gráfica de LP por liga de los grupos compartidos', async () => {
+    const { el, comp } = await montar();
+
+    expect(comp.sharedGroups().length).toBeGreaterThan(0);
+    expect(el.querySelector('app-profile-lp-chart')).not.toBeNull();
+    expect(el.querySelector('app-hub-lp-chart .hub-lp')).not.toBeNull();
+    // Es el perfil de otro: el título no puede hablar de «tu» evolución.
+    const titulo = el.querySelector('app-profile-lp-chart .hub-card__title')?.textContent ?? '';
+    expect(titulo).toContain('Evolución de LP por liga');
+    expect(titulo).not.toContain('Tu ');
+  });
+
+  /** Encima de la cabecera del jugador no va nada: la pidió limpia el usuario. */
+  it('no hay ningún enlace por encima de la cabecera del jugador', async () => {
+    const { el } = await montar();
+
+    expect(el.querySelector('.view-back')).toBeNull();
+    const primero = el.querySelector('.pf-view > *');
+    expect(primero?.classList.contains('pf-hero-compact')).toBe(true);
   });
 
   it('los campeones insignia enlazan a la tierlist', async () => {
@@ -249,5 +375,61 @@ describe('PerfilMiembro · refactor de la vista', () => {
     detect();
 
     expect(comp.filteredChampions().map((c) => c.championId)).toEqual([elegido]);
+  });
+
+  it('muestra el estado privado y oculta métricas si el perfil tiene isPrivate', async () => {
+    await TestBed.configureTestingModule({
+      imports: [PerfilMiembro],
+      providers: [
+        provideRouter([]),
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            snapshot: { paramMap: { get: () => 'Pix3lQueen#LAN' } },
+            paramMap: of({ get: () => 'Pix3lQueen#LAN' }),
+          },
+        },
+        {
+          provide: GroupStore,
+          useValue: {
+            groups: signal(GROUPS),
+            rosterOf: () => [
+              {
+                name: 'Pix3lQueen',
+                tag: 'Pix3lQueen#LAN',
+                initials: 'PQ',
+                role: 'MID',
+                owner: false,
+                hue: 120,
+                isPrivate: true,
+              },
+            ],
+          },
+        },
+        { provide: GameDataStore, useValue: { status: signal('ready'), championById: signal(new Map()) } },
+        { provide: GroupsStore, useValue: { groups: signal([]), status: signal('ready'), ensureLoaded: () => {} } },
+        { provide: RiotAccountStore, useValue: { account: signal(null), status: signal('ready'), ensureLoaded: () => {} } },
+        {
+          provide: Session,
+          useValue: {
+            displayName: signal('User'),
+            // La tarjeta del cruce pinta tu cara junto a tus victorias: sin esto el doble de
+            // `Session` se queda corto y la plantilla revienta al renderizar.
+            avatarUrl: signal(null),
+            status: signal('ready'),
+            user: signal({ ...CURRENT_USER, id: 'u1' }),
+            activeProfile: signal(null),
+          },
+        },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(PerfilMiembro);
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+
+    expect(el.querySelector('.pf-private-state')).not.toBeNull();
+    expect(el.querySelector('.pf-private-title')?.textContent).toContain('Este perfil es privado');
+    expect(el.querySelector('.pf-tabs-bar')).toBeNull();
   });
 });

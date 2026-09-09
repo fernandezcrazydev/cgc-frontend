@@ -73,7 +73,9 @@
      la cuenta. */
   height: var(--pf-group-row, 48px);
   flex: none;
-  padding: 0 12px;
+  /* El padding lo pone el enlace de dentro, que ocupa la fila entera para que toda
+     ella sea pulsable. */
+  padding: 0;
   border-radius: 8px;
   border: 1px solid var(--nf-border);
   background: var(--nf-surface);
@@ -81,10 +83,6 @@
 }
 
 .pf-group-item:hover { border-color: var(--nf-border-strong); }
-
-.pf-group-item--member {
-  padding: 0;
-}
 
 .pf-group-item__link {
   display: flex;
@@ -101,17 +99,6 @@
 
 .pf-group-item__link:hover {
   background: var(--nf-surface-2);
-}
-
-.pf-group-item__content {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-}
-
-.pf-group-item__action {
-  flex: none;
 }
 
 .pf-group-item__arrow {
@@ -148,6 +135,18 @@
   gap: 2px;
 }
 
+/* Ocupa el mismo hueco que `__rank` (misma fila, mismo tamaño de letra): es lo único
+   que distingue una fila ajena de una propia, y no debe mover el nombre de sitio. */
+.pf-group-item__badge {
+  flex: none;
+  font-size: var(--fs-label);
+  color: var(--nf-gold);
+  background: color-mix(in srgb, var(--nf-gold) 12%, transparent);
+  padding: 1px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
 .pf-group-item__name-row {
   display: flex;
   align-items: center;
@@ -165,6 +164,8 @@
 }
 
 .pf-group-item__rank {
+  flex: none;
+  white-space: nowrap;
   font-size: var(--fs-label);
   font-weight: 700;
   color: var(--nf-text-mid);

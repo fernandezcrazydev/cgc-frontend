@@ -311,4 +311,16 @@ describe('Perfil · refactor de la vista', () => {
     // Y ni una sola celda de porcentaje inventada en la tabla de roles.
     expect(tabla!.textContent).not.toMatch(/\d+%/);
   });
+
+  it('renderiza la gráfica de LP y la vitrina de trofeos en la pestaña Resumen', async () => {
+    const { el } = await montar();
+
+    expect(el.querySelector('app-profile-lp-chart')).not.toBeNull();
+    expect(el.querySelector('app-profile-trophies-card')).not.toBeNull();
+    // La gráfica del perfil ES la del hub (`hub-lp`), no una copia con otro aspecto.
+    expect(el.querySelector('app-hub-lp-chart .hub-lp')).not.toBeNull();
+    expect(el.querySelector('.pf-trophies-card')).not.toBeNull();
+    // La vitrina es editable solo aquí, en el perfil propio.
+    expect(el.querySelector('.pf-trophies-card button[nfIconButton]')).not.toBeNull();
+  });
 });

@@ -135,18 +135,28 @@ describe('ProfileGroupsCard', () => {
     expect(root().querySelector('.empty-state__text')?.textContent).toContain('Sin grupos todavía');
   });
 
-  it('permite solicitar unirme a un grupo donde no es miembro con feedback visual', () => {
+  /**
+   * La regla que pidió el usuario el 2026-09-09: la fila es la misma se comparta el grupo o no.
+   * Sin `GroupsStore` ni `GroupStore` en el TestBed, `isMember()` es siempre falso, así que este
+   * es el caso "grupo ajeno" y lo que se comprueba es que sigue siendo una fila normal: mismo
+   * enlace, mismo avatar, misma flecha, y ningún botón dentro.
+   */
+  it('un grupo ajeno se pinta como cualquier otro, sin botones y con la etiqueta', () => {
     conGrupos(1);
 
-    const btnJoin = root().querySelector<HTMLButtonElement>('.pf-group-item__action button');
-    expect(btnJoin).not.toBeNull();
-    expect(btnJoin?.textContent?.trim()).toBe('Solicitar unirme');
+    const fila = root().querySelector('.pf-group-item')!;
+    expect(fila.querySelector('button')).toBeNull();
+    expect(fila.querySelector('.pf-group-item__avatar')).not.toBeNull();
+    expect(fila.querySelector('.pf-group-item__arrow')).not.toBeNull();
+    expect(fila.querySelector('.pf-group-item__badge')?.textContent?.trim()).toBe('Grupo ajeno');
+    expect(fila.querySelector('.pf-group-item__rank')).toBeNull();
+    expect(fila.querySelector('.pf-group-item__sub')?.textContent).toContain('Ver ficha');
+  });
 
-    btnJoin?.click();
-    fixture.detectChanges();
+  it('la fila de un grupo ajeno lleva a su ficha pública', () => {
+    conGrupos(1);
 
-    const badge = root().querySelector('.pf-group-item__action .pf-meta-chip--verified');
-    expect(badge).not.toBeNull();
-    expect(badge?.textContent?.trim()).toBe('✓ Solicitado');
+    const enlace = root().querySelector<HTMLAnchorElement>('.pf-group-item__link')!;
+    expect(enlace.getAttribute('href')).toBe('/app/grupos/g1/perfil');
   });
 });

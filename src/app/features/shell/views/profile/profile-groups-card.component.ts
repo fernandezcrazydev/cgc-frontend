@@ -1,10 +1,8 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input, linkedSignal, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, linkedSignal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { NfButton, NfIconButton } from '../../../../ui';
+import { NfIconButton } from '../../../../ui';
 import { ProfileGroupRecord } from '../../../../core/player-profile';
-import { GroupsStore } from '../../../../core/groups';
-import { GroupStore } from '../../../../core/group-store';
-import { ToastService } from '../../../../core/toast';
+import { SharedGroups } from './shared-groups';
 
 /** Grupos visibles a la vez. Fija la altura de la tarjeta y el tamaño de página. */
 const PER_PAGE = 4;
@@ -13,15 +11,27 @@ const PER_PAGE = 4;
  * Tarjeta de grupos del perfil (propio: "Tus grupos"; ajeno: "Grupos en los que
  * participa"), compartida por las dos vistas.
  *
- * Si el usuario en sesión es miembro del grupo, la fila redirige a `/app/grupos/:id`.
- * Si no es miembro (ej. viendo perfil ajeno), ofrece la acción interactiva
- * "Solicitar unirme" con feedback inmediato (toast y estado solicitado).
+ * **La fila se pinta igual en los tres casos** —perfil propio, grupo que compartes con
+ * el jugador que miras, y grupo suyo en el que tú no estás—. Ser o no miembro solo
+ * cambia tres cosas, y ninguna es de forma:
+ *
+ * | | Miembro | Grupo ajeno |
+ * |---|---|---|
+ * | Enlace | `/app/grupos/:id` (el grupo) | `/app/grupos/:id/perfil` (su ficha pública) |
+ * | A la derecha del nombre | `#7 · 239 LP` | etiqueta `Grupo ajeno` |
+ * | Pie de la fila | tu rol (`Miembro`, `Capitán`) | `Ver ficha` |
+ *
+ * Esto es deliberado y se pidió así el 2026-09-09: una fila con botón y otra sin él
+ * hacían que la misma lista pareciera dos componentes distintos. Antes vivieron aquí un
+ * botón de "Cara a Cara" y otro de "Solicitar unirme" (este último, además, una maqueta:
+ * el backend no tiene ninguna ruta de solicitud de ingreso, solo invitaciones). Los dos
+ * se retiraron; no volver a meter acciones en la fila sin hablarlo.
  */
 @Component({
   selector: 'app-profile-groups-card',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, NfButton, NfIconButton],
+  imports: [RouterLink, NfIconButton],
   styleUrl: './profile-groups-card.component.scss',
   template: `
     <section class="pf-card pf-group-card">
@@ -76,66 +86,37 @@ const PER_PAGE = 4;
           @for (chunk of pages(); track $index) {
             <ul class="pf-group-list" [attr.aria-hidden]="$index !== page() ? 'true' : null">
               @for (g of chunk; track g.id) {
-                <li class="pf-group-item" [class.pf-group-item--member]="isMember(g.id)">
-                  @if (isMember(g.id)) {
-                    <a
-                      class="pf-group-item__link"
-                      [routerLink]="['/app', 'grupos', g.id]"
-                      [title]="'Ir al grupo ' + g.name"
+                <li class="pf-group-item">
+                  <a
+                    class="pf-group-item__link"
+                    [routerLink]="linkFor(g)"
+                    [title]="titleFor(g)"
+                  >
+                    <span
+                      class="pf-group-item__avatar"
+                      [style.background]="'linear-gradient(135deg,' + g.c1 + ',' + g.c2 + ')'"
+                      aria-hidden="true"
                     >
-                      <span
-                        class="pf-group-item__avatar"
-                        [style.background]="'linear-gradient(135deg,' + g.c1 + ',' + g.c2 + ')'"
-                        aria-hidden="true"
-                      >
-                        {{ g.initials }}
-                      </span>
-                      <div class="pf-group-item__info">
-                        <div class="pf-group-item__name-row">
-                          <span class="pf-group-item__name">{{ g.name }}</span>
-                          <span class="pf-group-item__rank nf-mono">#{{ g.rankPosition }} · {{ g.lp }} LP</span>
-                        </div>
-                        <div class="pf-group-item__sub nf-mono">
-                          {{ g.wins }}V {{ g.losses }}D ({{ g.wr }}%) · {{ g.role }}
-                        </div>
-                      </div>
-                      <span class="pf-group-item__arrow nf-mono" aria-hidden="true">›</span>
-                    </a>
-                  } @else {
-                    <div class="pf-group-item__content">
-                      <span
-                        class="pf-group-item__avatar"
-                        [style.background]="'linear-gradient(135deg,' + g.c1 + ',' + g.c2 + ')'"
-                        aria-hidden="true"
-                      >
-                        {{ g.initials }}
-                      </span>
-                      <div class="pf-group-item__info">
-                        <div class="pf-group-item__name-row">
-                          <span class="pf-group-item__name">{{ g.name }}</span>
-                          <span class="pf-group-item__rank nf-mono">#{{ g.rankPosition }} · {{ g.lp }} LP</span>
-                        </div>
-                        <div class="pf-group-item__sub nf-mono">
-                          {{ g.wins }}V {{ g.losses }}D ({{ g.wr }}%) · {{ g.role }}
-                        </div>
-                      </div>
-                      <div class="pf-group-item__action">
-                        @if (isRequested(g.id)) {
-                          <span class="pf-meta-chip pf-meta-chip--verified nf-mono">✓ Solicitado</span>
+                      {{ g.initials }}
+                    </span>
+                    <div class="pf-group-item__info">
+                      <div class="pf-group-item__name-row">
+                        <span class="pf-group-item__name">{{ g.name }}</span>
+                        @if (isMember(g.id)) {
+                          <span class="pf-group-item__rank nf-mono">
+                            #{{ g.rankPosition }} · {{ g.lp }} LP
+                          </span>
                         } @else {
-                          <button
-                            nfButton
-                            variant="secondary"
-                            size="xs"
-                            (click)="requestJoin(g, $event)"
-                            [attr.aria-label]="'Solicitar unirme al grupo ' + g.name"
-                          >
-                            Solicitar unirme
-                          </button>
+                          <span class="pf-group-item__badge nf-mono">Grupo ajeno</span>
                         }
                       </div>
+                      <div class="pf-group-item__sub nf-mono">
+                        {{ g.wins }}V {{ g.losses }}D ({{ g.wr }}%) ·
+                        {{ isMember(g.id) ? g.role : 'Ver ficha' }}
+                      </div>
                     </div>
-                  }
+                    <span class="pf-group-item__arrow nf-mono" aria-hidden="true">›</span>
+                  </a>
                 </li>
               }
             </ul>
@@ -157,41 +138,22 @@ export class ProfileGroupsCard {
   readonly title = input('Tus grupos');
   readonly emptyText = input('Sin grupos todavía');
 
-  private readonly groupsStore = inject(GroupsStore, { optional: true });
-  private readonly groupStore = inject(GroupStore, { optional: true });
-  private readonly toasts = inject(ToastService, { optional: true });
+  private readonly shared = inject(SharedGroups);
 
-  protected readonly requestedGroups = signal<Set<string>>(new Set());
-
+  /** ¿Estás tú —el usuario en sesión— dentro de este grupo? */
   protected isMember(groupId: string): boolean {
-    const inReal = this.groupsStore?.groups().some((g) => g.id === groupId) ?? false;
-    const inMock = this.groupStore?.groups().some((g) => g.id === groupId) ?? false;
-    return inReal || inMock;
+    return this.shared.has(groupId);
   }
 
-  /**
-   * Solicitar entrar en un grupo del que no formas parte.
-   *
-   * BACKEND NOTE: hoy no manda nada. No existe el endpoint —el flujo de grupos del backend es
-   * solo por invitación (`POST /groups/{id}/invitations`), no hay ninguna ruta por la que un
-   * usuario pida sitio— y tampoco está diseñado en `docs/`. Esto es la maqueta de esa acción y
-   * se borra entera el día que exista.
-   *
-   * Cuando lo haya, esta escritura tiene que pasar a ser pesimista como el resto del proyecto:
-   * señal `pending` por grupo que deshabilite el botón, `await` de la confirmación, y solo
-   * entonces el toast; el error, con `errorMessage(e)` de `core/http`. Marcar «Solicitado» sin
-   * haber preguntado a nadie, como se hace aquí, es aceptable solo porque no hay nadie a quien
-   * preguntar.
-   */
-  protected requestJoin(g: ProfileGroupRecord, event: Event): void {
-    event.stopPropagation();
-    event.preventDefault();
-    this.requestedGroups.update((set) => new Set(set).add(g.id));
-    this.toasts?.success(`Solicitud enviada a ${g.name}`);
+  /** Al grupo si eres miembro; a su ficha pública si no. */
+  protected linkFor(g: ProfileGroupRecord): unknown[] {
+    return this.isMember(g.id)
+      ? ['/app', 'grupos', g.id]
+      : ['/app', 'grupos', g.id, 'perfil'];
   }
 
-  protected isRequested(groupId: string): boolean {
-    return this.requestedGroups().has(groupId);
+  protected titleFor(g: ProfileGroupRecord): string {
+    return this.isMember(g.id) ? 'Ir al grupo ' + g.name : 'Ver la ficha pública de ' + g.name;
   }
 
   /** Páginas de cuatro. Es lo único que decide el ancho del carril. */
