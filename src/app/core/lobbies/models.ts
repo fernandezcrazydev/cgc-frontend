@@ -152,3 +152,75 @@ export const MAX_SLOTS = 6;
  * nunca más laxo, o todo lo que pase del tope real vuelve como un 422.
  */
 export const MAX_NOTE_LENGTH = 1000;
+
+/**
+ * Los cinco roles tal y como los nombra el backend EN ESTE contrato. Ojo: **no** es el
+ * vocabulario de {@link LobbyParticipantResponse.assignedLane}, que usa el de Riot
+ * (`JUNGLE`/`BOTTOM`). Aquí se replica lo que viaja, no lo que sería coherente: son dos
+ * respuestas distintas del backend y unificarlas es cosa suya, no de un parche en la vista.
+ *
+ * Coincide, eso sí, con el `Lane` de `core/matches`. Son uniones de string idénticas y
+ * TypeScript es estructural, así que siguen siendo intercambiables sin que un dominio
+ * importe del otro.
+ */
+export type BalanceLane = 'TOP' | 'JUNGLA' | 'MID' | 'ADC' | 'SUPPORT';
+
+/** Un duelo de línea: los dos que se enfrentan y cuánto se llevan EN ESA LÍNEA. */
+export interface BalanceMatchup {
+  lane: BalanceLane;
+  /** `app_user.id` del jugador del equipo A. */
+  playerA: string;
+  playerB: string;
+  /** Su fuerza EN ESA LÍNEA, que no es su rating: un ADC en soporte no vale lo mismo. */
+  effectiveA: number;
+  effectiveB: number;
+  difference: number;
+}
+
+/** Quién comió autofill y en qué línea acabó. `lane` viene como string suelto del backend. */
+export interface BalanceAutofill {
+  userId: string;
+  lane: string;
+}
+
+/**
+ * Por qué salió ESE reparto y no otro (`GET /lobbies/{id}/balance/explanation`).
+ *
+ * Solo la ven los admins del grupo: la respuesta dice lo que valía cada jugador en cada
+ * línea, y eso el grupo no ha acordado enseñárselo entre ellos. Para todos los demás
+ * —incluido el convocante que pulsó el botón— el backend responde 403.
+ *
+ * Tres campos no se pueden leer sueltos sin mentir, y la vista los trata en pareja:
+ * `globalDifference` no significa nada sin `uncertainty`, y `provisional` es la advertencia
+ * de que la partida no se equilibró para customs sino con rangos de SoloQ y rellenos.
+ */
+export interface BalanceExplanationResponse {
+  matchups: BalanceMatchup[];
+  autofills: BalanceAutofill[];
+
+  globalDifference: number;
+  laneDifferenceSum: number;
+  worstLaneDifference: number;
+  /** Deuda de rol acumulada del reparto. */
+  staleness: number;
+  weightedCost: number;
+  laneCeilingExceeded: boolean;
+
+  /** Barras de error de `globalDifference`. Sin esto, la cifra de arriba es una suposición. */
+  uncertainty: number;
+  provisional: boolean;
+  ratedPlayers: number;
+  /** Los del reparto: 10. */
+  poolSize: number;
+
+  /** Cuántos repartos empataban con el elegido. */
+  nearTies: number;
+  /** La búsqueda topó con el límite de candidatos: la variedad eligió entre menos opciones. */
+  searchTruncated: boolean;
+  /** Desempate 1: cuánto repite parejas de compañeros. */
+  repetition: number;
+  /** Desempate 2: cuánto repite duelos. Ronda 0.56 por puro azar. */
+  familiarity: number;
+  /** Qué equipo salió en el lado azul. */
+  blueTeam: 'A' | 'B';
+}

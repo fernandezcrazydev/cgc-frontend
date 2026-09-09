@@ -23,6 +23,7 @@ const DAY_MONTH_YEAR = new Intl.DateTimeFormat('es-ES', {
   month: 'short',
   year: 'numeric',
 });
+const RELATIVE = new Intl.RelativeTimeFormat('es-ES', { numeric: 'auto' });
 
 /** `'2026-06-23T21:45:00Z'` → `'23 jun · 21:45'`. Cadena vacía si la fecha no es válida. */
 export function formatMatchDate(iso: string): string {
@@ -38,6 +39,34 @@ export function formatLongDate(iso: string): string {
   const date = parse(iso);
   if (!date) return '';
   return DAY_MONTH_YEAR.format(date).replace('.', '');
+}
+
+/**
+ * `'2026-09-04T09:00:00Z'` → `'hace 3 horas'`, `'ayer'`, `'hace 5 días'`. Pasada una semana deja
+ * de ser relativo y pasa a fecha (`'23 jun 2026'`): "hace 43 días" no lo lee nadie, y a esa
+ * distancia lo que se quiere saber es *cuándo*, no *cuánto hace*.
+ *
+ * `now` es un parámetro y no `Date.now()` por dentro para que se pueda probar sin congelar el
+ * reloj global. Una fecha en el futuro —desfase entre el reloj del servidor y el del navegador,
+ * que pasa— se lee como "ahora mismo" en vez de "dentro de 2 minutos", que sería absurdo sobre un
+ * último acceso que ya ocurrió.
+ */
+export function formatRelativeTime(iso: string, now: number = Date.now()): string {
+  const date = parse(iso);
+  if (!date) return '';
+
+  const elapsedMs = now - date.getTime();
+  const minutes = Math.round(elapsedMs / 60_000);
+  if (minutes < 1) return 'ahora mismo';
+  if (minutes < 60) return RELATIVE.format(-minutes, 'minute');
+
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return RELATIVE.format(-hours, 'hour');
+
+  const days = Math.round(hours / 24);
+  if (days <= 7) return RELATIVE.format(-days, 'day');
+
+  return formatLongDate(iso);
 }
 
 /**

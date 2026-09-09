@@ -84,6 +84,15 @@ export const routes: Routes = [
         loadComponent: () => import('./features/shell/views/group-room/sala').then((m) => m.Sala),
       },
       {
+        // Monitoreo del reparto de UNA sala: solo admins del grupo. Cuelga de la sala porque
+        // es esa sala vista por dentro, no una sección aparte; la entrada la pinta `Sala` y
+        // solo para quien puede gestionar el grupo. El backend responde 403 al resto.
+        path: 'grupos/:id/sala/:salaId/reparto',
+        title: 'Reparto · Sale Custom',
+        loadComponent: () =>
+          import('./features/shell/views/group-room/reparto').then((m) => m.Reparto),
+      },
+      {
         path: 'grupos/:id/ranking',
         title: 'Ranking · Sale Custom',
         loadComponent: () =>

@@ -33,6 +33,14 @@
   color: var(--nf-text-dim);
 }
 
+.sl-head__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: none;
+  flex-wrap: wrap;
+}
+
 .sl-back {
   margin-bottom: 0;
   flex: none;

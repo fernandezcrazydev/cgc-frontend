@@ -61,4 +61,12 @@ describe('LobbiesApi', () => {
     expect(req.request.method).toBe('DELETE');
     req.flush(null);
   });
+
+  it('la explicación del reparto es un GET a la sala, no a la franja', () => {
+    api.balanceExplanation('lb1').subscribe();
+
+    const req = http.expectOne(`${environment.apiUrl}/lobbies/lb1/balance/explanation`);
+    expect(req.request.method).toBe('GET');
+    req.flush(null);
+  });
 });
