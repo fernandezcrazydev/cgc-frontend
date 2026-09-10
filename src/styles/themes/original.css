@@ -51,6 +51,16 @@
   --nf-team-blue: #60a5fa; /* blue-400  */
   --nf-team-red: #fb7185; /* rose-400   */
 
+  /* Los dos lados de un cruce y las tres ligas, traducidos a la familia de esta skin en vez de
+     heredar los del tema por defecto, que son bastante más saturados y desentonarían aquí. El
+     precedente son las dos líneas de arriba: los bandos de LoL son dominio y aun así se tematizan. */
+  --nf-ally: #60a5fa;  /* blue-400, el mismo azul que el bando aliado */
+  --nf-rival: #fb7185; /* rose-400, el mismo rojo que el bando rival  */
+
+  --nf-league-competitive: #818cf8; /* indigo-400, emparejado con el primary de esta skin */
+  --nf-league-balanced: #34d399;    /* emerald-400, el verde que ya usa --nf-success       */
+  --nf-league-chaos: #c084fc;       /* purple-400                                          */
+
   /* ---- Texto: el #e7e9f3 del legacy + dos capas atenuadas ----
      Las tres capas pasan AA sobre void/surface/surface-2. No bajar. */
   --nf-text: #e7e9f3;
