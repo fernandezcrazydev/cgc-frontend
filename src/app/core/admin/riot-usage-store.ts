@@ -25,8 +25,10 @@ const DANGER_AT = 0.85;
 const POLL_MS = 10_000;
 
 /**
- * El indicador de rate limit de Riot de la cabecera. Solo lo arranca el componente del
- * indicador, que a su vez solo existe si el usuario es ADMIN.
+ * El indicador de rate limit de Riot de la cabecera. **El polling solo lo arranca el componente
+ * del indicador**, que a su vez solo existe si el usuario es ADMIN; el directorio de admin pide
+ * una lectura suelta con `refresh()` y no toca el intervalo, para no apagárselo a la cabecera
+ * al salir de la ruta.
  *
  * La barra es el único aviso que tiene un admin antes de que Riot empiece a rechazarnos, así
  * que este store prefiere apagarse a mentir: un 403 lo para para siempre, y un fallo de red
@@ -96,6 +98,19 @@ export class RiotUsageStore {
       clearInterval(this.timer);
       this.timer = null;
     }
+  }
+
+  /**
+   * Una lectura suelta, sin arrancar ni parar el polling. La pide el directorio de admin para
+   * el pie de su tarjeta de métricas: ahí un número de hasta diez segundos de antigüedad no
+   * cambia ninguna decisión, y en móvil el indicador de la cabecera ni siquiera existe, así
+   * que sin esto la tarjeta no tendría nada que pintar.
+   *
+   * Si un 403 ya apagó el store, no vuelve a preguntar.
+   */
+  async refresh(): Promise<void> {
+    if (this.stopped) return;
+    await this.fetch();
   }
 
   /** Al cerrar sesión no debe quedar rastro, ni seguir preguntando. */
