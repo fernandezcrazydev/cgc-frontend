@@ -39,10 +39,14 @@
   overflow: hidden;
 }
 
+/* Los tres niveles son colores de ESTADO, y `ok` también: verde, no el azul de marca que
+   llevaba antes. Con `--nf-secondary` el nivel tranquilo era el único de los tres que no
+   decía nada por sí mismo, y el hilo de cuota del directorio de admin —que lee la misma
+   escala— tenía que discrepar de color por debajo del 60 %. */
 .nf-meter__fill {
   height: 100%;
   border-radius: 999px;
-  background: var(--nf-secondary);
+  background: var(--nf-success);
   /* La ventana se vacía sola cada 2 min: sin transición la barra daría saltos secos. */
   transition: width 0.35s ease, background 0.2s ease, box-shadow 0.2s ease;
 }

@@ -175,9 +175,8 @@ a.adm-card:hover .adm-card__glyph {
    último hijo de la tarjeta y no en posición absoluta: `overflow: hidden` del contenedor ya
    lo recorta contra las esquinas redondeadas.
 
-   OJO con el verde: `NfMeter` pinta su nivel `ok` en `--nf-secondary` (azul), así que por
-   debajo del 60 % este hilo y la barra de la cabecera discrepan de color. Está así a
-   propósito hasta que se decida alinear la primitiva; el nivel es el mismo en los dos. */
+   Comparte escala y colores con `NfMeter`, que es lo que pinta esta misma cuota en la barra
+   de la cabecera y en la vista de métricas: los tres niveles se ven igual en los tres sitios. */
 .adm-card__thread { height: 3px; background: var(--nf-border); }
 
 /* Punto e hilo comparten escala; `attention` es solo del punto (feedback sin triar no es un
