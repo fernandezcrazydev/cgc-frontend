@@ -239,6 +239,45 @@ const RULES = [
     },
   },
   {
+    id: 'adblock-bait',
+    title: 'Clases con nombre que los bloqueadores de anuncios ocultan por su cuenta',
+    /**
+     * EasyList —la lista por defecto de uBlock Origin, AdBlock Plus y AdGuard— trae ~8.800
+     * reglas cosméticas GENÉRICAS del tipo `##.clase`: sin dominio que las acote, aplican
+     * `display:none !important` a ese nombre de clase en CUALQUIER página. Dos de ellas,
+     * `##.ad-card` y `##.ad-grid`, eran exactamente las clases del directorio de
+     * administración, y esa pantalla se veía vacía en el navegador de cualquiera que usara
+     * un bloqueador. El DOM estaba, el guard pasaba, no había error en consola: nada que
+     * mirar, solo un hueco. Es invisible en desarrollo y silencioso en producción, así que
+     * no se descubre dos veces por casualidad.
+     *
+     * Se mira la CABEZA del nombre (el bloque BEM), que es donde está el riesgo real: las
+     * reglas de EasyList casan el nombre EXACTO, así que `gp-banner` es seguro y `banner`
+     * no lo es. Validado contra la lista real: el patrón captura 3.810 de sus 8.841 clases
+     * genéricas, y de las que este repo usaba no se le escapó ninguna.
+     *
+     * Para reauditar contra la lista viva el día que se dude, cruza las clases del repo con:
+     *   curl -s https://easylist.to/easylist/easylist.txt | grep -oE "^##[.][a-zA-Z0-9_-]+$"
+     */
+    run() {
+      const BAIT =
+        /^(ad|ads|adv|advert|adverts|advertisement|advertising|banner|banners|sponsor|sponsors|sponsored|sponsorship|promo|promotion|popunder)([-_]|$)/;
+      const out = [];
+      for (const f of pick('.ts', '.html', '.scss', '.css')) {
+        if (isSpec(f) || !f.path.startsWith('src/')) continue;
+        const isSheet = f.path.endsWith('.scss') || f.path.endsWith('.css');
+        stripComments(f.read()).split('\n').forEach((line, i) => {
+          const names = new Set();
+          for (const m of line.matchAll(/class="([^"]*)"/g)) for (const c of m[1].split(/\s+/)) names.add(c);
+          for (const m of line.matchAll(/\[class\.([a-zA-Z][\w-]*)\]/g)) names.add(m[1]);
+          if (isSheet) for (const m of line.matchAll(/\.([a-zA-Z][\w-]*)/g)) names.add(m[1]);
+          for (const c of names) if (BAIT.test(c)) out.push(hit(f.path, i + 1, `.${c} la ocultan los bloqueadores`));
+        });
+      }
+      return out;
+    },
+  },
+  {
     id: 'viewport-units',
     title: '100vh/100vw a pelo (el zoom de :root los desvía un 10%) → calc(var(--nf-vh) * 100)',
     run() {

@@ -591,6 +591,14 @@ Cuando se acuerde uno, documentarlo aquí y borrar la línea de pendientes.
   ya arrastró un juego de tokens llamado `--nf-pink`/`--nf-cyan` que acabó pintando azul.
   Excepción única: los bandos de LoL (`'blue' | 'red'`, `.lm-side--*`, `.cp-team--*`), que
   son dominio y no tema.
+- **Nombres que un bloqueador de anuncios ocultaría, nunca.** EasyList —la lista por defecto
+  de uBlock Origin, AdBlock Plus y AdGuard— trae ~8.800 reglas cosméticas **genéricas** del
+  tipo `##.clase`, sin dominio que las acote: aplican `display:none !important` a ese nombre
+  en cualquier página. El directorio de administración se llamó `ad-grid`/`ad-card` y
+  **desapareció entero** para quien usara un bloqueador: DOM completo, guard pasado, consola
+  limpia, pantalla vacía. Nada en desarrollo lo enseña. Las reglas casan el nombre EXACTO, así
+  que el riesgo está en la **cabeza** del nombre: `gp-banner` es seguro, `banner` no. Lo vigila
+  `npm run arch` (regla `adblock-bait`); el prefijo de esa vista es hoy `adm-*`.
 - **Temas**: `core/theme` mantiene `<html data-theme>`; cada skin es un fichero en
   `src/styles/themes/` que redefine tokens. El tema por defecto (`nocturne`) vive en
   `styles/tokens/` y **no lleva atributo**, así que `:root` a secas ya es el defecto.
@@ -641,6 +649,7 @@ corre en <1s, y CI lo ejecuta en cada PR (`.github/workflows/ci.yml`). Comprueba
 | `inline-template-size` | plantilla inline > 150 líneas |
 | `font-floor` | `font-size` < 11px |
 | `font-size-raw` | `font-size` en px crudos en vez de la escala `--fs-*` |
+| `adblock-bait` | clases que los bloqueadores de anuncios ocultan solas (`ad-*`, `banner*`, `promo*`…) |
 | `viewport-units` | `100vh`/`100vw` a pelo (el zoom de `:root` los desvía un 10%) |
 
 **Es un trinquete, no un muro.** La deuda actual está anotada en `scripts/arch-budgets.json`; el
