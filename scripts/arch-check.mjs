@@ -252,6 +252,104 @@ const RULES = [
       return out;
     },
   },
+  {
+    id: 'emoji-free',
+    title: 'Nada de emojis en la interfaz: los iconos son SVG inline con currentColor',
+    run() {
+      // El criterio no es "cualquier simbolo raro": son los PICTOGRAMAS DE COLOR que pinta el
+      // sistema operativo, que cambian de aspecto entre Windows/macOS/Android, no obedecen a
+      // `currentColor` ni a los tokens `--nf-*`, y no pegan opticamente con el resto.
+      // `Emoji_Presentation` los identifica exactamente; U+FE0F es la variante que fuerza a
+      // color un glifo de texto. Por eso `v`, `*`, el caret y el separador NO caen aqui: son
+      // caracteres tipograficos que la app usa a proposito, y `⚠` a secas tampoco (solo `⚠` + FE0F).
+      //
+      // Excepciones por diseno: donde el emoji es EL CONTENIDO que escribe el usuario, no
+      // decoracion de la interfaz (el selector, las reacciones a comentarios y partidas, y el
+      // catalogo de estados de animo del feedback).
+      const EXEMPT = [
+        'src/app/ui/emoji-picker/',
+        'src/app/core/reactions/',
+        'src/app/core/feedback/models.ts',
+      ];
+      const PICTOGRAM = /\p{Emoji_Presentation}|\uFE0F/u;
+      const out = [];
+      for (const f of pick('.ts', '.html')) {
+        if (isSpec(f) || EXEMPT.some((e) => f.path.startsWith(e))) continue;
+        f.read().split('\n').forEach((line, i) => {
+          const m = line.match(PICTOGRAM);
+          if (m) out.push(hit(f.path, i + 1, `emoji ${m[0]} → usa un <svg> inline con currentColor`));
+        });
+      }
+      return out;
+    },
+  },
+  {
+    id: 'legacy-angular',
+    title: 'Angular antiguo: @Input()/@Output()/EventEmitter en vez de input()/output()/model()',
+    run() {
+      const out = [];
+      for (const f of pick('.ts')) {
+        if (isSpec(f)) continue;
+        stripComments(f.read()).split('\n').forEach((line, i) => {
+          const m = line.match(/@Input\(|@Output\(|new EventEmitter/);
+          if (m) out.push(hit(f.path, i + 1, `${m[0]}...) → input()/output()/model()`));
+        });
+      }
+      return out;
+    },
+  },
+  {
+    id: 'onpush',
+    title: 'Todo componente lleva ChangeDetectionStrategy.OnPush',
+    unit: 'componentes',
+    run() {
+      const out = [];
+      for (const f of pick('.ts')) {
+        if (isSpec(f)) continue;
+        const src = stripComments(f.read());
+        if (!src.includes('@Component')) continue;
+        if (src.includes('ChangeDetectionStrategy.OnPush')) continue;
+        const line = src.split('\n').findIndex((l) => l.includes('@Component')) + 1;
+        out.push(hit(f.path, line, 'sin changeDetection: ChangeDetectionStrategy.OnPush'));
+      }
+      return out;
+    },
+  },
+  {
+    id: 'ng-deep',
+    title: '::ng-deep es API muerta: expon una custom property en la primitiva',
+    run() {
+      // La encapsulacion de tu hoja no alcanza a los hijos internos de un `nf-*`. La salida no es
+      // perforarla: es que la primitiva declare una custom property y la vista la fije sobre el
+      // host, que si heredan a traves de la frontera (ver nf-pagination.scss).
+      const out = [];
+      for (const f of pick('.scss', '.css', '.ts', '.html')) {
+        stripComments(f.read()).split('\n').forEach((line, i) => {
+          if (line.includes('::ng-deep'))
+            out.push(hit(f.path, i + 1, '::ng-deep → custom property sobre el host'));
+        });
+      }
+      return out;
+    },
+  },
+  {
+    id: 'toast-literal',
+    title: 'toasts.error() con string fija en vez de errorMessage(e) de core/http',
+    run() {
+      // `catch { toasts.error('No se pudo...') }` se traga el error real y le dice al usuario
+      // siempre lo mismo. El catalogo `code → mensaje` vive en MESSAGES_BY_CODE
+      // (core/http/api-error.ts) y es el unico sitio donde se escribe ese texto.
+      const out = [];
+      for (const f of pick('.ts')) {
+        if (isSpec(f)) continue;
+        stripComments(f.read()).split('\n').forEach((line, i) => {
+          if (/toasts?\.error\(\s*['"`]/.test(line))
+            out.push(hit(f.path, i + 1, "toasts.error('...') → toasts.error(errorMessage(e))"));
+        });
+      }
+      return out;
+    },
+  },
 ];
 
 /* ──────────────────────────────────── runner ──────────────────────────────────── */

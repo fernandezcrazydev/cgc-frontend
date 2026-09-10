@@ -27,6 +27,27 @@ npm run arch     # reglas de arquitectura de este documento (ver § "Reglas veri
 **Antes de dar por terminado cualquier cambio: `npm run arch && npm test`.** El primero es
 instantáneo y es lo que impide que este documento vuelva a ser decorativo.
 
+## Cómo se leen los documentos del proyecto (regla de coste)
+
+Los documentos de dominio y planificación viven **fuera de este repositorio**, en la raíz `main/`,
+y dos de ellos son enormes: **`Roadmap.md` pesa 355 KB (~90.000 tokens)** y **`FlujoJuego.md`
+110 KB**. Leerlos enteros para «tener contexto» se gasta el presupuesto de una sesión antes de la
+primera decisión, y casi todo lo leído no hacía falta.
+
+**Ninguno de los dos se lee entero jamás.** Los dos llevan un índice de secciones con rangos de
+línea al principio. El procedimiento es localizar la sección y leer solo esas líneas:
+
+```bash
+grep -n "^#\{1,4\} " ../Roadmap.md        # el mapa: encabezado → línea
+sed -n '3155,3290p' ../Roadmap.md         # y se lee solo el tramo que interesa
+```
+
+Única excepción: un refactor que reescriba el documento. Lo que **sí** se lee completo es
+`../prompt.md`, que es el briefing de arranque y está escrito para eso, y este mismo fichero.
+
+`FlujoJuego.md` es la **fuente de la verdad del dominio**: cuando contradice a `Roadmap.md`, gana
+él y el roadmap se corrige en el mismo turno.
+
 ## Estrategia de migración mock → backend (LA decisión de arquitectura)
 
 **Solo `core/auth/` habla con backend real** (OIDC code+PKCE contra nuestro backend; Discord es
@@ -642,6 +663,25 @@ corre en <1s, y CI lo ejecuta en cada PR (`.github/workflows/ci.yml`). Comprueba
 | `font-floor` | `font-size` < 11px |
 | `font-size-raw` | `font-size` en px crudos en vez de la escala `--fs-*` |
 | `viewport-units` | `100vh`/`100vw` a pelo (el zoom de `:root` los desvía un 10%) |
+| `emoji-free` | pictogramas de color en la interfaz (§ "UI kit": los iconos son SVG inline) |
+| `legacy-angular` | `@Input()`/`@Output()`/`EventEmitter` en vez de `input()`/`output()`/`model()` |
+| `onpush` | componente sin `ChangeDetectionStrategy.OnPush` |
+| `ng-deep` | `::ng-deep`, que es API muerta |
+| `toast-literal` | `toasts.error('…')` con string fija en vez de `errorMessage(e)` |
+
+Las cinco últimas se añadieron el **2026-09-10** y no son reglas nuevas: son reglas que este
+documento ya exigía en prosa y que nadie verificaba, así que se incumplían sin que se notase
+(90 líneas con emoji, 22 `@Input()`, 17 componentes sin `OnPush`, 9 `toasts.error()` literales).
+Entraron con el incumplimiento de hoy como presupuesto: **no obligan a limpiar la deuda, obligan a
+no añadir más**. `ng-deep` entró en **0**, que es un muro de verdad: los `::ng-deep` que aparecían
+al grepear estaban todos dentro de comentarios que advertían contra él.
+
+> **Ojo con `emoji-free`.** Distingue el pictograma de color del carácter tipográfico, que es la
+> distinción que importa: caza lo que tiene `Emoji_Presentation` o lleva un `U+FE0F` detrás, así que
+> `✓`, `★`, `▾`, `›`, `·`, `✕` y `⚠` a secas **no** son incumplimientos —la app los usa a propósito—
+> y `🏆`, `⚔️` o `⚠️` sí. Quedan exentos `ui/emoji-picker/`, `core/reactions/` y
+> `core/feedback/models.ts`, donde el emoji **es el contenido que escribe el usuario**, no
+> decoración de la interfaz.
 
 **Es un trinquete, no un muro.** La deuda actual está anotada en `scripts/arch-budgets.json`; el
 check falla solo si una regla **empeora**. Así se adopta con el repo como está, sin big-bang.
