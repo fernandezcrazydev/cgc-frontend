@@ -80,9 +80,9 @@ npm test         # vitest
 nada como completado. `npm run arch` tarda menos de un segundo: ejecútalo después de cada tanda de
 ediciones, no al final.
 
-El trinquete verifica hoy **quince** reglas, entre ellas cinco que se añadieron el 2026-09-10
+El trinquete verifica hoy **dieciocho** reglas, entre ellas cinco que se añadieron el 2026-09-10
 precisamente porque eran las que más se incumplían sin que nadie se diera cuenta: `emoji-free`,
-`legacy-angular`, `onpush`, `ng-deep` y `toast-literal`. Si el check pasa, esas quince ya no hay
+`legacy-angular`, `onpush`, `ng-deep` y `toast-literal`. Si el check pasa, esas dieciocho ya no hay
 que revisarlas a mano.
 
 ## 3. Resumen operativo

@@ -8,6 +8,7 @@ export const routes: Routes = [
   // Debe ir antes del comodín '**'. Es la redirectUri registrada en el backend.
   {
     path: 'callback',
+    title: 'Iniciando sesión · Sale Custom',
     loadComponent: () => import('./features/auth/callback').then((m) => m.Callback),
   },
   {
