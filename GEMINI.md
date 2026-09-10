@@ -1,13 +1,25 @@
-# cgc-frontend — contrato de ejecución para Gemini CLI
+# cgc-frontend — contrato de ejecución para un agente que no decide
 
-Las reglas del proyecto viven en un único fichero. Se importa aquí para que entren en tu contexto:
+> **⚠ Ningún CLI carga este fichero solo.** Se comprobó el 2026-09-10 contra el CLI de Antigravity
+> (`agy`), que es el que se usa aquí: no lee `CLAUDE.md`, ni `GEMINI.md`, ni `AGENTS.md`.
+> Preguntado a bocajarro qué fichero `.scss` está congelado, responde «NO LO SÉ».
+>
+> **Consecuencia práctica:** el prompt que lanza una tarea tiene que decir explícitamente qué leer,
+> y lo que se le pasa —su ficha de `tareas/`— tiene que ser **autosuficiente de verdad**, porque
+> detrás no hay ninguna red. `herramientas/ejecutar-ficha.mjs` (fuera del repositorio) ya lo hace.
+>
+> Este documento sigue valiendo como el contrato al que apuntar: «lee `CLAUDE.md` y `GEMINI.md`
+> antes de empezar». Lo que no vale es suponer que alguien lo abrió por ti.
+
+Las reglas del proyecto viven en un único fichero, `CLAUDE.md`. Si tu CLI resuelve la sintaxis
+`@fichero`, estos dos entran solos:
 
 @CLAUDE.md
 
 @AGENTS.md
 
-Si tu versión de Gemini CLI no resuelve la sintaxis `@fichero`, abre y lee `CLAUDE.md` entero
-antes de escribir nada. No trabajes solo con este resumen.
+Si no la resuelve —lo normal—, **abre y lee `CLAUDE.md` entero antes de escribir nada.** No
+trabajes solo con este resumen.
 
 ---
 
