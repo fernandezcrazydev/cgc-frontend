@@ -1,0 +1,180 @@
+<div class="view">
+  <div class="view__head">
+    <div class="view__eyebrow nf-mono">Administración</div>
+    <h1 class="view__title">Admin</h1>
+    <p class="view__lead">Qué hay pendiente ahora mismo, y las operaciones que se ejecutan contra el servidor.</p>
+  </div>
+
+  <div class="adm-section">
+    <span class="adm-section__label">Herramientas</span>
+    <span class="adm-section__rule"></span>
+  </div>
+
+  <!-- adm-*, NUNCA ad-*: EasyList (la lista por defecto de uBlock Origin, AdBlock Plus y
+       AdGuard) trae las reglas cosméticas genéricas "##.ad-card" y "##.ad-grid", sin dominio
+       que las acote. Con esas clases, el navegador de cualquiera que use un bloqueador
+       aplicaba display:none al grid entero y esta pantalla se veía vacía por debajo del
+       título: el DOM estaba, el guard pasaba, y no se veía nada. -->
+  <div class="adm-grid">
+    <!-- Cada tarjeta tiene la misma anatomía: qué es arriba, cómo está ahora mismo abajo.
+         El pie llega por red y carga por su cuenta: si falla, la tarjeta sigue llevando a
+         su pantalla, que es lo que no puede dejar de funcionar. -->
+    <a class="adm-card" [routerLink]="['/app', 'admin', 'feedback']">
+      <span class="adm-card__main">
+        <span class="adm-card__glyph">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+          </svg>
+        </span>
+        <span class="adm-card__body">
+          <span class="adm-card__label">Feedback</span>
+          <span class="adm-card__desc">Triaje de bugs, propuestas e incidencias de los usuarios.</span>
+        </span>
+      </span>
+
+      <span class="adm-card__foot" [attr.aria-busy]="pendingLoading() ? 'true' : null">
+        <span class="adm-card__pulse">
+          <!-- Con el dato en mano no se vuelve a vaciar aunque haya un refresco en vuelo, y
+               nunca un 0 provisional: se leería como "no hay nada pendiente". -->
+          @if (pendingKnown()) {
+            @if (feedback.pendingCount()) {
+              <span class="adm-pulse__dot" data-level="attention"></span>
+              <span class="adm-pulse__value">{{ feedback.pendingCount() }} sin triar</span>
+            } @else {
+              <span class="adm-pulse__dot" data-level="ok"></span>
+              <span class="adm-pulse__value">Al día</span>
+              <span class="adm-pulse__note">· nada sin triar</span>
+            }
+          } @else if (pendingLoading()) {
+            <nf-skeleton width="140px" height="16px" radius="var(--nf-radius-sm)" />
+          } @else {
+            <span class="adm-pulse__note">No se pudo cargar el contador</span>
+          }
+        </span>
+        <span class="adm-card__chevron">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+        </span>
+      </span>
+    </a>
+
+    <a class="adm-card" [routerLink]="['/app', 'admin', 'riot-metricas']">
+      <span class="adm-card__main">
+        <span class="adm-card__glyph">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="6" y1="20" x2="6" y2="14" />
+            <line x1="12" y1="20" x2="12" y2="4" />
+            <line x1="18" y1="20" x2="18" y2="10" />
+          </svg>
+        </span>
+        <span class="adm-card__body">
+          <span class="adm-card__label">Métricas de la API de Riot</span>
+          <span class="adm-card__desc">Qué endpoints consumimos, cuándo y quién gasta cuota.</span>
+        </span>
+      </span>
+
+      <span class="adm-card__foot" [attr.aria-busy]="riotLoading() ? 'true' : null">
+        <span class="adm-card__pulse">
+          @if (riotKnown()) {
+            <span class="adm-pulse__dot" [attr.data-level]="riot.level()"></span>
+            <span class="adm-pulse__value">{{ riotStateLabel() }}</span>
+            <span class="adm-pulse__note">· {{ riotUsageLabel() }}</span>
+          } @else if (riotLoading()) {
+            <nf-skeleton width="200px" height="16px" radius="var(--nf-radius-sm)" />
+          } @else {
+            <span class="adm-pulse__note">No se pudo leer la cuota</span>
+          }
+        </span>
+        <span class="adm-card__chevron">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+        </span>
+      </span>
+
+      <!-- El hilo dice de un vistazo lo que la frase dice con palabras, sin gastar otra línea.
+           Se pinta siempre (neutro mientras no hay dato) para que llegar el número no mueva
+           3 px la tarjeta. -->
+      <span class="adm-card__thread" [attr.data-level]="riotKnown() ? riot.level() : null" aria-hidden="true"></span>
+    </a>
+
+    <a class="adm-card" [routerLink]="['/app', 'admin', 'seguridad']">
+      <span class="adm-card__main">
+        <span class="adm-card__glyph">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+          </svg>
+        </span>
+        <span class="adm-card__body">
+          <span class="adm-card__label">Registro de seguridad</span>
+          <span class="adm-card__desc">Intentos de acceso: quién, desde qué dirección y con qué cliente.</span>
+        </span>
+      </span>
+
+      <span class="adm-card__foot" [attr.aria-busy]="securityLoading() ? 'true' : null">
+        <span class="adm-card__pulse">
+          @if (securityKnown()) {
+            @if (security.pulseRejected()) {
+              <span class="adm-pulse__dot" data-level="warn"></span>
+              <span class="adm-pulse__value">{{ security.pulseRejected() }} intentos rechazados</span>
+            } @else {
+              <span class="adm-pulse__dot" data-level="ok"></span>
+              <span class="adm-pulse__value">Sin rechazos</span>
+            }
+            <span class="adm-pulse__note">· {{ securityTotal() }} eventos en {{ securityWindowHours }} h</span>
+          } @else if (securityLoading()) {
+            <nf-skeleton width="180px" height="16px" radius="var(--nf-radius-sm)" />
+          } @else {
+            <span class="adm-pulse__note">No se pudo cargar el resumen</span>
+          }
+        </span>
+        <span class="adm-card__chevron">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+        </span>
+      </span>
+    </a>
+  </div>
+
+  <div class="adm-section">
+    <span class="adm-section__label">Operaciones</span>
+    <span class="adm-section__rule"></span>
+  </div>
+
+  <div class="adm-ops">
+    <div class="adm-op">
+      <span class="adm-card__glyph">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="23 4 23 10 17 10" />
+          <polyline points="1 20 1 14 7 14" />
+          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10" />
+          <path d="M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+        </svg>
+      </span>
+      <span class="adm-card__body">
+        <span class="adm-card__label">Refrescar cuentas de Riot</span>
+        <span class="adm-card__desc">
+          Adelanta el barrido nocturno: icono de invocador y rango de SoloQ de cada cuenta
+          vinculada, que es lo que pinta el escudo del ranking.
+        </span>
+        <!-- BACKEND NOTE: no hay endpoint que diga cuándo corrió el barrido por última vez, así
+             que solo se puede contar lo ejecutado desde ESTA pantalla. Cuando exista, esta línea
+             pasa a leerse del servidor y deja de depender de la sesión. -->
+        @if (refreshSummary(); as summary) {
+          <span class="adm-op__result nf-mono">{{ summary }}</span>
+        }
+      </span>
+      <button
+        type="button"
+        nfButton
+        variant="primary"
+        [disabled]="refreshPending()"
+        (click)="refreshRiotAccounts()"
+      >
+        {{ refreshPending() ? 'Refrescando…' : 'Refrescar ahora' }}
+      </button>
+    </div>
+  </div>
+</div>

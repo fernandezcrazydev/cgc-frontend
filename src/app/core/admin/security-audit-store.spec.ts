@@ -131,4 +131,75 @@ describe('SecurityAuditStore', () => {
     expect(store.page()?.page).toBe(1);
     expect(store.summary()?.totalEvents).toBe(7);
   });
+
+  /* ---- Pulso de 24 h (el pie de la tarjeta del directorio de admin) ---- */
+
+  /** El resumen que pide el pulso, con los cinco tipos como los manda el backend. */
+  function flushPulse(counts: { failure?: number; denied?: number; total?: number } = {}): void {
+    http.expectOne((r) => r.url === `${base}/summary` && r.params.has('from')).flush({
+      byKind: [
+        { kind: 'LOGIN_START', events: 0 },
+        { kind: 'LOGIN_SUCCESS', events: 0 },
+        { kind: 'LOGIN_FAILURE', events: counts.failure ?? 0 },
+        { kind: 'LOGOUT', events: 0 },
+        { kind: 'ACCESS_DENIED', events: counts.denied ?? 0 },
+      ],
+      totalEvents: counts.total ?? 0,
+    });
+  }
+
+  it('el pulso suma logins fallidos y accesos denegados, que es un solo rechazo para quien mira', async () => {
+    expect(store.pulseRejected()).toBeNull();
+
+    const done = store.refreshPulse();
+    flushPulse({ failure: 4, denied: 8, total: 148 });
+    await done;
+
+    expect(store.pulseStatus()).toBe('ready');
+    expect(store.pulseRejected()).toBe(12);
+    expect(store.pulse()?.totalEvents).toBe(148);
+  });
+
+  it('el pulso deduplica lo que está en vuelo y se puede volver a pedir después', async () => {
+    const a = store.refreshPulse();
+    const b = store.refreshPulse();
+    expect(a).toBe(b);
+    flushPulse({ total: 1 });
+    await Promise.all([a, b]);
+
+    // Deduplicar no es cachear: al reentrar en la ruta hay que volver a preguntar.
+    const otra = store.refreshPulse();
+    flushPulse({ total: 2 });
+    await otra;
+    expect(store.pulse()?.totalEvents).toBe(2);
+  });
+
+  /** Es el pie de una tarjeta que funciona sin él: no lanza, y no arrastra a la pantalla. */
+  it('el pulso no propaga su fallo y deja el resto del store intacto', async () => {
+    const done = store.refreshPulse();
+    http
+      .expectOne((r) => r.url === `${base}/summary` && r.params.has('from'))
+      .flush(null, { status: 500, statusText: 'Server Error' });
+    await expect(done).resolves.toBeUndefined();
+
+    expect(store.pulseStatus()).toBe('error');
+    expect(store.pulseRejected()).toBeNull();
+    expect(store.status()).toBe('idle');
+  });
+
+  /** Un filtro de la pantalla del log no puede cambiar el número que pinta la tarjeta. */
+  it('el pulso no toca los filtros ni el estado de la carga principal', async () => {
+    const cargando = store.applyFilters({ clientIp: '10.0.0.1' });
+    answer();
+    await cargando;
+
+    const done = store.refreshPulse();
+    const req = http.expectOne((r) => r.url === `${base}/summary` && r.params.has('from'));
+    expect(req.request.params.has('clientIp')).toBe(false);
+    req.flush({ byKind: [], totalEvents: 5 });
+    await done;
+
+    expect(store.filters().clientIp).toBe('10.0.0.1');
+    expect(store.status()).toBe('ready');
+  });
 });

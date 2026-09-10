@@ -52,6 +52,18 @@ export class FeedbackAdminStore {
   readonly loading = this._loading.asReadonly();
   readonly filters = this._filters.asReadonly();
 
+  /**
+   * Cuántos reportes están sin triar. Lo pinta el badge del directorio de admin, que es una
+   * pantalla distinta de la tabla, así que vive aparte de `_page` y no lo invalida un filtro.
+   */
+  private readonly _pendingCount = signal<number | null>(null);
+  private readonly _pendingStatus = signal<'idle' | 'loading' | 'ready' | 'error'>('idle');
+  private pendingInFlight: Promise<void> | null = null;
+
+  /** Reportes en `NEW`, o `null` mientras no se haya llegado a saber. Nunca 0 por defecto. */
+  readonly pendingCount = this._pendingCount.asReadonly();
+  readonly pendingStatus = this._pendingStatus.asReadonly();
+
   private readonly _detail = signal<FeedbackDetail | null>(null);
   private readonly _detailLoading = signal(false);
   private readonly _saving = signal(false);
@@ -81,6 +93,40 @@ export class FeedbackAdminStore {
   async applyFilters(filters: FeedbackListFilters): Promise<void> {
     this._filters.set(filters);
     await this.loadPage(0);
+  }
+
+  /**
+   * Refresca el número de reportes sin triar. Deduplica la petición en vuelo, así que dos
+   * vistas montándose a la vez no piden dos veces.
+   *
+   * Se llama al entrar en la ruta y no una sola vez por sesión: otro admin puede haber
+   * triado mientras tanto. Quien lo pinta conserva el valor anterior mientras llega el
+   * nuevo, de modo que volver a la pantalla no parpadea.
+   *
+   * BACKEND NOTE: no hay endpoint de conteo, así que se pide la primera página del filtro
+   * `NEW` con `size=1` y se lee `totalElements` (el total de la colección, no de la página).
+   * Si algún día existe un resumen del panel, este es el sitio que cambia.
+   */
+  refreshPendingCount(): Promise<void> {
+    return (this.pendingInFlight ??= this.fetchPendingCount());
+  }
+
+  /**
+   * A diferencia del resto del store, este fallo NO se propaga: el contador es un extra de
+   * una pantalla que funciona sin él, y un toast de error por un badge que no ha cargado es
+   * ruido sobre algo que el admin no puede arreglar. Se queda en `error` y no se pinta nada.
+   */
+  private async fetchPendingCount(): Promise<void> {
+    this._pendingStatus.set('loading');
+    try {
+      const page = await firstValueFrom(this.api.list({ status: 'NEW' }, 0, 1));
+      this._pendingCount.set(page.totalElements);
+      this._pendingStatus.set('ready');
+    } catch {
+      this._pendingStatus.set('error');
+    } finally {
+      this.pendingInFlight = null;
+    }
   }
 
   /** Carga el detalle de un reporte. Lo deja en `detail()`; lanza (p. ej. 404) para que la vista reaccione. */
