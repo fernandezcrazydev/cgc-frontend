@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output, ViewEncapsulation } from '@angular/core';
+import { Component, EventEmitter, Input, Output, ViewEncapsulation, input } from '@angular/core';
 
 /** Una opción cuyo valor y etiqueta no coinciden: un enum del backend con su nombre en español. */
 export interface NfSelectOption {
@@ -25,7 +25,7 @@ export interface NfSelectOption {
       <select
         class="nf-select__field"
         [value]="value"
-        [attr.aria-label]="ariaLabel || null"
+        [attr.aria-label]="ariaLabel() || null"
         (change)="onChange($event)"
       >
         @for (opt of normalized; track opt.value) {
@@ -49,7 +49,7 @@ export class NfSelect {
 
   @Input() value = '';
   /** Nombre accesible del control cuando no hay una etiqueta visible a su lado. */
-  @Input() ariaLabel = '';
+  readonly ariaLabel = input<string>('');
   @Output() valueChange = new EventEmitter<string>();
 
   onChange(event: Event): void {
