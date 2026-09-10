@@ -63,47 +63,52 @@ const ITEMS: AdminDirectoryItem[] = [
         <p class="view__lead">Acciones de administración: triaje de reportes y operaciones puntuales sobre datos del servidor.</p>
       </div>
 
-      <div class="ad-grid">
+      <!-- adm-*, NUNCA ad-*: EasyList (la lista por defecto de uBlock Origin, AdBlock Plus y
+           AdGuard) trae las reglas cosméticas genéricas "##.ad-card" y "##.ad-grid", sin dominio
+           que las acote. Con esas clases, el navegador de cualquiera que use un bloqueador
+           aplicaba display:none al grid entero y esta pantalla se veía vacía por debajo del
+           título: el DOM estaba, el guard pasaba, y no se veía nada. -->
+      <div class="adm-grid">
         @for (item of items; track item.id) {
           @switch (item.id) {
             @case ('feedback') {
-              <a class="ad-card" [routerLink]="['/app', 'admin', 'feedback']">
-                <span class="ad-card__glyph">{{ item.glyph }}</span>
-                <span class="ad-card__body">
-                  <span class="ad-card__label">{{ item.label }}</span>
-                  <span class="ad-card__desc">{{ item.description }}</span>
+              <a class="adm-card" [routerLink]="['/app', 'admin', 'feedback']">
+                <span class="adm-card__glyph">{{ item.glyph }}</span>
+                <span class="adm-card__body">
+                  <span class="adm-card__label">{{ item.label }}</span>
+                  <span class="adm-card__desc">{{ item.description }}</span>
                 </span>
-                <span class="ad-card__cta nf-mono">Abrir</span>
+                <span class="adm-card__cta nf-mono">Abrir</span>
               </a>
             }
             @case ('riot-metrics') {
-              <a class="ad-card" [routerLink]="['/app', 'admin', 'riot-metricas']">
-                <span class="ad-card__glyph">{{ item.glyph }}</span>
-                <span class="ad-card__body">
-                  <span class="ad-card__label">{{ item.label }}</span>
-                  <span class="ad-card__desc">{{ item.description }}</span>
+              <a class="adm-card" [routerLink]="['/app', 'admin', 'riot-metricas']">
+                <span class="adm-card__glyph">{{ item.glyph }}</span>
+                <span class="adm-card__body">
+                  <span class="adm-card__label">{{ item.label }}</span>
+                  <span class="adm-card__desc">{{ item.description }}</span>
                 </span>
-                <span class="ad-card__cta nf-mono">Abrir</span>
+                <span class="adm-card__cta nf-mono">Abrir</span>
               </a>
             }
             @case ('security-audit') {
-              <a class="ad-card" [routerLink]="['/app', 'admin', 'seguridad']">
-                <span class="ad-card__glyph">{{ item.glyph }}</span>
-                <span class="ad-card__body">
-                  <span class="ad-card__label">{{ item.label }}</span>
-                  <span class="ad-card__desc">{{ item.description }}</span>
+              <a class="adm-card" [routerLink]="['/app', 'admin', 'seguridad']">
+                <span class="adm-card__glyph">{{ item.glyph }}</span>
+                <span class="adm-card__body">
+                  <span class="adm-card__label">{{ item.label }}</span>
+                  <span class="adm-card__desc">{{ item.description }}</span>
                 </span>
-                <span class="ad-card__cta nf-mono">Abrir</span>
+                <span class="adm-card__cta nf-mono">Abrir</span>
               </a>
             }
             @case ('riot-accounts-refresh') {
-              <div class="ad-card">
-                <span class="ad-card__glyph">{{ item.glyph }}</span>
-                <span class="ad-card__body">
-                  <span class="ad-card__label">{{ item.label }}</span>
-                  <span class="ad-card__desc">{{ item.description }}</span>
+              <div class="adm-card">
+                <span class="adm-card__glyph">{{ item.glyph }}</span>
+                <span class="adm-card__body">
+                  <span class="adm-card__label">{{ item.label }}</span>
+                  <span class="adm-card__desc">{{ item.description }}</span>
                   @if (refreshSummary(); as summary) {
-                    <span class="ad-card__result nf-mono">{{ summary }}</span>
+                    <span class="adm-card__result nf-mono">{{ summary }}</span>
                   }
                 </span>
                 <button
@@ -125,12 +130,12 @@ const ITEMS: AdminDirectoryItem[] = [
   `,
   styles: [
     `
-      .ad-grid {
+      .adm-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
         gap: 14px;
       }
-      .ad-card {
+      .adm-card {
         display: flex;
         align-items: flex-start;
         gap: 14px;
@@ -142,34 +147,34 @@ const ITEMS: AdminDirectoryItem[] = [
         color: inherit;
         transition: border-color 0.15s ease, transform 0.15s ease;
       }
-      a.ad-card:hover {
+      a.adm-card:hover {
         border-color: var(--nf-accent, #ff5bb0);
         transform: translateY(-2px);
       }
-      .ad-card__glyph {
+      .adm-card__glyph {
         font-size: 22px;
         line-height: 1;
       }
-      .ad-card__body {
+      .adm-card__body {
         display: flex;
         flex-direction: column;
         gap: 6px;
         min-width: 0;
         flex: 1;
       }
-      .ad-card__label {
+      .adm-card__label {
         font-weight: 700;
       }
-      .ad-card__desc {
+      .adm-card__desc {
         font-size: 12.5px;
         line-height: 1.5;
         color: var(--nf-text-mid);
       }
-      .ad-card__result {
+      .adm-card__result {
         font-size: 12px;
         color: var(--nf-secondary);
       }
-      .ad-card__cta {
+      .adm-card__cta {
         align-self: center;
         font-size: 11px;
         opacity: 0.6;
