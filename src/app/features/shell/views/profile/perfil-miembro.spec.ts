@@ -435,4 +435,119 @@ describe('PerfilMiembro · refactor de la vista', () => {
     expect(el.querySelector('.pf-private-title')?.textContent).toContain('Este perfil es privado');
     expect(el.querySelector('.pf-tabs-bar')).toBeNull();
   });
+
+  it('el perfil ajeno tiene la tabla de rendimiento por posición con copy en tercera persona', async () => {
+    const groupStore = new GroupStore();
+    await TestBed.configureTestingModule({
+      imports: [PerfilMiembro],
+      providers: [
+        provideRouter([]),
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            snapshot: { paramMap: { get: () => 'Pix3lQueen#LAN' } },
+            paramMap: of({ get: () => 'Pix3lQueen#LAN' }),
+            queryParamMap: of({ get: () => null }),
+          },
+        },
+        {
+          provide: GroupStore,
+          useValue: {
+            groups: signal(GROUPS),
+            rosterOf: (id: string) => groupStore.rosterOf(id),
+          },
+        },
+        { provide: GameDataStore, useValue: { status: signal('ready'), championById: signal(new Map()) } },
+        { provide: GroupsStore, useValue: { groups: signal([]), status: signal('ready'), ensureLoaded: () => {} } },
+        { provide: RiotAccountStore, useValue: { account: signal(null), status: signal('ready'), ensureLoaded: () => {} } },
+        {
+          provide: Session,
+          useValue: {
+            displayName: signal('User'),
+            avatarUrl: signal(null),
+            status: signal('ready'),
+            user: signal({ ...CURRENT_USER, id: 'u1' }),
+            activeProfile: signal(null),
+          },
+        },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(PerfilMiembro);
+    const comp = fixture.componentInstance;
+    comp.setTab('dna');
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+
+    const tabla = el.querySelector('.pf-role-table');
+    expect(tabla).not.toBeNull();
+    const filas = tabla!.querySelectorAll('.pf-role-table__row:not(.pf-role-table__row--head)');
+    expect(filas.length).toBe(5);
+
+    // Verificamos que los tooltips de vacío estén en tercera persona
+    const noDataSpans = tabla!.querySelectorAll('.pf-nodata');
+    noDataSpans.forEach((span) => {
+      const title = span.getAttribute('title') ?? '';
+      expect(title).not.toContain('has jugado');
+      expect(title).not.toContain('tus partidas');
+      if (title.includes('ninguna partida')) {
+        expect(title).toContain('Todavía no ha jugado ninguna partida en esta posición');
+      }
+      if (title.includes('registra quién ganó')) {
+        expect(title).toContain('Ninguna de sus partidas en esta posición registra quién ganó la línea');
+      }
+    });
+  });
+
+  it('las seis tarjetas de ADN en el perfil ajeno enseñan la nota con una décima', async () => {
+    const groupStore = new GroupStore();
+    await TestBed.configureTestingModule({
+      imports: [PerfilMiembro],
+      providers: [
+        provideRouter([]),
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            snapshot: { paramMap: { get: () => 'Pix3lQueen#LAN' } },
+            paramMap: of({ get: () => 'Pix3lQueen#LAN' }),
+            queryParamMap: of({ get: () => null }),
+          },
+        },
+        {
+          provide: GroupStore,
+          useValue: {
+            groups: signal(GROUPS),
+            rosterOf: (id: string) => groupStore.rosterOf(id),
+          },
+        },
+        { provide: GameDataStore, useValue: { status: signal('ready'), championById: signal(new Map()) } },
+        { provide: GroupsStore, useValue: { groups: signal([]), status: signal('ready'), ensureLoaded: () => {} } },
+        { provide: RiotAccountStore, useValue: { account: signal(null), status: signal('ready'), ensureLoaded: () => {} } },
+        {
+          provide: Session,
+          useValue: {
+            displayName: signal('User'),
+            avatarUrl: signal(null),
+            status: signal('ready'),
+            user: signal({ ...CURRENT_USER, id: 'u1' }),
+            activeProfile: signal(null),
+          },
+        },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(PerfilMiembro);
+    const comp = fixture.componentInstance;
+    comp.setTab('dna');
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+
+    const scores = el.querySelectorAll('.pf-dna-card__score');
+    expect(scores.length).toBe(6);
+    scores.forEach((s) => {
+      expect(s.textContent?.trim()).toMatch(/^(\d+,\d|—)$/);
+      expect(s.textContent).not.toContain('/10');
+      expect(s.textContent).not.toContain('sobre');
+    });
+  });
 });

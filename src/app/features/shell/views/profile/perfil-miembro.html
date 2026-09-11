@@ -462,7 +462,14 @@
           <div class="pf-dna-grid">
             <div class="pf-dna-card pf-dna-card--lane">
               <div class="pf-dna-card__head nf-mono">
-                Fase de líneas (@14)
+                <span>Fase de líneas (@14)</span>
+                <span
+                  class="pf-dna-card__score nf-mono"
+                  [class.pf-pos]="scores().lane !== null && scores().lane! >= 7"
+                  [class.pf-neg]="scores().lane !== null && scores().lane! <= 4"
+                  [attr.aria-label]="facetAria(scores().lane)"
+                  [attr.title]="facetAria(scores().lane)"
+                >{{ formatScore(scores().lane) }}</span>
               </div>
               <div class="pf-dna-card__big nf-mono" [class.pf-pos]="p.dna.lane.wonLanePercentage >= 50">
                 {{ p.dna.lane.wonLanePercentage }}%
@@ -480,7 +487,14 @@
 
             <div class="pf-dna-card pf-dna-card--combat">
               <div class="pf-dna-card__head nf-mono">
-                Combate & Daño
+                <span>Combate & Daño</span>
+                <span
+                  class="pf-dna-card__score nf-mono"
+                  [class.pf-pos]="scores().combat !== null && scores().combat! >= 7"
+                  [class.pf-neg]="scores().combat !== null && scores().combat! <= 4"
+                  [attr.aria-label]="facetAria(scores().combat)"
+                  [attr.title]="facetAria(scores().combat)"
+                >{{ formatScore(scores().combat) }}</span>
               </div>
               <div class="pf-dna-card__big nf-mono">{{ p.dna.combat.damageSharePercentage }}%</div>
               <div class="pf-dna-card__sub nf-mono">Cuota de daño del equipo</div>
@@ -492,7 +506,14 @@
 
             <div class="pf-dna-card pf-dna-card--vision">
               <div class="pf-dna-card__head nf-mono">
-                Visión & Mapa
+                <span>Visión & Mapa</span>
+                <span
+                  class="pf-dna-card__score nf-mono"
+                  [class.pf-pos]="scores().vision !== null && scores().vision! >= 7"
+                  [class.pf-neg]="scores().vision !== null && scores().vision! <= 4"
+                  [attr.aria-label]="facetAria(scores().vision)"
+                  [attr.title]="facetAria(scores().vision)"
+                >{{ formatScore(scores().vision) }}</span>
               </div>
               <div class="pf-dna-card__big nf-mono">{{ p.dna.vision.visionScoreAvg }}</div>
               <div class="pf-dna-card__sub nf-mono">Puntos de visión / partida</div>
@@ -504,7 +525,14 @@
 
             <div class="pf-dna-card pf-dna-card--survival">
               <div class="pf-dna-card__head nf-mono">
-                Supervivencia
+                <span>Supervivencia</span>
+                <span
+                  class="pf-dna-card__score nf-mono"
+                  [class.pf-pos]="scores().survival !== null && scores().survival! >= 7"
+                  [class.pf-neg]="scores().survival !== null && scores().survival! <= 4"
+                  [attr.aria-label]="facetAria(scores().survival)"
+                  [attr.title]="facetAria(scores().survival)"
+                >{{ formatScore(scores().survival) }}</span>
               </div>
               <div class="pf-dna-card__big nf-mono">{{ p.dna.survival.avgDeaths }}</div>
               <div class="pf-dna-card__sub nf-mono">Muertes por partida</div>
@@ -516,7 +544,14 @@
 
             <div class="pf-dna-card pf-dna-card--economy">
               <div class="pf-dna-card__head nf-mono">
-                Economía & Farm
+                <span>Economía & Farm</span>
+                <span
+                  class="pf-dna-card__score nf-mono"
+                  [class.pf-pos]="scores().economy !== null && scores().economy! >= 7"
+                  [class.pf-neg]="scores().economy !== null && scores().economy! <= 4"
+                  [attr.aria-label]="facetAria(scores().economy)"
+                  [attr.title]="facetAria(scores().economy)"
+                >{{ formatScore(scores().economy) }}</span>
               </div>
               <div class="pf-dna-card__big nf-mono">{{ p.dna.economy.csPerMinAvg }}</div>
               <div class="pf-dna-card__sub nf-mono">CS por minuto medio</div>
@@ -528,7 +563,14 @@
 
             <div class="pf-dna-card pf-dna-card--clutch">
               <div class="pf-dna-card__head nf-mono">
-                Factor Decisivo
+                <span>Factor Decisivo</span>
+                <span
+                  class="pf-dna-card__score nf-mono"
+                  [class.pf-pos]="scores().clutch !== null && scores().clutch! >= 7"
+                  [class.pf-neg]="scores().clutch !== null && scores().clutch! <= 4"
+                  [attr.aria-label]="facetAria(scores().clutch)"
+                  [attr.title]="facetAria(scores().clutch)"
+                >{{ formatScore(scores().clutch) }}</span>
               </div>
               <div class="pf-dna-card__big nf-mono pf-pos">{{ p.dna.clutch.mvpRate }}%</div>
               <div class="pf-dna-card__sub nf-mono">Tasa de MVP</div>
@@ -538,6 +580,52 @@
               </div>
             </div>
           </div>
+
+          <!-- Tabla Detallada por Rol -->
+          <section class="pf-card" style="margin-top: 16px;">
+            <div class="pf-card__header">
+              <span class="pf-card__title nf-mono">Rendimiento detallado por posición</span>
+            </div>
+            <div class="pf-role-table">
+              <div class="pf-role-table__row pf-role-table__row--head nf-mono">
+                <span>Posición</span>
+                <span>Partidas</span>
+                <span>Win Rate</span>
+                <span>% Línea Ganada</span>
+                <span>Estado</span>
+              </div>
+              @for (t of roleTiles; track t.role) {
+                @if (p.roleStats[t.role]; as rs) {
+                  <div class="pf-role-table__row nf-mono">
+                    <div class="pf-role-table__lane">
+                      <nf-lane-icon [lane]="t.role" [fallbackGlyph]="t.glyph" />
+                      <span class="pf-role-table__lane-name">{{ t.name }}</span>
+                    </div>
+                    <span>{{ rs.games }} partidas</span>
+                    @if (rs.wr !== null) {
+                      <span [class.pf-pos]="rs.wr >= 50" [class.pf-neg]="rs.wr < 50">
+                        {{ rs.wr }}%
+                      </span>
+                    } @else {
+                      <span class="pf-nodata" title="Todavía no ha jugado ninguna partida en esta posición">
+                        Sin datos
+                      </span>
+                    }
+                    @if (rs.wonLaneRate !== null) {
+                      <span>{{ rs.wonLaneRate }}%</span>
+                    } @else {
+                      <span class="pf-nodata" title="Ninguna de sus partidas en esta posición registra quién ganó la línea">
+                        Sin datos
+                      </span>
+                    }
+                    <span class="pf-role-table__tag">
+                      {{ roleStatus(t.role) }}
+                    </span>
+                  </div>
+                }
+              }
+            </div>
+          </section>
         </div>
       }
 

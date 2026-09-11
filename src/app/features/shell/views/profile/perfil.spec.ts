@@ -230,19 +230,19 @@ describe('Perfil · refactor de la vista', () => {
   it('el mejor aliado y la némesis salen de las partidas reales, no de una semilla', async () => {
     const { el } = await montar();
 
-    const sinergia = el.querySelector<HTMLAnchorElement>('a.pf-h2h-compact--ally');
-    const rivalidad = el.querySelector<HTMLAnchorElement>('a.pf-h2h-compact--nemesis');
+    const sinergia = el.querySelector<HTMLAnchorElement>('a.pf-vs-tile--synergy');
+    const rivalidad = el.querySelector<HTMLAnchorElement>('a.pf-vs-tile--rivalry');
 
     // 3 de 4 juntos y 0 de 4 enfrentados: los mismos números que dirá su página.
-    expect(sinergia?.textContent).toContain('75% WR juntos');
-    expect(rivalidad?.textContent).toContain('0% WR en duelo');
+    expect(sinergia?.textContent).toContain('75 % WR juntos');
+    expect(rivalidad?.textContent).toContain('0 % WR en duelo');
   });
 
   it('la sinergia lleva a /app/synergy y la rivalidad a /app/versus', async () => {
     const { el } = await montar();
 
-    const sinergia = el.querySelector<HTMLAnchorElement>('a.pf-h2h-compact--ally, .pf-h2h-compact--ally a, .pf-h2h-compact--ally');
-    const rivalidad = el.querySelector<HTMLAnchorElement>('a.pf-h2h-compact--nemesis, .pf-h2h-compact--nemesis a, .pf-h2h-compact--nemesis');
+    const sinergia = el.querySelector<HTMLAnchorElement>('a.pf-vs-tile--synergy');
+    const rivalidad = el.querySelector<HTMLAnchorElement>('a.pf-vs-tile--rivalry');
 
     expect(sinergia?.getAttribute('href')).toContain('/app/synergy/');
     expect(rivalidad?.getAttribute('href')).toContain('/app/versus/');
@@ -323,5 +323,23 @@ describe('Perfil · refactor de la vista', () => {
     expect(el.querySelector('.pf-trophies-card')).not.toBeNull();
     // La vitrina es editable solo aquí, en el perfil propio.
     expect(el.querySelector('.pf-trophies-card button[nfIconButton]')).not.toBeNull();
+  });
+
+  it('las seis tarjetas de ADN enseñan una nota con una décima y coma decimal', async () => {
+    const { el, comp, detect } = await montar();
+    comp.setTab('dna');
+    detect();
+
+    const scores = el.querySelectorAll('.pf-dna-card__score');
+    expect(scores.length).toBe(6);
+    scores.forEach((s) => {
+      expect(s.textContent?.trim()).toMatch(/^(\d+,\d|—)$/);
+      expect(s.textContent).not.toContain('/10');
+      expect(s.textContent).not.toContain('sobre');
+      const aria = s.getAttribute('aria-label');
+      if (s.textContent?.trim() !== '—') {
+        expect(aria).toMatch(/^Nota de esta faceta: \d+,\d sobre 10$/);
+      }
+    });
   });
 });

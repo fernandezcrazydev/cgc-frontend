@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+﻿import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
@@ -18,6 +18,7 @@ import { Session } from '../../../../core/auth';
 import { GroupStore } from '../../../../core/group-store';
 import { GameDataStore } from '../../../../core/game-data';
 import { RoleSample, buildMemberProfile } from '../../../../core/player-profile';
+import { LaneRole } from '../../../../core/preferences';
 import {
   CrossAggregate,
   CrossChampionMatchup,
@@ -26,11 +27,13 @@ import {
   aggregateCross,
   itemBg,
 } from '../../../../core/matches';
+import { facetScores, formatFacetScore, facetScoreAriaLabel } from '../../../../core/player-score';
 import { ProfileGroupsCard } from './profile-groups-card.component';
 import { ProfileLpChartComponent } from './profile-lp-chart.component';
 import { ProfileStreakCard } from './profile-streak-card.component';
 import { ProfileTrophiesCardComponent } from './profile-trophies-card.component';
 import { SharedGroups } from './shared-groups';
+import { ROLE_TILES, RoleTile } from './perfil';
 
 /** Las pestañas del perfil ajeno: la lista es a la vez el tipo y el validador del segmentado. */
 const MIEMBRO_TABS = ['resumen', 'dna', 'campeones'] as const;
@@ -55,7 +58,7 @@ type MiembroTab = (typeof MIEMBRO_TABS)[number];
     ProfileLpChartComponent,
     ProfileTrophiesCardComponent,
   ],
-  styleUrl: './perfil-miembro.scss',
+  styleUrls: ['./perfil-miembro.scss', './profile-shared.scss'],
   templateUrl: './perfil-miembro.html',
 })
 export class PerfilMiembro {
@@ -294,6 +297,32 @@ export class PerfilMiembro {
     return `radial-gradient(circle at 32% 26%, hsl(${hue},90%,64%), hsl(${hue},78%,30%))`;
   }
 
+  // ── Notas de ADN ──────────────────────────────────────────────────
+  readonly scores = computed(() => {
+    const p = this.profile();
+    if (!p) return { lane: null, combat: null, vision: null, survival: null, economy: null, clutch: null };
+    return facetScores(p.dna, { kda: p.kda, pentas: p.pentas }, p.mainRole ?? null);
+  });
+
+  formatScore(score: number | null | undefined): string {
+    return formatFacetScore(score);
+  }
+
+  facetAria(score: number | null | undefined): string | null {
+    return facetScoreAriaLabel(score);
+  }
+
+  // ── Tabla de roles (Pestaña ADN) ──────────────────────────────────
+  protected readonly roleTiles: readonly RoleTile[] = ROLE_TILES;
+
+  roleStatus(role: LaneRole): string {
+    const p = this.profile();
+    if (!p) return 'Inactivo';
+    if (p.mainRole === role) return '★ Principal';
+    if ((p.roleStats[role]?.games ?? 0) > 0) return 'Activo';
+    return 'Inactivo';
+  }
+
   constructor() {
     this.route.queryParamMap?.subscribe((q) => {
       const tab = q.get('tab');
@@ -303,4 +332,3 @@ export class PerfilMiembro {
     });
   }
 }
-

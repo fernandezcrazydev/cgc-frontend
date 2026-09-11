@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+﻿import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
@@ -32,6 +32,7 @@ import {
 } from '../../../../core/matches';
 import { nameOf } from '../cross/cross-player';
 import { hash } from '../../../../core/group-ranking';
+import { facetScores, formatFacetScore, facetScoreAriaLabel } from '../../../../core/player-score';
 import { ProfileGroupsCard } from './profile-groups-card.component';
 import { ProfileStreakCard } from './profile-streak-card.component';
 import { ProfileLpChartComponent } from './profile-lp-chart.component';
@@ -46,16 +47,25 @@ const MEMBER_SINCE_FMT = new Intl.DateTimeFormat('es-ES', { month: 'short', year
 const PERFIL_TABS = ['resumen', 'dna', 'campeones'] as const;
 type PerfilTab = (typeof PERFIL_TABS)[number];
 
-interface RoleTile {
+export interface RoleTile {
   role: LaneRole;
   short: string;
   name: string;
   glyph: string;
 }
 
+export const ROLE_TILES: readonly RoleTile[] = [
+  { role: 'TOP', short: 'TOP', name: 'Top', glyph: '◤' },
+  { role: 'JUNGLA', short: 'JG', name: 'Jungla', glyph: '♣' },
+  { role: 'MID', short: 'MID', name: 'Mid', glyph: '◈' },
+  { role: 'ADC', short: 'ADC', name: 'ADC', glyph: '➤' },
+  { role: 'SUPPORT', short: 'SUP', name: 'Support', glyph: '✚' },
+];
+
 @Component({
   selector: 'app-perfil',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     RouterLink,
     NfButton,
@@ -71,7 +81,7 @@ interface RoleTile {
     ProfileLpChartComponent,
     ProfileTrophiesCardComponent,
   ],
-  styleUrl: './perfil.scss',
+  styleUrls: ['./perfil.scss', './profile-shared.scss'],
   templateUrl: './perfil.html',
 })
 export class Perfil {
@@ -251,14 +261,27 @@ export class Perfil {
     return itemBg(`Item ${id}`);
   }
 
+  // ── Notas de ADN ──────────────────────────────────────────────────
+  readonly scores = computed(() => {
+    const p = this.profile();
+    if (!p) return { lane: null, combat: null, vision: null, survival: null, economy: null, clutch: null };
+    return facetScores(p.dna, { kda: p.kda, pentas: p.pentas }, this.heroRoles()?.primary ?? p.mainRole ?? null);
+  });
+
+  formatScore(score: number | null | undefined): string {
+    return formatFacetScore(score);
+  }
+
+  facetAria(score: number | null | undefined): string | null {
+    return facetScoreAriaLabel(score);
+  }
+
+  formatPartidas(n: number): string {
+    return n === 1 ? '1 partida' : n + ' partidas';
+  }
+
   // ── Tabla de roles (Pestaña ADN) ──────────────────────────────────
-  protected readonly roleTiles: readonly RoleTile[] = [
-    { role: 'TOP', short: 'TOP', name: 'Top', glyph: '◤' },
-    { role: 'JUNGLA', short: 'JG', name: 'Jungla', glyph: '♣' },
-    { role: 'MID', short: 'MID', name: 'Mid', glyph: '◈' },
-    { role: 'ADC', short: 'ADC', name: 'ADC', glyph: '➤' },
-    { role: 'SUPPORT', short: 'SUP', name: 'Support', glyph: '✚' },
-  ];
+  protected readonly roleTiles: readonly RoleTile[] = ROLE_TILES;
 
   roleStatus(role: LaneRole): string {
     const saved = this.prefs.prefs();

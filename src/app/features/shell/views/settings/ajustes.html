@@ -1,4 +1,4 @@
-<div class="view settings-page">
+﻿<div class="view settings-page">
   <div class="view__head">
     <h1 class="view__title">Ajustes</h1>
   </div>
@@ -37,25 +37,27 @@
         <p class="settings-section-header__desc">{{ activeSectionConfig().description }}</p>
       </header>
 
-      <div class="settings-section-body">
-        @switch (activeSection()) {
-          @case ('cuenta') {
-            <app-settings-account />
+      @for (_ of [activeSection()]; track _) {
+        <div class="settings-section-body">
+          @switch (activeSection()) {
+            @case ('cuenta') {
+              <app-settings-account />
+            }
+            @case ('posiciones') {
+              <app-settings-positions />
+            }
+            @case ('notificaciones') {
+              <app-settings-notifications />
+            }
+            @case ('privacidad') {
+              <app-settings-privacy />
+            }
+            @case ('apariencia') {
+              <app-settings-appearance />
+            }
           }
-          @case ('posiciones') {
-            <app-settings-positions />
-          }
-          @case ('notificaciones') {
-            <app-settings-notifications />
-          }
-          @case ('privacidad') {
-            <app-settings-privacy />
-          }
-          @case ('apariencia') {
-            <app-settings-appearance />
-          }
-        }
-      </div>
+        </div>
+      }
     </main>
   </div>
 </div>
