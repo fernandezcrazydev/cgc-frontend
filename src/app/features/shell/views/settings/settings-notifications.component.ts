@@ -48,6 +48,16 @@ import { ToastService } from '../../../../core/toast';
       </nf-window>
 
       <!-- Bloque informativo de silenciado por grupo -->
+      <!--
+        BACKEND NOTE: no hay endpoint de silenciado. PUT /me/settings guarda solo
+        allowGroupInvites y discordNotifications, y la pertenencia a un grupo no tiene campo
+        equivalente. Cuando exista, este bloque se sustituye por la lista de grupos con su
+        interruptor y esta frase se borra.
+
+        Es una frase y no un control deshabilitado a propósito: un interruptor apagado se lee como
+        «esto se puede encender», y silenciarlo en localStorage mentiría en cuanto el usuario
+        entrase desde otro dispositivo. Ver la fila 15 de la Fase 6 del Roadmap.
+      -->
       <nf-window title="Silenciar grupos" bodyPadding="22px">
         <div class="settings-eyebrow nf-mono">Grupos</div>
         <div class="setting-sub setting-sub--help mute-groups-text">
