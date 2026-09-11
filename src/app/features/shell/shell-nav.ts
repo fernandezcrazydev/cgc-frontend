@@ -99,6 +99,7 @@ const ROUTE_TITLES: readonly (readonly [readonly string[], string])[] = [
   [['grupos', ':id', 'tablon'], 'Tablón'],
   [['grupos', ':id', 'convocatoria', ':lobbyId'], 'Convocatoria'],
   [['grupos', ':id', 'sala', ':salaId'], 'Sala'],
+  [['grupos', ':id', 'sala', ':salaId', 'reparto'], 'Reparto'],
   [['grupos', ':id', 'ranking'], 'Ranking'],
   [['grupos', ':id', 'tierlist'], 'Tierlist'],
   [['grupos', ':id', 'estadisticas'], 'Estadísticas'],

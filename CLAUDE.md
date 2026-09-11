@@ -668,8 +668,25 @@ corre en <1s, y CI lo ejecuta en cada PR (`.github/workflows/ci.yml`). Comprueba
 | `onpush` | componente sin `ChangeDetectionStrategy.OnPush` |
 | `ng-deep` | `::ng-deep`, que es API muerta |
 | `toast-literal` | `toasts.error('…')` con string fija en vez de `errorMessage(e)` |
+| `route-title` | ruta con vista propia y sin `title` (la pestaña se queda muda) |
+| `nav-label` | segmento de ruta que `ROUTE_TITLES` de `shell-nav.ts` no sabe rotular |
+| `theme-tokens` | token de **color** de `styles/tokens/` que una skin de `styles/themes/` no decide |
 
-Las cinco últimas se añadieron el **2026-09-10** y no son reglas nuevas: son reglas que este
+**Las tres últimas se añadieron el 2026-09-11 y entran las tres en cero**, o sea que son muros, no
+trinquetes. Salieron de una revisión de huecos de conexión entre pantallas, y cada una destapó un
+bug real que llevaba tiempo ahí: el `callback` de OIDC no tenía `title`, y la pantalla de **Reparto**
+—`grupos/:id/sala/:salaId/reparto`, que existe desde hace semanas— no estaba en `ROUTE_TITLES`, así
+que la barra superior la rotulaba «Página no encontrada» aunque la ruta funcionase. Los dos
+arreglados aquí.
+
+> **`theme-tokens` es el que más va a molestar, y a propósito.** Un token que una skin no redefine
+> **no se rompe**: hereda el de `:root`. Por eso nadie se entera de que se está pintando con un color
+> afinado para la otra paleta. La regla obliga a **decidir**, no a copiar: si el valor bueno es el
+> mismo, se repite y ya está. Quedan exentos `--nf-brand-*` (el rojo de Riot es el rojo de Riot en
+> los dos temas) y `--nf-shadow-*` / `--nf-edge-*`, que derivan de `--nf-shadow-color`, que sí está
+> tematizado.
+
+Las cinco anteriores se añadieron el **2026-09-10** y no son reglas nuevas: son reglas que este
 documento ya exigía en prosa y que nadie verificaba, así que se incumplían sin que se notase
 (90 líneas con emoji, 22 `@Input()`, 17 componentes sin `OnPush`, 9 `toasts.error()` literales).
 Entraron con el incumplimiento de hoy como presupuesto: **no obligan a limpiar la deuda, obligan a

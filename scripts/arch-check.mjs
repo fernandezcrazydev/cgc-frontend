@@ -397,6 +397,102 @@ const RULES = [
       return out;
     },
   },
+  {
+    id: 'route-title',
+    title: 'Toda ruta con vista propia declara `title`; si no, la pestaña del navegador se queda muda',
+    run() {
+      // Una ruta de LAYOUT no rotula: rotula el hijo, que es quien pinta. Por eso `app` y
+      // `jugador/:playerId` (que envuelve el cruce y tiene un hijo `path: ''` con su titulo)
+      // no cuentan aqui. Un `redirectTo` tampoco pinta nada.
+      const f = pick('.ts').find((x) => x.path === 'src/app/app.routes.ts');
+      if (!f) return [];
+      const src = f.read();
+      const out = [];
+      const rutas = [];
+      const re = /path:\s*'([^']*)'/g;
+      let m;
+      while ((m = re.exec(src))) rutas.push({ path: m[1], at: m.index });
+      rutas.forEach((r, i) => {
+        const trozo = src.slice(r.at, i + 1 < rutas.length ? rutas[i + 1].at : src.length);
+        if (/redirectTo:/.test(trozo)) return;
+        if (/children:\s*\[/.test(trozo)) return;
+        if (!/loadComponent:|component:/.test(trozo)) return;
+        if (/title:/.test(trozo)) return;
+        out.push(hit(f.path, src.slice(0, r.at).split('\n').length, `ruta '${r.path}' sin title`));
+      });
+      return out;
+    },
+  },
+  {
+    id: 'nav-label',
+    title: 'La barra superior sabe rotular todo segmento de ruta (ROUTE_TITLES de shell-nav.ts)',
+    run() {
+      // Comprobacion a nivel de SEGMENTO, no de patron completo: es mas laxa, pero no da falsos
+      // positivos con las rutas anidadas y caza igual la clase de fallo que importa —una pantalla
+      // nueva cuyo segmento nadie dio de alta, y que por tanto la cabecera rotula como
+      // "Pagina no encontrada" aunque la ruta funcione—. Le paso `reparto` una vez.
+      const rutas = pick('.ts').find((x) => x.path === 'src/app/app.routes.ts');
+      const nav = pick('.ts').find((x) => x.path === 'src/app/features/shell/shell-nav.ts');
+      if (!rutas || !nav) return [];
+      const src = rutas.read();
+      const conocidos = new Set(
+        [...nav.read().matchAll(/'([a-z0-9-]+)'/g)].map((x) => x[1]),
+      );
+      // `pageTitleFor` devuelve el titulo por defecto para todo lo que no cuelga de `/app`, asi
+      // que el login y el callback de OIDC quedan fuera por definicion, no por excepcion.
+      const appAt = src.indexOf("path: 'app'");
+      const out = [];
+      const encontradas = [];
+      const re = /path:\s*'([^']*)'/g;
+      let m;
+      while ((m = re.exec(src))) encontradas.push({ path: m[1], at: m.index });
+      encontradas.forEach((r, i) => {
+        if (appAt < 0 || r.at <= appAt) return; // fuera del shell no hay barra que rotular
+        const trozo = src.slice(r.at, i + 1 < encontradas.length ? encontradas[i + 1].at : src.length);
+        if (/redirectTo:/.test(trozo)) return; // el destino es quien se rotula
+        for (const seg of r.path.split('/')) {
+          if (!seg || seg.startsWith(':') || seg === '**' || conocidos.has(seg)) continue;
+          out.push(
+            hit(rutas.path, src.slice(0, r.at).split('\n').length, `'${seg}' no lo rotula shell-nav.ts`),
+          );
+        }
+      });
+      return out;
+    },
+  },
+  {
+    id: 'theme-tokens',
+    title: 'Un token de COLOR nuevo se decide en todas las skins, no solo en la de por defecto',
+    run() {
+      // Si una skin no redefine un token, hereda el de `:root` — no se rompe, pero se pinta con un
+      // color afinado para otra paleta y nadie se entera hasta que abre el otro tema. Quedan fuera
+      // los que NO son de paleta: la marca de Riot es roja en los dos temas, y sombras y luces
+      // derivan de `--nf-shadow-color`, que si esta tematizado.
+      const EXENTOS = ['--nf-brand-', '--nf-shadow-', '--nf-edge-'];
+      const ES_COLOR = /^\s*(#|rgb|hsl|color-mix)/;
+      const declarados = (f) =>
+        new Map([...f.read().matchAll(/(--nf-[a-z0-9-]+)\s*:\s*([^;]+);/g)].map((m) => [m[1], m[2]]));
+
+      const base = new Map();
+      for (const f of pick('.css')) {
+        if (!f.path.startsWith('src/styles/tokens/')) continue;
+        for (const [k, v] of declarados(f)) base.set(k, { v, file: f });
+      }
+      const skins = pick('.css').filter((f) => f.path.startsWith('src/styles/themes/'));
+      const out = [];
+      for (const skin of skins) {
+        const tiene = declarados(skin);
+        for (const [token, { v, file }] of base) {
+          if (!ES_COLOR.test(v)) continue;
+          if (EXENTOS.some((p) => token.startsWith(p))) continue;
+          if (tiene.has(token)) continue;
+          const linea = file.read().split('\n').findIndex((l) => l.includes(token + ':')) + 1;
+          out.push(hit(file.path, linea, `${token} no lo decide ${skin.path.split('/').pop()}`));
+        }
+      }
+      return out;
+    },
+  },
 ];
 
 /* ──────────────────────────────────── runner ──────────────────────────────────── */
