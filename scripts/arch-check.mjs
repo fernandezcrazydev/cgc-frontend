@@ -179,10 +179,17 @@ const RULES = [
       // que lo que sale de él reaparezca engordado en otro sitio.
       // Cuenta CSS, no formato: sin comentarios ni líneas en blanco. Si contara líneas en
       // bruto, repartir un fichero en varios lo haría "crecer" solo por sus cabeceras.
-      const n = pick('.scss', '.css').reduce(
-        (s, f) => s + stripComments(f.read()).split('\n').filter((l) => l.trim()).length,
-        0,
-      );
+      //
+      // `views/pruebas/` NO cuenta, y es la única excepción. Esa vista es el banco de pruebas
+      // donde se renderizan las cinco alternativas de un bloque visual para que el usuario elija
+      // mirando la pantalla: es andamio con fecha de caducidad, se borra entero en cuanto el ítem
+      // se cierra, y nunca se enseña fuera del desarrollo. Contarlo hacía que maquetar cinco
+      // variantes de una tarjeta —1.491 líneas el 2026-09-11— pareciera una regresión del
+      // producto, y empujaba a subir el presupuesto para todos con tal de poder seguir.
+      const EXENTA = 'views/pruebas/';
+      const n = pick('.scss', '.css')
+        .filter((f) => !f.path.includes(EXENTA)) // `f.path` ya viene con barras normales
+        .reduce((s, f) => s + stripComments(f.read()).split('\n').filter((l) => l.trim()).length, 0);
       return Array.from({ length: n }, () => hit('src/**/*.{scss,css}', 0, 'línea de CSS'));
     },
   },
@@ -458,14 +465,33 @@ try {
 }
 
 const C = { green: '[32m', red: '[31m', yellow: '[33m', dim: '[2m', off: '[0m' };
+/** Sin fichero de presupuestos no hay trinquete que respetar: la primera pasada los siembra. */
+const primeraVez = Object.keys(budgets).length === 0;
 let failed = false;
+let intentoDeSubir = 0;
 const next = {};
 
 for (const rule of RULES) {
   const found = rule.run();
   const budget = budgets[rule.id] ?? 0;
   const unit = rule.unit || 'incumplimientos';
-  next[rule.id] = found.length;
+
+  /*
+   * `arch:fix` SOLO BAJA. Antes escribía `found.length` a secas, y eso convertía el trinquete en un
+   * pasamanos: una regla que había empeorado se llevaba su presupuesto hacia arriba sin que nadie
+   * lo decidiera, y el diff enseñaba un número mayor sin una sola línea que lo justificase.
+   *
+   * Pasó el 2026-09-11: un `arch:fix` lanzado para bajar `inline-template-size` de 15 a 1 subió de
+   * paso `css-total-size` de 17.230 a 18.342, absorbiendo 1.112 líneas de CSS que había metido
+   * OTRA tarea. Y este fichero viaja a un repositorio compartido donde CI lo lee en cada pull
+   * request: subir un presupuesto es subirle el techo a las otras dos personas del equipo.
+   */
+  if (!primeraVez && found.length > budget) {
+    next[rule.id] = budget; // empeorar no da derecho a más presupuesto
+    if (fix) intentoDeSubir += 1;
+  } else {
+    next[rule.id] = found.length;
+  }
 
   if (found.length > budget) {
     failed = true;
@@ -485,6 +511,13 @@ for (const rule of RULES) {
 if (fix) {
   writeFileSync(BUDGETS_FILE, JSON.stringify(next, null, 2) + '\n');
   console.log(`\n${C.green}Presupuestos reescritos en scripts/arch-budgets.json${C.off}`);
+  if (intentoDeSubir) {
+    console.log(
+      `${C.yellow}  ${intentoDeSubir} regla(s) han empeorado y su presupuesto NO se ha subido.${C.off}\n` +
+        `${C.dim}  arch:fix solo baja. Arregla el código: el presupuesto no es donde se esconde.${C.off}`,
+    );
+    process.exit(1); // un fix que deja reglas en rojo no puede salir con 0
+  }
   process.exit(0);
 }
 
