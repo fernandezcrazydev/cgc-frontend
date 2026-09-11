@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
 import {
   NfAvatar,
@@ -8,6 +8,7 @@ import {
   NfCombobox,
   NfComboboxOption,
   NfIconButton,
+  NfLaneIcon,
   NfSegmented,
   NfSegmentOption,
   NfSelect,
@@ -28,6 +29,7 @@ import {
 import { ProfileGroupsCard } from './profile-groups-card.component';
 import { ProfileLpChartComponent } from './profile-lp-chart.component';
 import { ProfileStreakCard } from './profile-streak-card.component';
+import { ProfileTrophiesCardComponent } from './profile-trophies-card.component';
 import { SharedGroups } from './shared-groups';
 
 /** Las pestañas del perfil ajeno: la lista es a la vez el tipo y el validador del segmentado. */
@@ -44,18 +46,21 @@ type MiembroTab = (typeof MIEMBRO_TABS)[number];
     NfCombobox,
     NfIconButton,
     NfAvatar,
+    NfLaneIcon,
     NfSegmented,
     NfSelect,
     NfSkeleton,
     ProfileStreakCard,
     ProfileGroupsCard,
     ProfileLpChartComponent,
+    ProfileTrophiesCardComponent,
   ],
   styleUrl: './perfil-miembro.scss',
   templateUrl: './perfil-miembro.html',
 })
 export class PerfilMiembro {
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly groups = inject(GroupStore);
   private readonly matchHistory = inject(MatchHistoryStore);
   private readonly shared = inject(SharedGroups);
@@ -160,8 +165,29 @@ export class PerfilMiembro {
     (this.profile()?.groups ?? []).filter((g) => this.shared.has(g.id)),
   );
 
+  roleLabel(role: string): string {
+    const map: Record<string, string> = {
+      TOP: 'Top',
+      JUNGLA: 'Jungla',
+      MID: 'Mid',
+      ADC: 'ADC',
+      SUPPORT: 'Support',
+    };
+    return map[role] ?? role;
+  }
+
+  matchupWr(m: CrossChampionMatchup): number {
+    return m.games ? Math.round((m.wins / m.games) * 100) : 0;
+  }
+
   // ── Pestañas de Navegación ────────────────────────────────────────
-  readonly activeTab = signal<MiembroTab>('resumen');
+  readonly activeTab = signal<MiembroTab>(
+    (() => {
+      const tab = this.route.snapshot?.queryParamMap?.get('tab');
+      return (tab && (MIEMBRO_TABS as readonly string[]).includes(tab) ? tab : 'resumen') as MiembroTab;
+    })(),
+  );
+
   readonly tabOptions: readonly NfSegmentOption[] = [
     { value: 'resumen', label: 'Resumen' },
     { value: 'dna', label: 'ADN y stats' },
@@ -169,7 +195,16 @@ export class PerfilMiembro {
   ];
 
   setTab(val: string): void {
-    if (MIEMBRO_TABS.includes(val as MiembroTab)) this.activeTab.set(val as MiembroTab);
+    if ((MIEMBRO_TABS as readonly string[]).includes(val)) {
+      const tab = val as MiembroTab;
+      this.activeTab.set(tab);
+      void this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: { tab },
+        queryParamsHandling: 'merge',
+        replaceUrl: true,
+      });
+    }
   }
 
   // ── Top 3 Signature Champions ─────────────────────────────────────
@@ -257,6 +292,15 @@ export class PerfilMiembro {
 
   grad(hue: number): string {
     return `radial-gradient(circle at 32% 26%, hsl(${hue},90%,64%), hsl(${hue},78%,30%))`;
+  }
+
+  constructor() {
+    this.route.queryParamMap?.subscribe((q) => {
+      const tab = q.get('tab');
+      if (tab && (MIEMBRO_TABS as readonly string[]).includes(tab)) {
+        this.activeTab.set(tab as MiembroTab);
+      }
+    });
   }
 }
 

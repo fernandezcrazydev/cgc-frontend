@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
-import { NfSelect, NfSkeleton } from '../../../../ui';
+import { NfCombobox, NfSkeleton } from '../../../../ui';
 import { HubLeagueSeries, HubSeason } from '../../../../core/group-hub';
 import { StatModality } from '../../../../core/group-stats';
 
@@ -82,17 +82,18 @@ export interface LeagueSeasonChange {
   selector: 'app-hub-lp-chart',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [NfSelect, NfSkeleton],
+  imports: [NfCombobox, NfSkeleton],
   template: `
     <section class="hub-card hub-lp" [attr.aria-busy]="loading() ? 'true' : null">
       <header class="hub-card__head">
         <h2 class="hub-card__title nf-mono">{{ title() }}</h2>
         <!-- Con una sola serie el selector no decide nada: no se pinta (§5.5.4). -->
         @if (options().length > 1) {
-          <nf-select
+          <nf-combobox
             [options]="selectOptions()"
             [value]="optionId()"
             [ariaLabel]="optionsLabel()"
+            [clearable]="false"
             (valueChange)="optionChange.emit($event)"
           />
         }
@@ -139,11 +140,12 @@ export interface LeagueSeasonChange {
               <!-- Con una sola temporada el nombre del trofeo se dice y ya: no hay nada que
                    elegir (§5.5.4). Sin ninguna, no se dice nada. -->
               @if (l.seasons.length > 1) {
-                <nf-select
+                <nf-combobox
                   class="hub-lp__league-season"
                   [options]="seasonOptionsOf(l)"
                   [value]="l.seasonId"
                   [ariaLabel]="'Elegir temporada de ' + l.label"
+                  [clearable]="false"
                   (valueChange)="leagueSeasonChange.emit({ modality: l.modality, seasonId: $event })"
                 />
               } @else if (l.seasons.length === 1) {

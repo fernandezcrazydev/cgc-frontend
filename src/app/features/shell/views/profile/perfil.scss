@@ -8,49 +8,29 @@
    los alcanza. Si necesitas ajustar el interior de una primitiva, expon una custom
    property en ella y fijala sobre el host (ver `nf-pagination.scss`). Nunca `::ng-deep`. */
 
-/* scope disclaimer: clarifies this is the user's personal history, not the group's */
+/* ── Roles del Hero (Punto 2) ──────────────────────────────────────── */
 
-.scope-note {
-  /* --sn-c: color del aviso; lo cambia cada variante */
-  --sn-c: var(--nf-secondary);
-  display: flex;
+.pf-hero-roles {
+  display: inline-flex;
   align-items: center;
-  gap: 12px;
-  margin: 0 0 20px;
-  padding: 12px 16px;
-  background: color-mix(in srgb, var(--sn-c) 7%, var(--nf-surface-2));
-  border: 1px solid color-mix(in srgb, var(--sn-c) 26%, transparent);
-  border-left: 3px solid var(--sn-c);
-  border-radius: 6px;
+  gap: 6px;
+  margin-left: 4px;
 }
 
-/* Advertencia (no es un error: es algo que el usuario debe saber antes de actuar).
-   Suele ir intercalada en un formulario, así que se separa del campo de arriba
-   con el mismo ritmo que `.form-foot`. */
-
-.scope-note__icon {
-  flex: none;
-  display: flex;
+.pf-hero-role {
+  width: 16px;
+  height: 16px;
+  opacity: 0.55;
+  color: var(--nf-text);
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
-  border-radius: 5px;
-  background: color-mix(in srgb, var(--sn-c) 16%, transparent);
-  color: var(--sn-c);
-  font-size: 13px;
 }
 
-.scope-note__text {
-  margin: 0;
-  font-size: 13px;
-  line-height: 1.55;
-  color: var(--nf-text-mid);
-}
-
-.scope-note__text strong {
-  color: var(--nf-text);
-  font-weight: 700;
+.pf-hero-role--primary {
+  width: 20px;
+  height: 20px;
+  opacity: 1;
 }
 
 /* ── Rivalidades & Sinergias (Cara a Cara Compacto) ────────────────── */
@@ -60,9 +40,6 @@
   flex-direction: column;
   gap: 10px;
 }
-
-/* La cabecera de la ficha lleva ahora el botón que abre la vista dedicada, así
-   que la parte derecha deja de ser un dato suelto y pasa a ser dato + acción. */
 
 .pf-h2h-compact {
   padding: 10px 14px;
@@ -86,10 +63,16 @@
 
 .pf-h2h-compact--ally {
   border-left: 3px solid var(--nf-secondary);
+  background:
+    radial-gradient(120% 80% at 50% 0%, color-mix(in srgb, var(--nf-secondary) 14%, transparent), transparent 70%),
+    var(--nf-surface);
 }
 
 .pf-h2h-compact--nemesis {
-  border-left: 3px solid var(--nf-primary);
+  border-left: 3px solid var(--nf-danger);
+  background:
+    radial-gradient(120% 80% at 50% 0%, color-mix(in srgb, var(--nf-danger) 14%, transparent), transparent 70%),
+    var(--nf-surface);
 }
 
 .pf-h2h-compact__head {
@@ -107,13 +90,22 @@
   gap: 10px;
 }
 
+.pf-h2h-compact__avatars {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+}
+
+.pf-h2h-compact__sep {
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+}
+
 .pf-h2h-compact__info {
   flex: 1;
   min-width: 0;
 }
-
-/* El avatar lo pinta ahora `nf-avatar`, que se mide sola con `--nf-avatar-size`: aquí solo
-   queda impedir que la caja se encoja dentro del flex. */
 
 .pf-h2h-compact__avatar {
   flex: none;
@@ -123,6 +115,11 @@
   font-size: 13px;
   font-weight: 700;
   color: var(--nf-text);
+}
+
+.pf-h2h-compact__score {
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .pf-h2h-compact__sub {
@@ -139,6 +136,67 @@
   line-height: 1.5;
   color: var(--nf-text-dim);
 }
+
+/* ── ADN Cards con Tinte y Color por Dominio (Punto 10) ────────────── */
+
+.pf-dna-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.pf-dna-card--lane {
+  --dna-c: var(--nf-secondary);
+  background:
+    radial-gradient(120% 80% at 50% 0%, color-mix(in srgb, var(--dna-c) 14%, transparent), transparent 70%),
+    var(--nf-surface);
+}
+.pf-dna-card--lane .pf-dna-card__head { color: var(--dna-c); }
+.pf-dna-card--lane .pf-dna-card__big:not(.pf-pos):not(.pf-neg) { color: var(--dna-c); }
+
+.pf-dna-card--combat {
+  --dna-c: var(--nf-danger);
+  background:
+    radial-gradient(120% 80% at 50% 0%, color-mix(in srgb, var(--dna-c) 14%, transparent), transparent 70%),
+    var(--nf-surface);
+}
+.pf-dna-card--combat .pf-dna-card__head { color: var(--dna-c); }
+.pf-dna-card--combat .pf-dna-card__big:not(.pf-pos):not(.pf-neg) { color: var(--dna-c); }
+
+.pf-dna-card--vision {
+  --dna-c: var(--nf-primary);
+  background:
+    radial-gradient(120% 80% at 50% 0%, color-mix(in srgb, var(--dna-c) 14%, transparent), transparent 70%),
+    var(--nf-surface);
+}
+.pf-dna-card--vision .pf-dna-card__head { color: var(--dna-c); }
+.pf-dna-card--vision .pf-dna-card__big:not(.pf-pos):not(.pf-neg) { color: var(--dna-c); }
+
+.pf-dna-card--survival {
+  --dna-c: var(--nf-warning);
+  background:
+    radial-gradient(120% 80% at 50% 0%, color-mix(in srgb, var(--dna-c) 14%, transparent), transparent 70%),
+    var(--nf-surface);
+}
+.pf-dna-card--survival .pf-dna-card__head { color: var(--dna-c); }
+.pf-dna-card--survival .pf-dna-card__big:not(.pf-pos):not(.pf-neg) { color: var(--dna-c); }
+
+.pf-dna-card--economy {
+  --dna-c: var(--nf-gold);
+  background:
+    radial-gradient(120% 80% at 50% 0%, color-mix(in srgb, var(--dna-c) 14%, transparent), transparent 70%),
+    var(--nf-surface);
+}
+.pf-dna-card--economy .pf-dna-card__head { color: var(--dna-c); }
+.pf-dna-card--economy .pf-dna-card__big:not(.pf-pos):not(.pf-neg) { color: var(--dna-c); }
+
+.pf-dna-card--clutch {
+  --dna-c: var(--nf-success);
+  background:
+    radial-gradient(120% 80% at 50% 0%, color-mix(in srgb, var(--dna-c) 14%, transparent), transparent 70%),
+    var(--nf-surface);
+}
+.pf-dna-card--clutch .pf-dna-card__head { color: var(--dna-c); }
+.pf-dna-card--clutch .pf-dna-card__big:not(.pf-pos):not(.pf-neg) { color: var(--dna-c); }
 
 /* Tabla de Rendimiento por Rol */
 
@@ -183,228 +241,4 @@
 .pf-role-table__tag {
   font-size: var(--fs-label);
   color: var(--nf-text-dim);
-}
-
-/* ── Pestaña 4: Roles & Ajustes (Selector Horizontal Compacto) ─────── */
-
-.pf-roles-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.pf-help-toggle {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  border: 1px solid var(--nf-border);
-  background: var(--nf-surface);
-  color: var(--nf-text-dim);
-  font-size: var(--fs-label);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.pf-help-toggle--on {
-  color: var(--nf-primary);
-  border-color: var(--nf-primary);
-}
-
-.pf-roles-strip {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 8px;
-}
-
-.pf-role-pill {
-  position: relative;
-  border-radius: 8px;
-  border: 1.5px solid var(--nf-border);
-  background: var(--nf-surface);
-  transition: border-color 0.14s, background 0.14s;
-}
-
-.pf-role-pill:hover { border-color: var(--nf-border-strong); }
-
-.pf-role-pill--on {
-  border-color: var(--nf-secondary);
-  background: color-mix(in srgb, var(--nf-secondary) 8%, var(--nf-surface));
-}
-
-.pf-role-pill--primary {
-  border-color: var(--nf-primary);
-  box-shadow: 0 0 0 1px var(--nf-primary);
-}
-
-.pf-role-pill__btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  width: 100%;
-  padding: 10px 8px;
-  border: 0;
-  background: transparent;
-  cursor: pointer;
-  color: inherit;
-  font: inherit;
-}
-
-.pf-role-pill__glyph {
-  font-size: var(--fs-h3);
-  color: var(--nf-text-dim);
-}
-
-.pf-role-pill--on .pf-role-pill__glyph { color: var(--nf-secondary); }
-
-.pf-role-pill--primary .pf-role-pill__glyph { color: var(--nf-primary); }
-
-.pf-role-pill__code {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--nf-text-mid);
-}
-
-.pf-role-pill--on .pf-role-pill__code { color: var(--nf-text); }
-
-.pf-role-pill__name { font-size: var(--fs-label); color: var(--nf-text-dim); }
-
-.pf-role-pill__star {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  width: 18px;
-  height: 18px;
-  border: 0;
-  background: transparent;
-  color: var(--nf-text-dim);
-  font-size: var(--fs-label);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.pf-role-pill__star:hover { color: var(--nf-warning); }
-
-.pf-role-pill--primary .pf-role-pill__star {
-  color: var(--nf-warning);
-  cursor: default;
-}
-
-.pf-roles-foot {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 12px;
-  padding-top: 10px;
-  border-top: 1px dashed var(--nf-border);
-}
-
-.pf-roles-flex {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.pf-roles-flex__text {
-  font-size: 12px;
-  color: var(--nf-text-mid);
-}
-
-.pf-warn { font-size: var(--fs-label); color: var(--nf-warning); }
-
-.pf-hint { font-size: var(--fs-label); color: var(--nf-text-dim); }
-
-@media (max-width: 680px) {
-  .pf-roles-strip {
-    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
-  }
-}
-
-/* ── Gestión de Cuenta Riot ────────────────────────────────────────── */
-
-.pf-riot-box {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 14px 16px;
-  border-radius: 9px;
-  border: 1.5px solid var(--nf-border);
-  background: var(--nf-surface);
-}
-
-.pf-riot-box--linked {
-  border-left: 3px solid var(--nf-success);
-}
-
-.pf-riot-box--empty {
-  flex-wrap: wrap;
-}
-
-.pf-riot-box__logo {
-  flex: none;
-}
-
-.pf-riot-box__meta {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.pf-riot-box__id {
-  font-size: var(--fs-body-lg);
-  font-weight: 700;
-  color: var(--nf-text);
-}
-
-.pf-riot-box__sub {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.pf-riot-box__actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex: none;
-}
-
-.pf-riot-box__title {
-  font-size: var(--fs-body);
-  font-weight: 700;
-  color: var(--nf-text);
-  margin-bottom: 2px;
-}
-
-.pf-riot-box__text {
-  margin: 0;
-  font-size: 12px;
-  color: var(--nf-text-dim);
-}
-
-.pf-riot-box__cta-btns {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.pf-riot-verify-banner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 10px 14px;
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--nf-primary) 8%, var(--nf-surface-2));
-  border: 1px solid color-mix(in srgb, var(--nf-primary) 25%, transparent);
-  font-size: 11.5px;
-  color: var(--nf-text-mid);
 }

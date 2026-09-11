@@ -156,10 +156,11 @@ describe('Perfil · refactor de la vista', () => {
   it('sin cuenta vinculada el encabezado ofrece el botón de Riot con su color de marca', async () => {
     const { el } = await montar();
 
-    const boton = el.querySelector<HTMLButtonElement>('.pf-hero-compact__riot');
+    const boton = el.querySelector<HTMLAnchorElement>('.pf-hero-compact__riot');
     expect(boton).not.toBeNull();
     expect(boton!.classList.contains('nf-btn--riot')).toBe(true);
     expect(boton!.textContent).toContain('Vincular Riot ID');
+    expect(boton!.getAttribute('href')).toBe('/app/ajustes');
     // Lleva el logo oficial, no un glifo de texto.
     expect(boton!.querySelector('.nf-btn__riot-mark')).not.toBeNull();
     expect(boton!.textContent).not.toContain('＋');
@@ -219,11 +220,11 @@ describe('Perfil · refactor de la vista', () => {
   it('los campeones insignia y las fichas del catálogo enlazan a la tierlist', async () => {
     const { el, comp, detect } = await montar();
 
-    expect(el.querySelector<HTMLAnchorElement>('a.pf-mini-champ')?.getAttribute('href')).toBe('/app/tierlist');
+    expect(el.querySelector<HTMLAnchorElement>('a.pf-mini-champ')?.getAttribute('href')).toContain('/app/tierlist?campeon=');
 
-    comp.activeTab.set('campeones');
+    comp.setTab('campeones');
     detect();
-    expect(el.querySelector<HTMLAnchorElement>('a.pf-champ-tile')?.getAttribute('href')).toBe('/app/tierlist');
+    expect(el.querySelector<HTMLAnchorElement>('a.pf-champ-tile')?.getAttribute('href')).toContain('/app/tierlist?campeon=');
   });
 
   it('el mejor aliado y la némesis salen de las partidas reales, no de una semilla', async () => {
@@ -250,7 +251,7 @@ describe('Perfil · refactor de la vista', () => {
   it('el buscador de campeones va junto al filtro de posición', async () => {
     const { el, comp, detect } = await montar();
 
-    comp.activeTab.set('campeones');
+    comp.setTab('campeones');
     detect();
 
     const grupo = el.querySelector('.pf-champ-toolbar-compact__filters');
@@ -261,7 +262,7 @@ describe('Perfil · refactor de la vista', () => {
   it('elegir un campeón en el buscador deja solo ese en la rejilla', async () => {
     const { comp, detect } = await montar();
 
-    comp.activeTab.set('campeones');
+    comp.setTab('campeones');
     detect();
     expect(comp.filteredChampions().length).toBeGreaterThan(1);
 
@@ -302,7 +303,7 @@ describe('Perfil · refactor de la vista', () => {
   it('una posición sin partidas dice que no tiene datos, no un winrate', async () => {
     // Sin ninguna partida no hay nada que medir en ninguna de las cinco posiciones.
     const { el, comp, detect } = await montar('N1ghtfang', []);
-    comp.activeTab.set('dna');
+    comp.setTab('dna');
     detect();
 
     const tabla = el.querySelector('.pf-role-table');

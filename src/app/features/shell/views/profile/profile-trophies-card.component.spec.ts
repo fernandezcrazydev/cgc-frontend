@@ -50,8 +50,8 @@ describe('ProfileTrophiesCardComponent', () => {
   }
 
   function marcar(indice: number): void {
-    const casillas = document.querySelectorAll<HTMLInputElement>('.pf-trophy-pick__box');
-    casillas[indice].click();
+    const cards = document.querySelectorAll<HTMLButtonElement>('.pf-trophy-card');
+    cards[indice].click();
     fixture.detectChanges();
   }
 
@@ -71,7 +71,7 @@ describe('ProfileTrophiesCardComponent', () => {
     setGrupos([]);
 
     expect(root().querySelector('.empty-state')).not.toBeNull();
-    expect(root().textContent).toContain('Todavía no has terminado ninguna temporada en el podio');
+    expect(root().textContent).toContain('Todavía no ha terminado ninguna temporada en el podio');
   });
 
   it('grupos fuera del podio no generan trofeos', () => {
@@ -122,12 +122,12 @@ describe('ProfileTrophiesCardComponent', () => {
     setGrupos([grupo(1), grupo(2), grupo(3), grupo(4, 3)]);
 
     abrirModal();
-    expect(document.querySelectorAll('.pf-trophy-pick').length).toBe(4);
+    expect(document.querySelectorAll('.pf-trophy-card').length).toBe(4);
 
     // Se suelta el campeón y se pone en su hueco el cuarto trofeo.
     marcar(0);
     marcar(3);
-    pulsar('Guardar vitrina');
+    pulsar('Guardar');
 
     const nombres = Array.from(root().querySelectorAll('.pf-trophy__group')).map((n) =>
       n.textContent?.trim(),
@@ -141,9 +141,12 @@ describe('ProfileTrophiesCardComponent', () => {
 
     abrirModal();
 
-    const casillas = document.querySelectorAll<HTMLInputElement>('.pf-trophy-pick__box');
-    expect(casillas.length).toBe(4);
-    expect(casillas[3].disabled).toBe(true);
+    const cards = document.querySelectorAll<HTMLButtonElement>('.pf-trophy-card');
+    expect(cards.length).toBe(4);
+    expect(cards[3].disabled).toBe(true);
+    expect(document.querySelector('.pf-trophies__count')?.textContent).toContain(
+      'Vitrina llena — quita uno para cambiar',
+    );
   });
 
   it('cancelar deja la vitrina como estaba', () => {

@@ -47,7 +47,7 @@ describe('ProfileLpChartComponent', () => {
   /* El de la cabecera es el de GRUPO. Dentro de la tarjeta hay otros: el de temporada de cada
      liga, que es cosa de la gráfica y se prueba en su propio spec. */
   const selectorDeGrupo = () =>
-    root().querySelector<HTMLSelectElement>('.hub-card__head nf-select select');
+    root().querySelector<HTMLElement>('.hub-card__head nf-combobox');
 
   function setGrupos(list: ProfileGroupRecord[]): void {
     fixture.componentInstance.grupos.set(list);
@@ -94,7 +94,14 @@ describe('ProfileLpChartComponent', () => {
   it('con varios grupos el desplegable de la cabecera elige grupo, no temporada', () => {
     setGrupos([grupo(1, 780), grupo(2, 450)]);
 
-    const opciones = Array.from(selectorDeGrupo()!.options).map((o) => o.textContent?.trim());
+    const input = root().querySelector<HTMLInputElement>('.hub-card__head .nf-combobox__input')!;
+    expect(input).not.toBeNull();
+    input.focus();
+    fixture.detectChanges();
+
+    const opciones = Array.from(
+      root().querySelectorAll<HTMLElement>('.hub-card__head .nf-combobox__option'),
+    ).map((o) => o.textContent?.trim());
     expect(opciones).toEqual(['Grupo 1', 'Grupo 2']);
   });
 
@@ -103,9 +110,14 @@ describe('ProfileLpChartComponent', () => {
 
     const antes = root().querySelector('.hub-lp__line')?.getAttribute('d');
 
-    const select = selectorDeGrupo()!;
-    select.value = 'g2';
-    select.dispatchEvent(new Event('change'));
+    const input = root().querySelector<HTMLInputElement>('.hub-card__head .nf-combobox__input')!;
+    input.focus();
+    fixture.detectChanges();
+
+    const optG2 = Array.from(
+      root().querySelectorAll<HTMLElement>('.hub-card__head .nf-combobox__option'),
+    ).find((o) => o.textContent?.includes('Grupo 2'))!;
+    optG2.click();
     fixture.detectChanges();
 
     expect(root().querySelector('.hub-lp__line')?.getAttribute('d')).not.toBe(antes);
@@ -118,36 +130,59 @@ describe('ProfileLpChartComponent', () => {
   it('cambiar de grupo suelta la temporada elegida y vuelve a la más reciente', () => {
     setGrupos([grupo(1, 780), grupo(2, 450)]);
 
-    // La semilla es determinista: si deja de dar una liga con historia, este test avisa en vez
-    // de pasar sin comprobar nada.
-    const select = () =>
-      root().querySelector<HTMLSelectElement>('.hub-lp__league-season select')!;
-    expect(select()).not.toBeNull();
+    const seasonCombobox = () =>
+      root().querySelector<HTMLElement>('.hub-lp__league-season');
+    expect(seasonCombobox()).not.toBeNull();
 
-    const reciente = select().value;
-    const otra = [...select().options].find((o) => o.value !== reciente)!;
-    select().value = otra.value;
-    select().dispatchEvent(new Event('change'));
-    fixture.detectChanges();
-    expect(select().value).toBe(otra.value);
+    const seasonInput = () =>
+      root().querySelector<HTMLInputElement>('.hub-lp__league-season .nf-combobox__input')!;
+    const reciente = seasonInput().value;
 
-    const grupoSelect = selectorDeGrupo()!;
-    grupoSelect.value = 'g2';
-    grupoSelect.dispatchEvent(new Event('change'));
-    fixture.detectChanges();
-    grupoSelect.value = 'g1';
-    grupoSelect.dispatchEvent(new Event('change'));
+    seasonInput().focus();
     fixture.detectChanges();
 
-    expect(select().value).toBe(reciente);
+    const options = Array.from(
+      root().querySelectorAll<HTMLElement>('.hub-lp__league-season .nf-combobox__option'),
+    );
+    const otra = options.find((o) => o.textContent?.trim() !== reciente)!;
+    otra.click();
+    fixture.detectChanges();
+    expect(seasonInput().value).not.toBe(reciente);
+
+    // Cambiar a Grupo 2
+    const groupInput = root().querySelector<HTMLInputElement>('.hub-card__head .nf-combobox__input')!;
+    groupInput.focus();
+    groupInput.dispatchEvent(new Event('focus'));
+    fixture.detectChanges();
+    const optG2 = Array.from(
+      root().querySelectorAll<HTMLElement>('.hub-card__head .nf-combobox__option'),
+    ).find((o) => o.textContent?.includes('Grupo 2'))!;
+    optG2.click();
+    fixture.detectChanges();
+
+    // Volver a Grupo 1
+    groupInput.focus();
+    groupInput.dispatchEvent(new Event('focus'));
+    fixture.detectChanges();
+    const optG1 = Array.from(
+      root().querySelectorAll<HTMLElement>('.hub-card__head .nf-combobox__option'),
+    ).find((o) => o.textContent?.includes('Grupo 1'))!;
+    optG1.click();
+    fixture.detectChanges();
+
+    expect(seasonInput().value).toBe(reciente);
   });
 
   it('si el grupo elegido desaparece de la lista, la gráfica cae al primero que quede', () => {
     setGrupos([grupo(1, 780), grupo(2, 450)]);
 
-    const select = selectorDeGrupo()!;
-    select.value = 'g2';
-    select.dispatchEvent(new Event('change'));
+    const groupInput = root().querySelector<HTMLInputElement>('.hub-card__head .nf-combobox__input')!;
+    groupInput.focus();
+    fixture.detectChanges();
+    const optG2 = Array.from(
+      root().querySelectorAll<HTMLElement>('.hub-card__head .nf-combobox__option'),
+    ).find((o) => o.textContent?.includes('Grupo 2'))!;
+    optG2.click();
     fixture.detectChanges();
 
     setGrupos([grupo(1, 780)]);

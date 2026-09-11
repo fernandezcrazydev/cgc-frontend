@@ -22,8 +22,12 @@ describe('PerfilMiembro Component', () => {
         {
           provide: ActivatedRoute,
           useValue: {
-            snapshot: { paramMap: { get: () => 'Pix3lQueen#LAN' } },
+            snapshot: {
+              paramMap: { get: () => 'Pix3lQueen#LAN' },
+              queryParamMap: { get: () => null },
+            },
             paramMap: of({ get: () => 'Pix3lQueen#LAN' }),
+            queryParamMap: of({ get: () => null }),
           },
         },
         {
@@ -112,8 +116,12 @@ describe('PerfilMiembro · refactor de la vista', () => {
         {
           provide: ActivatedRoute,
           useValue: {
-            snapshot: { paramMap: { get: () => 'Pix3lQueen#LAN' } },
+            snapshot: {
+              paramMap: { get: () => 'Pix3lQueen#LAN' },
+              queryParamMap: { get: () => null },
+            },
             paramMap: of({ get: () => 'Pix3lQueen#LAN' }),
+            queryParamMap: of({ get: () => null }),
           },
         },
         {
@@ -256,7 +264,7 @@ describe('PerfilMiembro · refactor de la vista', () => {
       expect(linea.querySelectorAll('nf-avatar.pf-vs-matchup__champ').length).toBe(2);
       expect(linea.getAttribute('aria-label')).toMatch(/(más repetido)/);
       expect(linea.querySelector('.pf-vs-matchup__record')?.textContent).toMatch(
-        /\d+P · \d+V-\d+D/,
+        /\d+ % · \d+V-\d+D/,
       );
       // Ni rastro de la frase con el número del campeón dentro.
       expect(linea.textContent).not.toMatch(/Tu Campeón/);
@@ -267,19 +275,14 @@ describe('PerfilMiembro · refactor de la vista', () => {
    * Lo pidió el usuario: dos cifras sueltas no se leen como un duelo. Con la cara de cada uno
    * pegada a sus victorias, y en espejo, sí.
    */
-  it('el marcador del cara a cara es simétrico: avatar y victorias de cada uno', async () => {
+  it('el marcador del cara a cara es simétrico: avatares y marcador V · D', async () => {
     const { el } = await montar();
 
     const duelo = el.querySelector('.pf-vs-tile--rivalry .pf-vs-duel')!;
-    const lados = duelo.querySelectorAll('.pf-vs-duel__side');
-    expect(lados.length).toBe(2);
+    expect(duelo.querySelectorAll('nf-avatar.pf-vs-duel__avatar').length).toBe(2);
 
-    for (const lado of Array.from(lados)) {
-      expect(lado.querySelector('nf-avatar.pf-vs-duel__avatar')).not.toBeNull();
-      expect(lado.querySelector('.pf-vs-duel__val')?.textContent?.trim()).toMatch(/^\d+$/);
-    }
-    // El segundo lado va en espejo, con la cifra antes del avatar.
-    expect(lados[1].classList).toContain('pf-vs-duel__side--them');
+    const score = el.querySelector('.pf-vs-tile--rivalry .pf-vs-tile__score');
+    expect(score?.textContent).toMatch(/\d+ V\s*·\s*\d+ D/);
   });
 
   /**
@@ -343,17 +346,17 @@ describe('PerfilMiembro · refactor de la vista', () => {
     expect(primero?.classList.contains('pf-hero-compact')).toBe(true);
   });
 
-  it('los campeones insignia enlazan a la tierlist', async () => {
+  it('los campeones insignia enlazan a la tierlist con queryParam', async () => {
     const { el } = await montar();
 
     const champ = el.querySelector<HTMLAnchorElement>('a.pf-mini-champ');
-    expect(champ?.getAttribute('href')).toBe('/app/tierlist');
+    expect(champ?.getAttribute('href')).toContain('/app/tierlist?campeon=');
   });
 
   it('la pestaña de campeones ofrece buscador con tope de cuatro sugerencias', async () => {
     const { el, comp, detect } = await montar();
 
-    comp.activeTab.set('campeones');
+    comp.setTab('campeones');
     detect();
 
     const buscador = el.querySelector('.pf-champ-search nf-combobox');
@@ -365,7 +368,7 @@ describe('PerfilMiembro · refactor de la vista', () => {
   it('el buscador acota la rejilla a un solo campeón', async () => {
     const { comp, detect } = await montar();
 
-    comp.activeTab.set('campeones');
+    comp.setTab('campeones');
     detect();
     const total = comp.filteredChampions().length;
     expect(total).toBeGreaterThan(1);

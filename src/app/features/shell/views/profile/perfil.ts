@@ -1,28 +1,25 @@
-import { Component, DestroyRef, computed, inject, linkedSignal, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Component, computed, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { map } from 'rxjs';
 import {
+  NfAvatar,
   NfButton,
   NfCombobox,
   NfComboboxOption,
   NfIconButton,
-  NfSelect,
-  NfModal,
-  NfToggle,
-  NfSkeleton,
-  NfAvatar,
   NfLaneIcon,
   NfSegmented,
   NfSegmentOption,
+  NfSelect,
+  NfSkeleton,
 } from '../../../../ui';
 import { Session } from '../../../../core/auth';
 import { GroupStore } from '../../../../core/group-store';
 import { opggUrl } from '../../../../core/member-detail';
-import { NotificationsStore } from '../../../../core/notifications';
 import { RoleSample, buildPlayerProfile } from '../../../../core/player-profile';
-import { LANE_ROLES, LaneRole, PreferencesStore, RolePreferences } from '../../../../core/preferences';
-import { PairingCode, RIOT_REGIONS, RiotAccount, RiotAccountStore, RiotRegion } from '../../../../core/riot';
-import { errorMessage } from '../../../../core/http';
-import { ToastService } from '../../../../core/toast';
+import { LaneRole, PreferencesStore } from '../../../../core/preferences';
+import { RiotAccountStore } from '../../../../core/riot';
 import { GameDataStore } from '../../../../core/game-data';
 import {
   CROSS_MIN_SAMPLE,
@@ -35,7 +32,6 @@ import {
 } from '../../../../core/matches';
 import { nameOf } from '../cross/cross-player';
 import { hash } from '../../../../core/group-ranking';
-import { wireConnectModalOnRiotEvent } from './perfil-connect-modal';
 import { ProfileGroupsCard } from './profile-groups-card.component';
 import { ProfileStreakCard } from './profile-streak-card.component';
 import { ProfileLpChartComponent } from './profile-lp-chart.component';
@@ -45,10 +41,9 @@ const MEMBER_SINCE_FMT = new Intl.DateTimeFormat('es-ES', { month: 'short', year
 
 /**
  * Las pestañas del perfil, en un solo sitio: la lista es a la vez el tipo y el validador de lo
- * que llega del segmentado. Antes el tipo estaba escrito en la signal y la lista repetida en un
- * `if`, y el hueco entre los dos se tapaba con un `as any`.
+ * que llega del segmentado.
  */
-const PERFIL_TABS = ['resumen', 'dna', 'campeones', 'ajustes'] as const;
+const PERFIL_TABS = ['resumen', 'dna', 'campeones'] as const;
 type PerfilTab = (typeof PERFIL_TABS)[number];
 
 interface RoleTile {
@@ -57,13 +52,6 @@ interface RoleTile {
   name: string;
   glyph: string;
 }
-
-const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
-  day: 'numeric',
-  month: 'short',
-  hour: '2-digit',
-  minute: '2-digit',
-});
 
 @Component({
   selector: 'app-perfil',
@@ -74,8 +62,6 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
     NfCombobox,
     NfIconButton,
     NfSelect,
-    NfModal,
-    NfToggle,
     NfSkeleton,
     NfAvatar,
     NfLaneIcon,
@@ -89,18 +75,17 @@ const RELINK_FMT = new Intl.DateTimeFormat('es-ES', {
   templateUrl: './perfil.html',
 })
 export class Perfil {
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly groups = inject(GroupStore);
   protected readonly session = inject(Session);
+  protected readonly riot = inject(RiotAccountStore);
+  protected readonly prefs = inject(PreferencesStore);
+  protected readonly gameData = inject(GameDataStore);
+  private readonly matchHistory = inject(MatchHistoryStore);
 
   /**
-   * Quién mira, tomado de la sesión real y no del mock legacy `CURRENT_USER`, que la regla de
-   * oro 1 prohíbe en código nuevo. No era cosmético: la semilla del perfil se construye con el
-   * tag, y `CURRENT_USER.tag` es siempre `N1ghtfang#LAN`, así que TODOS los usuarios veían las
-   * mismas cifras —mismo winrate, mismos campeones, misma racha— bajo su propio nombre y su
-   * propia foto.
-   *
-   * Es la misma resolución que ya hace `MatchHistoryStore.viewer()`: el Riot ID vinculado si lo
-   * hay, y si no el nombre de Discord antes que un hueco.
+   * Quién mira, tomado de la sesión real y no del mock legacy `CURRENT_USER`.
    */
   private readonly user = computed(() => {
     const account = this.riot.account();
@@ -113,12 +98,8 @@ export class Perfil {
     };
   });
 
-  private readonly matchHistory = inject(MatchHistoryStore);
-
   /**
-   * El desglose por posición sale de las partidas que el usuario ha jugado de verdad, no de una
-   * semilla aparte: es la misma fuente que ya alimentan la sinergia y la némesis de más abajo,
-   * así que la tabla de roles y el historial no pueden contar cosas distintas.
+   * El desglose por posición sale de las partidas que el usuario ha jugado de verdad.
    */
   private readonly roleSamples = computed<RoleSample[]>(() =>
     this.matchHistory.allPersonalMatches().map((m) => ({
@@ -137,10 +118,28 @@ export class Perfil {
     ),
   );
 
+  // ── Roles del Hero (Punto 2) ──────────────────────────────────────
+  readonly heroRoles = computed<{ primary: LaneRole | null; secondaries: LaneRole[] } | null>(() => {
+    const saved = this.prefs.prefs();
+    if (!saved.roles.length) return null;
+    const primary =
+      saved.primary && saved.roles.includes(saved.primary) ? saved.primary : (saved.roles[0] ?? null);
+    const secondaries = saved.roles.filter((r) => r !== primary);
+    return { primary, secondaries };
+  });
+
+  roleLabel(role: string): string {
+    const map: Record<string, string> = {
+      TOP: 'Top',
+      JUNGLA: 'Jungla',
+      MID: 'Mid',
+      ADC: 'ADC',
+      SUPPORT: 'Support',
+    };
+    return map[role] ?? role;
+  }
+
   // ── Rivalidades y sinergias ───────────────────────────────────────
-  // Salen de las partidas del historial, no de una semilla por pareja. Antes eran dos fuentes
-  // distintas para el mismo hecho: la tarjeta anunciaba un winrate y la página que abría —que
-  // ya lee las partidas reales— enseñaba otro.
   protected readonly minSample = CROSS_MIN_SAMPLE;
 
   private readonly partners = this.matchHistory.crossPartners;
@@ -148,17 +147,31 @@ export class Perfil {
   readonly bestAlly = computed(() => cardFor(bestAllyOf(this.partners()), 'ally'));
   readonly nemesis = computed(() => cardFor(nemesisOf(this.partners()), 'enemy'));
 
-  // ── Navegación Modular por Pestañas ───────────────────────────────
-  readonly activeTab = signal<PerfilTab>('resumen');
+  // ── Navegación Modular por Pestañas (Punto 7 & 13) ─────────────────
+  readonly activeTab = signal<PerfilTab>(
+    (() => {
+      const tab = this.route.snapshot?.queryParamMap?.get('tab');
+      return (tab && (PERFIL_TABS as readonly string[]).includes(tab) ? tab : 'resumen') as PerfilTab;
+    })(),
+  );
+
   readonly tabOptions: readonly NfSegmentOption[] = [
     { value: 'resumen', label: 'Resumen' },
     { value: 'dna', label: 'ADN y stats' },
     { value: 'campeones', label: 'Campeones' },
-    { value: 'ajustes', label: 'Roles y cuenta' },
   ];
 
   setTab(val: string): void {
-    if (PERFIL_TABS.includes(val as PerfilTab)) this.activeTab.set(val as PerfilTab);
+    if ((PERFIL_TABS as readonly string[]).includes(val)) {
+      const tab = val as PerfilTab;
+      this.activeTab.set(tab);
+      void this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: { tab },
+        queryParamsHandling: 'merge',
+        replaceUrl: true,
+      });
+    }
   }
 
   // ── Top Signature Champions (Top 3 para el resumen) ───────────────
@@ -168,7 +181,6 @@ export class Perfil {
   });
 
   // ── Catálogo de campeones ─────────────────────────────────────────
-  protected readonly gameData = inject(GameDataStore);
   protected readonly champsLoading = computed(() => this.gameData.status() === 'loading');
 
   readonly champRoleFilter = signal<string>('TODOS');
@@ -181,18 +193,8 @@ export class Perfil {
     { value: 'SUPPORT', label: 'SUP' },
   ];
 
-  /**
-   * Campeón elegido en el buscador. Cadena vacía = sin filtrar, la convención del
-   * resto de filtros de la app. Es estado de UI, así que vive en el componente.
-   */
   readonly champQuery = signal<string>('');
 
-  /**
-   * Lo que ofrece el buscador son los campeones que el jugador ha jugado de
-   * verdad, no el catálogo entero: sugerir uno que no aparece en la rejilla sería
-   * ofrecer un filtro que deja la pantalla vacía. Los nombres e iconos salen del
-   * catálogo real (`GameDataStore`); los ids, del perfil.
-   */
   readonly championOptions = computed<NfComboboxOption[]>(() => {
     const p = this.profile();
     if (!p) return [];
@@ -249,15 +251,8 @@ export class Perfil {
     return itemBg(`Item ${id}`);
   }
 
-  // ── Roles preferidos ──────────────────────────────────────────────
-  protected readonly prefs = inject(PreferencesStore);
-  private readonly toast = inject(ToastService);
-  private readonly destroyRef = inject(DestroyRef);
-  private readonly notifs = inject(NotificationsStore);
-
-  protected readonly rolesHelp = signal(false);
-
-  protected readonly roleTiles: RoleTile[] = [
+  // ── Tabla de roles (Pestaña ADN) ──────────────────────────────────
+  protected readonly roleTiles: readonly RoleTile[] = [
     { role: 'TOP', short: 'TOP', name: 'Top', glyph: '◤' },
     { role: 'JUNGLA', short: 'JG', name: 'Jungla', glyph: '♣' },
     { role: 'MID', short: 'MID', name: 'Mid', glyph: '◈' },
@@ -265,96 +260,27 @@ export class Perfil {
     { role: 'SUPPORT', short: 'SUP', name: 'Support', glyph: '✚' },
   ];
 
+  roleStatus(role: LaneRole): string {
+    const saved = this.prefs.prefs();
+    if (saved.primary === role) return '★ Principal';
+    if (saved.roles.includes(role)) return 'Activo';
+    return 'Inactivo';
+  }
+
   constructor() {
     this.prefs.ensureLoaded();
     this.riot.ensureLoaded();
     this.gameData.ensureLoaded();
-    this.destroyRef.onDestroy(() => this.stopTick());
-
-    wireConnectModalOnRiotEvent(this.notifs, this.connecting, (riotId, type) => {
-      const message =
-        type === 'RIOT_ACCOUNT_PAIRED'
-          ? `Vinculamos ${riotId} desde la app de escritorio.`
-          : `Comprobamos con Riot que ${riotId} es tuya.`;
-      this.closeConnect();
-      this.toast.success(message);
+    this.route.queryParamMap?.subscribe((q) => {
+      const tab = q.get('tab');
+      if (tab && (PERFIL_TABS as readonly string[]).includes(tab)) {
+        this.activeTab.set(tab as PerfilTab);
+      }
     });
-  }
-
-  readonly roleDraft = linkedSignal<RolePreferences, RolePreferences>({
-    source: this.prefs.prefs,
-    computation: (saved) => ({ roles: [...saved.roles], primary: saved.primary }),
-  });
-
-  readonly hasRoles = computed(() => this.roleDraft().roles.length > 0);
-  readonly isFlex = computed(() => this.roleDraft().roles.length === LANE_ROLES.length);
-
-  readonly rolesDirty = computed(() => {
-    const draft = this.roleDraft();
-    const saved = this.prefs.prefs();
-    return (
-      draft.primary !== saved.primary ||
-      draft.roles.length !== saved.roles.length ||
-      !draft.roles.every((r) => saved.roles.includes(r))
-    );
-  });
-
-  readonly canSaveRoles = computed(() => this.rolesDirty() && this.hasRoles() && !this.prefs.saving());
-
-  isSelected(role: LaneRole): boolean {
-    return this.roleDraft().roles.includes(role);
-  }
-
-  isPrimary(role: LaneRole): boolean {
-    return this.roleDraft().primary === role;
-  }
-
-  toggleRole(role: LaneRole): void {
-    this.roleDraft.update((d) => {
-      const on = d.roles.includes(role);
-      const roles = LANE_ROLES.filter((r) => (r === role ? !on : d.roles.includes(r)));
-      return { roles, primary: this.keepPrimary(roles, d.primary) };
-    });
-  }
-
-  setPrimaryRole(role: LaneRole): void {
-    if (!this.isSelected(role)) return;
-    this.roleDraft.update((d) => ({ ...d, primary: role }));
-  }
-
-  toggleFlex(flex: boolean): void {
-    this.roleDraft.update((d) => {
-      const roles = flex ? [...LANE_ROLES] : d.primary ? [d.primary] : [];
-      return { roles, primary: this.keepPrimary(roles, d.primary) };
-    });
-  }
-
-  discardRoles(): void {
-    const saved = this.prefs.prefs();
-    this.roleDraft.set({ roles: [...saved.roles], primary: saved.primary });
-  }
-
-  async saveRoles(): Promise<void> {
-    if (!this.canSaveRoles()) return;
-    const ok = await this.prefs.save(this.roleDraft());
-    if (ok) this.toast.success('Roles preferidos guardados.');
-    else this.toast.error('No se han podido guardar tus roles. Inténtalo de nuevo.');
-  }
-
-  private keepPrimary(roles: readonly LaneRole[], primary: LaneRole | null): LaneRole | null {
-    if (primary && roles.includes(primary)) return primary;
-    return roles[0] ?? null;
   }
 
   readonly heroName = computed(() => this.session.displayName() || this.profile()?.name || '');
 
-  /**
-   * Si todavía no hay perfil firme que enseñar.
-   *
-   * Son las dos fuentes de las que sale: quién eres (la sesión, que además es la semilla de
-   * todas las cifras) y tu historial (que se reproyecta al llegar tus ligas). Mientras
-   * cualquiera de las dos viaje, lo que se pintaría sería el perfil de un usuario vacío.
-   */
   readonly profileLoading = computed(
     () =>
       this.session.status() === 'idle' ||
@@ -367,157 +293,11 @@ export class Perfil {
     if (!iso) return null;
     const date = new Date(iso);
     if (Number.isNaN(date.getTime())) return null;
-    // Sin `toUpperCase()`: la regla del proyecto es que lo que se escribe es lo que se pinta,
-    // y ningún componente transforma el texto que recibe. Pintaba «AGO 2025».
     return MEMBER_SINCE_FMT.format(date).replace('.', '');
   });
 
-  readonly avatarBroken = linkedSignal({
-    source: this.session.avatarUrl,
-    computation: () => false,
-  });
+  readonly avatarBroken = signal(false);
   readonly showAvatarImage = computed(() => !!this.session.avatarUrl() && !this.avatarBroken());
-
-  // ── Cuenta de Riot ────────────────────────────────────────────────
-  protected readonly riot = inject(RiotAccountStore);
-
-  readonly linking = signal(false);
-  readonly unlinking = signal<RiotAccount | null>(null);
-  readonly riotIdDraft = signal('');
-  readonly regionDraft = signal<RiotRegion>('EUW');
-  readonly regions = [...RIOT_REGIONS];
-
-  readonly linkValid = computed(() => /^.+#.+$/.test(this.riotIdDraft().trim()));
-  readonly canLink = computed(() => this.linkValid() && !this.riot.saving());
-
-  readonly relinkAvailableAt = computed(() => {
-    const iso = this.riot.relinkAvailableAt();
-    return iso ? RELINK_FMT.format(new Date(iso)) : null;
-  });
-
-  retryRiot(): void {
-    this.riot.reload();
-  }
-
-  setRegion(value: string): void {
-    if ((RIOT_REGIONS as readonly string[]).includes(value)) this.regionDraft.set(value as RiotRegion);
-  }
-
-  startLinking(): void {
-    this.riotIdDraft.set('');
-    this.regionDraft.set(this.riot.account()?.region ?? 'EUW');
-    this.linking.set(true);
-  }
-
-  cancelLinking(): void {
-    if (this.riot.saving()) return;
-    this.linking.set(false);
-  }
-
-  async confirmLink(): Promise<void> {
-    if (!this.canLink()) return;
-    try {
-      const ok = await this.riot.link({
-        riotId: this.riotIdDraft().trim(),
-        region: this.regionDraft(),
-      });
-      if (!ok) return;
-      this.linking.set(false);
-      this.toast.success('Cuenta de Riot vinculada.');
-    } catch (error) {
-      this.toast.error(errorMessage(error));
-    }
-  }
-
-  askUnlink(): void {
-    this.unlinking.set(this.riot.account());
-  }
-
-  cancelUnlink(): void {
-    if (this.riot.saving()) return;
-    this.unlinking.set(null);
-  }
-
-  async confirmUnlink(): Promise<void> {
-    try {
-      const ok = await this.riot.unlink();
-      if (!ok) return;
-      this.unlinking.set(null);
-      this.linking.set(false);
-      this.toast.success('Cuenta de Riot desvinculada.');
-    } catch (error) {
-      this.toast.error(errorMessage(error));
-    }
-  }
-
-  // ── Conectar app ──────────────────────────────────────────────────
-  readonly connecting = signal(false);
-  readonly pairingCode = signal<PairingCode | null>(null);
-  readonly copied = signal(false);
-
-  private readonly now = signal(Date.now());
-  private tick: ReturnType<typeof setInterval> | null = null;
-
-  private readonly codeRemainingMs = computed(() => {
-    const pc = this.pairingCode();
-    if (!pc) return 0;
-    return Math.max(0, new Date(pc.expiresAt).getTime() - this.now());
-  });
-  readonly codeExpired = computed(() => this.pairingCode() !== null && this.codeRemainingMs() === 0);
-  readonly codeCountdown = computed(() => {
-    const total = Math.floor(this.codeRemainingMs() / 1000);
-    const seconds = total % 60;
-    return `${Math.floor(total / 60)}:${seconds.toString().padStart(2, '0')}`;
-  });
-
-  openConnect(): void {
-    this.pairingCode.set(null);
-    this.copied.set(false);
-    this.connecting.set(true);
-    this.startTick();
-  }
-
-  closeConnect(): void {
-    this.connecting.set(false);
-    this.pairingCode.set(null);
-    this.stopTick();
-  }
-
-  async generateCode(): Promise<void> {
-    if (this.riot.generatingCode()) return;
-    try {
-      const code = await this.riot.requestPairingCode();
-      if (!code) return;
-      this.copied.set(false);
-      this.now.set(Date.now());
-      this.pairingCode.set(code);
-    } catch (error) {
-      this.toast.error(errorMessage(error));
-    }
-  }
-
-  async copyCode(code: string): Promise<void> {
-    try {
-      await navigator.clipboard?.writeText(code);
-      this.copied.set(true);
-      setTimeout(() => this.copied.set(false), 2000);
-    } catch {
-      // Ignorar fallo de portapapeles
-    }
-  }
-
-  private startTick(): void {
-    this.stopTick();
-    this.now.set(Date.now());
-    this.tick = setInterval(() => this.now.set(Date.now()), 1000);
-  }
-
-  private stopTick(): void {
-    if (this.tick !== null) {
-      clearInterval(this.tick);
-      this.tick = null;
-    }
-  }
 
   grad(hue: number): string {
     return `radial-gradient(circle at 32% 26%, hsl(${hue},90%,64%), hsl(${hue},78%,30%))`;
@@ -540,13 +320,12 @@ interface CrossCard {
 }
 
 /**
- * Resume un compañero o rival para su tarjeta. El `tag` es el mismo que viaja en la ruta del
- * cruce, así que la tarjeta y la página que abre hablan del mismo jugador y de las mismas
- * partidas.
+ * Resume un compañero o rival para su tarjeta.
  */
 function cardFor(partner: CrossPartner | null, side: 'ally' | 'enemy'): CrossCard | null {
   if (!partner) return null;
   const list = side === 'ally' ? partner.allies : partner.enemies;
+  if (!list.length) return null;
   const agg = aggregateCross(list);
   const them = list[0].them;
 

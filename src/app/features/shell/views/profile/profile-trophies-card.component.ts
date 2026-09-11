@@ -110,40 +110,57 @@ interface Trophy {
     </section>
 
     @if (editing()) {
-      <nf-modal title="Elegir los trofeos de la vitrina" width="520px" (closed)="cancel()">
+      <nf-modal title="Elegir los trofeos de la vitrina" width="620px" (closed)="cancel()">
         <p class="pf-trophies__hint">
           Caben {{ slots }} trofeos. Marca los que quieras enseñar en tu perfil.
         </p>
 
-        <ul class="pf-trophies__picker">
+        <div class="pf-trophies__grid" role="group" aria-label="Catálogo de trofeos">
           @for (t of catalogue(); track t.id) {
-            <li>
-              <label class="pf-trophy-pick" [class.is-on]="isDrafted(t.id)">
-                <input
-                  type="checkbox"
-                  class="pf-trophy-pick__box"
-                  [checked]="isDrafted(t.id)"
-                  [disabled]="isFull() && !isDrafted(t.id)"
-                  (change)="toggle(t.id)"
-                />
-                <img class="pf-trophy-pick__cup" [src]="t.imageSrc" alt="" width="34" height="34" />
-                <span class="pf-trophy-pick__meta">
-                  <span class="pf-trophy-pick__name">{{ t.name }}</span>
-                  <span class="pf-trophy-pick__sub nf-mono">
-                    {{ t.groupName }} · {{ t.seasonName }}
-                  </span>
-                </span>
-              </label>
-            </li>
+            <button
+              type="button"
+              class="pf-trophy-card"
+              [class.is-selected]="isDrafted(t.id)"
+              [class.pf-trophy-card--p2]="t.position === 2"
+              [class.pf-trophy-card--p3]="t.position === 3"
+              [attr.aria-pressed]="isDrafted(t.id)"
+              [disabled]="isFull() && !isDrafted(t.id)"
+              (click)="toggle(t.id)"
+            >
+              <span class="pf-trophy-card__check" aria-hidden="true">
+                @if (isDrafted(t.id)) {
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="3.5 8.5 6.5 11.5 12.5 4.5" />
+                  </svg>
+                }
+              </span>
+              <img
+                class="pf-trophy-card__cup"
+                [src]="t.imageSrc"
+                alt=""
+                width="56"
+                height="56"
+              />
+              <span class="pf-trophy-card__name">{{ t.name }}</span>
+              <span class="pf-trophy-card__group">{{ t.groupName }}</span>
+              <span class="pf-trophy-card__season nf-mono">{{ t.seasonName }}</span>
+            </button>
           }
-        </ul>
+        </div>
 
         <div class="pf-trophies__actions">
-          <span class="pf-trophies__count nf-mono">
-            {{ draft().length }} de {{ slots }} elegidos
+          <span
+            class="pf-trophies__count nf-mono"
+            [class.pf-trophies__count--warn]="isFull()"
+          >
+            @if (isFull()) {
+              Vitrina llena — quita uno para cambiar
+            } @else {
+              {{ draft().length }} de {{ slots }} elegidos
+            }
           </span>
           <button nfButton variant="ghost" size="sm" (click)="cancel()">Cancelar</button>
-          <button nfButton size="sm" (click)="save()">Guardar vitrina</button>
+          <button nfButton size="sm" (click)="save()">Guardar</button>
         </div>
       </nf-modal>
     }
@@ -196,11 +213,14 @@ export class ProfileTrophiesCardComponent {
       .slice(0, SLOTS);
   });
 
-  protected readonly emptyText = computed(() =>
-    this.catalogue().length
+  protected readonly emptyText = computed(() => {
+    if (!this.editable()) {
+      return 'Todavía no ha terminado ninguna temporada en el podio';
+    }
+    return this.catalogue().length
       ? 'No has elegido ningún trofeo para la vitrina'
-      : 'Todavía no has terminado ninguna temporada en el podio',
-  );
+      : 'Todavía no has terminado ninguna temporada en el podio';
+  });
 
   // ── El modal de edición ────────────────────────────────────────────────
   // `draft` es el estado del modal, no el de la vitrina: cancelar tiene que dejarla como estaba.

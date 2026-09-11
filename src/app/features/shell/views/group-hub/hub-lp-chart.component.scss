@@ -131,8 +131,6 @@
 /* Se ajusta con las custom properties de la primitiva, que es lo único que atraviesa su
    encapsulación; una regla hacia `.nf-select__field` desde aquí no casaría con nada. */
 .hub-lp__league-season {
-  --nf-select-font-size: var(--fs-label);
-  --nf-select-padding: 5px 26px 5px 8px;
   display: block;
   margin-top: auto;
 }

@@ -201,7 +201,7 @@ describe('HubLpChartComponent · las tres ligas del grupo', () => {
   it('con una sola temporada dice cuál es, sin desplegable que no decide nada', () => {
     conLigas([COMPETITIVO, EQUILIBRADO, CAOS_SIN_EMPEZAR]);
 
-    expect(root().querySelectorAll('nf-select').length).toBe(0);
+    expect(root().querySelectorAll('nf-combobox').length).toBe(0);
     expect(root().querySelector('.hub-lp__league-season-name')?.textContent).toContain(
       'Temp. 1 · Liga de Otoño 2026',
     );
@@ -210,23 +210,25 @@ describe('HubLpChartComponent · las tres ligas del grupo', () => {
   it('una liga con historia estrena SU desplegable, y solo ella', () => {
     conLigas([COMPETITIVO_CON_HISTORIA, EQUILIBRADO, CAOS_SIN_EMPEZAR]);
 
-    const selects = root().querySelectorAll<HTMLSelectElement>('nf-select select');
-    expect(selects.length).toBe(1);
-    expect([...selects[0].options].map((o) => o.textContent?.trim())).toEqual([
-      'Temp. 3 · Copa del Nexo',
-      'Temp. 2 · Liga de Otoño 2026',
-      'Temp. 1 · Copa del Nexo',
-    ]);
-    expect(selects[0].value).toBe('s3');
+    const comboboxes = root().querySelectorAll('nf-combobox');
+    expect(comboboxes.length).toBe(1);
+    const input = root().querySelector<HTMLInputElement>('.hub-lp__league-season .nf-combobox__input');
+    expect(input).not.toBeNull();
+    expect(input!.value).toBe('Temp. 3 · Copa del Nexo');
   });
 
   /** El ordinal es lo que distingue dos temporadas que el owner llamó igual (§3.4). */
   it('elegir otra temporada lo pide fuera, diciendo de qué liga se trata', () => {
     conLigas([COMPETITIVO_CON_HISTORIA, EQUILIBRADO, CAOS_SIN_EMPEZAR]);
 
-    const select = root().querySelector<HTMLSelectElement>('nf-select select')!;
-    select.value = 's1';
-    select.dispatchEvent(new Event('change'));
+    const input = root().querySelector<HTMLInputElement>('.hub-lp__league-season .nf-combobox__input')!;
+    input.focus();
+    fixture.detectChanges();
+
+    const options = Array.from(root().querySelectorAll<HTMLElement>('.hub-lp__league-season .nf-combobox__option'));
+    expect(options.length).toBe(3);
+    const optS1 = options.find((o) => o.textContent?.includes('Temp. 1'))!;
+    optS1.click();
     fixture.detectChanges();
 
     expect(fixture.componentInstance.elegido).toEqual([
@@ -238,7 +240,7 @@ describe('HubLpChartComponent · las tres ligas del grupo', () => {
     conLigas([COMPETITIVO, EQUILIBRADO, CAOS_SIN_EMPEZAR]);
 
     const caos = root().querySelectorAll('.hub-lp__league')[2];
-    expect(caos.querySelector('nf-select')).toBeNull();
+    expect(caos.querySelector('nf-combobox')).toBeNull();
     expect(caos.querySelector('.hub-lp__league-season-name')).toBeNull();
   });
 

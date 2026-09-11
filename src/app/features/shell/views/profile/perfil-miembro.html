@@ -29,9 +29,6 @@
         <div class="pf-hero-compact__info">
           <div class="pf-hero-compact__name-row">
             <h1 class="pf-hero-compact__name">{{ p.name }}</h1>
-            <div class="pf-badge-archetype nf-mono" [title]="p.archetype.subtitle">
-              <span class="pf-badge-archetype__title">{{ p.archetype.title }}</span>
-            </div>
           </div>
 
           <div class="pf-hero-compact__meta-row nf-mono">
@@ -39,7 +36,14 @@
             <span class="pf-meta-chip">Desde {{ p.memberSince }}</span>
             <!-- Sin partidas suyas que hayas visto no hay posición principal que declarar. -->
             @if (p.mainRole; as rol) {
-              <span class="pf-meta-chip">Rol: {{ rol }}</span>
+              <div class="pf-hero-roles" aria-label="Rol principal">
+                <nf-lane-icon
+                  class="pf-hero-role pf-hero-role--primary"
+                  [lane]="rol"
+                  [title]="roleLabel(rol) + ' (Rol principal)'"
+                  [attr.aria-label]="roleLabel(rol) + ' (Rol principal)'"
+                />
+              </div>
             }
           </div>
         </div>
@@ -143,19 +147,25 @@
                   que llevan las columnas de abajo, para que la barra se lea sin leyenda.
                 -->
                 <div class="pf-vs-split">
-                  <span class="pf-vs-split__side nf-mono">Juntos {{ together().games }}</span>
-                  <span
-                    class="pf-vs-split__bar"
-                    role="img"
-                    [attr.aria-label]="
-                      together().games + ' partidas juntos y ' + against().games + ' enfrentados'
-                    "
-                  >
-                    <span class="pf-vs-split__fill" [style.width.%]="togetherShare()"></span>
-                  </span>
-                  <span class="pf-vs-split__side nf-mono">
-                    {{ against().games }} Enfrentados
-                  </span>
+                  <div class="pf-vs-split__bar-wrap">
+                    <span
+                      class="pf-vs-split__bar"
+                      role="img"
+                      [attr.aria-label]="
+                        together().games + ' partidas juntos y ' + against().games + ' enfrentados'
+                      "
+                    >
+                      <span class="pf-vs-split__fill" [style.width.%]="togetherShare()"></span>
+                    </span>
+                  </div>
+                  <div class="pf-vs-split__labels">
+                    <span class="pf-vs-split__side pf-vs-split__side--ally">
+                      <span class="nf-mono">{{ together().games }}</span> juntos
+                    </span>
+                    <span class="pf-vs-split__side pf-vs-split__side--rival">
+                      <span class="nf-mono">{{ against().games }}</span> enfrentados
+                    </span>
+                  </div>
                 </div>
 
                 <div class="pf-vs-grid">
@@ -166,11 +176,9 @@
                   >
                     <div class="pf-vs-tile__head nf-mono">
                       <span>Sinergia</span>
-                      <span>{{ together().games }} partidas</span>
+                      <span>{{ together().games }} part.</span>
                     </div>
 
-                    <!-- Juntos sois un solo bando, así que aquí no hay marcador que enfrentar:
-                         la cifra es el winrate del dúo, con los dos avatares juntos delante. -->
                     <div class="pf-vs-duel pf-vs-duel--together">
                       <span class="pf-vs-duel__pair">
                         <nf-avatar
@@ -180,6 +188,7 @@
                           [size]="30"
                           shape="square"
                         />
+                        <span class="pf-vs-duel__op nf-mono" aria-hidden="true">+</span>
                         <nf-avatar
                           class="pf-vs-duel__avatar"
                           [fallback]="p.name"
@@ -188,13 +197,16 @@
                           shape="square"
                         />
                       </span>
-                      <span class="pf-vs-duel__val nf-mono" [class.pf-pos]="together().winrate >= 50">
-                        {{ together().winrate }} % WR
-                      </span>
                     </div>
 
-                    <div class="pf-vs-tile__sub nf-mono">
-                      {{ together().wins }}V · {{ together().losses }}D juntos
+                    <div class="pf-vs-tile__score nf-mono">
+                      <span class="pf-pos">{{ together().wins }} V</span>
+                      <span class="pf-sep">·</span>
+                      <span class="pf-neg">{{ together().losses }} D</span>
+                    </div>
+
+                    <div class="pf-vs-tile__wr nf-mono" [class.pf-pos]="together().winrate >= 50">
+                      {{ together().winrate }} % WR
                       @if (streakLabel(together().streak); as racha) {
                         <span class="pf-vs-tile__streak">· racha {{ racha }}</span>
                       }
@@ -225,7 +237,7 @@
                           shape="square"
                         />
                         <span class="pf-vs-matchup__record nf-mono">
-                          {{ duo.games }}P · {{ duo.wins }}V-{{ duo.games - duo.wins }}D
+                          {{ matchupWr(duo) }} % · {{ duo.wins }}V-{{ duo.games - duo.wins }}D
                         </span>
                       </div>
                     }
@@ -238,13 +250,11 @@
                   >
                     <div class="pf-vs-tile__head nf-mono">
                       <span>Cara a cara</span>
-                      <span>{{ against().games }} partidas</span>
+                      <span>{{ against().games }} part.</span>
                     </div>
 
-                    <!-- El marcador, con la cara de cada uno pegada a sus victorias: es lo que
-                         convierte dos cifras en un duelo. -->
                     <div class="pf-vs-duel">
-                      <span class="pf-vs-duel__side">
+                      <span class="pf-vs-duel__pair">
                         <nf-avatar
                           class="pf-vs-duel__avatar"
                           [src]="session.avatarUrl()"
@@ -252,15 +262,7 @@
                           [size]="30"
                           shape="square"
                         />
-                        <span class="pf-vs-duel__val nf-mono" [class.pf-pos]="lead() > 0">
-                          {{ against().wins }}
-                        </span>
-                      </span>
-                      <span class="pf-vs-duel__dash nf-mono" aria-hidden="true">-</span>
-                      <span class="pf-vs-duel__side pf-vs-duel__side--them">
-                        <span class="pf-vs-duel__val nf-mono" [class.pf-neg]="lead() < 0">
-                          {{ against().losses }}
-                        </span>
+                        <span class="pf-vs-duel__op nf-mono" aria-hidden="true">vs</span>
                         <nf-avatar
                           class="pf-vs-duel__avatar"
                           [fallback]="p.name"
@@ -271,8 +273,17 @@
                       </span>
                     </div>
 
+                    <div class="pf-vs-tile__score nf-mono">
+                      <span class="pf-pos">{{ against().wins }} V</span>
+                      <span class="pf-sep">·</span>
+                      <span class="pf-neg">{{ against().losses }} D</span>
+                    </div>
+
+                    <div class="pf-vs-tile__wr nf-mono">
+                      {{ against().winrate }} % WR
+                    </div>
+
                     <div class="pf-vs-tile__sub nf-mono">
-                      {{ against().winrate }} % WR ·
                       @if (lead() > 0) {
                         <span class="pf-pos">vas ganando tú (+{{ lead() }})</span>
                       } @else if (lead() < 0) {
@@ -307,7 +318,7 @@
                           shape="square"
                         />
                         <span class="pf-vs-matchup__record nf-mono">
-                          {{ duelo.games }}P · {{ duelo.wins }}V-{{ duelo.games - duelo.wins }}D
+                          {{ matchupWr(duelo) }} % · {{ duelo.wins }}V-{{ duelo.games - duelo.wins }}D
                         </span>
                       </div>
                     }
@@ -385,7 +396,7 @@
                   nfIconButton
                   size="sm"
                   label="Ver el catálogo completo de campeones"
-                  (click)="activeTab.set('campeones')"
+                  (click)="setTab('campeones')"
                 >
                   <!-- Grid: cuatro celdas, la forma habitual de "ver todo el catálogo". -->
                   <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -402,7 +413,7 @@
                   <!--
                     BACKEND NOTE: no hay vista de detalle por campeón (winrate, KDA, emparejamientos, runas) porque no hay endpoint que la alimente
                   -->
-                  <a class="pf-mini-champ" [routerLink]="['/app', 'tierlist']">
+                  <a class="pf-mini-champ" [routerLink]="['/app', 'tierlist']" [queryParams]="{ campeon: c.championId }">
                     <nf-avatar
                       class="pf-mini-champ__avatar"
                       [loading]="champsLoading()"
@@ -439,6 +450,8 @@
               title="Grupos en los que participa"
               emptyText="Todavía no está en ningún grupo"
             />
+
+            <app-profile-trophies-card [groups]="p.groups" />
           </div>
         </div>
       }
@@ -447,7 +460,7 @@
       @if (activeTab() === 'dna') {
         <div class="pf-tab-content">
           <div class="pf-dna-grid">
-            <div class="pf-dna-card">
+            <div class="pf-dna-card pf-dna-card--lane">
               <div class="pf-dna-card__head nf-mono">
                 Fase de líneas (@14)
               </div>
@@ -465,7 +478,7 @@
               </div>
             </div>
 
-            <div class="pf-dna-card">
+            <div class="pf-dna-card pf-dna-card--combat">
               <div class="pf-dna-card__head nf-mono">
                 Combate & Daño
               </div>
@@ -477,7 +490,7 @@
               </div>
             </div>
 
-            <div class="pf-dna-card">
+            <div class="pf-dna-card pf-dna-card--vision">
               <div class="pf-dna-card__head nf-mono">
                 Visión & Mapa
               </div>
@@ -489,7 +502,7 @@
               </div>
             </div>
 
-            <div class="pf-dna-card">
+            <div class="pf-dna-card pf-dna-card--survival">
               <div class="pf-dna-card__head nf-mono">
                 Supervivencia
               </div>
@@ -501,7 +514,7 @@
               </div>
             </div>
 
-            <div class="pf-dna-card">
+            <div class="pf-dna-card pf-dna-card--economy">
               <div class="pf-dna-card__head nf-mono">
                 Economía & Farm
               </div>
@@ -513,7 +526,7 @@
               </div>
             </div>
 
-            <div class="pf-dna-card">
+            <div class="pf-dna-card pf-dna-card--clutch">
               <div class="pf-dna-card__head nf-mono">
                 Factor Decisivo
               </div>
@@ -565,7 +578,7 @@
                 Hasta que exista, el campeón lleva a la tierlist, que es el sitio donde hoy
                 vive todo lo que sabemos de un campeón.
               -->
-              <a class="pf-champ-tile" [routerLink]="['/app', 'tierlist']">
+              <a class="pf-champ-tile" [routerLink]="['/app', 'tierlist']" [queryParams]="{ campeon: c.championId }">
                 <div class="pf-champ-tile__head">
                   <nf-avatar
                     class="pf-champ-tile__avatar"
@@ -599,7 +612,8 @@
                       [style.width.%]="c.wr"
                     ></div>
                   </div>
-                  <div class="pf-champ-tile__items" title="Objetos más frecuentes">
+                  <!-- BACKEND NOTE: iconos pendientes del catálogo de objetos -->
+                  <div class="pf-champ-tile__items" title="Objetos más frecuentes (iconos pendientes del catálogo de objetos)">
                     @for (itemId of c.coreItemIds; track $index) {
                       <span
                         class="pf-champ-tile__item-slot nf-mono"
