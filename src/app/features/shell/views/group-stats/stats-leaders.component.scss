@@ -133,7 +133,7 @@
   border-radius: 6px; background: var(--nf-surface); border: 1px solid var(--nf-border); flex-shrink: 0;
 }
 
-.ld-affinity__icon { font-size: var(--fs-caption); line-height: 1; }
+.ld-affinity__icon { display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px; flex-shrink: 0; svg { width: 100%; height: 100%; } }
 .ld-affinity__label { font-size: var(--fs-label); font-weight: var(--fw-semibold); color: var(--nf-text); white-space: nowrap; }
 
 .ld-affinity__target {

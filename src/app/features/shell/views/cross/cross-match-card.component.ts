@@ -24,6 +24,7 @@ import { nameOf } from './cross-player';
     NfSkeleton,
     MatchCardShellComponent,
   ],
+  styleUrl: './cross-match-card.component.scss',
   template: `
     <app-match-card-shell
       [match]="cross().match"

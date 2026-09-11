@@ -20,8 +20,6 @@
 
 /* ---- REQUIERE TU ATENCIÓN (inicio): actionable notifications ---- */
 
-@media (max-width: 620px) {
-}
 
 /* ---- champions grid ---- */
 .champ-grid {
@@ -65,11 +63,6 @@
 /* Las tarjetas de ajustes se apilaban pegadas: `nf-window` no trae margen propio (es el
    contenedor quien decide el ritmo) y aquí no había ninguno. El hueco va en el stack y no
    en un `margin-bottom` de la ventana, para que la última no deje un vacío al final. */
-.settings-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 22px;
-}
 
 .settings-eyebrow {
   font-size: var(--fs-label);
@@ -235,8 +228,6 @@
   border-radius: var(--nf-radius-lg);
 }
 
-@media (max-width: 640px) {
-}
 
 /* members section header (label + invite button) */
 
@@ -1983,19 +1974,6 @@
   line-height: 1.2;
 }
 
-.pf-badge-archetype {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 3px 8px;
-  border-radius: 5px;
-  background: color-mix(in srgb, var(--nf-primary) 12%, var(--nf-surface));
-  border: 1px solid color-mix(in srgb, var(--nf-primary) 35%, transparent);
-  font-size: var(--fs-label);
-  font-weight: 700;
-}
-.pf-badge-archetype__title { color: var(--nf-primary); }
-
 .pf-hero-compact__meta-row {
   display: flex;
   align-items: center;
@@ -2152,12 +2130,6 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-}
-
-.pf-card__title-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
 }
 
 /* Sin `text-transform: uppercase`: la regla del proyecto es que lo que se
@@ -2674,7 +2646,7 @@
    es cómo os fue a los dos, así que ninguno de los dos lados manda. */
 .m-card__main--cross {
   display: grid;
-  grid-template-columns: 100px minmax(0, 1fr) auto minmax(0, 1fr) 130px;
+  grid-template-columns: 100px minmax(0, 1fr) minmax(0, auto) minmax(0, 1fr) 130px;
   align-items: center;
   min-height: 84px;
   box-sizing: border-box;
@@ -2682,80 +2654,18 @@
   padding: 12px 18px;
 }
 
-.cx-card__side {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-width: 0;
-}
-
-.cx-card__side--them {
-  justify-content: flex-end;
-  text-align: right;
-}
-
-.cx-card__meta {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
+.cx-card__side { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.cx-card__side--them { justify-content: flex-end; text-align: right; }
+.cx-card__meta { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .cx-card__meta--end { align-items: flex-end; }
-
-.cx-card__who {
-  font-size: var(--fs-label);
-  color: var(--nf-text-dim);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 160px;
-}
-
-.cx-card__champ {
-  font-size: 13.5px;
-  font-weight: var(--fw-bold);
-  color: var(--nf-text);
-}
-
-.cx-card__kda {
-  font-size: 12px;
-  color: var(--nf-text-mid);
-}
-
-.cx-card__ratio {
-  margin-left: 6px;
-  color: var(--nf-text-dim);
-}
-
-.cx-card__relation {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  flex: none;
-}
-
-.cx-card__relation-tag {
-  padding: 3px 10px;
-  border-radius: 999px;
-  font-size: var(--fs-label);
-  font-weight: var(--fw-bold);
-  color: var(--cx-me);
-  border: 1px solid color-mix(in srgb, var(--cx-me) 35%, transparent);
-  background: color-mix(in srgb, var(--cx-me) 10%, transparent);
-}
-
-.cx-card__relation-tag--ally {
-  color: var(--nf-secondary);
-  border-color: color-mix(in srgb, var(--nf-secondary) 35%, transparent);
-  background: color-mix(in srgb, var(--nf-secondary) 10%, transparent);
-}
-
-.cx-card__relation-lane {
-  font-size: var(--fs-label);
-  color: var(--nf-text-dim);
-}
+.cx-card__who { font-size: var(--fs-label); color: var(--nf-text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 160px; }
+.cx-card__champ { font-size: 13.5px; font-weight: var(--fw-bold); color: var(--nf-text); }
+.cx-card__kda { font-size: 12px; color: var(--nf-text-mid); }
+.cx-card__ratio { margin-left: 6px; color: var(--nf-text-dim); }
+.cx-card__relation { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: none; }
+.cx-card__relation-tag { padding: 3px 10px; border-radius: 999px; font-size: var(--fs-label); font-weight: var(--fw-bold); color: var(--cx-me); border: 1px solid color-mix(in srgb, var(--cx-me) 35%, transparent); background: color-mix(in srgb, var(--cx-me) 10%, transparent); }
+.cx-card__relation-tag--ally { color: var(--nf-secondary); border-color: color-mix(in srgb, var(--nf-secondary) 35%, transparent); background: color-mix(in srgb, var(--nf-secondary) 10%, transparent); }
+.cx-card__relation-lane { font-size: var(--fs-label); color: var(--nf-text-dim); }
 
 
 
@@ -2920,7 +2830,7 @@
    que caigan donde toca en vez de irse a colocación automática. */
 @media (max-width: $bp-compact) {
   .m-card__main--cross {
-    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) minmax(0, auto) minmax(0, 1fr);
     grid-template-areas:
       'result   result    result'
       'me       relation  them'

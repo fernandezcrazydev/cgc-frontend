@@ -1,0 +1,3 @@
+﻿@use 'breakpoints' as *;
+.cx-card__champ, .cx-card__who { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cx-card__relation, .cx-card__relation-tag, .cx-card__relation-lane { white-space: nowrap; }
