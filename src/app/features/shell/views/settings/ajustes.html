@@ -1,0 +1,61 @@
+<div class="view settings-page">
+  <div class="view__head">
+    <h1 class="view__title">Ajustes</h1>
+  </div>
+
+  <div class="settings-layout">
+    <!-- Índice de secciones: escritorio (sticky) -->
+    <aside class="settings-nav-desktop" aria-label="Secciones de ajustes">
+      <nav class="settings-nav-list">
+        @for (sec of sections; track sec.id) {
+          <button
+            type="button"
+            class="settings-nav-btn"
+            [class.is-active]="activeSection() === sec.id"
+            [attr.aria-current]="activeSection() === sec.id ? 'true' : null"
+            (click)="setSection(sec.id)"
+          >
+            {{ sec.label }}
+          </button>
+        }
+      </nav>
+    </aside>
+
+    <!-- Índice de secciones: móvil (segmentado horizontal) -->
+    <div class="settings-nav-mobile" aria-label="Secciones de ajustes">
+      <nf-segmented
+        [options]="mobileSegmentOptions"
+        [value]="activeSection()"
+        (valueChange)="setSection($any($event))"
+      />
+    </div>
+
+    <!-- Contenido fluido derecho -->
+    <main class="settings-content">
+      <header class="settings-section-header">
+        <h2 class="settings-section-header__title">{{ activeSectionConfig().label }}</h2>
+        <p class="settings-section-header__desc">{{ activeSectionConfig().description }}</p>
+      </header>
+
+      <div class="settings-section-body">
+        @switch (activeSection()) {
+          @case ('cuenta') {
+            <app-settings-account />
+          }
+          @case ('posiciones') {
+            <app-settings-positions />
+          }
+          @case ('notificaciones') {
+            <app-settings-notifications />
+          }
+          @case ('privacidad') {
+            <app-settings-privacy />
+          }
+          @case ('apariencia') {
+            <app-settings-appearance />
+          }
+        }
+      </div>
+    </main>
+  </div>
+</div>

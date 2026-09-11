@@ -191,15 +191,15 @@ export const routes: Routes = [
       { path: 'campeon/:championId', redirectTo: 'tierlist' },
       {
         path: 'pruebas',
-        title: 'Pruebas Hall of Fame · Sale Custom',
+        title: 'Pruebas · Sale Custom',
         canActivate: [adminGuard],
         loadComponent: () =>
-          import('./features/shell/views/pruebas/pruebas-hof').then((m) => m.PruebasHof),
+          import('./features/shell/views/pruebas/pruebas').then((m) => m.Pruebas),
       },
       {
         path: 'ajustes',
         title: 'Ajustes · Sale Custom',
-        loadComponent: () => import('./features/shell/views/ajustes').then((m) => m.Ajustes),
+        loadComponent: () => import('./features/shell/views/settings/ajustes').then((m) => m.Ajustes),
       },
       // Administración: además del authGuard del padre, exige rol ADMIN (el backend revalida).
       {

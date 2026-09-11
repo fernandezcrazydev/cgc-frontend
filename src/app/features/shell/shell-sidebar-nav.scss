@@ -149,7 +149,6 @@
   transition: background 0.04s ease;
   transition-delay: 0s;
 }
-.shell__section.is-primary .shell__section-glyph { color: var(--grp-c1, var(--nf-primary)); }
 
 .shell__section.is-live-room {
   color: #34d399;
@@ -177,6 +176,36 @@
   z-index: 2;
 }
 
+.shell__tablon-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--nf-pos);
+  box-shadow: 0 0 6px var(--nf-pos);
+  animation: shell-live-pulse 1.8s infinite ease-in-out;
+  margin-left: auto;
+  flex: none;
+}
+
+.shell__tablon-dot-rail {
+  display: none;
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--nf-pos);
+  border: 1.5px solid var(--nf-void);
+  box-shadow: 0 0 6px var(--nf-pos);
+  animation: shell-live-pulse 1.8s infinite ease-in-out;
+  z-index: 2;
+}
+
+.shell__sidebar.is-rail .shell__tablon-dot-rail {
+  display: block;
+}
+
 .shell__live-pulse {
   display: inline-block;
   width: 8px;
@@ -199,6 +228,7 @@
 }
 
 .shell__section-glyph {
+  position: relative;
   width: 18px;
   height: 18px;
   flex: none;

@@ -183,7 +183,8 @@
                         [routerLinkActiveOptions]="{ exact: item.path === '' }"
                         #activeLink="routerLinkActive"
                         [attr.aria-current]="activeLink.isActive ? 'page' : null"
-                        [attr.title]="railed() ? item.label : null"
+                        [attr.title]="railed() ? (item.path === 'tablon' && hasLiveRoom(g.id) ? 'Tablón, hay salas activas' : item.label) : null"
+                        [attr.aria-label]="item.path === 'tablon' && hasLiveRoom(g.id) ? 'Tablón, hay salas activas' : null"
                       >
                         <span class="shell__section-glyph" aria-hidden="true">
                           @if (item.path === 'tablon') {
@@ -193,6 +194,9 @@
                               <path d="M8 14h4" />
                               <path d="M8 17h8" />
                             </svg>
+                            @if (hasLiveRoom(g.id)) {
+                              <span class="shell__tablon-dot-rail" aria-hidden="true"></span>
+                            }
                           } @else if (item.path === '') {
                             <svg class="shell__section-icon" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                               <rect x="3" y="3" width="7" height="7" rx="1" />
@@ -242,6 +246,9 @@
                         <span class="shell__section-label shell__collapsible">
                           {{ item.label }}
                         </span>
+                        @if (item.path === 'tablon' && hasLiveRoom(g.id)) {
+                          <span class="shell__tablon-dot shell__collapsible" aria-hidden="true"></span>
+                        }
                       </a>
                     }
                   </div>
@@ -360,22 +367,6 @@
               </div>
             </div>
           }
-          <button
-            type="button"
-            class="shell__logout"
-            (click)="confirmLogout.set(true)"
-            [attr.title]="railed() ? 'Cerrar sesión' : null"
-            [attr.aria-label]="railed() ? 'Cerrar sesión' : null"
-          >
-            <span class="shell__logout-icon" aria-hidden="true">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                <polyline points="16 17 21 12 16 7" />
-                <line x1="21" y1="12" x2="9" y2="12" />
-              </svg>
-            </span>
-            <span class="shell__logout-label shell__collapsible">Cerrar sesión</span>
-          </button>
         </div>
       </div>
     </aside>
@@ -1008,22 +999,5 @@
     (pause)="toasts.pause()"
     (resume)="toasts.resume()"
   />
-
-  <!-- logout confirmation modal -->
-  @if (confirmLogout()) {
-    <div class="shell__overlay" (click)="confirmLogout.set(false)">
-      <div class="shell__dialog" (click)="$event.stopPropagation()">
-        <nf-window title="Cerrar sesión" bodyPadding="24px">
-          <p class="shell__dialog-msg">
-            ¿Seguro que quieres <strong>cerrar sesión</strong>? Tendrás que volver a iniciar sesión para acceder.
-          </p>
-          <div class="shell__dialog-actions">
-            <button nfButton variant="ghost" size="md" (click)="confirmLogout.set(false)">Cancelar</button>
-            <button nfButton variant="danger" size="md" (click)="logout()">Cerrar sesión</button>
-          </div>
-        </nf-window>
-      </div>
-    </div>
-  }
 
 </div>

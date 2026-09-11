@@ -1,0 +1,35 @@
+.settings-account { display: flex; flex-direction: column; gap: 20px; }
+.setting-row { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 16px 0; border-bottom: 1px solid var(--nf-border); }
+.setting-row--last { border-bottom: none; padding-bottom: 4px; }
+.setting-title { font-size: var(--fs-body); font-weight: var(--fw-bold); color: var(--nf-text); display: flex; align-items: center; gap: 8px; }
+.setting-sub { font-size: var(--fs-label); color: var(--nf-text-dim); margin-top: 3px; }
+.setting-sub--help { font-size: var(--fs-caption); letter-spacing: 0; line-height: 1.45; margin-top: 5px; max-width: 48ch; }
+.session-intro { margin: 6px 0 16px; }
+.session-empty { padding: 14px 2px 2px; font-size: var(--fs-caption); color: var(--nf-text-mid); }
+.logout-row { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 10px 0 4px; }
+.pf-riot-box { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 16px; border-radius: var(--nf-radius); border: 1px solid var(--nf-border); background: var(--nf-surface-2); margin-top: 10px; }
+.pf-riot-box--linked { border-left: 3px solid var(--nf-pos); }
+.pf-riot-box--empty { flex-wrap: wrap; }
+.pf-riot-box__logo { flex: none; }
+.pf-riot-box__meta { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.pf-riot-box__id { font-size: var(--fs-body-lg); font-weight: var(--fw-bold); color: var(--nf-text); }
+.pf-riot-box__sub { display: flex; align-items: center; gap: 6px; }
+.pf-riot-box__actions { display: flex; align-items: center; gap: 10px; flex: none; }
+.pf-riot-box__title { font-size: var(--fs-body); font-weight: var(--fw-bold); color: var(--nf-text); margin-bottom: 2px; }
+.pf-riot-box__text { margin: 0; font-size: var(--fs-caption); color: var(--nf-text-dim); }
+.pf-riot-box__cta-btns { display: flex; align-items: center; gap: 8px; }
+.pf-riot-verify-banner { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; margin-top: 10px; border-radius: var(--nf-radius-sm); background: color-mix(in srgb, var(--nf-primary) 8%, var(--nf-surface-2)); border: 1px solid color-mix(in srgb, var(--nf-primary) 25%, transparent); font-size: var(--fs-caption); color: var(--nf-text-mid); }
+.pf-meta-chip { display: inline-flex; align-items: center; padding: 2px 6px; border-radius: var(--nf-radius-sm); background: var(--nf-surface); border: 1px solid var(--nf-border); font-size: var(--fs-label); color: var(--nf-text-dim); }
+.pf-meta-chip--verified { color: var(--nf-pos); border-color: color-mix(in srgb, var(--nf-pos) 30%, transparent); }
+.pf-hint { font-size: var(--fs-label); color: var(--nf-text-dim); }
+.riot-link { margin-bottom: 16px; }
+.riot-link__text { margin: 0; font-size: var(--fs-body); color: var(--nf-text-mid); line-height: 1.5; }
+.form-grid { display: grid; grid-template-columns: 1fr 140px; gap: 14px; margin-bottom: 18px; }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field__label { font-size: var(--fs-label); color: var(--nf-text-dim); }
+.field__input { width: 100%; height: 38px; padding: 0 12px; border-radius: var(--nf-radius-sm); border: 1px solid var(--nf-border); background: var(--nf-surface); color: var(--nf-text); font: inherit; font-size: var(--fs-body); &:focus { outline: none; border-color: var(--nf-primary); } }
+.confirm__text { margin: 0 0 20px; font-size: var(--fs-body); line-height: 1.55; color: var(--nf-text-mid); strong { color: var(--nf-text); } }
+.connect-fallback { display: flex; flex-direction: column; gap: 12px; margin: 16px 0; }
+.connect-code { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-radius: var(--nf-radius-sm); background: var(--nf-surface); border: 1px solid var(--nf-border); &.is-expired { opacity: 0.5; border-color: var(--nf-danger); } }
+.connect-code__value { font-size: var(--fs-h3); font-weight: var(--fw-bold); letter-spacing: 0.1em; color: var(--nf-text); }
+.connect-code__hint { margin: 0; font-size: var(--fs-label); color: var(--nf-text-dim); }

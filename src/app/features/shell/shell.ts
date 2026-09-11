@@ -70,8 +70,6 @@ export interface LiveRoomRow {
     RouterOutlet,
     RouterLink,
     RouterLinkActive,
-    NfWindow,
-    NfButton,
     NfSkeleton,
     NfToastHost,
     FeedbackDialog,
@@ -279,11 +277,13 @@ export class Shell {
     const abrir = !this.showDownload();
     if (abrir) {
       const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+      const zoom =
+        parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--nf-zoom')) || 1;
       // Se despliega hacia ARRIBA: está pegado al fondo de la barra y hacia abajo se saldría de
       // la pantalla. En rail sale por el costado; con la barra desplegada, sobre el propio botón.
       this.downloadAnchor.set({
-        left: this.railed() ? Math.round(rect.right + 8) : Math.round(rect.left),
-        bottom: Math.round(window.innerHeight - rect.top + 6),
+        left: this.railed() ? Math.round((rect.right + 8) / zoom) : Math.round(rect.left / zoom),
+        bottom: Math.round((window.innerHeight - rect.top + 6) / zoom),
       });
     } else {
       this.downloadAnchor.set(null);
@@ -293,7 +293,6 @@ export class Shell {
 
   readonly isMobile = signal(false);
   readonly pageTitle = signal('Inicio');
-  readonly confirmLogout = signal(false);
 
   // ── Plegado de la navegación lateral (solo escritorio) ────────────
   // Estado de UI puro (regla de oro 5): vive en el componente, no en un store de
@@ -1055,29 +1054,4 @@ export class Shell {
   });
 
   readonly showAvatarImage = computed(() => !!this.session.avatarUrl() && !this.avatarBroken());
-
-  /** Cierra sesión de verdad: revoca el token y limpia el perfil, luego navega. */
-  async logout(): Promise<void> {
-    this.confirmLogout.set(false);
-    // No dejar bandeja, stream abierto, invitaciones ni grupos del usuario anterior en memoria.
-    this.notifs.clear();
-    this.invitations.clear();
-    this.groups.clear();
-    this.groupDetail.clear();
-    this.groupBridge.clear();
-    this.lobbies.clear();
-    this.lobbyDetail.clear();
-    this.riot.clear();
-    this.sessions.clear();
-    this.prefs.clear();
-    // El canal de Discord de un grupo del usuario anterior es exactamente el tipo de dato que
-    // pasaría por bueno al siguiente: un nombre de canal plausible en una pantalla que ya conoce.
-    this.discord.clear();
-    // Además de vaciar el dato, esto para el polling: si no, el siguiente usuario (que puede no
-    // ser admin) heredaría una petición cada 10 s a un endpoint que le va a devolver 403.
-    this.riotUsage.clear();
-    this.riotMetrics.clear();
-    await this.auth.logout();
-    await this.router.navigateByUrl('/');
-  }
 }
