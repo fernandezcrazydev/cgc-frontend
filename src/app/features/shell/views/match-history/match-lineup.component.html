@@ -1,0 +1,298 @@
+    <div class="m-lineup">
+      <div class="m-lineup__teams">
+        @for (team of teams(); track team.side) {
+          <div
+            class="m-lineup__team"
+            [class.m-lineup__team--blue]="team.side === 'blue'"
+            [class.m-lineup__team--red]="team.side === 'red'"
+          >
+            <div class="m-lineup__team-head">
+              <span class="m-lineup__team-outcome nf-mono" [class.is-win]="team.won" [class.is-loss]="!team.won">
+                {{ team.won ? 'Victoria' : 'Derrota' }}
+              </span>
+
+              <div class="m-lineup__team-objs">
+                @if (team.voidgrubs > 0) {
+                  <span class="m-lineup__obj" [title]="'Larvas del Vacío: ' + team.voidgrubs">
+                    <img
+                      src="https://raw.communitydragon.org/latest/game/assets/ux/minimap/icons/grub.png"
+                      alt="Larvas"
+                      class="m-lineup__obj-icon"
+                    />
+                    <span class="m-lineup__obj-num nf-mono">{{ team.voidgrubs }}</span>
+                  </span>
+                }
+                @if (team.barons > 0) {
+                  <span class="m-lineup__obj" [title]="'Barones: ' + team.barons">
+                    <img
+                      src="https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-match-history/global/default/baron-100.png"
+                      alt="Barón"
+                      class="m-lineup__obj-icon"
+                    />
+                    <span class="m-lineup__obj-num nf-mono">{{ team.barons }}</span>
+                  </span>
+                }
+                @if (team.elderDragons > 0) {
+                  <span class="m-lineup__obj" [title]="'Dragones anciano: ' + team.elderDragons">
+                    <img
+                      src="https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-match-history/global/default/elder-100.png"
+                      alt="Dragón Anciano"
+                      class="m-lineup__obj-icon"
+                    />
+                    <span class="m-lineup__obj-num nf-mono">{{ team.elderDragons }}</span>
+                  </span>
+                }
+                @if (team.dragonTypes.length > 0) {
+                  <span class="m-lineup__drakes">
+                    @for (d of team.dragonTypes; track $index) {
+                      <img
+                        [src]="drakeIcon(d)"
+                        [alt]="d"
+                        [title]="drakeTitle(d)"
+                        class="m-lineup__drake-icon"
+                      />
+                    }
+                  </span>
+                }
+              </div>
+            </div>
+
+            @for (p of team.participants; track p.id) {
+              <div
+                class="m-lineup__row"
+                [class.is-you]="isCurrentUser(p)"
+                [class.m-lineup__row--no-react]="!reactionScope()"
+              >
+                <nf-lane-icon class="m-lineup__lane" [lane]="p.role" mode="original" />
+
+                <div class="m-lineup__champ-col">
+                  <div class="m-lineup__champ-wrap">
+                    <a
+                      class="m-lineup__champ-link"
+                      [routerLink]="['/app', 'tierlist']"
+                      [title]="'Ver estadísticas de ' + championName(p)"
+                      (click)="$event.stopPropagation()"
+                    >
+                      <nf-avatar
+                        class="m-lineup__champ"
+                        [loading]="champsLoading()"
+                        [src]="champion(p.championId)?.iconUrl ?? null"
+                        [fallback]="p.championName"
+                        [tint]="p.championId"
+                        [size]="28"
+                        shape="square"
+                      />
+                    </a>
+                    <span class="m-player-row__lvl nf-mono">{{ p.championLevel }}</span>
+                  </div>
+
+                  <div class="m-lineup__spells-col">
+                    @for (sId of participantSpells(p); track $index) {
+                      <nf-avatar
+                        class="m-lineup__spell-slot"
+                        [src]="spellIcon(sId)"
+                        [fallback]="spellName(sId)"
+                        [size]="13"
+                        shape="square"
+                        [title]="spellName(sId)"
+                      />
+                    }
+                  </div>
+
+                  <div class="m-lineup__runes-col">
+                    <nf-avatar
+                      class="m-lineup__rune-slot m-lineup__rune-slot--primary"
+                      [src]="runeIcon(participantPrimaryRune(p))"
+                      [fallback]="runeName(participantPrimaryRune(p))"
+                      [size]="13"
+                      shape="round"
+                      [title]="runeName(participantPrimaryRune(p))"
+                    />
+                    <nf-avatar
+                      class="m-lineup__rune-slot m-lineup__rune-slot--secondary"
+                      [src]="runeIcon(participantSecondaryRune(p))"
+                      [fallback]="runeName(participantSecondaryRune(p))"
+                      [size]="12"
+                      shape="round"
+                      [title]="runeName(participantSecondaryRune(p))"
+                    />
+                  </div>
+                </div>
+
+                <div class="m-lineup__who">
+                  <div class="m-lineup__who-top">
+                    <a
+                      class="m-lineup__player"
+                      [routerLink]="isCurrentUser(p) ? ['/app', 'perfil'] : ['/app', 'perfil', p.userId]"
+                      [title]="p.riotId"
+                      (click)="$event.stopPropagation()"
+                    >
+                      {{ p.riotId }}
+                    </a>
+                    @if (isCurrentUser(p)) {
+                      <span class="m-lineup__tag nf-mono">Tú</span>
+                    }
+                  </div>
+                  <a
+                    class="m-lineup__champ-name nf-mono"
+                    [routerLink]="['/app', 'tierlist']"
+                    [title]="'Ver estadísticas de ' + championName(p)"
+                    (click)="$event.stopPropagation()"
+                  >
+                    {{ championName(p) }}
+                  </a>
+                </div>
+
+                <div class="m-lineup__score-col">
+                  <span
+                    class="m-lineup__tag m-lineup__tag--score nf-mono"
+                    [class.is-mvp]="p.id === match().mvpParticipantId"
+                    [class.is-ace]="p.id === match().aceParticipantId"
+                    [class.is-podium]="playerRank(p) <= 3"
+                    [title]="'Nota de partida: ' + playerRankScore(p)"
+                  >
+                    {{ playerRankScore(p) }}
+                  </span>
+                </div>
+
+                @if (reactionScope(); as scope) {
+                  <!-- Reacciones sobre el jugador. En la fila se enseña SOLO la más votada: diez
+                       filas con emojis de más se leen como ruido y tapan el marcador. El resto se
+                       cuenta en un «+N» que las asoma al pasar el cursor, y el «＋» sigue estando
+                       para añadir la tuya. -->
+                  <div class="m-lineup__reactions" (mouseleave)="clearPeek()">
+                    @for (r of topReactions(p); track r.emoji) {
+                      <button
+                        type="button"
+                        class="m-lineup__reaction"
+                        [class.is-mine]="r.mine"
+                        [attr.aria-pressed]="r.mine"
+                        [attr.aria-label]="(r.mine ? 'Quitar tu reacción ' : 'Reaccionar con ') + r.emoji + ' a ' + p.riotId"
+                        (click)="toggleReaction(p, r.emoji, $event)"
+                      >
+                        <span aria-hidden="true">{{ r.emoji }}</span>
+                        <span class="nf-mono">{{ r.count }}</span>
+                      </button>
+                    }
+                    @if (hiddenReactions(p); as extra) {
+                      <button
+                        type="button"
+                        class="m-lineup__reaction m-lineup__reaction--more nf-mono"
+                        [attr.aria-label]="'Ver las ' + extra + ' reacciones restantes de ' + p.riotId"
+                        (mouseenter)="peek(p.id)"
+                        (focus)="peek(p.id)"
+                        (click)="openPanel(p.id, $event)"
+                      >+{{ extra }}</button>
+                    }
+                    <button
+                      type="button"
+                      class="m-lineup__react-add"
+                      aria-haspopup="menu"
+                      [attr.aria-expanded]="panelFor() === p.id"
+                      [attr.aria-label]="'Reaccionar a ' + p.riotId"
+                      (click)="openPanel(p.id, $event)"
+                    >＋</button>
+
+                    @if (panelFor() === p.id || peekFor() === p.id) {
+                      <div
+                        class="m-lineup__react-panel"
+                        role="menu"
+                        (mouseenter)="peek(p.id)"
+                        (click)="$event.stopPropagation()"
+                      >
+                        @if (allReactions(p).length) {
+                          <div class="m-lineup__react-panel-title nf-mono">Reacciones</div>
+                          <div class="m-lineup__react-panel-list" [class.is-peek]="panelFor() !== p.id">
+                            @for (r of allReactions(p); track r.emoji) {
+                              <button
+                                type="button"
+                                class="m-lineup__reaction"
+                                [class.is-mine]="r.mine"
+                                (click)="toggleReaction(p, r.emoji, $event)"
+                              >
+                                <span aria-hidden="true">{{ r.emoji }}</span>
+                                <span class="nf-mono">{{ r.count }}</span>
+                              </button>
+                            }
+                          </div>
+                        }
+                        <!-- El selector solo aparece cuando se ha PEDIDO reaccionar; asomarse a lo
+                             que votaron los demás no tiene por qué abrir un teclado de emojis. -->
+                        @if (panelFor() === p.id) {
+                          <nf-emoji-picker
+                            [quick]="quickEmojis()"
+                            [selected]="myReaction(p)"
+                            (picked)="toggleReaction(p, $event)"
+                          />
+                        }
+                      </div>
+                    }
+                  </div>
+                }
+
+                <div class="m-lineup__kda-col">
+                  <span class="m-lineup__kda nf-mono">
+                    {{ p.stats.kills }}<span class="m-lineup__slash">/</span
+                    ><span class="m-lineup__deaths">{{ p.stats.deaths }}</span
+                    ><span class="m-lineup__slash">/</span>{{ p.stats.assists }}
+                  </span>
+                  <span class="m-lineup__ratio nf-mono">{{ kdaRatio(p) }}</span>
+                </div>
+
+                <div class="m-lineup__items">
+                  @for (it of participantItems(p); track $index) {
+                    @if (it) {
+                      <nf-avatar
+                        class="m-lineup__item-slot"
+                        [class.m-lineup__item-slot--trinket]="$index === 6"
+                        [class.m-lineup__item-slot--quest]="$index === 7"
+                        [src]="it.iconUrl ?? null"
+                        [fallback]="it.name"
+                        [size]="19"
+                        shape="square"
+                        [title]="$index === 7 ? 'Misión: ' + it.name : ($index === 6 ? 'Accesorio: ' + it.name : it.name)"
+                      />
+                    } @else {
+                      <span
+                        class="m-lineup__item-slot m-lineup__item-slot--empty"
+                        [class.m-lineup__item-slot--trinket]="$index === 6"
+                        [class.m-lineup__item-slot--quest]="$index === 7"
+                      ></span>
+                    }
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+
+      <div class="m-lineup__actions">
+        @if (crossContext(); as ctx) {
+          @if (ctx.relation === 'enemy') {
+            <a
+              class="m-lineup__more nf-mono"
+              [routerLink]="['/app', 'jugador', ctx.playerId, 'contra', match().id]"
+            >
+              Cara a Cara
+            </a>
+          } @else if (ctx.relation === 'ally') {
+            <a
+              class="m-lineup__more nf-mono"
+              [routerLink]="['/app', 'jugador', ctx.playerId, 'juntos', match().id]"
+            >
+              Sinergia
+            </a>
+          }
+        }
+
+        <a
+          class="m-lineup__more nf-mono"
+          [routerLink]="['/app', 'historial', match().id]"
+          [queryParams]="queryParams()"
+          (click)="onOpenDetail()"
+        >
+          Análisis completo
+        </a>
+      </div>
+    </div>

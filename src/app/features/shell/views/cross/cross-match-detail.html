@@ -1,0 +1,229 @@
+    <div class="view cx-view">
+      @if (state.loading()) {
+        <div class="cx-boot" aria-busy="true">
+          <nf-skeleton width="180px" height="12px" />
+          <nf-skeleton width="260px" height="28px" />
+          <nf-skeleton width="100%" height="180px" radius="10px" />
+        </div>
+      } @else if (state.status() === 'error') {
+        <div class="view__head">
+          <div class="view__eyebrow nf-mono">Error de carga</div>
+          <h1 class="view__title">No se ha podido cargar</h1>
+          <p class="view__lead">
+            No hemos podido traer esta partida. Puede ser cosa de la conexión.
+          </p>
+        </div>
+        <button nfButton variant="primary" size="md" (click)="state.reload()">Reintentar</button>
+      } @else if (cross(); as c) {
+        <a class="view-back nf-mono" [routerLink]="['/app', 'jugador', state.playerId(), c.relation === 'enemy' ? 'contra' : 'juntos']">
+          <span class="view-back__arrow" aria-hidden="true">←</span>
+          Volver a {{ c.relation === 'enemy' ? 'Cara a cara' : 'Sinergia' }}
+        </a>
+
+        <header class="cx-detail__head" [class.is-win]="isWin()" [class.is-loss]="isLoss()">
+          <div class="cx-detail__eyebrow nf-mono">{{ relationLabel() }}</div>
+          <h1 class="cx-detail__title">Tú y {{ theirName() }}</h1>
+          <p class="cx-detail__meta nf-mono">
+            {{ outcomeLabel() }} · {{ duration() }} · {{ date() }} · {{ c.match.group.name }}
+          </p>
+        </header>
+
+        <section class="cx-panel">
+          <h2 class="cx-panel__title nf-mono">Comparativa de la partida</h2>
+          <div class="cx-compare cx-compare--flat">
+            <div class="cx-compare__legend nf-mono">
+              <span class="cx-compare__legend-me">Tú · {{ championName(c.me) }}</span>
+              <span class="cx-compare__legend-them">
+                {{ theirName() }} · {{ championName(c.them) }}
+              </span>
+            </div>
+            @for (r of rows(); track r.key) {
+              <div class="cx-metric">
+                <div class="cx-metric__val cx-metric__val--me" [class.is-best]="r.winner === 'me'">
+                  <span class="cx-metric__num nf-mono">{{ r.mineText }}</span>
+                  @if (r.mineSub) {
+                    <span class="cx-metric__sub nf-mono">{{ r.mineSub }}</span>
+                  }
+                </div>
+                <div class="cx-metric__center">
+                  <span class="cx-metric__label nf-mono">{{ r.label }}</span>
+                  <div class="cx-metric__bar" role="presentation">
+                    <span class="cx-metric__fill cx-metric__fill--me" [style.width.%]="r.minePct"></span>
+                    <span class="cx-metric__fill cx-metric__fill--them" [style.width.%]="r.theirsPct"></span>
+                  </div>
+                </div>
+                <div class="cx-metric__val cx-metric__val--them" [class.is-best]="r.winner === 'them'">
+                  <span class="cx-metric__num nf-mono">{{ r.theirsText }}</span>
+                  @if (r.theirsSub) {
+                    <span class="cx-metric__sub nf-mono">{{ r.theirsSub }}</span>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        </section>
+
+        @if (lanePhase(); as lp) {
+          <section class="cx-panel">
+            <h2 class="cx-panel__title nf-mono">Fase de líneas</h2>
+            <p class="cx-panel__lead">
+              {{
+                c.sameLane
+                  ? 'Compartisteis posición, así que estas cifras comparan el mismo duelo.'
+                  : 'Jugasteis posiciones distintas: las cifras se leen como contexto, no como un duelo.'
+              }}
+            </p>
+            <div class="cx-tiles">
+              <div class="cx-tile">
+                <span
+                  class="cx-tile__value nf-mono"
+                  [class.cx-pos]="lp.goldDiff > 0"
+                  [class.cx-neg]="lp.goldDiff < 0"
+                >
+                  {{ lp.goldDiff > 0 ? '+' : '' }}{{ gold(lp.goldDiff) }}
+                </span>
+                <span class="cx-tile__label nf-mono">Oro en el minuto 14</span>
+                <span class="cx-tile__sub nf-mono">
+                  tú {{ gold(lp.myGold) }} · {{ theirName() }} {{ gold(lp.theirGold) }}
+                </span>
+              </div>
+              @if (lp.myCs !== null && lp.theirCs !== null) {
+                <div class="cx-tile">
+                  <span
+                    class="cx-tile__value nf-mono"
+                    [class.cx-pos]="lp.csDiff > 0"
+                    [class.cx-neg]="lp.csDiff < 0"
+                  >
+                    {{ lp.csDiff > 0 ? '+' : '' }}{{ lp.csDiff }}
+                  </span>
+                  <span class="cx-tile__label nf-mono">CS en el minuto 14</span>
+                  <span class="cx-tile__sub nf-mono">
+                    tú {{ lp.myCs }} · {{ theirName() }} {{ lp.theirCs }}
+                  </span>
+                </div>
+              }
+            </div>
+            @if (laneNote(); as note) {
+              <p class="cx-panel__note nf-mono">{{ note }}</p>
+            }
+          </section>
+        }
+
+        <section class="cx-panel">
+          <h2 class="cx-panel__title nf-mono">Cómo acabasteis</h2>
+          <div class="cx-builds">
+            <div class="cx-build">
+              <div class="cx-build__who">
+                <nf-avatar
+                  [loading]="champsLoading()"
+                  [src]="icon(c.me)"
+                  [fallback]="c.me.championName"
+                  [tint]="c.me.championId"
+                  [size]="36"
+                  shape="square"
+                />
+                <div class="cx-build__id">
+                  <span class="cx-build__name">Tú</span>
+                  @if (champsLoading()) {
+                    <nf-skeleton width="80px" height="11px" />
+                  } @else {
+                    <span class="cx-build__champ nf-mono">
+                      {{ championName(c.me) }} · nivel {{ c.me.championLevel }}
+                    </span>
+                  }
+                </div>
+              </div>
+              <div class="cx-build__items">
+                @for (it of c.me.stats.items; track $index) {
+                  @if (it) {
+                    <nf-avatar
+                      class="m-card__item-slot"
+                      [src]="it.iconUrl ?? null"
+                      [fallback]="it.name"
+                      [tint]="0"
+                      [size]="28"
+                      shape="square"
+                      [style.background]="slotBg(it.name)"
+                      [title]="it.name"
+                    />
+                  } @else {
+                    <span class="m-card__item-slot m-card__item-slot--empty"></span>
+                  }
+                }
+              </div>
+            </div>
+
+            <div class="cx-build cx-build--them">
+              <div class="cx-build__who">
+                <nf-avatar
+                  [loading]="champsLoading()"
+                  [src]="icon(c.them)"
+                  [fallback]="c.them.championName"
+                  [tint]="c.them.championId"
+                  [size]="36"
+                  shape="square"
+                />
+                <div class="cx-build__id">
+                  <span class="cx-build__name">{{ theirName() }}</span>
+                  @if (champsLoading()) {
+                    <nf-skeleton width="80px" height="11px" />
+                  } @else {
+                    <span class="cx-build__champ nf-mono">
+                      {{ championName(c.them) }} · nivel {{ c.them.championLevel }}
+                    </span>
+                  }
+                </div>
+              </div>
+              <div class="cx-build__items">
+                @for (it of c.them.stats.items; track $index) {
+                  @if (it) {
+                    <nf-avatar
+                      class="m-card__item-slot"
+                      [src]="it.iconUrl ?? null"
+                      [fallback]="it.name"
+                      [tint]="0"
+                      [size]="28"
+                      shape="square"
+                      [style.background]="slotBg(it.name)"
+                      [title]="it.name"
+                    />
+                  } @else {
+                    <span class="m-card__item-slot m-card__item-slot--empty"></span>
+                  }
+                }
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <nav class="cx-detail__nav">
+          <a
+            class="m-lineup__more nf-mono"
+            [routerLink]="['/app', 'historial', c.id]"
+            [queryParams]="{ volver: '/app/historial-cruzado/' + state.playerId() }"
+          >
+            Ver el análisis 5v5 completo
+          </a>
+          @if (neighbours().prev; as prev) {
+            <a class="m-lineup__more nf-mono" [routerLink]="linkTo(prev)">Cruce más reciente</a>
+          }
+          @if (neighbours().next; as next) {
+            <a class="m-lineup__more nf-mono" [routerLink]="linkTo(next)">Cruce anterior</a>
+          }
+        </nav>
+      } @else {
+        <div class="view__head">
+          <div class="view__eyebrow nf-mono">Error 404</div>
+          <h1 class="view__title">Ese cruce no existe</h1>
+          <p class="view__lead">{{ notFoundHint() }}</p>
+        </div>
+        <button
+          nfButton
+          variant="secondary"
+          size="md"
+          [routerLink]="['/app', 'historial-cruzado', state.playerId()]"
+        >
+          Volver al historial cruzado
+        </button>
+      }
+    </div>

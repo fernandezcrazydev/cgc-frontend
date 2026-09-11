@@ -1,0 +1,204 @@
+    <section class="hub-card hub-roster">
+      <nf-segmented
+        variant="tabs"
+        [options]="tabOptions()"
+        [value]="tab()"
+        (valueChange)="setTab($event)"
+        ariaLabel="Miembros o clasificación del grupo"
+      />
+
+      @if (tab() === 'members') {
+        <label class="hub-roster__search">
+          <span class="sr-only">Buscar miembro por nombre</span>
+          <input
+            class="hub-roster__search-input"
+            type="search"
+            placeholder="Buscar por nombre o Riot ID"
+            autocomplete="off"
+            [value]="query()"
+            (input)="onQuery($event)"
+          />
+        </label>
+
+        <div class="hub-roster__list" [attr.aria-busy]="membersLoading() ? 'true' : null">
+          @if (membersLoading()) {
+            @for (s of skeletons(); track s) {
+              <div class="hub-roster__row">
+                <nf-skeleton width="32px" height="32px" radius="10px" />
+                <div class="hub-roster__row-meta">
+                  <nf-skeleton width="120px" height="12px" />
+                  <nf-skeleton width="80px" height="10px" />
+                </div>
+              </div>
+            }
+          } @else {
+            @for (m of visibleMembers(); track m.userId; let i = $index) {
+              <div class="hub-roster__row">
+                <a
+                  class="hub-roster__link"
+                  [routerLink]="['/app', 'perfil', m.userId]"
+                  [title]="'Ver el perfil de ' + m.discordUsername"
+                >
+                  <nf-avatar
+                    [src]="m.avatarUrl"
+                    [fallback]="m.discordUsername"
+                    [tint]="tintOf(m.userId)"
+                    [size]="32"
+                    shape="square"
+                  />
+                  <span class="hub-roster__row-meta">
+                    <span class="hub-roster__name nf-mono">
+                      {{ m.discordUsername }}@if (isMe(m)) {<span class="hub-roster__you"> · tú</span>}
+                    </span>
+                    <span class="hub-roster__sub nf-mono">
+                      {{ m.riotId ?? 'Sin cuenta vinculada' }}
+                    </span>
+                  </span>
+                </a>
+                @if (m.role === 'OWNER') {
+                  <nf-badge color="primary">Owner</nf-badge>
+                } @else if (m.role === 'ADMIN') {
+                  <nf-badge color="secondary">Admin</nf-badge>
+                }
+                @if (menuFor(m).length) {
+                  <span class="hub-roster__more">
+                    <button
+                      type="button"
+                      class="hub-roster__more-trigger"
+                      [class.is-open]="openMenu() === m.userId"
+                      aria-haspopup="menu"
+                      [attr.aria-expanded]="openMenu() === m.userId"
+                      [attr.aria-label]="'Gestionar a ' + m.discordUsername"
+                      [disabled]="acting().has(m.userId)"
+                      (click)="toggleMenu(m.userId, $event)"
+                    >⋯</button>
+                    @if (openMenu() === m.userId) {
+                      <span
+                        class="hub-roster__more-menu"
+                        [class.is-up]="isNearBottom(i)"
+                        role="menu"
+                      >
+                        @for (item of menuFor(m); track item.kind) {
+                          <button
+                            type="button"
+                            class="hub-roster__more-item"
+                            [class.is-danger]="item.kind === 'kick'"
+                            role="menuitem"
+                            (click)="run(item.kind, m)"
+                          >{{ item.label }}</button>
+                        }
+                      </span>
+                    }
+                  </span>
+                }
+              </div>
+            } @empty {
+              <p class="hub-card__empty">
+                @if (query().trim()) {
+                  Ningún miembro coincide con «{{ query() }}».
+                } @else {
+                  Este grupo todavía no tiene miembros.
+                }
+              </p>
+            }
+          }
+        </div>
+
+        @if (canManage()) {
+          <footer class="hub-roster__foot">
+            <div class="hub-roster__foot-actions">
+              <button
+                type="button"
+                class="hub-roster__action-btn"
+                (click)="requestsOpen.emit()"
+              >
+                <span class="hub-roster__action-text">Solicitudes</span>
+                @if (pendingRequests(); as reqs) {
+                  <span class="hub-roster__action-badge nf-mono">{{ reqs }}</span>
+                }
+              </button>
+              <button
+                type="button"
+                class="hub-roster__action-btn"
+                (click)="invitesOpen.emit()"
+              >
+                <span class="hub-roster__action-text">Invitaciones</span>
+                @if (pendingInvites(); as invs) {
+                  <span class="hub-roster__action-badge nf-mono">{{ invs }}</span>
+                }
+              </button>
+            </div>
+          </footer>
+        }
+      } @else {
+        <div class="hub-roster__list" [attr.aria-busy]="rankingLoading() ? 'true' : null">
+          @if (rankingLoading()) {
+            @for (s of skeletons(); track s) {
+              <div class="hub-roster__row">
+                <nf-skeleton width="32px" height="32px" radius="10px" />
+                <div class="hub-roster__row-meta">
+                  <nf-skeleton width="110px" height="12px" />
+                  <nf-skeleton width="70px" height="10px" />
+                </div>
+              </div>
+            }
+          } @else if (rankingError()) {
+            <p class="hub-card__empty">No se pudo cargar la clasificación del grupo.</p>
+          } @else {
+            @for (row of ranking(); track row.playerId) {
+              <!-- El atributo data-podium tiñe la fila con el metal del puesto (oro, plata y
+                   bronce), los mismos acentos que las tarjetas del podio de la clasificación. -->
+              <a
+                class="hub-roster__row hub-roster__row--rank"
+                [attr.data-podium]="row.rank <= 3 ? row.rank : null"
+                [routerLink]="['/app', 'perfil', row.playerId]"
+              >
+                <span class="hub-roster__pos nf-mono" [class.is-podium]="row.rank <= 3">{{ row.rank }}.º</span>
+                <nf-avatar
+                  [src]="row.avatar"
+                  [fallback]="row.name"
+                  [tint]="row.hue"
+                  [size]="32"
+                  shape="square"
+                />
+                <span class="hub-roster__row-meta">
+                  <span class="hub-roster__name nf-mono">{{ row.name }}</span>
+                  <span class="hub-roster__sub nf-mono">{{ row.formattedLp }} · {{ row.wr }}% de victorias</span>
+                </span>
+                @if (row.lolRank; as rank) {
+                  <nf-rank-emblem [tier]="rank.tier" [label]="rank.label" [size]="22" />
+                }
+                <!-- El trofeo del podio, el mismo que luce la clasificación completa, cierra la
+                     fila por la derecha. Solo lo tienen los tres primeros sin sanción. -->
+                @if (row.trophyImg; as trophy) {
+                  <img
+                    class="hub-roster__trophy"
+                    [src]="trophy"
+                    [alt]="'Trofeo del puesto ' + row.rank"
+                  />
+                }
+              </a>
+            } @empty {
+              <p class="hub-card__empty">La clasificación todavía no tiene partidas.</p>
+            }
+          }
+        </div>
+
+        <footer class="hub-roster__foot">
+          <!-- Pie condicional: quien lidera recibe un mensaje; quien persigue, cuánto le falta;
+               quien solo mira el grupo no recibe nada personal. -->
+          @if (myStanding(); as me) {
+            @if (me.rank === 1) {
+              <p class="hub-roster__standing nf-mono is-leader">Lideras la clasificación. Defiende el trono.</p>
+            } @else {
+              <p class="hub-roster__standing nf-mono">
+                Puesto {{ me.rank }}.º con {{ me.lpValue }} LP · a {{ gapToFirst() }} LP del primero
+              </p>
+            }
+          }
+          <button nfButton variant="secondary" size="sm" [routerLink]="['/app', 'grupos', groupId(), 'ranking']">
+            Ver tabla completa
+          </button>
+        </footer>
+      }
+    </section>
