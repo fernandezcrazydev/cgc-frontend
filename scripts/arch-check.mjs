@@ -64,6 +64,48 @@ const stripComments = (src) =>
     .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '))
     .replace(/(^|[^:])\/\/[^\n]*/g, (m, p) => p + ' '.repeat(m.length - p.length));
 
+/**
+ * El CSS que un componente escribe en `styles: [\`…\`]` (o `styles: \`…\``) dentro de su `.ts`.
+ *
+ * Es CSS del proyecto igual que una hoja, pero durante un tiempo no lo vio NINGUNA regla:
+ * ni `css-total-size`, ni `dead-css`, ni el presupuesto por hoja de `angular.json`. El
+ * efecto perverso era que sacar CSS de un `.ts` a su `.scss` —que es justo lo que pide la
+ * guía— salía en el diff como un empeoramiento de cien y pico líneas, y dejarlo escondido
+ * salía gratis. Un contador que premia esconder mide lo contrario de lo que dice medir.
+ *
+ * Solo lo consume `css-total-size`; `dead-css` y las reglas de tipografía siguen ciegas a
+ * este CSS, y esa es deuda anotada, no una decisión.
+ */
+const inlineCss = (src) => {
+  const out = [];
+  const re = /styles:\s*(\[|`)/g;
+  let m;
+  while ((m = re.exec(src))) {
+    if (m[1] === '`') {
+      const open = re.lastIndex - 1;
+      const end = src.indexOf('`', open + 1);
+      if (end === -1) break;
+      out.push(src.slice(open + 1, end));
+      re.lastIndex = end + 1;
+      continue;
+    }
+    // Forma de array: van cayendo literales hasta el `]` que lo cierra. Un `]` dentro del
+    // CSS (`a[hidden]`) no confunde, porque para entonces ya se consumió con su literal.
+    let i = re.lastIndex;
+    for (;;) {
+      const tick = src.indexOf('`', i);
+      const close = src.indexOf(']', i);
+      if (tick === -1 || (close !== -1 && close < tick)) break;
+      const end = src.indexOf('`', tick + 1);
+      if (end === -1) break;
+      out.push(src.slice(tick + 1, end));
+      i = end + 1;
+    }
+    re.lastIndex = i;
+  }
+  return out;
+};
+
 const eachImport = (file, fn) => {
   file.read().split('\n').forEach((line, i) => {
     const m = line.match(/from\s+["']([^"']+)["']|import\(\s*["']([^"']+)["']/);
@@ -186,10 +228,21 @@ const RULES = [
       // se cierra, y nunca se enseña fuera del desarrollo. Contarlo hacía que maquetar cinco
       // variantes de una tarjeta —1.491 líneas el 2026-09-11— pareciera una regresión del
       // producto, y empujaba a subir el presupuesto para todos con tal de poder seguir.
+      //
+      // La exención vale para sus hojas Y para su CSS inline: si solo eximiera las hojas, una
+      // maqueta podría esquivarla escribiendo su CSS dentro del `.ts`, que es exactamente el
+      // agujero que cierra el conteo de `styles: [...]` de aquí abajo.
       const EXENTA = 'views/pruebas/';
-      const n = pick('.scss', '.css')
-        .filter((f) => !f.path.includes(EXENTA)) // `f.path` ya viene con barras normales
-        .reduce((s, f) => s + stripComments(f.read()).split('\n').filter((l) => l.trim()).length, 0);
+      const cuenta = (f) => !f.path.includes(EXENTA); // `f.path` ya viene con barras normales
+      const lines = (css) => stripComments(css).split('\n').filter((l) => l.trim()).length;
+
+      let n = pick('.scss', '.css').filter(cuenta).reduce((s, f) => s + lines(f.read()), 0);
+      // Y el CSS escondido en `styles: [...]` de los `.ts`: si no contara, sacar una hoja de
+      // su componente —lo que pide la guía— saldría en el diff como un empeoramiento.
+      for (const f of pick('.ts')) {
+        if (isSpec(f) || !cuenta(f)) continue;
+        n += inlineCss(f.read()).reduce((s, css) => s + lines(css), 0);
+      }
       return Array.from({ length: n }, () => hit('src/**/*.{scss,css}', 0, 'línea de CSS'));
     },
   },

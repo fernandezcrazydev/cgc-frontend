@@ -658,7 +658,7 @@ corre en <1s, y CI lo ejecuta en cada PR (`.github/workflows/ci.yml`). Comprueba
 | `api-url` | `environment.apiUrl` solo en `*-api.ts` (infra de `core/http`, `core/auth` y `app.config.ts` exentas por diseño) |
 | `views-scss-size` | `views.scss` no crece **nunca** |
 | `dead-css` | clases de **cualquier** hoja de `app/` que ningún `.ts`/`.html` referencia |
-| `css-total-size` | CSS total del proyecto (mover del monolito al componente es neutro; borrar, no) |
+| `css-total-size` | CSS total del proyecto, hojas **y** `styles: []` inline (mover es neutro; borrar, no) |
 | `inline-template-size` | plantilla inline > 150 líneas |
 | `font-floor` | `font-size` < 11px |
 | `font-size-raw` | `font-size` en px crudos en vez de la escala `--fs-*` |
@@ -708,6 +708,15 @@ check falla solo si una regla **empeora**. Así se adopta con el repo como está
   lo commiteas. El número solo baja; eso es lo que hace que el repo converja.
 - Añadir una regla nueva a este documento significa añadirla al script. Si no se puede verificar,
   escríbela igual pero sabiendo que es una recomendación, no una regla.
+- La única subida legítima es **ampliar lo que una regla mide**, y se anota aquí. Pasó una vez:
+  `css-total-size` solo miraba ficheros `.scss`/`.css`, así que el CSS escrito en `styles: []`
+  dentro de un `.ts` no lo veía nadie —ni esa regla, ni `dead-css`, ni el presupuesto por hoja de
+  `angular.json`—. El efecto era el contrario del que busca la regla: sacar CSS de un `.ts` a su
+  hoja, que es lo que pide este documento, salía en el diff como un empeoramiento de cien líneas,
+  y esconderlo salía gratis. Al empezar a contarlo aparecieron **812 líneas** que ya estaban ahí
+  (16.871 → 17.733 sin tocar una línea de CSS). Ese salto es de medición; a partir de él, el
+  número solo baja. `dead-css` y las reglas de tipografía siguen ciegas a ese CSS: es deuda
+  anotada, no una decisión.
 
 ## Deuda conocida (no la propagues)
 
