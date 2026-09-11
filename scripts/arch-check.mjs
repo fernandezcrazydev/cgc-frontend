@@ -510,6 +510,31 @@ const RULES = [
 
 /* ──────────────────────────────────── runner ──────────────────────────────────── */
 const fix = process.argv.includes('--fix');
+
+/**
+ * `--subir "<motivo>"` — la única forma de que un presupuesto crezca.
+ *
+ * Existe porque subirlo a mano editando el JSON es trabajo de mono, y automatizarlo del todo ya se
+ * probó y salió mal: `arch:fix` escribía el valor medido de TODAS las reglas, así que una que había
+ * empeorado se llevaba su techo hacia arriba sin decisión de nadie. El 2026-09-11 se tragó así
+ * 1.112 líneas de CSS que había metido otra tarea.
+ *
+ * La separación que hace útil a la regla no es «cuánto», que lo calcula el script, sino **«es
+ * legítimo que crezca»**, que no lo puede saber una máquina: una pantalla nueva legítimamente trae
+ * CSS, y CSS duplicado sin querer también. Por eso el motivo es obligatorio y queda escrito junto
+ * al número, donde lo ve quien revisa el PR y no enterrado en un mensaje de commit.
+ */
+const iSubir = process.argv.indexOf('--subir');
+const motivo = iSubir >= 0 ? (process.argv[iSubir + 1] || '').trim() : null;
+if (iSubir >= 0 && !motivo) {
+  console.error('--subir necesita un motivo:  npm run arch:fix -- --subir "pagina de Ajustes nueva"');
+  process.exit(1);
+}
+if (motivo && !fix) {
+  console.error('--subir solo tiene sentido con --fix:  npm run arch:fix -- --subir "<motivo>"');
+  process.exit(1);
+}
+
 let budgets = {};
 try {
   budgets = JSON.parse(readFileSync(BUDGETS_FILE, 'utf8'));
@@ -517,11 +542,17 @@ try {
   /* primera ejecución: se crea con --fix */
 }
 
+/** Por qué subió cada presupuesto alguna vez. No es una regla: las reglas lo ignoran. */
+const historial = Array.isArray(budgets._historial) ? budgets._historial : [];
+delete budgets._historial;
+
 const C = { green: '[32m', red: '[31m', yellow: '[33m', dim: '[2m', off: '[0m' };
 /** Sin fichero de presupuestos no hay trinquete que respetar: la primera pasada los siembra. */
 const primeraVez = Object.keys(budgets).length === 0;
 let failed = false;
 let intentoDeSubir = 0;
+/** Lo que ha subido en esta pasada, para dejarlo escrito en `_historial`. */
+const subidas = [];
 const next = {};
 
 for (const rule of RULES) {
@@ -539,9 +570,19 @@ for (const rule of RULES) {
    * OTRA tarea. Y este fichero viaja a un repositorio compartido donde CI lo lee en cada pull
    * request: subir un presupuesto es subirle el techo a las otras dos personas del equipo.
    */
-  if (!primeraVez && found.length > budget) {
+  if (!primeraVez && found.length > budget && !motivo) {
     next[rule.id] = budget; // empeorar no da derecho a más presupuesto
     if (fix) intentoDeSubir += 1;
+  } else if (!primeraVez && found.length > budget) {
+    // Con `--subir "<motivo>"` sí crece, y queda escrito por qué y cuánto.
+    next[rule.id] = found.length;
+    subidas.push({
+      fecha: new Date().toISOString().slice(0, 10),
+      regla: rule.id,
+      de: budget,
+      a: found.length,
+      motivo,
+    });
   } else {
     next[rule.id] = found.length;
   }
@@ -562,12 +603,29 @@ for (const rule of RULES) {
 }
 
 if (fix) {
-  writeFileSync(BUDGETS_FILE, JSON.stringify(next, null, 2) + '\n');
+  const salida = { ...next };
+  const todo = [...historial, ...subidas];
+  if (todo.length) salida._historial = todo;
+  writeFileSync(BUDGETS_FILE, JSON.stringify(salida, null, 2) + '\n');
   console.log(`\n${C.green}Presupuestos reescritos en scripts/arch-budgets.json${C.off}`);
+
+  for (const s of subidas) {
+    console.log(`${C.yellow}  ↑ ${s.regla}  ${s.de} -> ${s.a}${C.off}  ${C.dim}(${s.motivo})${C.off}`);
+  }
+  if (subidas.length) {
+    console.log(
+      `${C.dim}  El motivo queda en "_historial" del propio fichero, para que quien revise el PR\n` +
+        `  lo vea pegado al número y no tenga que buscarlo en un mensaje de commit.${C.off}`,
+    );
+  }
+
   if (intentoDeSubir) {
     console.log(
       `${C.yellow}  ${intentoDeSubir} regla(s) han empeorado y su presupuesto NO se ha subido.${C.off}\n` +
-        `${C.dim}  arch:fix solo baja. Arregla el código: el presupuesto no es donde se esconde.${C.off}`,
+        `${C.dim}  arch:fix solo baja. Si el crecimiento es legítimo —una pantalla nueva trae CSS\n` +
+        `  suyo— dilo y sube con motivo:\n` +
+        `    npm run arch:fix -- --subir "pagina de Ajustes nueva"\n` +
+        `  Si no lo es, el sitio donde se arregla es el código, no el presupuesto.${C.off}`,
     );
     process.exit(1); // un fix que deja reglas en rojo no puede salir con 0
   }
