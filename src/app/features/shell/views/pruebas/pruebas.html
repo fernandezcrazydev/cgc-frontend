@@ -1,0 +1,1245 @@
+<div class="pruebas-view">
+  <header class="pruebas-header">
+    <h1 class="pruebas-header__title">Maquetas · Ficha del Campeón</h1>
+    <p class="pruebas-header__desc">Las cinco alternativas de cada tarjeta, con los mismos datos.</p>
+  </header>
+
+  <div class="pruebas-tabs">
+    <nf-segmented
+      [options]="tabOptions"
+      [(value)]="selectedTab"
+      ariaLabel="Seleccionar tarjeta a comparar"
+    />
+  </div>
+
+  <main class="pruebas-content">
+    @switch (selectedTab()) {
+      @case ('cabecera') {
+        <section class="pruebas-section">
+          <div class="pruebas-section__divider">
+            <span class="pruebas-section__label nf-mono">Alternativa 1 · Splash panorámico</span>
+          </div>
+          <div class="pruebas-frame">
+            <ng-container *ngTemplateOutlet="tplCabecera1" />
+          </div>
+        </section>
+
+        <section class="pruebas-section">
+          <div class="pruebas-section__divider">
+            <span class="pruebas-section__label nf-mono">Alternativa 2 · Retrato lateral y rejilla de cifras</span>
+          </div>
+          <div class="pruebas-frame">
+            <ng-container *ngTemplateOutlet="tplCabecera2" />
+          </div>
+        </section>
+
+        <section class="pruebas-section">
+          <div class="pruebas-section__divider">
+            <span class="pruebas-section__label nf-mono">Alternativa 3 · Carta vertical</span>
+          </div>
+          <div class="pruebas-frame">
+            <ng-container *ngTemplateOutlet="tplCabecera3" />
+          </div>
+        </section>
+
+        <section class="pruebas-section">
+          <div class="pruebas-section__divider">
+            <span class="pruebas-section__label nf-mono">Alternativa 4 · La cifra protagonista</span>
+          </div>
+          <div class="pruebas-frame">
+            <ng-container *ngTemplateOutlet="tplCabecera4" />
+          </div>
+        </section>
+
+        <section class="pruebas-section">
+          <div class="pruebas-section__divider">
+            <span class="pruebas-section__label nf-mono">Alternativa 5 · Continuación de la tabla</span>
+          </div>
+          <div class="pruebas-frame">
+            <ng-container *ngTemplateOutlet="tplCabecera5" />
+          </div>
+        </section>
+      }
+
+      @case ('duos') {
+        <section class="pruebas-section">
+          <div class="pruebas-section__divider">
+            <span class="pruebas-section__label nf-mono">Alternativa 1 · Dos paneles hermanos</span>
+          </div>
+          <div class="pruebas-frame">
+            <ng-container *ngTemplateOutlet="tplDuos1" />
+          </div>
+        </section>
+
+        <section class="pruebas-section">
+          <div class="pruebas-section__divider">
+            <span class="pruebas-section__label nf-mono">Alternativa 2 · Una lista, dos lados</span>
+          </div>
+          <div class="pruebas-frame">
+            <ng-container *ngTemplateOutlet="tplDuos2" />
+          </div>
+        </section>
+
+        <section class="pruebas-section">
+          <div class="pruebas-section__divider">
+            <span class="pruebas-section__label nf-mono">Alternativa 3 · Barras divergentes</span>
+          </div>
+          <div class="pruebas-frame">
+            <ng-container *ngTemplateOutlet="tplDuos3" />
+          </div>
+        </section>
+
+        <section class="pruebas-section">
+          <div class="pruebas-section__divider">
+            <span class="pruebas-section__label nf-mono">Alternativa 4 · Rejilla de iconos</span>
+          </div>
+          <div class="pruebas-frame">
+            <ng-container *ngTemplateOutlet="tplDuos4" />
+          </div>
+        </section>
+
+        <section class="pruebas-section">
+          <div class="pruebas-section__divider">
+            <span class="pruebas-section__label nf-mono">Alternativa 5 · Tabla</span>
+          </div>
+          <div class="pruebas-frame">
+            <ng-container *ngTemplateOutlet="tplDuos5" />
+          </div>
+        </section>
+      }
+
+      @case ('builds') {
+        <section class="pruebas-section">
+          <div class="pruebas-section__divider">
+            <span class="pruebas-section__label nf-mono">Alternativa 1 · Tres columnas</span>
+          </div>
+          <div class="pruebas-frame">
+            <ng-container *ngTemplateOutlet="tplBuilds1" />
+          </div>
+        </section>
+
+        <section class="pruebas-section">
+          <div class="pruebas-section__divider">
+            <span class="pruebas-section__label nf-mono">Alternativa 2 · Runas arriba, objetos abajo</span>
+          </div>
+          <div class="pruebas-frame">
+            <ng-container *ngTemplateOutlet="tplBuilds2" />
+          </div>
+        </section>
+
+        <section class="pruebas-section">
+          <div class="pruebas-section__divider">
+            <span class="pruebas-section__label nf-mono">Alternativa 3 · Objetos arriba, runas abajo</span>
+          </div>
+          <div class="pruebas-frame">
+            <ng-container *ngTemplateOutlet="tplBuilds3" />
+          </div>
+        </section>
+
+        <section class="pruebas-section">
+          <div class="pruebas-section__divider">
+            <span class="pruebas-section__label nf-mono">Alternativa 4 · Solo lo elegido</span>
+          </div>
+          <div class="pruebas-frame">
+            <ng-container *ngTemplateOutlet="tplBuilds4" />
+          </div>
+        </section>
+
+        <section class="pruebas-section">
+          <div class="pruebas-section__divider">
+            <span class="pruebas-section__label nf-mono">Alternativa 5 · Dos tarjetas separadas</span>
+          </div>
+          <div class="pruebas-frame">
+            <ng-container *ngTemplateOutlet="tplBuilds5" />
+          </div>
+        </section>
+      }
+
+      @case ('skills') {
+        <section class="pruebas-section">
+          <div class="pruebas-section__divider">
+            <span class="pruebas-section__label nf-mono">Alternativa 1 · Rejilla de 18 niveles</span>
+          </div>
+          <div class="pruebas-frame">
+            <ng-container *ngTemplateOutlet="tplSkills1" />
+          </div>
+        </section>
+
+        <section class="pruebas-section">
+          <div class="pruebas-section__divider">
+            <span class="pruebas-section__label nf-mono">Alternativa 2 · Orden de maximización</span>
+          </div>
+          <div class="pruebas-frame">
+            <ng-container *ngTemplateOutlet="tplSkills2" />
+          </div>
+        </section>
+
+        <section class="pruebas-section">
+          <div class="pruebas-section__divider">
+            <span class="pruebas-section__label nf-mono">Alternativa 3 · Secuencia lineal</span>
+          </div>
+          <div class="pruebas-frame">
+            <ng-container *ngTemplateOutlet="tplSkills3" />
+          </div>
+        </section>
+
+        <section class="pruebas-section">
+          <div class="pruebas-section__divider">
+            <span class="pruebas-section__label nf-mono">Alternativa 4 · Titular y detalle</span>
+          </div>
+          <div class="pruebas-frame">
+            <ng-container *ngTemplateOutlet="tplSkills4" />
+          </div>
+        </section>
+
+        <section class="pruebas-section">
+          <div class="pruebas-section__divider">
+            <span class="pruebas-section__label nf-mono">Alternativa 5 · Solo texto</span>
+          </div>
+          <div class="pruebas-frame">
+            <ng-container *ngTemplateOutlet="tplSkills5" />
+          </div>
+        </section>
+      }
+
+      @case ('montaje') {
+        <div class="m-toolbar">
+          <div class="m-toolbar__item">
+            <span class="m-toolbar__label">Cabecera</span>
+            <nf-combobox
+              [options]="cabeceraOptions"
+              [(value)]="altCabecera"
+              [clearable]="false"
+              ariaLabel="Cabecera"
+            />
+          </div>
+          <div class="m-toolbar__item">
+            <span class="m-toolbar__label">Sinergias y rivales</span>
+            <nf-combobox
+              [options]="sinergiasOptions"
+              [(value)]="altSinergias"
+              [clearable]="false"
+              ariaLabel="Sinergias y rivales"
+            />
+          </div>
+          <div class="m-toolbar__item">
+            <span class="m-toolbar__label">Objetos y runas</span>
+            <nf-combobox
+              [options]="buildsOptions"
+              [(value)]="altBuilds"
+              [clearable]="false"
+              ariaLabel="Objetos y runas"
+            />
+          </div>
+          <div class="m-toolbar__item">
+            <span class="m-toolbar__label">Habilidades</span>
+            <nf-combobox
+              [options]="skillsOptions"
+              [(value)]="altSkills"
+              [clearable]="false"
+              ariaLabel="Habilidades"
+            />
+          </div>
+        </div>
+
+        <div class="pruebas-montaje-page">
+          <div class="pruebas-back-bar">
+            <span class="pruebas-back-link">‹ Tierlist del grupo</span>
+          </div>
+
+          @switch (altCabecera()) {
+            @case ('1') { <ng-container *ngTemplateOutlet="tplCabecera1" /> }
+            @case ('2') { <ng-container *ngTemplateOutlet="tplCabecera2" /> }
+            @case ('3') { <ng-container *ngTemplateOutlet="tplCabecera3" /> }
+            @case ('4') { <ng-container *ngTemplateOutlet="tplCabecera4" /> }
+            @case ('5') { <ng-container *ngTemplateOutlet="tplCabecera5" /> }
+          }
+
+          <ng-container *ngTemplateOutlet="tplMacro" />
+          <ng-container *ngTemplateOutlet="tplEspecialistas" />
+
+          @switch (altSinergias()) {
+            @case ('1') { <ng-container *ngTemplateOutlet="tplDuos1" /> }
+            @case ('2') { <ng-container *ngTemplateOutlet="tplDuos2" /> }
+            @case ('3') { <ng-container *ngTemplateOutlet="tplDuos3" /> }
+            @case ('4') { <ng-container *ngTemplateOutlet="tplDuos4" /> }
+            @case ('5') { <ng-container *ngTemplateOutlet="tplDuos5" /> }
+          }
+
+          @switch (altBuilds()) {
+            @case ('1') { <ng-container *ngTemplateOutlet="tplBuilds1" /> }
+            @case ('2') { <ng-container *ngTemplateOutlet="tplBuilds2" /> }
+            @case ('3') { <ng-container *ngTemplateOutlet="tplBuilds3" /> }
+            @case ('4') { <ng-container *ngTemplateOutlet="tplBuilds4" /> }
+            @case ('5') { <ng-container *ngTemplateOutlet="tplBuilds5" /> }
+          }
+
+          @switch (altSkills()) {
+            @case ('1') { <ng-container *ngTemplateOutlet="tplSkills1" /> }
+            @case ('2') { <ng-container *ngTemplateOutlet="tplSkills2" /> }
+            @case ('3') { <ng-container *ngTemplateOutlet="tplSkills3" /> }
+            @case ('4') { <ng-container *ngTemplateOutlet="tplSkills4" /> }
+            @case ('5') { <ng-container *ngTemplateOutlet="tplSkills5" /> }
+          }
+        </div>
+      }
+    }
+  </main>
+</div>
+
+<!-- ==========================================================================
+     TEMPLATES · CABECERA
+     ========================================================================== -->
+
+<ng-template #tplCabecera1>
+  <article class="c-alt1">
+    <div class="c-alt1__splash-box">
+      <img [src]="campeon.splash" [alt]="campeon.nombre" class="c-alt1__splash-img" />
+      <div class="c-alt1__overlay"></div>
+      <div class="c-alt1__identity">
+        <h2 class="c-alt1__name">{{ campeon.nombre }}</h2>
+        <div class="c-alt1__meta">
+          <span class="c-alt1__title">{{ campeon.titulo }}</span>
+          <div class="c-alt1__chips">
+            @for (tag of campeon.tags; track tag) {
+              <span class="c-alt1__chip">{{ tag }}</span>
+            }
+            <span class="c-alt1__role nf-mono">{{ campeon.rol }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="c-alt1__tier nf-mono">{{ campeon.tier }}</div>
+    </div>
+    <div class="c-alt1__stats">
+      <div class="c-alt1__stat">
+        <span class="c-alt1__stat-val nf-mono">{{ cifras.partidas }}</span>
+        <span class="c-alt1__stat-lbl">PARTIDAS</span>
+      </div>
+      <div class="c-alt1__stat">
+        <span class="c-alt1__stat-val c-alt1__stat-val--success nf-mono">{{ cifras.winrate }}%</span>
+        <span class="c-alt1__stat-lbl">{{ cifras.victorias }}V-{{ cifras.derrotas }}D · WR</span>
+      </div>
+      <div class="c-alt1__stat">
+        <span class="c-alt1__stat-val nf-mono">{{ cifras.presencia }}%</span>
+        <span class="c-alt1__stat-lbl">PRESENCIA</span>
+      </div>
+      <div class="c-alt1__stat">
+        <span class="c-alt1__stat-val nf-mono">{{ cifras.kda }}</span>
+        <span class="c-alt1__stat-lbl">KDA</span>
+      </div>
+    </div>
+  </article>
+</ng-template>
+
+<ng-template #tplCabecera2>
+  <article class="c-alt2">
+    <div class="c-alt2__ident">
+      <img [src]="campeon.icono" [alt]="campeon.nombre" class="c-alt2__icon" />
+      <div class="c-alt2__info">
+        <h2 class="c-alt2__name">{{ campeon.nombre }}</h2>
+        <p class="c-alt2__title">{{ campeon.titulo }}</p>
+        <div class="c-alt2__chips">
+          @for (tag of campeon.tags; track tag) {
+            <span class="c-alt2__chip">{{ tag }}</span>
+          }
+          <span class="c-alt2__role nf-mono">{{ campeon.rol }}</span>
+          <span class="c-alt2__tier nf-mono">{{ campeon.tier }}</span>
+        </div>
+      </div>
+    </div>
+    <div class="c-alt2__grid">
+      <div class="c-alt2__cell">
+        <span class="c-alt2__val nf-mono">{{ cifras.partidas }}</span>
+        <span class="c-alt2__lbl">part.</span>
+      </div>
+      <div class="c-alt2__cell">
+        <span class="c-alt2__val c-alt2__val--success nf-mono">{{ cifras.winrate }}%</span>
+        <span class="c-alt2__lbl">WR</span>
+      </div>
+      <div class="c-alt2__cell">
+        <span class="c-alt2__val nf-mono">{{ cifras.presencia }}%</span>
+        <span class="c-alt2__lbl">pres.</span>
+      </div>
+      <div class="c-alt2__cell">
+        <span class="c-alt2__val nf-mono">{{ cifras.kda }}</span>
+        <span class="c-alt2__lbl">KDA</span>
+      </div>
+    </div>
+  </article>
+</ng-template>
+
+<ng-template #tplCabecera3>
+  <article class="c-alt3">
+    <img [src]="campeon.retrato" [alt]="campeon.nombre" class="c-alt3__card-img" />
+    <div class="c-alt3__body">
+      <div class="c-alt3__top">
+        <h2 class="c-alt3__name">{{ campeon.nombre }}</h2>
+        <span class="c-alt3__tier nf-mono">{{ campeon.tier }}</span>
+      </div>
+      <p class="c-alt3__title">{{ campeon.titulo }}</p>
+      <p class="c-alt3__meta">{{ campeon.tags.join(' · ') }} · <span class="nf-mono">{{ campeon.rol }}</span></p>
+      <p class="c-alt3__stats nf-mono">
+        {{ cifras.partidas }} partidas · {{ cifras.winrate }}% ({{ cifras.victorias }}V-{{ cifras.derrotas }}D) · {{ cifras.presencia }}% presencia · {{ cifras.kda }} KDA
+      </p>
+    </div>
+  </article>
+</ng-template>
+
+<ng-template #tplCabecera4>
+  <article class="c-alt4">
+    <div class="c-alt4__top">
+      <div class="c-alt4__left">
+        <img [src]="campeon.icono" [alt]="campeon.nombre" class="c-alt4__icon" />
+        <div class="c-alt4__info">
+          <div class="c-alt4__name-row">
+            <h2 class="c-alt4__name">{{ campeon.nombre }}</h2>
+            <span class="c-alt4__tier nf-mono">{{ campeon.tier }}</span>
+            <span class="c-alt4__role nf-mono">{{ campeon.rol }}</span>
+          </div>
+          <p class="c-alt4__title">{{ campeon.titulo }}</p>
+        </div>
+      </div>
+      <div class="c-alt4__right">
+        <span class="c-alt4__wr nf-mono">{{ cifras.winrate }}%</span>
+        <div class="c-alt4__bar-track">
+          <div class="c-alt4__bar-fill" [style.width.%]="cifras.winrate"></div>
+        </div>
+      </div>
+    </div>
+    <div class="c-alt4__bottom nf-mono">
+      <span>{{ cifras.partidas }} partidas · {{ cifras.victorias }}V-{{ cifras.derrotas }}D · {{ cifras.presencia }}% presencia · {{ cifras.kda }} KDA</span>
+    </div>
+  </article>
+</ng-template>
+
+<ng-template #tplCabecera5>
+  <article class="c-alt5">
+    <div class="c-alt5__row1">
+      <img [src]="campeon.icono" [alt]="campeon.nombre" class="c-alt5__icon" />
+      <h2 class="c-alt5__name">{{ campeon.nombre }}</h2>
+      <span class="c-alt5__title">{{ campeon.titulo }}</span>
+      <span class="c-alt5__tier nf-mono">{{ campeon.tier }}</span>
+      <span class="c-alt5__role nf-mono">{{ campeon.rol }}</span>
+    </div>
+    <div class="c-alt5__row2 nf-mono">
+      <span class="c-alt5__stat">{{ cifras.partidas }} part.</span>
+      <span class="c-alt5__stat c-alt5__val--success">{{ cifras.winrate }}% {{ cifras.victorias }}V-{{ cifras.derrotas }}D</span>
+      <span class="c-alt5__stat">{{ cifras.presencia }}% pres.</span>
+      <span class="c-alt5__stat">{{ cifras.kda }}</span>
+    </div>
+  </article>
+</ng-template>
+
+<!-- ==========================================================================
+     TEMPLATES · SINERGIAS Y RIVALES
+     ========================================================================== -->
+
+<ng-template #tplDuosHeader>
+  <header class="d-common-header">
+    <div class="d-common-title-wrap">
+      <h2 class="d-common-title">Sinergias y enfrentamientos</h2>
+      <span class="d-common-count nf-mono">{{ duosCountLabel() }}</span>
+    </div>
+    <div class="d-common-filter">
+      <span class="d-common-label">Campeón</span>
+      <nf-combobox
+        [options]="championFilterOptions"
+        [(value)]="selectedChampion"
+        placeholder="Todos los campeones"
+        emptyText="Ningún campeón coincide"
+        ariaLabel="Campeón"
+      />
+    </div>
+  </header>
+</ng-template>
+
+<ng-template #tplDuos1>
+  <article class="d-alt1">
+    <ng-container *ngTemplateOutlet="tplDuosHeader" />
+    <div class="d-alt1__cols">
+      <div class="d-alt1__col">
+        <h3 class="d-alt1__col-title d-alt1__col-title--ally nf-mono">MEJORES COMPAÑEROS</h3>
+        <div class="d-alt1__list">
+          @for (s of filteredSinergias(); track s.slug) {
+            <div class="d-alt1__row">
+              <div class="d-alt1__ident">
+                <img [src]="championIcon(s.slug)" [alt]="s.nombre" class="d-alt1__icon" />
+                <span class="d-alt1__name">{{ s.nombre }}</span>
+              </div>
+              <div class="d-alt1__meta">
+                <span class="d-alt1__record nf-mono">{{ formatPartidasShort(s.partidas) }} · {{ s.winrate }}%</span>
+                <div class="d-alt1__bar-wrap">
+                  <div class="d-alt1__bar d-alt1__bar--ally" [style.width.%]="s.winrate"></div>
+                </div>
+              </div>
+            </div>
+          }
+          @if (filteredSinergias().length === 0) {
+            <p class="d-common-empty">No habéis jugado en el mismo equipo con {{ selectedChampion() }}.</p>
+          }
+        </div>
+      </div>
+      <div class="d-alt1__col">
+        <h3 class="d-alt1__col-title d-alt1__col-title--rival nf-mono">PEORES RIVALES</h3>
+        <div class="d-alt1__list">
+          @for (r of filteredRivales(); track r.slug) {
+            <div class="d-alt1__row">
+              <div class="d-alt1__ident">
+                <img [src]="championIcon(r.slug)" [alt]="r.nombre" class="d-alt1__icon" />
+                <span class="d-alt1__name">{{ r.nombre }}</span>
+              </div>
+              <div class="d-alt1__meta">
+                <span class="d-alt1__record nf-mono">{{ formatPartidasShort(r.partidas) }} · {{ r.winrate }}%</span>
+                <div class="d-alt1__bar-wrap">
+                  <div class="d-alt1__bar d-alt1__bar--rival" [style.width.%]="r.winrate"></div>
+                </div>
+              </div>
+            </div>
+          }
+          @if (filteredRivales().length === 0) {
+            <p class="d-common-empty">Nunca os habéis enfrentado a {{ selectedChampion() }}.</p>
+          }
+        </div>
+      </div>
+    </div>
+  </article>
+</ng-template>
+
+<ng-template #tplDuos2>
+  <article class="d-alt2">
+    <ng-container *ngTemplateOutlet="tplDuosHeader" />
+    <div class="d-alt2__headers nf-mono">
+      <span class="d-alt2__h-side d-alt2__h-side--left">JUNTOS</span>
+      <span class="d-alt2__h-side d-alt2__h-side--right">ENFRENTADOS</span>
+    </div>
+    <div class="d-alt2__list">
+      @if (selectedChampion()) {
+        <div class="d-alt2__row">
+          <div class="d-alt2__side d-alt2__side--left">
+            @if (filteredSinergias().length > 0) {
+              <span class="d-alt2__meta nf-mono">{{ formatPartidasShort(filteredSinergias()[0].partidas) }} · {{ filteredSinergias()[0].winrate }}%</span>
+              <img [src]="championIcon(filteredSinergias()[0].slug)" [alt]="filteredSinergias()[0].nombre" class="d-alt2__icon" />
+              <span class="d-alt2__name">{{ filteredSinergias()[0].nombre }}</span>
+            } @else {
+              <span class="d-common-empty">No habéis jugado en el mismo equipo con {{ selectedChampion() }}.</span>
+            }
+          </div>
+          <div class="d-alt2__axis"></div>
+          <div class="d-alt2__side d-alt2__side--right">
+            @if (filteredRivales().length > 0) {
+              <img [src]="championIcon(filteredRivales()[0].slug)" [alt]="filteredRivales()[0].nombre" class="d-alt2__icon" />
+              <span class="d-alt2__name">{{ filteredRivales()[0].nombre }}</span>
+              <span class="d-alt2__meta nf-mono">{{ formatPartidasShort(filteredRivales()[0].partidas) }} · {{ filteredRivales()[0].winrate }}%</span>
+            } @else {
+              <span class="d-common-empty">Nunca os habéis enfrentado a {{ selectedChampion() }}.</span>
+            }
+          </div>
+        </div>
+      } @else {
+        @for (pair of duoPairs(); track $index) {
+          <div class="d-alt2__row">
+            <div class="d-alt2__side d-alt2__side--left">
+              @if (pair.ally; as s) {
+                <span class="d-alt2__meta nf-mono">{{ formatPartidasShort(s.partidas) }} · {{ s.winrate }}%</span>
+                <img [src]="championIcon(s.slug)" [alt]="s.nombre" class="d-alt2__icon" />
+                <span class="d-alt2__name">{{ s.nombre }}</span>
+              }
+            </div>
+            <div class="d-alt2__axis"></div>
+            <div class="d-alt2__side d-alt2__side--right">
+              @if (pair.rival; as r) {
+                <img [src]="championIcon(r.slug)" [alt]="r.nombre" class="d-alt2__icon" />
+                <span class="d-alt2__name">{{ r.nombre }}</span>
+                <span class="d-alt2__meta nf-mono">{{ formatPartidasShort(r.partidas) }} · {{ r.winrate }}%</span>
+              }
+            </div>
+          </div>
+        }
+      }
+    </div>
+  </article>
+</ng-template>
+
+<ng-template #tplDuos3>
+  <article class="d-alt3">
+    <ng-container *ngTemplateOutlet="tplDuosHeader" />
+    <div class="d-alt3__list">
+      @for (d of divergingFiltered(); track d.slug + d.tipo) {
+        <div class="d-alt3__row">
+          <div class="d-alt3__ident">
+            <img [src]="championIcon(d.slug)" [alt]="d.nombre" class="d-alt3__icon" />
+            <span class="d-alt3__name">{{ d.nombre }}</span>
+          </div>
+          <div class="d-alt3__chart">
+            <div class="d-alt3__side d-alt3__side--left">
+              @if (d.winrate < 50) {
+                <div class="d-alt3__bar d-alt3__bar--rival" [style.width.%]="(50 - d.winrate) * 2"></div>
+              }
+            </div>
+            <div class="d-alt3__axis"></div>
+            <div class="d-alt3__side d-alt3__side--right">
+              @if (d.winrate > 50) {
+                <div class="d-alt3__bar d-alt3__bar--ally" [style.width.%]="(d.winrate - 50) * 2"></div>
+              }
+            </div>
+          </div>
+          <div class="d-alt3__meta nf-mono">
+            <span>{{ formatPartidasShort(d.partidas) }} · {{ d.winrate }}%</span>
+          </div>
+        </div>
+      }
+      @if (divergingFiltered().length === 0) {
+        <p class="d-common-empty">Sin datos para {{ selectedChampion() }}.</p>
+      }
+    </div>
+  </article>
+</ng-template>
+
+<ng-template #tplDuos4>
+  <article class="d-alt4">
+    <ng-container *ngTemplateOutlet="tplDuosHeader" />
+    <div class="d-alt4__body">
+      <div class="d-alt4__row">
+        <span class="d-alt4__tag nf-mono">CON:</span>
+        <div class="d-alt4__tiles">
+          @for (s of filteredSinergias(); track s.slug) {
+            <div class="d-alt4__tile">
+              <img [src]="championIcon(s.slug)" [alt]="s.nombre" class="d-alt4__icon d-alt4__icon--ally" />
+              <span class="d-alt4__wr d-alt4__wr--ally nf-mono">{{ s.winrate }}%</span>
+              <span class="d-alt4__games nf-mono">{{ s.partidas }}p</span>
+            </div>
+          }
+          @if (filteredSinergias().length === 0) {
+            <span class="d-common-empty">No habéis jugado en el mismo equipo con {{ selectedChampion() }}.</span>
+          }
+        </div>
+      </div>
+      <div class="d-alt4__row">
+        <span class="d-alt4__tag nf-mono">CONTRA:</span>
+        <div class="d-alt4__tiles">
+          @for (r of filteredRivales(); track r.slug) {
+            <div class="d-alt4__tile">
+              <img [src]="championIcon(r.slug)" [alt]="r.nombre" class="d-alt4__icon d-alt4__icon--rival" />
+              <span class="d-alt4__wr d-alt4__wr--rival nf-mono">{{ r.winrate }}%</span>
+              <span class="d-alt4__games nf-mono">{{ r.partidas }}p</span>
+            </div>
+          }
+          @if (filteredRivales().length === 0) {
+            <span class="d-common-empty">Nunca os habéis enfrentado a {{ selectedChampion() }}.</span>
+          }
+        </div>
+      </div>
+    </div>
+  </article>
+</ng-template>
+
+<ng-template #tplDuos5>
+  <article class="d-alt5">
+    <ng-container *ngTemplateOutlet="tplDuosHeader" />
+    <div class="d-alt5__table-wrap">
+      <table class="d-alt5__table nf-mono">
+        <thead>
+          <tr>
+            <th class="d-alt5__th">CAMPEÓN</th>
+            <th class="d-alt5__th">JUNTOS</th>
+            <th class="d-alt5__th">CONTRA</th>
+            <th class="d-alt5__th">BALANCE</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of tableRowsFiltered(); track row.slug) {
+            <tr>
+              <td class="d-alt5__td d-alt5__td--champ">
+                <img [src]="championIcon(row.slug)" [alt]="row.nombre" class="d-alt5__icon" />
+                <span class="d-alt5__name">{{ row.nombre }}</span>
+              </td>
+              <td class="d-alt5__td d-alt5__td--mono">{{ row.juntos }}</td>
+              <td class="d-alt5__td d-alt5__td--mono">{{ row.contra }}</td>
+              <td class="d-alt5__td d-alt5__td--mono">
+                <span
+                  [class.d-alt5__val--ally]="row.balance > 0"
+                  [class.d-alt5__val--rival]="row.balance < 0"
+                  [class.d-alt5__val--zero]="row.balance === 0"
+                >{{ row.balanceFormatted }}</span>
+              </td>
+            </tr>
+          }
+          @if (tableRowsFiltered().length === 0) {
+            <tr>
+              <td colspan="4" class="d-alt5__empty">Sin datos para {{ selectedChampion() }}.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </article>
+</ng-template>
+
+<!-- ==========================================================================
+     TEMPLATES · OBJETOS Y RUNAS (ÁRBOL COMPLETO)
+     ========================================================================== -->
+
+<!-- Árbol completo reusable (Dominación + Hechicería + Fragmentos) -->
+<ng-template #tplRuneTree>
+  <div class="r-tree">
+    <div class="r-tree__col">
+      <div class="r-tree__tree-head">
+        <img [src]="runasPagina.primary.icon" [alt]="runasPagina.primary.name" class="r-tree__style-icon" />
+        <span class="r-tree__style-name nf-mono">{{ runasPagina.primary.name }}</span>
+      </div>
+      <div class="r-tree__keystones">
+        @for (rune of runasPagina.primary.keystone; track rune.key) {
+          <img
+            [src]="runeIcon('domination', rune.key)"
+            [alt]="rune.name"
+            [title]="rune.name"
+            class="r-tree__keystone"
+            [class.r-tree__keystone--selected]="rune.selected"
+            [class.r-tree__rune--dim]="!rune.selected"
+          />
+        }
+      </div>
+      <div class="r-tree__row">
+        @for (rune of runasPagina.primary.row1; track rune.key) {
+          <img
+            [src]="runeIcon('domination', rune.key)"
+            [alt]="rune.name"
+            [title]="rune.name"
+            class="r-tree__rune"
+            [class.r-tree__rune--selected]="rune.selected"
+            [class.r-tree__rune--dim]="!rune.selected"
+          />
+        }
+      </div>
+      <div class="r-tree__row">
+        @for (rune of runasPagina.primary.row2; track rune.key) {
+          <img
+            [src]="runeIcon('domination', rune.key)"
+            [alt]="rune.name"
+            [title]="rune.name"
+            class="r-tree__rune"
+            [class.r-tree__rune--selected]="rune.selected"
+            [class.r-tree__rune--dim]="!rune.selected"
+          />
+        }
+      </div>
+      <div class="r-tree__row">
+        @for (rune of runasPagina.primary.row3; track rune.key) {
+          <img
+            [src]="runeIcon('domination', rune.key)"
+            [alt]="rune.name"
+            [title]="rune.name"
+            class="r-tree__rune"
+            [class.r-tree__rune--selected]="rune.selected"
+            [class.r-tree__rune--dim]="!rune.selected"
+          />
+        }
+      </div>
+    </div>
+
+    <div class="r-tree__col">
+      <div class="r-tree__tree-head">
+        <img [src]="runasPagina.secondary.icon" [alt]="runasPagina.secondary.name" class="r-tree__style-icon" />
+        <span class="r-tree__style-name nf-mono">{{ runasPagina.secondary.name }}</span>
+      </div>
+      <div class="r-tree__row">
+        @for (rune of runasPagina.secondary.row1; track rune.key) {
+          <img
+            [src]="runeIcon('sorcery', rune.key)"
+            [alt]="rune.name"
+            [title]="rune.name"
+            class="r-tree__rune"
+            [class.r-tree__rune--selected]="rune.selected"
+            [class.r-tree__rune--dim]="!rune.selected"
+          />
+        }
+      </div>
+      <div class="r-tree__row">
+        @for (rune of runasPagina.secondary.row2; track rune.key) {
+          <img
+            [src]="runeIcon('sorcery', rune.key)"
+            [alt]="rune.name"
+            [title]="rune.name"
+            class="r-tree__rune"
+            [class.r-tree__rune--selected]="rune.selected"
+            [class.r-tree__rune--dim]="!rune.selected"
+          />
+        }
+      </div>
+      <div class="r-tree__row">
+        @for (rune of runasPagina.secondary.row3; track rune.key) {
+          <img
+            [src]="runeIcon('sorcery', rune.key)"
+            [alt]="rune.name"
+            [title]="rune.name"
+            class="r-tree__rune"
+            [class.r-tree__rune--selected]="rune.selected"
+            [class.r-tree__rune--dim]="!rune.selected"
+          />
+        }
+      </div>
+
+      <div class="r-tree__shards">
+        <div class="r-tree__shard-row">
+          @for (shard of runasPagina.statMods.row1; track $index) {
+            <img
+              [src]="statModIcon(shard.file)"
+              [alt]="shard.name"
+              [title]="shard.name"
+              class="r-tree__shard"
+              [class.r-tree__shard--selected]="shard.selected"
+              [class.r-tree__rune--dim]="!shard.selected"
+            />
+          }
+        </div>
+        <div class="r-tree__shard-row">
+          @for (shard of runasPagina.statMods.row2; track $index) {
+            <img
+              [src]="statModIcon(shard.file)"
+              [alt]="shard.name"
+              [title]="shard.name"
+              class="r-tree__shard"
+              [class.r-tree__shard--selected]="shard.selected"
+              [class.r-tree__rune--dim]="!shard.selected"
+            />
+          }
+        </div>
+        <div class="r-tree__shard-row">
+          @for (shard of runasPagina.statMods.row3; track $index) {
+            <img
+              [src]="statModIcon(shard.file)"
+              [alt]="shard.name"
+              [title]="shard.name"
+              class="r-tree__shard"
+              [class.r-tree__shard--selected]="shard.selected"
+              [class.r-tree__rune--dim]="!shard.selected"
+            />
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+</ng-template>
+
+<!-- Lista de objetos reutilizable -->
+<ng-template #tplItemsList>
+  <div class="b-items-list">
+    @for (obj of objetos; track obj.id) {
+      <div class="b-items-row">
+        <div class="b-items-row__ident">
+          <img [src]="itemIcon(obj.id)" [alt]="obj.nombre" class="b-items-row__icon" />
+          <span class="b-items-row__name">{{ obj.nombre }}</span>
+        </div>
+        <span class="b-items-row__meta nf-mono">en {{ obj.partidas }} de 12 · {{ obj.winrate }}%</span>
+      </div>
+    }
+  </div>
+</ng-template>
+
+<!-- Alt 1 · Tres columnas -->
+<ng-template #tplBuilds1>
+  <article class="b-alt1">
+    <header class="d-common-header">
+      <h2 class="d-common-title">Objetos y runas más victoriosos</h2>
+      <p class="d-common-subtitle">Sobre las {{ cifras.partidas }} partidas con {{ campeon.nombre }} registradas en el grupo.</p>
+    </header>
+    <div class="b-alt1__scroll">
+      <div class="b-alt1__three-cols">
+        <div class="b-alt1__col-objects">
+          <h3 class="b-alt1__col-title nf-mono">OBJETOS</h3>
+          <div class="b-alt1__grid-items">
+            @for (obj of objetos; track obj.id) {
+              <div class="b-alt1__item-card">
+                <img [src]="itemIcon(obj.id)" [alt]="obj.nombre" [title]="obj.nombre" class="b-alt1__item-icon" />
+                <div class="b-alt1__item-info">
+                  <span class="b-alt1__item-wr nf-mono">{{ obj.winrate }}%</span>
+                  <span class="b-alt1__item-sub nf-mono">{{ obj.partidas }}/12</span>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+        <div class="b-alt1__col-runes">
+          <ng-container *ngTemplateOutlet="tplRuneTree" />
+        </div>
+      </div>
+    </div>
+  </article>
+</ng-template>
+
+<!-- Alt 2 · Runas arriba, objetos abajo -->
+<ng-template #tplBuilds2>
+  <article class="b-alt2">
+    <header class="d-common-header">
+      <div class="d-common-title-wrap">
+        <h2 class="d-common-title">Página de runas</h2>
+        <span class="d-common-count nf-mono">{{ runasPagina.recordText }}</span>
+      </div>
+    </header>
+    <div class="b-alt2__runes-wrap">
+      <ng-container *ngTemplateOutlet="tplRuneTree" />
+    </div>
+    <div class="b-alt2__divider"></div>
+    <div class="b-alt2__objects-wrap">
+      <h3 class="b-alt2__subtitle nf-mono">OBJETOS</h3>
+      <ng-container *ngTemplateOutlet="tplItemsList" />
+    </div>
+  </article>
+</ng-template>
+
+<!-- Alt 3 · Objetos arriba, runas abajo -->
+<ng-template #tplBuilds3>
+  <article class="b-alt3">
+    <header class="d-common-header">
+      <h2 class="d-common-title">Objetos y runas más victoriosos</h2>
+      <p class="d-common-subtitle">Sobre las {{ cifras.partidas }} partidas con {{ campeon.nombre }} registradas en el grupo.</p>
+    </header>
+    <div class="b-alt3__objects-wrap">
+      <h3 class="b-alt3__subtitle nf-mono">OBJETOS</h3>
+      <ng-container *ngTemplateOutlet="tplItemsList" />
+    </div>
+    <div class="b-alt3__divider"></div>
+    <div class="b-alt3__runes-wrap">
+      <div class="b-alt3__runes-header">
+        <h3 class="b-alt3__subtitle nf-mono">PÁGINA DE RUNAS</h3>
+        <span class="b-alt3__record nf-mono">{{ runasPagina.recordText }}</span>
+      </div>
+      <ng-container *ngTemplateOutlet="tplRuneTree" />
+    </div>
+  </article>
+</ng-template>
+
+<!-- Alt 4 · Solo lo elegido -->
+<ng-template #tplBuilds4>
+  <article class="b-alt4">
+    <header class="d-common-header">
+      <h2 class="d-common-title">Objetos y runas más victoriosos</h2>
+      <p class="d-common-subtitle">Sobre las {{ cifras.partidas }} partidas con {{ campeon.nombre }} registradas en el grupo.</p>
+    </header>
+    <div class="b-alt4__section">
+      <div class="b-alt4__runes-strip">
+        <span class="b-alt4__tag nf-mono">RUNAS</span>
+        <div class="b-alt4__strip-items">
+          <img
+            [src]="runeIcon('domination', runasPagina.selectedList.primaryKeystone.key)"
+            [alt]="runasPagina.selectedList.primaryKeystone.name"
+            class="b-alt4__keystone"
+          />
+          @for (r of runasPagina.selectedList.primaryRunes; track r.key) {
+            <img [src]="runeIcon('domination', r.key)" [alt]="r.name" class="b-alt4__rune" />
+          }
+          <div class="b-alt4__vsep"></div>
+          @for (r of runasPagina.selectedList.secondaryRunes; track r.key) {
+            <img [src]="runeIcon('sorcery', r.key)" [alt]="r.name" class="b-alt4__rune" />
+          }
+          <div class="b-alt4__vsep"></div>
+          @for (s of runasPagina.selectedList.statMods; track $index) {
+            <img [src]="statModIcon(s.file)" [alt]="s.name" class="b-alt4__shard" />
+          }
+        </div>
+      </div>
+      <p class="b-alt4__names-text">{{ runasPagina.selectedList.namesSummary }}</p>
+      <p class="b-alt4__record-text nf-mono">{{ runasPagina.recordText }}</p>
+    </div>
+    <div class="b-alt4__divider"></div>
+    <div class="b-alt4__section">
+      <div class="b-alt4__items-row">
+        <span class="b-alt4__tag nf-mono">OBJETOS</span>
+        <div class="b-alt4__items-grid">
+          @for (obj of objetos; track obj.id) {
+            <div class="b-alt4__item-tile">
+              <img [src]="itemIcon(obj.id)" [alt]="obj.nombre" class="b-alt4__item-icon" />
+              <span class="b-alt4__item-wr nf-mono">{{ obj.winrate }}%</span>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  </article>
+</ng-template>
+
+<!-- Alt 5 · Dos tarjetas separadas -->
+<ng-template #tplBuilds5>
+  <div class="b-alt5-stack">
+    <article class="b-alt5-card">
+      <header class="d-common-header">
+        <h2 class="d-common-title">Objetos más victoriosos</h2>
+        <p class="d-common-subtitle">Sobre las {{ cifras.partidas }} partidas con {{ campeon.nombre }} registradas en el grupo.</p>
+      </header>
+      <ng-container *ngTemplateOutlet="tplItemsList" />
+    </article>
+
+    <article class="b-alt5-card">
+      <header class="d-common-header">
+        <div class="d-common-title-wrap">
+          <h2 class="d-common-title">Página de runas</h2>
+          <span class="d-common-count nf-mono">{{ runasPagina.recordText }}</span>
+        </div>
+      </header>
+      <ng-container *ngTemplateOutlet="tplRuneTree" />
+    </article>
+  </div>
+</ng-template>
+
+<!-- ==========================================================================
+     TEMPLATES · HABILIDADES
+     ========================================================================== -->
+
+<!-- Alt 1 · Rejilla de 18 niveles -->
+<ng-template #tplSkills1>
+  <article class="s-alt1">
+    <header class="d-common-header">
+      <h2 class="d-common-title">Orden de habilidades</h2>
+      <p class="d-common-subtitle">Subida típica de niveles 1 al 18.</p>
+    </header>
+    <div class="s-alt1__scroll">
+      <div class="s-grid">
+        <div class="s-grid__row s-grid__row--head">
+          <div class="s-grid__cell-lead"></div>
+          @for (lvl of habilidades.levels; track lvl) {
+            <div class="s-grid__col-head nf-mono">{{ lvl }}</div>
+          }
+        </div>
+        @for (skill of habilidades.skills; track skill.key) {
+          <div class="s-grid__row">
+            <div class="s-grid__cell-lead">
+              <div class="s-grid__icon-wrap">
+                <img [src]="skill.icon" [alt]="skill.name" class="s-grid__icon" />
+                <span class="s-grid__key nf-mono">{{ skill.key }}</span>
+              </div>
+              <span class="s-grid__skill-name">{{ skill.name }}</span>
+            </div>
+            @for (lvl of habilidades.levels; track lvl) {
+              <div class="s-grid__cell">
+                @if (isSkillLevel(skill.key, lvl)) {
+                  <span
+                    class="s-grid__marker nf-mono"
+                    [class.s-grid__marker--r]="skill.key === 'R'"
+                  >{{ skill.key }}</span>
+                }
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  </article>
+</ng-template>
+
+<!-- Alt 2 · Orden de maximización -->
+<ng-template #tplSkills2>
+  <article class="s-alt2">
+    <header class="d-common-header">
+      <h2 class="d-common-title">Orden de habilidades</h2>
+    </header>
+    <div class="s-alt2__body">
+      <span class="s-alt2__eyebrow nf-mono">SE SUBE EN ESTE ORDEN</span>
+      <div class="s-alt2__chain">
+        <div class="s-alt2__item">
+          <div class="s-alt2__icon-wrap">
+            <img [src]="habilidades.skills[0].icon" [alt]="habilidades.skills[0].name" class="s-alt2__icon" />
+            <span class="s-alt2__key nf-mono">Q</span>
+          </div>
+          <span class="s-alt2__name">{{ habilidades.skills[0].name }}</span>
+        </div>
+        <span class="s-alt2__arrow">›</span>
+        <div class="s-alt2__item">
+          <div class="s-alt2__icon-wrap">
+            <img [src]="habilidades.skills[1].icon" [alt]="habilidades.skills[1].name" class="s-alt2__icon" />
+            <span class="s-alt2__key nf-mono">W</span>
+          </div>
+          <span class="s-alt2__name">{{ habilidades.skills[1].name }}</span>
+        </div>
+        <span class="s-alt2__arrow">›</span>
+        <div class="s-alt2__item">
+          <div class="s-alt2__icon-wrap">
+            <img [src]="habilidades.skills[2].icon" [alt]="habilidades.skills[2].name" class="s-alt2__icon" />
+            <span class="s-alt2__key nf-mono">E</span>
+          </div>
+          <span class="s-alt2__name">{{ habilidades.skills[2].name }}</span>
+        </div>
+      </div>
+      <p class="s-alt2__footnote">La definitiva, en los niveles 6, 11 y 16.</p>
+    </div>
+  </article>
+</ng-template>
+
+<!-- Alt 3 · Secuencia lineal -->
+<ng-template #tplSkills3>
+  <article class="s-alt3">
+    <header class="d-common-header">
+      <h2 class="d-common-title">Orden de habilidades</h2>
+      <p class="d-common-subtitle">Secuencia de subida nivel a nivel.</p>
+    </header>
+    <div class="s-alt3__scroll">
+      <div class="s-alt3__strip">
+        @for (p of habilidades.progression; track p.level) {
+          <div class="s-alt3__badge" [class.s-alt3__badge--r]="p.skill === 'R'">
+            <span class="s-alt3__key nf-mono">{{ p.skill }}</span>
+            <span class="s-alt3__lvl nf-mono">{{ p.level }}</span>
+          </div>
+        }
+      </div>
+    </div>
+  </article>
+</ng-template>
+
+<!-- Alt 4 · Titular y detalle -->
+<ng-template #tplSkills4>
+  <article class="s-alt4">
+    <header class="d-common-header">
+      <h2 class="d-common-title">Orden de habilidades</h2>
+    </header>
+    <div class="s-alt4__top">
+      <div class="s-alt2__chain">
+        <div class="s-alt2__item">
+          <div class="s-alt2__icon-wrap">
+            <img [src]="habilidades.skills[0].icon" [alt]="habilidades.skills[0].name" class="s-alt2__icon" />
+            <span class="s-alt2__key nf-mono">Q</span>
+          </div>
+          <span class="s-alt2__name">{{ habilidades.skills[0].name }}</span>
+        </div>
+        <span class="s-alt2__arrow">›</span>
+        <div class="s-alt2__item">
+          <div class="s-alt2__icon-wrap">
+            <img [src]="habilidades.skills[1].icon" [alt]="habilidades.skills[1].name" class="s-alt2__icon" />
+            <span class="s-alt2__key nf-mono">W</span>
+          </div>
+          <span class="s-alt2__name">{{ habilidades.skills[1].name }}</span>
+        </div>
+        <span class="s-alt2__arrow">›</span>
+        <div class="s-alt2__item">
+          <div class="s-alt2__icon-wrap">
+            <img [src]="habilidades.skills[2].icon" [alt]="habilidades.skills[2].name" class="s-alt2__icon" />
+            <span class="s-alt2__key nf-mono">E</span>
+          </div>
+          <span class="s-alt2__name">{{ habilidades.skills[2].name }}</span>
+        </div>
+      </div>
+      <p class="s-alt2__footnote">La definitiva, en los niveles 6, 11 y 16.</p>
+    </div>
+    <div class="s-alt4__divider"></div>
+    <div class="s-alt4__bottom">
+      <div class="s-alt1__scroll">
+        <div class="s-grid">
+          <div class="s-grid__row s-grid__row--head">
+            <div class="s-grid__cell-lead"></div>
+            @for (lvl of habilidades.levels; track lvl) {
+              <div class="s-grid__col-head nf-mono">{{ lvl }}</div>
+            }
+          </div>
+          @for (skill of habilidades.skills; track skill.key) {
+            <div class="s-grid__row">
+              <div class="s-grid__cell-lead">
+                <div class="s-grid__icon-wrap">
+                  <img [src]="skill.icon" [alt]="skill.name" class="s-grid__icon" />
+                  <span class="s-grid__key nf-mono">{{ skill.key }}</span>
+                </div>
+                <span class="s-grid__skill-name">{{ skill.name }}</span>
+              </div>
+              @for (lvl of habilidades.levels; track lvl) {
+                <div class="s-grid__cell">
+                  @if (isSkillLevel(skill.key, lvl)) {
+                    <span
+                      class="s-grid__marker nf-mono"
+                      [class.s-grid__marker--r]="skill.key === 'R'"
+                    >{{ skill.key }}</span>
+                  }
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  </article>
+</ng-template>
+
+<!-- Alt 5 · Solo texto -->
+<ng-template #tplSkills5>
+  <article class="s-alt5">
+    <header class="d-common-header">
+      <h2 class="d-common-title">Orden de habilidades</h2>
+    </header>
+    <div class="s-alt5__body">
+      <p class="s-alt5__line">
+        <span class="s-alt5__lvl-label">Nivel 1:</span>
+        <span class="s-inline-badge">
+          <img [src]="habilidades.skills[0].icon" [alt]="habilidades.skills[0].name" class="s-inline-badge__icon" />
+          <span class="s-inline-badge__key nf-mono">Q</span>
+        </span>
+        <span class="s-alt5__text">{{ habilidades.skills[0].name }}</span>
+      </p>
+      <p class="s-alt5__line">
+        <span>Se maximiza primero:</span>
+        <span class="s-inline-badge">
+          <img [src]="habilidades.skills[0].icon" [alt]="habilidades.skills[0].name" class="s-inline-badge__icon" />
+          <span class="s-inline-badge__key nf-mono">Q</span>
+        </span>
+        <span class="s-alt5__sep">·</span>
+        <span>después:</span>
+        <span class="s-inline-badge">
+          <img [src]="habilidades.skills[1].icon" [alt]="habilidades.skills[1].name" class="s-inline-badge__icon" />
+          <span class="s-inline-badge__key nf-mono">W</span>
+        </span>
+        <span class="s-alt5__sep">·</span>
+        <span>por último:</span>
+        <span class="s-inline-badge">
+          <img [src]="habilidades.skills[2].icon" [alt]="habilidades.skills[2].name" class="s-inline-badge__icon" />
+          <span class="s-inline-badge__key nf-mono">E</span>
+        </span>
+      </p>
+      <p class="s-alt5__line s-alt5__line--muted">Definitiva en los niveles 6, 11 y 16.</p>
+    </div>
+  </article>
+</ng-template>
+
+<!-- ==========================================================================
+     TEMPLATES · BLOQUES FIJOS DEL MONTAJE
+     ========================================================================== -->
+
+<ng-template #tplMacro>
+  <article class="m-macro-card">
+    <h2 class="m-macro-title">Fase temprana y macro</h2>
+    <div class="m-macro-grid">
+      <div class="m-macro-kpi">
+        <span class="m-macro-kpi__lbl">ORO AL MIN 14</span>
+        <span class="m-macro-kpi__val nf-mono">5.480</span>
+      </div>
+      <div class="m-macro-kpi">
+        <span class="m-macro-kpi__lbl">CS POR MINUTO</span>
+        <span class="m-macro-kpi__val nf-mono">7,4</span>
+      </div>
+      <div class="m-macro-kpi">
+        <span class="m-macro-kpi__lbl">PRIMERA SANGRE</span>
+        <span class="m-macro-kpi__val nf-mono">25%</span>
+      </div>
+      <div class="m-macro-kpi">
+        <span class="m-macro-kpi__lbl">PRIMERA TORRE</span>
+        <span class="m-macro-kpi__val nf-mono">58%</span>
+      </div>
+    </div>
+  </article>
+</ng-template>
+
+<ng-template #tplEspecialistas>
+  <article class="m-specialists-card">
+    <h2 class="m-specialists-title">Especialistas del grupo</h2>
+    <div class="m-specialists-list">
+      @for (esp of especialistas; track esp.nombre) {
+        <div class="m-specialists-row">
+          <div class="m-specialists-ident">
+            <nf-avatar [fallback]="esp.nombre" [size]="32" />
+            <span class="m-specialists-name">{{ esp.nombre }}</span>
+          </div>
+          <div class="m-specialists-stats nf-mono">
+            <span class="m-specialists-record">{{ esp.record }}</span>
+            <span class="m-specialists-wr" [class.m-specialists-wr--high]="esp.winrate >= 60">{{ esp.winrate }}%</span>
+            <span class="m-specialists-kda">{{ esp.kda }} KDA</span>
+            <span class="m-specialists-games">{{ formatPartidasShort(esp.partidas) }}</span>
+          </div>
+        </div>
+      }
+    </div>
+  </article>
+</ng-template>
