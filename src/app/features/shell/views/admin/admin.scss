@@ -1,0 +1,226 @@
+/* Directorio de administración (`/app/admin`).
+
+   El prefijo es `adm-` y NUNCA `ad-`: EasyList trae "##.ad-card" y "##.ad-grid" como reglas
+   genéricas, así que con el prefijo corto un bloqueador ocultaba la pantalla entera. Es un
+   fallo invisible en desarrollo y silencioso en producción; el porqué largo, en `admin.html`.
+   Dos zonas con forma distinta a propósito: rejilla de tarjetas para lo que NAVEGA a otra
+   vista, lista para lo que EJECUTA algo aquí mismo. Antes compartían tarjeta y no había
+   forma de saber, mirando, cuál de las dos cosas hacía cada una.
+
+   Cada tarjeta se parte además en dos bandas: arriba QUÉ ES (icono, nombre, descripción),
+   abajo CÓMO ESTÁ ahora mismo. La línea que las separa es lo que hace legible que el pie
+   viene de una lectura aparte —y que puede faltar— sin tener que escribirlo. */
+
+/* ---- Cabecera de zona ---- */
+.adm-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.adm-section__label {
+  font-size: var(--fs-caption);
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-wide, 0.4px);
+  color: var(--nf-text-dim);
+}
+.adm-section__rule {
+  flex: 1;
+  height: 1px;
+  background: var(--nf-border);
+}
+
+/* ---- Zona 1 · herramientas ---- */
+.adm-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 14px;
+  margin-bottom: 28px;
+}
+
+/* El `color` de la tarjeta es el del icono y el del chevron, que van a `currentColor`:
+   así el hover cambia UNA propiedad en UN elemento y los dos hijos le siguen solos. El
+   texto no se ve afectado porque label, descripción y pie fijan el suyo. */
+.adm-card {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--nf-border);
+  border-radius: 12px;
+  background: var(--nf-surface-2);
+  text-decoration: none;
+  color: var(--nf-text-mid);
+  overflow: hidden;
+  transition:
+    border-color var(--nf-dur) var(--nf-ease-std),
+    background var(--nf-dur) var(--nf-ease-std),
+    color var(--nf-dur) var(--nf-ease-std),
+    transform var(--nf-dur) var(--nf-ease-std);
+}
+
+a.adm-card:hover {
+  border-color: var(--nf-border-accent);
+  background: var(--nf-surface-3);
+  color: var(--nf-primary);
+  transform: translateY(-2px);
+}
+a.adm-card:hover .adm-card__glyph {
+  border-color: var(--nf-border-accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  a.adm-card:hover { transform: none; }
+}
+
+.adm-card__main {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px 18px 14px;
+}
+
+/* Un emoji —que es lo que había— ni hereda el color del estado ni sigue al tema. */
+.adm-card__glyph {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--nf-radius);
+  background: var(--nf-inset);
+  border: 1px solid var(--nf-border);
+  transition: border-color var(--nf-dur) var(--nf-ease-std);
+}
+
+.adm-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  flex: 1;
+}
+
+.adm-card__label {
+  font-weight: var(--fw-bold);
+  font-size: var(--fs-body);
+  color: var(--nf-text);
+}
+
+.adm-card__desc {
+  font-size: var(--fs-caption);
+  line-height: var(--lh-snug);
+  color: var(--nf-text-mid);
+}
+
+/* ---- El pie: cómo está esa herramienta ahora mismo ----
+   `margin-top: auto` pega el pie abajo aunque la descripción de al lado ocupe una línea
+   más: en una rejilla las tarjetas ya miden lo mismo, y sin esto sus líneas de separación
+   quedarían a alturas distintas. */
+.adm-card__foot {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: auto;
+  padding: 12px 18px;
+  border-top: 1px solid var(--nf-border);
+  /* Un lavado claro, no un peldaño de la rampa: el pie es la misma tarjeta con otra luz, y
+     un `surface-3` lo convertiría en una segunda tarjeta pegada debajo. */
+  background: rgba(255, 255, 255, 0.02);
+}
+
+/* Alto fijo: las tres tarjetas tienen la línea de separación a la misma altura, y ningún
+   estado (esqueleto, dato, error) mueve nada al llegar. */
+.adm-card__pulse {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex: 1;
+  min-width: 0;
+  min-height: 24px;
+}
+
+/* El nivel va en `data-level` y no en un modificador BEM porque el de la cuota sale ya
+   calculado del store (`RiotUsageStore.level()`): con clases habría que traducir esos tres
+   valores a tres nombres en la plantilla. El color va más abajo, junto al del hilo, porque
+   los dos leen la misma escala. */
+.adm-pulse__dot {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+.adm-pulse__value {
+  font-size: var(--fs-caption);
+  font-weight: var(--fw-semibold);
+  color: var(--nf-text);
+}
+
+/* Lo que acompaña al número: el periodo, el matiz, o el motivo de que no haya número. */
+.adm-pulse__note {
+  font-size: var(--fs-caption);
+  color: var(--nf-text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.adm-card__chevron {
+  flex: none;
+  display: flex;
+}
+
+/* ---- El hilo de cuota ----
+   Tres píxeles a ras del borde inferior, el mismo dato que la frase pero sin leer. Va como
+   último hijo de la tarjeta y no en posición absoluta: `overflow: hidden` del contenedor ya
+   lo recorta contra las esquinas redondeadas.
+
+   Comparte escala y colores con `NfMeter`, que es lo que pinta esta misma cuota en la barra
+   de la cabecera y en la vista de métricas: los tres niveles se ven igual en los tres sitios. */
+.adm-card__thread { height: 3px; background: var(--nf-border); }
+
+/* Punto e hilo comparten escala; `attention` es solo del punto (feedback sin triar no es un
+   peldaño de gravedad, es que hay trabajo esperando). */
+.adm-pulse__dot[data-level='attention'] { background: var(--nf-secondary); }
+.adm-pulse__dot[data-level='ok'], .adm-card__thread[data-level='ok'] { background: var(--nf-success); }
+.adm-pulse__dot[data-level='warn'], .adm-card__thread[data-level='warn'] { background: var(--nf-warning); }
+.adm-pulse__dot[data-level='danger'], .adm-card__thread[data-level='danger'] { background: var(--nf-danger); }
+
+/* ---- Zona 2 · operaciones ----
+   Lista y no rejilla: cada fila necesita sitio para su botón y para el resultado de la
+   última ejecución, y va a crecer con cada operación nueva. */
+.adm-ops {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.adm-op {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  border: 1px solid var(--nf-border);
+  border-radius: 12px;
+  background: var(--nf-surface-2);
+}
+
+.adm-op__result {
+  font-size: var(--fs-caption);
+  line-height: var(--lh-snug);
+  color: var(--nf-secondary);
+}
+
+.adm-op > button {
+  flex: none;
+}
+
+@media (max-width: 560px) {
+  .adm-op {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .adm-op > button {
+    width: 100%;
+  }
+}

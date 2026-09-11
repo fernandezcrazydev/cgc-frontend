@@ -179,6 +179,42 @@ describe('RiotUsageStore', () => {
     expect(api.calls).toBe(2);
   });
 
+  /* ---- refresh(): la lectura suelta del directorio de admin ---- */
+
+  it('refresh() lee una vez y no deja ningún intervalo detrás', async () => {
+    const done = store.refresh();
+    await api.resolveAll(42);
+    await done;
+
+    expect(api.calls).toBe(1);
+    expect(store.usage()?.used).toBe(42);
+
+    // Lo importante: no ha arrancado el polling. Si lo hubiera hecho, salir de la ruta lo
+    // dejaría corriendo para siempre en una pestaña que ya no lo mira.
+    vi.advanceTimersByTime(POLL_MS * 3);
+    expect(api.calls).toBe(1);
+  });
+
+  it('refresh() no reinicia el store que un 403 apagó', async () => {
+    api.failWith = new HttpErrorResponse({ status: 403 });
+    store.start();
+    await flush();
+    expect(api.calls).toBe(1);
+
+    api.failWith = null;
+    await store.refresh();
+
+    expect(api.calls).toBe(1);
+  });
+
+  it('refresh() no encola una segunda petición sobre la que ya está en vuelo', async () => {
+    store.start();
+    void store.refresh();
+
+    expect(api.calls).toBe(1);
+    await api.resolveAll();
+  });
+
   it('clear() vacía el estado y deja el store listo para otro usuario', async () => {
     api.failWith = new HttpErrorResponse({ status: 403 });
     store.start();
