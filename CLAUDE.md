@@ -547,9 +547,11 @@ Ojo con dos cosas:
 - **Todos los campos salen opcionales** (`id?: string`). Un `record` de Java no declara
   nulabilidad y springdoc no se la inventa. Es deuda conocida del backend, no algo que arreglar
   aquí.
-- **`api-error-codes.ts` no es la lista de lo traducido**, es la de lo que el backend puede
-  mandar. Hoy hay 98 códigos y `api-error.ts` traduce 49; el resto cae al genérico por `status` y
-  avisa por consola, que es el comportamiento de siempre.
+- **`MESSAGES_BY_CODE` está tipado como `Record<ApiErrorCode, string>`, sin `Partial`.** Los 98
+  códigos están traducidos, y el compilador te obliga a mantenerlo así: un código nuevo del
+  backend **no compila** hasta que le escribes su texto en español. Ese es el aviso que antes
+  dependía de que alguien se acordara de darlo. Si algún día estorba, `Partial<Record<...>>` lo
+  relaja — y entonces lo que falte vuelve a caer al genérico por `status` sin que nadie se entere.
 
 El detalle completo está en `cgc-backend/docs/contrato-api.md`.
 
