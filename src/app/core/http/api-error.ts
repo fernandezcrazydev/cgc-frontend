@@ -1,4 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
+import { ApiErrorCode } from './api-error-codes';
 
 /**
  * Manejo de errores de la API, en un único sitio. El backend devuelve RFC 7807
@@ -20,7 +21,7 @@ export interface ApiFieldError {
  */
 export interface ApiError {
   status: number;
-  /** Código estable de dominio (`UNSUPPORTED_IMAGE`, ...). null si el backend no lo dio. */
+  /** Código estable de dominio (`INVALID_AVATAR`, ...). null si el backend no lo dio. */
   code: string | null;
   /** El `detail` técnico del backend. Solo para logs/telemetría; jamás para la UI. */
   detail: string | null;
@@ -59,8 +60,14 @@ function parseFieldErrors(raw: unknown): ApiFieldError[] {
  * Catálogo `code → mensaje en español`. El front es dueño de estos textos; el backend solo
  * manda el `code`. Al añadir un código nuevo en el backend, se añade aquí su traducción.
  * Mantener en orden alfabético.
+ *
+ * Tipado contra `ApiErrorCode`, que se genera desde el backend (`npm run api:types`): una clave
+ * que el backend ya no devuelve —renombrada, o de una excepción borrada— es un error de
+ * compilación aquí, en vez de una traducción muerta que nadie vuelve a mirar. `Partial` porque
+ * lo contrario sería exigir los 94 de golpe; lo que falte cae al genérico por status y avisa por
+ * consola, que es el comportamiento de siempre.
  */
-const MESSAGES_BY_CODE: Record<string, string> = {
+const MESSAGES_BY_CODE: Partial<Record<ApiErrorCode, string>> = {
   ALREADY_MEMBER: 'Este usuario ya es miembro del grupo.',
   // Es un 404, y el backend NO distingue "nunca se repartió" de "se repartió antes de que
   // existiera la columna": la acción del usuario es la misma —no hay nada que pintar— y
@@ -93,7 +100,11 @@ const MESSAGES_BY_CODE: Record<string, string> = {
     'Has enviado demasiados reportes en las últimas 24 horas. Prueba de nuevo más tarde.',
   GAME_DATA_UNAVAILABLE: 'El catálogo de datos del juego no está disponible ahora mismo. Inténtalo más tarde.',
   GROUP_QUOTA_EXCEEDED: 'Has alcanzado el número máximo de grupos que puedes tener.',
-  IMAGE_TOO_LARGE: 'La imagen es demasiado grande. Usa uno más ligero.',
+  // Un solo code para las tres cosas que pueden fallar al subir el avatar (formato, tamano y
+  // bytes que no decodifican): el backend no las distingue, asi que el mensaje las cubre todas.
+  // Antes habia dos entradas, UNSUPPORTED_IMAGE e IMAGE_TOO_LARGE, que el backend nunca ha
+  // mandado.
+  INVALID_AVATAR: 'Esa imagen no vale. Tiene que ser un JPEG o un PNG de menos de 2 MB.',
   INVALID_CLIENT_IP_FILTER:
     'Eso no es una dirección IP. Escribe una dirección (88.98.97.149) o un rango (88.98.97.0/24).',
   INVALID_METRICS_WINDOW:
@@ -130,7 +141,6 @@ const MESSAGES_BY_CODE: Record<string, string> = {
   SESSION_NOT_FOUND: 'Esa sesión ya no estaba abierta.',
   SLOT_IN_THE_PAST: 'Esa hora ya ha pasado. Elige una futura.',
   UNSORTABLE_AUDIT_FIELD: 'El registro de seguridad solo se puede ordenar por fecha.',
-  UNSUPPORTED_IMAGE: 'Ese formato de imagen no es válido. Usa JPEG o PNG.',
 };
 
 /**
@@ -156,7 +166,7 @@ const FALLBACK = 'Ha ocurrido un error inesperado. Inténtalo de nuevo.';
  */
 export function messageForError(error: ApiError): string {
   if (error.code) {
-    const known = MESSAGES_BY_CODE[error.code];
+    const known = MESSAGES_BY_CODE[error.code as ApiErrorCode];
     if (known) return known;
     // El backend mandó un código que el front aún no traduce: catalogarlo cuanto antes.
     console.warn(`[api-error] código sin traducir: ${error.code} (status ${error.status})`);
@@ -178,7 +188,7 @@ export function errorMessage(error: unknown): string {
  * un `code` no puede querer decir una cosa por HTTP y otra por la barra de direcciones.
  */
 export function messageForCode(code: string): string {
-  const known = MESSAGES_BY_CODE[code];
+  const known = MESSAGES_BY_CODE[code as ApiErrorCode];
   if (known) return known;
   console.warn(`[api-error] código sin traducir: ${code} (sin status)`);
   return FALLBACK;
