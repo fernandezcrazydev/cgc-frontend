@@ -4,10 +4,18 @@
   "api-url": 0,
   "views-scss-size": 2968,
   "dead-css": 0,
-  "css-total-size": 16871,
+  "css-total-size": 17843,
   "inline-template-size": 16,
   "font-floor": 41,
   "font-size-raw": 335,
   "adblock-bait": 0,
-  "viewport-units": 0
+  "viewport-units": 0,
+  "emoji-free": 87,
+  "legacy-angular": 21,
+  "onpush": 17,
+  "ng-deep": 0,
+  "toast-literal": 9,
+  "route-title": 0,
+  "nav-label": 0,
+  "theme-tokens": 0
 }

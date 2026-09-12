@@ -28,6 +28,27 @@ npm run api:types  # regenera los tipos del backend (ver § "El contrato del bac
 **Antes de dar por terminado cualquier cambio: `npm run arch && npm test`.** El primero es
 instantáneo y es lo que impide que este documento vuelva a ser decorativo.
 
+## Cómo se leen los documentos del proyecto (regla de coste)
+
+Los documentos de dominio y planificación viven **fuera de este repositorio**, en la raíz `main/`,
+y dos de ellos son enormes: **`Roadmap.md` pesa 355 KB (~90.000 tokens)** y **`FlujoJuego.md`
+110 KB**. Leerlos enteros para «tener contexto» se gasta el presupuesto de una sesión antes de la
+primera decisión, y casi todo lo leído no hacía falta.
+
+**Ninguno de los dos se lee entero jamás.** Los dos llevan un índice de secciones con rangos de
+línea al principio. El procedimiento es localizar la sección y leer solo esas líneas:
+
+```bash
+grep -n "^#\{1,4\} " ../Roadmap.md        # el mapa: encabezado → línea
+sed -n '3155,3290p' ../Roadmap.md         # y se lee solo el tramo que interesa
+```
+
+Única excepción: un refactor que reescriba el documento. Lo que **sí** se lee completo es
+`../prompt.md`, que es el briefing de arranque y está escrito para eso, y este mismo fichero.
+
+`FlujoJuego.md` es la **fuente de la verdad del dominio**: cuando contradice a `Roadmap.md`, gana
+él y el roadmap se corrige en el mismo turno.
+
 ## Estrategia de migración mock → backend (LA decisión de arquitectura)
 
 **Solo `core/auth/` habla con backend real** (OIDC code+PKCE contra nuestro backend; Discord es
@@ -686,12 +707,48 @@ corre en <1s, y CI lo ejecuta en cada PR (`.github/workflows/ci.yml`). Comprueba
 | `api-url` | `environment.apiUrl` solo en `*-api.ts` (infra de `core/http`, `core/auth` y `app.config.ts` exentas por diseño) |
 | `views-scss-size` | `views.scss` no crece **nunca** |
 | `dead-css` | clases de **cualquier** hoja de `app/` que ningún `.ts`/`.html` referencia |
-| `css-total-size` | CSS total del proyecto (mover del monolito al componente es neutro; borrar, no) |
+| `css-total-size` | CSS total del proyecto, hojas **y** `styles: []` inline (mover es neutro; borrar, no) |
 | `inline-template-size` | plantilla inline > 150 líneas |
 | `font-floor` | `font-size` < 11px |
 | `font-size-raw` | `font-size` en px crudos en vez de la escala `--fs-*` |
 | `adblock-bait` | clases que los bloqueadores de anuncios ocultan solas (`ad-*`, `banner*`, `promo*`…) |
 | `viewport-units` | `100vh`/`100vw` a pelo (el zoom de `:root` los desvía un 10%) |
+| `emoji-free` | pictogramas de color en la interfaz (§ "UI kit": los iconos son SVG inline) |
+| `legacy-angular` | `@Input()`/`@Output()`/`EventEmitter` en vez de `input()`/`output()`/`model()` |
+| `onpush` | componente sin `ChangeDetectionStrategy.OnPush` |
+| `ng-deep` | `::ng-deep`, que es API muerta |
+| `toast-literal` | `toasts.error('…')` con string fija en vez de `errorMessage(e)` |
+| `route-title` | ruta con vista propia y sin `title` (la pestaña se queda muda) |
+| `nav-label` | segmento de ruta que `ROUTE_TITLES` de `shell-nav.ts` no sabe rotular |
+| `theme-tokens` | token de **color** de `styles/tokens/` que una skin de `styles/themes/` no decide |
+
+**Las tres últimas se añadieron el 2026-09-11 y entran las tres en cero**, o sea que son muros, no
+trinquetes. Salieron de una revisión de huecos de conexión entre pantallas, y cada una destapó un
+bug real que llevaba tiempo ahí: el `callback` de OIDC no tenía `title`, y la pantalla de **Reparto**
+—`grupos/:id/sala/:salaId/reparto`, que existe desde hace semanas— no estaba en `ROUTE_TITLES`, así
+que la barra superior la rotulaba «Página no encontrada» aunque la ruta funcionase. Los dos
+arreglados aquí.
+
+> **`theme-tokens` es el que más va a molestar, y a propósito.** Un token que una skin no redefine
+> **no se rompe**: hereda el de `:root`. Por eso nadie se entera de que se está pintando con un color
+> afinado para la otra paleta. La regla obliga a **decidir**, no a copiar: si el valor bueno es el
+> mismo, se repite y ya está. Quedan exentos `--nf-brand-*` (el rojo de Riot es el rojo de Riot en
+> los dos temas) y `--nf-shadow-*` / `--nf-edge-*`, que derivan de `--nf-shadow-color`, que sí está
+> tematizado.
+
+Las cinco anteriores se añadieron el **2026-09-10** y no son reglas nuevas: son reglas que este
+documento ya exigía en prosa y que nadie verificaba, así que se incumplían sin que se notase
+(90 líneas con emoji, 22 `@Input()`, 17 componentes sin `OnPush`, 9 `toasts.error()` literales).
+Entraron con el incumplimiento de hoy como presupuesto: **no obligan a limpiar la deuda, obligan a
+no añadir más**. `ng-deep` entró en **0**, que es un muro de verdad: los `::ng-deep` que aparecían
+al grepear estaban todos dentro de comentarios que advertían contra él.
+
+> **Ojo con `emoji-free`.** Distingue el pictograma de color del carácter tipográfico, que es la
+> distinción que importa: caza lo que tiene `Emoji_Presentation` o lleva un `U+FE0F` detrás, así que
+> `✓`, `★`, `▾`, `›`, `·`, `✕` y `⚠` a secas **no** son incumplimientos —la app los usa a propósito—
+> y `🏆`, `⚔️` o `⚠️` sí. Quedan exentos `ui/emoji-picker/`, `core/reactions/` y
+> `core/feedback/models.ts`, donde el emoji **es el contenido que escribe el usuario**, no
+> decoración de la interfaz.
 
 **Es un trinquete, no un muro.** La deuda actual está anotada en `scripts/arch-budgets.json`; el
 check falla solo si una regla **empeora**. Así se adopta con el repo como está, sin big-bang.
@@ -701,6 +758,15 @@ check falla solo si una regla **empeora**. Así se adopta con el repo como está
   lo commiteas. El número solo baja; eso es lo que hace que el repo converja.
 - Añadir una regla nueva a este documento significa añadirla al script. Si no se puede verificar,
   escríbela igual pero sabiendo que es una recomendación, no una regla.
+- La única subida legítima es **ampliar lo que una regla mide**, y se anota aquí. Pasó una vez:
+  `css-total-size` solo miraba ficheros `.scss`/`.css`, así que el CSS escrito en `styles: []`
+  dentro de un `.ts` no lo veía nadie —ni esa regla, ni `dead-css`, ni el presupuesto por hoja de
+  `angular.json`—. El efecto era el contrario del que busca la regla: sacar CSS de un `.ts` a su
+  hoja, que es lo que pide este documento, salía en el diff como un empeoramiento de cien líneas,
+  y esconderlo salía gratis. Al empezar a contarlo aparecieron **812 líneas** que ya estaban ahí
+  (16.871 → 17.733 sin tocar una línea de CSS). Ese salto es de medición; a partir de él, el
+  número solo baja. `dead-css` y las reglas de tipografía siguen ciegas a ese CSS: es deuda
+  anotada, no una decisión.
 
 ## Deuda conocida (no la propagues)
 
