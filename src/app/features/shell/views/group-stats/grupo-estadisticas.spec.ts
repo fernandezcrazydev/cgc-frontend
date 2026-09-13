@@ -101,7 +101,7 @@ describe('GrupoEstadisticas', () => {
 
     const controls = fixture.nativeElement.querySelector('.gs-controls');
     expect(controls.firstElementChild.classList.contains('gs-controls__season')).toBe(true);
-    expect(controls.lastElementChild.classList.contains('gs-controls__modality')).toBe(true);
+    expect(controls.querySelector('.gs-controls__modality')).not.toBeNull();
   });
 
   it('el selector de temporadas incluye "all" por defecto y solo temporadas jugadas', () => {

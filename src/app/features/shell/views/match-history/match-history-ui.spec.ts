@@ -1,8 +1,12 @@
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
-import { Router, Routes, provideRouter } from '@angular/router';
+import { ActivatedRoute, Router, Routes, provideRouter } from '@angular/router';
+import { of } from 'rxjs';
 import { describe, expect, it, beforeEach } from 'vitest';
 import { MatchHistoryUiState } from './match-history-ui';
 import { ViewMemoryService } from '../../../../shared/view-memory';
+import { GrupoHistorial } from '../group/grupo-historial';
 
 /** Rutas de mentira que imitan lista → detalle → otra pantalla. */
 const ROUTES: Routes = [
@@ -113,5 +117,51 @@ describe('MatchHistoryUiState [F5.5-03]', () => {
 
     otra.clearFocusedId();
     expect(otra.focusedId()).toBeNull();
+  });
+});
+
+describe('GrupoHistorial', () => {
+  it('llegar con ?liga=caos deja el filtro de modalidad en Caos, y ?liga=pepe no cambia nada', () => {
+    function createHistorial(ligaParam: string, temporadaParam?: string) {
+      sessionStorage.clear();
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        imports: [GrupoHistorial],
+        providers: [
+          provideHttpClient(),
+          provideHttpClientTesting(),
+          provideRouter([]),
+          {
+            provide: ActivatedRoute,
+            useValue: {
+              snapshot: {
+                paramMap: { get: (k: string) => (k === 'id' ? 'g1' : null) },
+                queryParamMap: {
+                  get: (k: string) => (k === 'liga' ? ligaParam : k === 'temporada' ? (temporadaParam ?? null) : null),
+                },
+              },
+              paramMap: of({ get: (k: string) => (k === 'id' ? 'g1' : null) }),
+              queryParamMap: of({
+                get: (k: string) => (k === 'liga' ? ligaParam : k === 'temporada' ? (temporadaParam ?? null) : null),
+              }),
+            },
+          },
+        ],
+      });
+      const fixture = TestBed.createComponent(GrupoHistorial);
+      fixture.detectChanges();
+      const uiState = fixture.debugElement.injector.get(MatchHistoryUiState);
+      return { fixture, uiState };
+    }
+
+    const { uiState: uiCaos } = createHistorial('caos');
+    expect(uiCaos.filters().gameMode).toBe('Caos');
+
+    const { uiState: uiPepe } = createHistorial('pepe');
+    expect(uiPepe.filters().gameMode).toBe('all');
+
+    const { uiState: uiSeason } = createHistorial('competitivo', 'Temporada 2');
+    expect(uiSeason.filters().gameMode).toBe('Competitivo');
+    expect(uiSeason.filters().season).toBe('Temporada 2');
   });
 });

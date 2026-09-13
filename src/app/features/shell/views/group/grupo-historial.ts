@@ -8,6 +8,7 @@ import { GroupBridge, GroupsStore } from '../../../../core/groups';
 import { MatchHistoryStore } from '../../../../core/matches/match-history-store';
 import { filterGroupMatches, sortMatches } from '../../../../core/matches/match-filtering';
 import { GameDataStore } from '../../../../core/game-data';
+import { MODALITY_LABELS, modalityFromSlug } from '../../../../core/group-stats';
 import { Viewport } from '../../../../shared/viewport';
 import { ViewMemoryService } from '../../../../shared/view-memory';
 import { GroupMatchCardComponent } from '../match-history/group-match-card.component';
@@ -249,6 +250,21 @@ export class GrupoHistorial {
       if (id) {
         this.bridge.ensure(id);
         this.ui.setContextKey('/app/grupos/' + id + '/historial');
+        const qp = this.route.snapshot.queryParamMap;
+        const liga = qp.get('liga');
+        const mod = modalityFromSlug(liga);
+        const temporada = qp.get('temporada') ?? qp.get('season');
+
+        const patch: Partial<{ gameMode: typeof MODALITY_LABELS[keyof typeof MODALITY_LABELS]; season: string }> = {};
+        if (mod) {
+          patch.gameMode = MODALITY_LABELS[mod];
+        }
+        if (temporada) {
+          patch.season = temporada;
+        }
+        if (Object.keys(patch).length > 0) {
+          this.ui.update(patch);
+        }
       }
     });
 

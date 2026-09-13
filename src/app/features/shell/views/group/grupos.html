@@ -395,13 +395,27 @@
                 <nf-select [options]="regionOptions" [value]="region()" (valueChange)="setRegion($event)" />
               </div>
 
-              <div class="field">
-                <label class="field__label nf-mono">Algoritmo de matcheo</label>
-                <nf-select [options]="presetOptions" [value]="preset()" (valueChange)="setPreset($event)" />
-                <p class="field__hint">{{ presetDescription() }}</p>
-                <p class="field__warning">
-                  Se elige ahora y no se puede cambiar más adelante. Para usar otro habría que crear
-                  un grupo nuevo.
+              <div class="grp-leagues-disclaimer">
+                <div class="grp-leagues-disclaimer__eyebrow nf-mono">TU GRUPO NACE CON TRES LIGAS</div>
+                <p class="grp-leagues-disclaimer__desc">
+                  Una por modalidad. Cada una empieza con su primera partida y dura lo que aquí ponga:
+                </p>
+                <div class="grp-leagues-disclaimer__list">
+                  <div class="grp-leagues-disclaimer__row">
+                    <span>Competitivo</span>
+                    <span class="nf-mono">6 meses</span>
+                  </div>
+                  <div class="grp-leagues-disclaimer__row">
+                    <span>Equilibrado</span>
+                    <span class="nf-mono">3 meses</span>
+                  </div>
+                  <div class="grp-leagues-disclaimer__row">
+                    <span>Caos</span>
+                    <span class="nf-mono">2 meses</span>
+                  </div>
+                </div>
+                <p class="grp-leagues-disclaimer__foot">
+                  Podrás cambiar el nombre y la duración de cada una desde los ajustes del grupo, mientras su temporada no haya empezado.
                 </p>
               </div>
             </div>

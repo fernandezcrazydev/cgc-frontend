@@ -26,6 +26,7 @@
  */
 import { EnvironmentInjector } from '@angular/core';
 import { hash } from '../group-ranking';
+import { groupModalitiesConfig, MODALITY_LABELS, StatModality } from '../group-stats';
 import { CURRENT_USER, GROUPS, MOCK_NAMES, REAL_CHAMPION_IDS } from '../lobby';
 import { MatchHistoryStore } from './match-history-store';
 import {
@@ -128,18 +129,74 @@ const ITEMS_BY_LANE: Record<Lane, ItemDef[]> = {
   ],
 };
 
+const ALT_ITEMS_BY_LANE: Record<Lane, ItemDef[]> = {
+  TOP: [
+    { id: 6631, name: 'Sanguinario' },
+    { id: 3748, name: 'Hidra Titánica' },
+    { id: 3065, name: 'Velo de la Bruja Negra' },
+    { id: 3742, name: 'Placa del Muerto' },
+    { id: 3153, name: 'Hoja del Rey Arruinado' },
+  ],
+  JUNGLA: [
+    { id: 6676, name: 'El Coleccionista' },
+    { id: 3071, name: 'Cuchilla Negra' },
+    { id: 6609, name: 'Cimitarra Chempunk' },
+    { id: 6333, name: 'Danza de la Muerte' },
+    { id: 3036, name: 'Recuerdos de Lord Dominik' },
+  ],
+  MID: [
+    { id: 3165, name: 'Morellonomicón' },
+    { id: 6653, name: 'Ira de Liandry' },
+    { id: 3116, name: 'Cetro de Cristal de Rylai' },
+    { id: 4628, name: 'Antorcha Torcida' },
+    { id: 3152, name: 'Impulsor Hextech' },
+  ],
+  ADC: [
+    { id: 6673, name: 'Susurro Inmortal' },
+    { id: 6675, name: 'Hojas Rápidas de Navori' },
+    { id: 3046, name: 'Danzarín Fantasma' },
+    { id: 6676, name: 'El Coleccionista' },
+    { id: 3033, name: 'Recordatorio Mortal' },
+  ],
+  SUPPORT: [
+    { id: 3504, name: 'Incensario Ardiente' },
+    { id: 6617, name: 'Reliquia de la Luna Naciente' },
+    { id: 3222, name: 'Bendición de Mikael' },
+    { id: 4005, name: 'Mandato Imperial' },
+    { id: 3011, name: 'Purificador Quimiotecnológico' },
+  ],
+};
+
 function generateItems(
   role: Lane,
+  seed: string,
   spells: number[] = [4, 12],
   smiteVariant?: 'blue' | 'red' | 'green' | 'unevolved',
 ): (MatchItemSlot | null)[] {
-  const pool = ITEMS_BY_LANE[role] ?? ITEMS_BY_LANE.MID;
-  const items: (MatchItemSlot | null)[] = pool.map((item) => ({
+  const basePool = (ITEMS_BY_LANE[role] ?? ITEMS_BY_LANE.MID).slice(0, 6);
+  const altPool = ALT_ITEMS_BY_LANE[role] ?? ALT_ITEMS_BY_LANE.MID;
+  const candidates = [...basePool, ...altPool];
+  const chosen = candidates
+    .slice()
+    .sort((a, b) => hash(`${seed}:${a.id}`) - hash(`${seed}:${b.id}`))
+    .slice(0, 6);
+
+  const items: (MatchItemSlot | null)[] = chosen.map((item) => ({
     id: item.id,
     name: item.name,
     iconUrl: item.iconUrl ?? `https://ddragon.leagueoflegends.com/cdn/14.24.1/img/item/${item.id}.png`,
     gold: 3000,
   }));
+
+  const baseFull = ITEMS_BY_LANE[role] ?? ITEMS_BY_LANE.MID;
+  items[6] = baseFull[6]
+    ? {
+        id: baseFull[6].id,
+        name: baseFull[6].name,
+        iconUrl: baseFull[6].iconUrl ?? `https://ddragon.leagueoflegends.com/cdn/14.24.1/img/item/${baseFull[6].id}.png`,
+        gold: 0,
+      }
+    : null;
 
   if (role === 'TOP') {
     const hasTeleport = spells.includes(12);
@@ -182,6 +239,15 @@ function generateItems(
       iconUrl: comp.iconUrl,
       gold: 0,
     };
+  } else if (role === 'MID' || role === 'ADC' || role === 'SUPPORT') {
+    items[7] = baseFull[7]
+      ? {
+          id: baseFull[7].id,
+          name: baseFull[7].name,
+          iconUrl: baseFull[7].iconUrl ?? `https://ddragon.leagueoflegends.com/cdn/14.24.1/img/item/${baseFull[7].id}.png`,
+          gold: 0,
+        }
+      : null;
   }
 
   return items;
@@ -197,13 +263,50 @@ const SECOND_SPELL: Record<Lane, number> = {
 };
 
 /** Runa clave principal y árbol secundario por posición. Ids reales de Data Dragon / Community Dragon. */
-const RUNES_BY_LANE: Record<Lane, { primary: number; secondary: number }> = {
-  TOP: { primary: 8437, secondary: 8000 },
-  JUNGLA: { primary: 8010, secondary: 8300 },
-  MID: { primary: 8112, secondary: 8200 },
-  ADC: { primary: 8008, secondary: 8300 },
-  SUPPORT: { primary: 8465, secondary: 8400 },
+const RUNES_BY_LANE: Record<
+  Lane,
+  { primaryTreeId: number; primaries: number[]; secondaryTree: number }
+> = {
+  TOP: { primaryTreeId: 8400, primaries: [8437, 8439, 8465], secondaryTree: 8000 },
+  JUNGLA: { primaryTreeId: 8000, primaries: [8010, 8005, 8021], secondaryTree: 8300 },
+  MID: { primaryTreeId: 8100, primaries: [8112, 8128, 9923], secondaryTree: 8200 },
+  ADC: { primaryTreeId: 8000, primaries: [8008, 8005, 8021], secondaryTree: 8300 },
+  SUPPORT: { primaryTreeId: 8400, primaries: [8465, 8439, 8214], secondaryTree: 8300 },
 };
+
+const RUNES_BY_TREE: Record<number, number[][]> = {
+  8100: [
+    [8126, 8139, 8143],
+    [8136, 8120, 8138],
+    [8135, 8134, 8105, 8106],
+  ],
+  8000: [
+    [8009, 9101, 9111],
+    [9104, 9105, 9103],
+    [8014, 8017, 8299],
+  ],
+  8200: [
+    [8224, 8226, 8275],
+    [8210, 8234, 8233],
+    [8237, 8232, 8236],
+  ],
+  8300: [
+    [8306, 8304, 8321],
+    [8313, 8352, 8345],
+    [8347, 8410, 8316],
+  ],
+  8400: [
+    [8446, 8463, 8401],
+    [8429, 8444, 8473],
+    [8451, 8453, 8242],
+  ],
+};
+
+const STAT_SHARD_ROWS: number[][] = [
+  [5008, 5005, 5007],
+  [5008, 5010, 5001],
+  [5011, 5013, 5001],
+];
 
 /**
  * Variantes de Smite para junglas:
@@ -344,13 +447,44 @@ function draftParticipant(args: {
 
       const spells: [number, number] = [4, secondSpell];
       return {
-        items: generateItems(role, spells, smiteVariant),
+        items: generateItems(role, s, spells, smiteVariant),
         spells,
         smiteVariant,
       };
     })(),
-    primaryRuneId: RUNES_BY_LANE[role].primary,
-    secondaryRuneTreeId: RUNES_BY_LANE[role].secondary,
+    ...(() => {
+      const runeCfg = RUNES_BY_LANE[role];
+      const primaryKeystone = pick(`${s}:rune`, runeCfg.primaries);
+      const primaryRows = RUNES_BY_TREE[runeCfg.primaryTreeId];
+      const primaryRuneIds = [
+        pick(`${s}:p_r0`, primaryRows[0]),
+        pick(`${s}:p_r1`, primaryRows[1]),
+        pick(`${s}:p_r2`, primaryRows[2]),
+      ];
+
+      const secRows = RUNES_BY_TREE[runeCfg.secondaryTree];
+      const secRowPairChoice = hash(`${s}:sec_rows`) % 3;
+      const [rA, rB] = secRowPairChoice === 0 ? [0, 1] : secRowPairChoice === 1 ? [0, 2] : [1, 2];
+      const secondaryRuneIds = [
+        pick(`${s}:s_rA`, secRows[rA]),
+        pick(`${s}:s_rB`, secRows[rB]),
+      ];
+
+      const statShardIds = [
+        pick(`${s}:shard_0`, STAT_SHARD_ROWS[0]),
+        pick(`${s}:shard_1`, STAT_SHARD_ROWS[1]),
+        pick(`${s}:shard_2`, STAT_SHARD_ROWS[2]),
+      ];
+
+      return {
+        primaryRuneId: primaryKeystone,
+        secondaryRuneTreeId: runeCfg.secondaryTree,
+        primaryTreeId: runeCfg.primaryTreeId,
+        primaryRuneIds,
+        secondaryRuneIds,
+        statShardIds,
+      };
+    })(),
     goldAt14,
     csAt14,
   };
@@ -435,6 +569,40 @@ function summarize(
 /** Relación (K + A) / max(1, M). Solo para elegir el MVP; la de presentación vive en `match-view`. */
 function kda(p: MatchParticipant): number {
   return (p.stats.kills + p.stats.assists) / Math.max(1, p.stats.deaths);
+}
+
+/**
+ * La modalidad de una partida sembrada.
+ *
+ * BACKEND NOTE: la sirve la liga a la que pertenece la partida; esto se borra con el resto de la
+ * semilla.
+ *
+ * Se sortea SOLO entre las modalidades que ese grupo ha jugado, según `groupModalitiesConfig()`.
+ * Sortearla libre entre las tres crea una contradicción real: ese generador decide que ~1 de cada 4
+ * grupos no ha jugado nunca a Caos, así que sus Estadísticas dejan Caos deshabilitado mientras su
+ * Historial enseñaría partidas de Caos.
+ *
+ * El reparto no es uniforme: cuanto más larga es la temporada de una modalidad, más se juega.
+ * Competitivo pesa 3, Equilibrado 2 y Caos 1.
+ */
+export function seededGameMode(matchId: string, groupId: string): MatchGameMode {
+  const played = groupModalitiesConfig(groupId).filter((m) => m.played);
+  if (played.length === 0) {
+    return 'Competitivo';
+  }
+  const weights: Record<StatModality, number> = { COMPETITIVE: 3, BALANCED: 2, CHAOS: 1 };
+  const bag: StatModality[] = [];
+  for (const p of played) {
+    const w = weights[p.modality] ?? 1;
+    for (let i = 0; i < w; i++) {
+      bag.push(p.modality);
+    }
+  }
+  if (bag.length === 0) {
+    return 'Competitivo';
+  }
+  const chosen = bag[hash(matchId + ':mode') % bag.length];
+  return MODALITY_LABELS[chosen] as MatchGameMode;
 }
 
 function buildMatch(index: number): Match {
@@ -525,7 +693,7 @@ function buildMatch(index: number): Match {
   const userParticipant = mine[0].participant;
   const rankBefore = between(`${id}:rank`, 2, 14);
 
-  const gameMode: MatchGameMode = hash(`${id}:mode`) % 4 === 0 ? 'Casual' : 'Competitivo';
+  const gameMode: MatchGameMode = seededGameMode(id, GROUP.id);
   const lobbyType: MatchLobbyType = hash(`${id}:lobby`) % 2 === 0 ? 'Party' : 'Room';
   const modeLabel = `${gameMode} · ${lobbyType}`;
 
@@ -676,7 +844,7 @@ function buildChiringuitoMatch(index: number): Match {
   );
   const userWon = userParticipant ? userParticipant.team === winningTeam : undefined;
 
-  const gameMode: MatchGameMode = hash(`${id}:mode`) % 4 === 0 ? 'Casual' : 'Competitivo';
+  const gameMode: MatchGameMode = seededGameMode(id, CHIRINGUITO_GROUP_ID);
   const lobbyType: MatchLobbyType = hash(`${id}:lobby`) % 2 === 0 ? 'Party' : 'Room';
   const modeLabel = `${gameMode} · ${lobbyType}`;
 

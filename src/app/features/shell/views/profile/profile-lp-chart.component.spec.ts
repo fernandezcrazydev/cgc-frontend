@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { ProfileGroupRecord } from '../../../../core/player-profile';
 import { ProfileLpChartComponent } from './profile-lp-chart.component';
 
-function grupo(n: number, lp = 500): ProfileGroupRecord {
+function grupo(n: number, _lp = 500): ProfileGroupRecord {
   return {
     id: `g${n}`,
     name: `Grupo ${n}`,
@@ -17,7 +17,6 @@ function grupo(n: number, lp = 500): ProfileGroupRecord {
     losses: 10,
     wr: 67,
     rankPosition: n,
-    lp,
     seasonName: 'Temporada 2026-Q3',
   };
 }

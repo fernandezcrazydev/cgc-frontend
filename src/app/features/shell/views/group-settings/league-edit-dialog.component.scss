@@ -1,0 +1,195 @@
+.dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+.field__label {
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+  letter-spacing: 0.05em;
+}
+.field__input {
+  width: 100%;
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--nf-surface-2);
+  border: 1px solid var(--nf-border);
+  border-radius: var(--nf-radius);
+  color: var(--nf-text);
+  font-size: var(--fs-body);
+  outline: none;
+  transition: border-color var(--nf-dur) var(--nf-ease-out);
+  &:focus {
+    border-color: var(--nf-primary);
+  }
+  &::placeholder {
+    color: var(--nf-text-dim);
+  }
+  &[disabled] {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+}
+.field__input--sm {
+  padding: var(--sp-1) var(--sp-2);
+  font-size: var(--fs-body);
+}
+.field__textarea {
+  resize: vertical;
+  min-height: 56px;
+  font-family: inherit;
+}
+.field__hint {
+  font-size: var(--fs-caption);
+  color: var(--nf-text-dim);
+  margin: 0;
+}
+.skins-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--sp-3);
+}
+.skin-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--nf-surface);
+  border: 1px solid var(--nf-border);
+  border-radius: var(--nf-radius);
+  padding: var(--sp-2);
+  cursor: pointer;
+  min-height: 44px;
+  text-align: left;
+  overflow: hidden;
+  position: relative;
+  transition: border-color var(--nf-dur) var(--nf-ease-out);
+  &:focus-visible {
+    outline: none;
+    border-color: var(--nf-primary);
+  }
+}
+.skin-card--selected {
+  border-color: var(--nf-primary);
+}
+.skin-card--disabled {
+  background: var(--nf-surface-2);
+  cursor: not-allowed;
+  opacity: 0.55;
+  border-color: var(--nf-border);
+  align-items: center;
+  justify-content: center;
+}
+.skin-card__podium {
+  height: 100px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: var(--sp-1) var(--sp-2) 0;
+  overflow: hidden;
+  max-width: 100%;
+}
+.skin-card__label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--sp-1) var(--sp-1) 0;
+  font-size: var(--fs-label);
+  color: var(--nf-text);
+}
+.skin-card__check {
+  color: var(--nf-primary);
+  font-weight: var(--fw-bold);
+}
+.skin-card__placeholder {
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+  padding: var(--sp-6) 0;
+}
+.podium {
+  position: relative; display: flex; align-items: flex-end; justify-content: center;
+  width: 100%; height: 100%; max-width: 100%; overflow: hidden;
+}
+.podium__cup {
+  object-fit: contain; user-select: none; pointer-events: none; max-height: 100%;
+}
+.podium__cup--p1 {
+  position: relative; z-index: 2; height: 84%; max-width: 46%; flex-shrink: 0;
+}
+.podium__cup--p2,
+.podium__cup--p3 {
+  position: relative; z-index: 1; opacity: 0.88; height: 60%; max-width: 36%; flex-shrink: 0;
+}
+.podium__cup--p2 { margin-right: -32%; }
+.podium__cup--p3 { margin-left: -32%; }
+.league-duration-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+}
+.league-duration-range {
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+}
+.league-notice-box {
+  background: var(--nf-surface-2);
+  border: 1px solid var(--nf-border);
+  border-radius: var(--nf-radius);
+  padding: var(--sp-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+.league-notice-box__text {
+  font-size: var(--fs-body);
+  color: var(--nf-text);
+  margin: 0;
+  line-height: var(--lh-body);
+}
+.league-notice-box__action {
+  display: flex;
+  justify-content: flex-end;
+}
+.modal-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--sp-3);
+  padding-top: var(--sp-2);
+}
+.propose-options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  margin-top: var(--sp-1);
+}
+.propose-option {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--fs-body);
+  color: var(--nf-text);
+  cursor: pointer;
+  input[type='radio'] {
+    accent-color: var(--nf-primary);
+  }
+}
+.propose-option--inline {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+  .field__input--sm {
+    flex: 1;
+    min-width: 140px;
+  }
+}
+.propose-disclaimer {
+  font-size: var(--fs-caption);
+  color: var(--nf-text-dim);
+  margin: 0;
+  line-height: var(--lh-body);
+}

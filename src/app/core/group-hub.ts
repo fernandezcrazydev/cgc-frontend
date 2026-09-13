@@ -51,8 +51,12 @@ export interface HubLpPoint {
  */
 export interface HubSeason {
   id: string;
-  /** "Temp. 3 · Liga de Otoño 2026". */
+  /** "Temp. 3 · Liga de Otoño". Lo consume el selector de temporada de la gráfica del hub. */
   label: string;
+  /** "Temp. 3". El ordinal es lo único que distingue dos temporadas con el mismo nombre. */
+  ordinal?: string;
+  /** "Liga de Otoño". El nombre grabado del trofeo (`FlujoJuego.md` §3.3). */
+  name?: string;
 }
 
 /**
@@ -174,7 +178,12 @@ function seasonsOf(league: { modality: StatModality; days: number }, seed: strin
   const seasons: HubSeason[] = [];
   for (let n = count; n >= 1; n--) {
     const name = SEASON_NAMES[Math.floor(seeded(hash(seed + '::name::' + n))() * SEASON_NAMES.length)];
-    seasons.push({ id: 's' + n, label: 'Temp. ' + n + ' · ' + name });
+    seasons.push({
+      id: 's' + n,
+      label: 'Temp. ' + n + ' · ' + name,
+      ordinal: 'Temp. ' + n,
+      name,
+    });
   }
   return seasons;
 }
@@ -523,6 +532,12 @@ const TAGLINES = [
  */
 export function groupProfileFor(groupId: string, memberCount: number): HubGroupProfile {
   const rnd = seeded(hash(groupId + ':profile'));
+  const customs = 40 + Math.floor(rnd() * 160);
+  const duracionMedia = 29 + Math.floor(rnd() * 8);
+  const horas = Math.round((customs * duracionMedia) / 60);
+  const winrateAzul = 46 + Math.floor(rnd() * 12);
+  const ligasActivas = leagueSeriesFor(groupId).filter((l) => l.started).length;
+
   return {
     tagline: TAGLINES[Math.floor(rnd() * TAGLINES.length)],
     description:
@@ -535,11 +550,83 @@ export function groupProfileFor(groupId: string, memberCount: number): HubGroupP
       'Cero toxicidad en la sala de espera y en el muro del grupo.',
     ],
     stats: [
-      { label: 'Partidas jugadas', value: String(40 + Math.floor(rnd() * 160)) },
-      { label: 'Miembros', value: String(memberCount) },
-      { label: 'Duración media', value: 29 + Math.floor(rnd() * 8) + ' min' },
-      { label: 'Bando azul', value: 46 + Math.floor(rnd() * 12) + '% de victorias' },
+      { label: 'Customs jugadas', value: String(customs) },
+      { label: 'Horas disputadas', value: horas + ' h' },
+      { label: 'Victorias en azul', value: winrateAzul + ' %' },
+      { label: 'Ligas activas', value: String(ligasActivas) },
     ],
     foundedAt: MONTHS[Math.floor(rnd() * 12)] + ' de 202' + (4 + Math.floor(rnd() * 2)),
   };
+}
+
+// ===================== Palmarés del grupo =====================
+
+export interface GroupTrophy {
+  modality: StatModality;
+  /** "Competitivo". */
+  league: string;
+  /** `null` cuando esta liga no ha cerrado ninguna temporada todavía. */
+  season: { ordinal: string; name: string } | null;
+  /** El campeón de esa temporada. `null` si no hay temporada cerrada. */
+  champion: { name: string; avatar?: string; hue: number; userId?: string } | null;
+  /** Partidas disputadas en esa temporada. 0 si no hay. */
+  games: number;
+}
+
+/**
+ * Palmarés del grupo con los campeones de las temporadas cerradas de cada liga.
+ *
+ * BACKEND NOTE: el endpoint es `GET /groups/{id}/trophies` y al llegar esta función se borra
+ * entera, como todo `group-hub.ts`.
+ */
+export function groupPalmaresFor(groupId: string, roster: readonly Member[]): GroupTrophy[] {
+  const seriesList = leagueSeriesFor(groupId);
+  return seriesList.map((series) => {
+    if (!series.started || series.seasons.length < 2) {
+      return {
+        modality: series.modality,
+        league: series.label,
+        season: null,
+        champion: null,
+        games: 0,
+      };
+    }
+
+    const closedSeason = series.seasons[1];
+    const rnd = seeded(hash(groupId + '::' + series.modality + '::champion'));
+    const champ = roster.length ? roster[Math.floor(rnd() * roster.length)] : null;
+    const games = 20 + Math.floor(rnd() * 60);
+
+    return {
+      modality: series.modality,
+      league: series.label,
+      season: {
+        ordinal: closedSeason.ordinal ?? closedSeason.label.split(' · ')[0] ?? 'Temp. 1',
+        name: closedSeason.name ?? closedSeason.label.split(' · ')[1] ?? closedSeason.label,
+      },
+      champion: champ
+        ? {
+            name: champ.name,
+            avatar: champ.avatar,
+            hue: champ.hue,
+            userId: champ.userId,
+          }
+        : null,
+      games,
+    };
+  });
+}
+
+/**
+ * Árbitro electo del grupo, o `null` si no tiene o no está cargado.
+ *
+ * BACKEND NOTE: lo sustituye el campo `groups.referee_user_id`, y con él llega la pantalla de
+ * votación. Hasta entonces el mismo grupo enseña siempre el mismo árbitro.
+ */
+export function groupRefereeFor(groupId: string, roster: readonly Member[]): string | null {
+  if (!roster.length) return null;
+  const rnd = seeded(hash(groupId + ':referee'));
+  if (rnd() < 0.2) return null;
+  const referee = roster[Math.floor(rnd() * roster.length)];
+  return referee.userId ?? null;
 }

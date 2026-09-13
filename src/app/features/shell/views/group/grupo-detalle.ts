@@ -20,15 +20,23 @@ import { GroupStore } from '../../../../core/group-store';
 import { RankEntry, mapLeaderboardEntries } from '../../../../core/group-ranking';
 import {
   duelsFor,
+  groupRefereeFor,
   hubCommentsFor,
   SeasonChoice,
   leagueSeriesFor,
   triviaFor,
 } from '../../../../core/group-hub';
 import { SHOWCASE_MEDAL_IDS, medalBoardsFor } from '../../../../core/group-medals';
+import { GroupMemberLite, GroupVotesStore } from '../../../../core/group-votes';
 import { ToastService } from '../../../../core/toast';
 import { GroupActionsService } from '../../group-actions/group-actions.service';
 import { errorMessage } from '../../../../core/http';
+import { HubVoteCardComponent } from '../group-hub/hub-vote-card.component';
+import { HubRefereeVoteCardComponent } from '../group-hub/hub-referee-vote-card.component';
+import {
+  RefereeCandidate,
+  RefereeVoteModalComponent,
+} from '../group-hub/referee-vote-modal.component';
 import { HubCommentsComponent } from '../group-hub/hub-comments.component';
 import { HubDuelsComponent } from '../group-hub/hub-duels.component';
 import { HubLiveRoomComponent } from '../group-hub/hub-live-room.component';
@@ -36,23 +44,7 @@ import { HubLpChartComponent, LeagueSeasonChange } from '../group-hub/hub-lp-cha
 import { HubRosterPanelComponent, RosterAction } from '../group-hub/hub-roster-panel.component';
 import { HubTriviaComponent } from '../group-hub/hub-trivia.component';
 import { HubTrophyCaseComponent } from '../group-hub/hub-trophy-case.component';
-
-/** Secciones del grupo que enlaza la barra bajo la cabecera. */
-interface HubSection {
-  path: string;
-  label: string;
-  /** Solo para quien gestiona el grupo (owner o admin). */
-  adminOnly?: boolean;
-}
-
-const SECTIONS: HubSection[] = [
-  { path: 'ranking', label: 'Clasificación' },
-  { path: 'tierlist', label: 'Tierlist' },
-  { path: 'estadisticas', label: 'Estadísticas' },
-  { path: 'historial', label: 'Historial' },
-  { path: 'perfil', label: 'Perfil' },
-  { path: 'discord', label: 'Discord', adminOnly: true },
-];
+import { GroupTabsService } from '../../../../core/group-tabs';
 
 @Component({
   selector: 'app-grupo-detalle',
@@ -65,6 +57,9 @@ const SECTIONS: HubSection[] = [
     NfModal,
     NfSkeleton,
     NfWindow,
+    HubVoteCardComponent,
+    HubRefereeVoteCardComponent,
+    RefereeVoteModalComponent,
     HubCommentsComponent,
     HubDuelsComponent,
     HubLiveRoomComponent,
@@ -85,6 +80,7 @@ export class GrupoDetalle {
   readonly lobbies = inject(LobbiesStore);
   readonly groupInvitations = inject(GroupInvitationsStore);
   readonly joinRequests = inject(JoinRequestsStore);
+  private readonly groupTabs = inject(GroupTabsService);
   private readonly session = inject(Session);
   private readonly toasts = inject(ToastService);
   private readonly router = inject(Router);
@@ -93,6 +89,7 @@ export class GrupoDetalle {
   private readonly groupActions = inject(GroupActionsService);
   /** Roster completo del grupo, sembrado por el puente: es lo que alimenta la maqueta del hub. */
   private readonly groupStore = inject(GroupStore);
+  private readonly votes = inject(GroupVotesStore);
   private readonly destroyRef = inject(DestroyRef);
 
   /** Id del grupo desde la ruta. */
@@ -112,10 +109,7 @@ export class GrupoDetalle {
   readonly myUserId = computed(() => this.session.user()?.userId ?? null);
 
   // ── Secciones y gestión ─────────────────────────────────────────────
-  /** Discord solo lo ve quien gestiona el grupo (§5.5.4). */
-  readonly visibleSections = computed(() =>
-    SECTIONS.filter((s) => !s.adminOnly || this.store.canManage()),
-  );
+  readonly visibleSections = computed(() => this.groupTabs.visibleTabs());
 
   // ── Clasificación ───────────────────────────────────────────────────
   /** Podio y página cargada, sin duplicados y por puesto: el top 10 de la columna lateral. */
@@ -193,6 +187,49 @@ export class GrupoDetalle {
     this.bridge.status();
     return id ? this.groupStore.rosterOf(id) : [];
   });
+
+  /** Miembros reales del grupo, en la forma mínima que la votación necesita. */
+  readonly voteMembers = computed<GroupMemberLite[]>(() =>
+    this.hubRoster().map((m) => ({ userId: m.userId ?? m.tag, name: m.name })),
+  );
+
+  readonly refereeCandidates = computed<RefereeCandidate[]>(() =>
+    this.hubRoster().map((m) => ({
+      userId: m.userId ?? m.tag,
+      name: m.name,
+      hue: m.hue,
+      avatar: m.avatar,
+    })),
+  );
+
+  readonly refereeElection = computed(() => {
+    const referee = groupRefereeFor(this.routeId(), this.hubRoster());
+    if (referee !== null) {
+      return null;
+    }
+    return this.votes.refereeElectionFor(this.routeId(), this.voteMembers(), this.myUserId())();
+  });
+
+  readonly refereeModalOpen = signal(false);
+
+  onRefereeVote(candidateUserId: string): void {
+    const me = this.myUserId();
+    const gId = this.routeId();
+    if (!me || !gId) return;
+    this.votes.castRefereeVote(gId, me, candidateUserId, this.voteMembers(), me);
+    this.refereeModalOpen.set(false);
+    this.toasts.success('Voto registrado.');
+  }
+
+  readonly openVotes = computed(() => this.votes.votesFor(this.routeId(), this.voteMembers())());
+
+  onVoteCast(event: { voteId: string; inFavor: boolean }): void {
+    const me = this.myUserId();
+    const gId = this.routeId();
+    if (!me || !gId) return;
+    this.votes.cast(gId, event.voteId, me, event.inFavor);
+    this.toasts.success('Voto registrado.');
+  }
 
   readonly lpSeries = computed(() => leagueSeriesFor(this.routeId(), this.leagueSeasons()));
   /**

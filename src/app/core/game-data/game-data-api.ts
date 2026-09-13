@@ -11,9 +11,11 @@ import { ChampionDetail, ChampionSummary, GameDataManifest, GameItem, Perk, Summ
  * se encarga `GameDataStore`; aquí solo se traduce cada endpoint a un
  * Observable tipado. El Bearer lo añade `authInterceptor`.
  *
- * Los objetos (`items`) NO tienen store propio a propósito: es una colección
- * paginada que solo usa el buscador del selector, así que se queda como
- * método suelto aquí (ver CLAUDE.md del módulo).
+ * Los objetos (`items`) se cargan enteros en `GameDataStore` de forma perezosa
+ * barriendo las páginas de `items(page, size)` la primera vez que se consulta
+ * un objeto por id (F5.5-19: no hay endpoint `/items/{id}` y la ficha de campeón
+ * necesita resolver objetos por id para la tarjeta de builds). El selector
+ * sigue pudiendo usar la búsqueda paginada con `q` a través de este API.
  */
 @Injectable({ providedIn: 'root' })
 export class GameDataApi {

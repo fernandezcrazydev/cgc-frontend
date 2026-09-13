@@ -84,6 +84,9 @@ export const appConfig: ApplicationConfig = {
             void import('./core/matches/match-seed').then(({ seedMatchHistory }) => {
               seedMatchHistory(injector);
             });
+            void import('./core/champions/champion-stats-mock').then(({ installChampionStatsMock }) => {
+              installChampionStatsMock(injector);
+            });
           }),
         ]),
   ],

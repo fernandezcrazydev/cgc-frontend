@@ -12,7 +12,6 @@ describe('pageTitleFor', () => {
     expect(pageTitleFor('/app/grupos/abc-123/tablon')).toBe('Tablón');
     expect(pageTitleFor('/app/grupos/abc-123/convocatoria/lob-9')).toBe('Convocatoria');
     expect(pageTitleFor('/app/grupos/abc-123/sala/sala-9')).toBe('Sala');
-    expect(pageTitleFor('/app/grupos/abc-123/discord')).toBe('Discord');
     expect(pageTitleFor('/app/grupos/abc-123/historial')).toBe('Historial');
     expect(pageTitleFor('/app/grupos/abc-123')).toBe('Hub del grupo');
     expect(pageTitleFor('/app/grupos')).toBe('Grupos');
@@ -87,8 +86,8 @@ describe('GROUP_NAV', () => {
     expect(GROUP_NAV.map((i) => i.path)).not.toContain('partidas');
   });
 
-  it('solo Discord está restringido a quien gestiona el grupo', () => {
-    expect(GROUP_NAV.filter((i) => i.adminOnly).map((i) => i.path)).toEqual(['discord']);
+  it('Ajustes está restringido a quien gestiona el grupo', () => {
+    expect(GROUP_NAV.filter((i) => i.adminOnly).map((i) => i.path)).toEqual(['ajustes']);
   });
 
   it('cada sección tiene su ruta real y ninguna se repite', () => {

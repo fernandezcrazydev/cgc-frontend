@@ -19,9 +19,6 @@ import {
   GroupView,
   JoinRequestResponse,
   JoinRequestsStore,
-  MATCHMAKING_PRESETS,
-  MATCHMAKING_PRESET_INFO,
-  MatchmakingPreset,
   REGIONS,
   Region,
   groupRoleLabel,
@@ -57,11 +54,6 @@ export class Grupos {
 
   readonly regionOptions = [...REGIONS];
 
-  readonly presetOptions = MATCHMAKING_PRESETS.map((preset) => ({
-    value: preset,
-    label: MATCHMAKING_PRESET_INFO[preset].label,
-  }));
-
   readonly creating = signal(false);
   readonly showAllRequestsModal = signal(false);
   readonly displayedRequests = computed(() => this.joinRequests.myRequests().slice(0, 2));
@@ -82,10 +74,8 @@ export class Grupos {
   readonly name = signal('');
   readonly tag = signal('');
   readonly region = signal<Region>('EUW');
-  readonly preset = signal<MatchmakingPreset>('BALANCED');
   readonly avatar = signal<string | null>(null);
 
-  readonly presetDescription = computed(() => MATCHMAKING_PRESET_INFO[this.preset()].description);
   readonly canCreate = computed(() => this.name().trim().length > 0 && this.tag().trim().length >= 2);
 
   readonly previewInitials = computed(() => initialsOf(this.name() || 'GR'));
@@ -117,15 +107,10 @@ export class Grupos {
     this.region.set(value as Region);
   }
 
-  setPreset(value: string): void {
-    this.preset.set(value as MatchmakingPreset);
-  }
-
   openCreate(): void {
     this.name.set('');
     this.tag.set('S1');
     this.region.set('EUW');
-    this.preset.set('BALANCED');
     this.avatar.set(null);
     this.creating.set(true);
   }
@@ -208,11 +193,13 @@ export class Grupos {
   async create(): Promise<void> {
     if (!this.canCreate() || this.groups.pending()) return;
     try {
+      // BACKEND NOTE: el campo matchmakingPreset desaparece del contrato y se sustituye por las
+      // tres ligas por modalidad (F5.5-23). Hasta que el backend retire el campo, se envía 'BALANCED' fijo.
       const group = await this.groups.create({
         name: this.name(),
         tag: this.tag(),
         region: this.region(),
-        matchmakingPreset: this.preset(),
+        matchmakingPreset: 'BALANCED',
         avatarDataUrl: this.avatar(),
       });
       this.creating.set(false);

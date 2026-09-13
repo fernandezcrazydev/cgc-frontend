@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
-import { Observable, throwError } from 'rxjs';
-import { ChampionSummary, GameDataManifest, Perk, SummonerSpell } from './models';
+import { Observable, of, throwError } from 'rxjs';
+import { ChampionSummary, GameDataManifest, GameItem, Perk, SummonerSpell } from './models';
 import { GameDataApi } from './game-data-api';
 import { GameDataStore } from './game-data-store';
 
@@ -14,6 +14,26 @@ class ApiStub {
   championsCalls = 0;
   summonerSpellsCalls = 0;
   perksCalls = 0;
+
+  itemsCalls = 0;
+  itemsPages: { content: GameItem[]; page: number; size: number; totalElements: number; totalPages: number }[] = [
+    {
+      content: [
+        {
+          id: 3089,
+          name: 'Sombrero mortal de Rabadon',
+          iconUrl: '.../3089.png',
+          totalGold: 3600,
+          purchasable: true,
+          available: true,
+        },
+      ],
+      page: 0,
+      size: 200,
+      totalElements: 1,
+      totalPages: 1,
+    },
+  ];
 
   private resolveManifest!: (m: GameDataManifest) => void;
   private resolveChampions!: (c: ChampionSummary[]) => void;
@@ -64,6 +84,20 @@ class ApiStub {
         sub.complete();
       };
     });
+  }
+
+  items(page: number, size: number, _q?: string): Observable<{ content: GameItem[]; page: number; size: number; totalElements: number; totalPages: number }> {
+    this.itemsCalls++;
+    const found = this.itemsPages.find((p) => p.page === page);
+    return of(
+      found ?? {
+        content: [],
+        page,
+        size,
+        totalElements: 0,
+        totalPages: 0,
+      },
+    );
   }
 
   /** Deja que el microtask de `firstValueFrom` corra tras emitir. */
@@ -132,9 +166,10 @@ describe('GameDataStore', () => {
     expect(store.championById().size).toBe(0);
     expect(store.summonerSpellById().size).toBe(0);
     expect(store.perkById().size).toBe(0);
+    expect(store.itemsById().size).toBe(0);
   });
 
-  it('ensureLoaded pasa por loading y deja el catálogo en ready', async () => {
+  it('ensureLoaded pasa por loading y deja el catálogo en ready sin pedir objetos', async () => {
     const load = store.ensureLoaded();
     expect(store.status()).toBe('loading');
 
@@ -147,6 +182,7 @@ describe('GameDataStore', () => {
     expect(store.championById().get(103)).toEqual(AHRI);
     expect(store.summonerSpellById().get(4)).toEqual(FLASH);
     expect(store.perkById().get(8112)).toEqual(ELECTROCUTE);
+    expect(api.itemsCalls).toBe(0);
   });
 
   it('deduplica llamadas concurrentes a ensureLoaded en una sola petición', async () => {
@@ -159,6 +195,7 @@ describe('GameDataStore', () => {
     expect(api.championsCalls).toBe(1);
     expect(api.summonerSpellsCalls).toBe(1);
     expect(api.perksCalls).toBe(1);
+    expect(api.itemsCalls).toBe(0);
   });
 
   it('no vuelve a pedir una vez cargado, y reload sí fuerza el refetch', async () => {
@@ -228,6 +265,11 @@ describe('GameDataStore', () => {
     await api.settle(MANIFEST, [AHRI]);
     await load;
 
+    store.item(3089);
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(store.itemsById().size).toBe(1);
+
     store.clear();
 
     expect(store.status()).toBe('idle');
@@ -235,5 +277,84 @@ describe('GameDataStore', () => {
     expect(store.summonerSpells()).toEqual([]);
     expect(store.perks()).toEqual([]);
     expect(store.version()).toBeNull();
+    expect(store.itemsById().size).toBe(0);
+  });
+
+  it('item(id) carga de forma perezosa el catálogo de objetos y resuelve por id', async () => {
+    expect(api.itemsCalls).toBe(0);
+
+    const itemSig = store.item(3089);
+    expect(itemSig()).toBeNull();
+    expect(api.itemsCalls).toBe(1);
+
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(itemSig()).toEqual({
+      id: 3089,
+      name: 'Sombrero mortal de Rabadon',
+      iconUrl: '.../3089.png',
+      totalGold: 3600,
+      purchasable: true,
+      available: true,
+    });
+    expect(store.itemsById().get(3089)?.name).toBe('Sombrero mortal de Rabadon');
+  });
+
+  it('item(id) encadena todas las páginas del catálogo sin q', async () => {
+    api.itemsPages = [
+      {
+        content: [
+          {
+            id: 3089,
+            name: 'Sombrero mortal de Rabadon',
+            iconUrl: '.../3089.png',
+            totalGold: 3600,
+            purchasable: true,
+            available: true,
+          },
+        ],
+        page: 0,
+        size: 200,
+        totalElements: 2,
+        totalPages: 2,
+      },
+      {
+        content: [
+          {
+            id: 3031,
+            name: 'Filo del Infinito',
+            iconUrl: '.../3031.png',
+            totalGold: 3400,
+            purchasable: true,
+            available: true,
+          },
+        ],
+        page: 1,
+        size: 200,
+        totalElements: 2,
+        totalPages: 2,
+      },
+    ];
+
+    const sig1 = store.item(3089);
+    const sig2 = store.item(3031);
+
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(api.itemsCalls).toBe(2);
+    expect(sig1()?.name).toBe('Sombrero mortal de Rabadon');
+    expect(sig2()?.name).toBe('Filo del Infinito');
+    expect(store.itemsById().size).toBe(2);
+  });
+
+  it('item(id) devuelve null para un id inexistente una vez cargado el catálogo', async () => {
+    const itemSig = store.item(999999);
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(itemSig()).toBeNull();
   });
 });

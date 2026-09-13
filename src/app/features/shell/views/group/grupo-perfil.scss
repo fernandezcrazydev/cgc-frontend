@@ -1,139 +1,119 @@
-/* Ficha pública del grupo (Roadmap §5.5.4). */
+@use 'breakpoints' as *;
 
 .gp-banner {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  padding: 26px 24px;
-  margin-bottom: 16px;
-  border-radius: 12px;
-  border: 1.5px solid color-mix(in srgb, var(--grp-c1) 40%, var(--nf-border));
-  background:
-    linear-gradient(120deg, color-mix(in srgb, var(--grp-c1) 30%, transparent), transparent 65%),
-    var(--nf-surface-2);
+  display: flex; flex-direction: column; background: var(--nf-surface);
+  border: 1px solid var(--nf-border); border-radius: var(--nf-radius-lg); overflow: hidden;
+  margin-bottom: var(--sp-4);
+  &--skeleton { margin-bottom: var(--sp-4); }
+  &__ribbon {
+    position: relative; height: 180px; background: linear-gradient(135deg, var(--grp-c1), var(--grp-c2));
+    display: flex; flex-direction: column; justify-content: space-between; padding: var(--sp-3) var(--sp-4);
+    &::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to bottom, transparent 20%, color-mix(in srgb, var(--nf-surface) 75%, transparent) 80%, var(--nf-surface) 100%); pointer-events: none; }
+  }
+  &__action {
+    position: relative; z-index: 1; display: flex; justify-content: flex-end; min-height: 32px;
+    /* El degradado es del color del grupo, y ese color es cualquiera: sobre uno claro, un boton
+       `secondary` translucido con texto de marca no se lee. Se le pone el mismo velo oscuro que
+       ya usa el chip del #TAG tres lineas mas abajo, en este mismo banner. */
+    [nfButton] {
+      background: rgb(0 0 0 / 0.38);
+      border-color: rgb(255 255 255 / 0.32);
+      color: #ffffff;
+      &:hover { background: rgb(0 0 0 / 0.52); }
+    }
+  }
+  &__identity { position: relative; z-index: 1; display: flex; align-items: flex-end; gap: var(--sp-4); margin-bottom: -32px; }
+  &__avatar-wrap { flex-shrink: 0; border: 3px solid var(--nf-surface); border-radius: 50%; background: var(--nf-surface); }
+  &__text { display: flex; flex-direction: column; gap: var(--sp-1); padding-bottom: 36px; min-width: 0; }
+  &__title-row { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
+  &__name { margin: 0; font-size: var(--fs-display); font-weight: var(--fw-black); color: #ffffff; text-shadow: 0 2px 12px rgb(0 0 0 / 0.45); line-height: var(--lh-display); letter-spacing: var(--ls-display); }
+  &__tag { font-size: var(--fs-eyebrow); padding: 2px 8px; background: rgb(0 0 0 / 0.35); border-radius: var(--nf-radius-sm); color: #ffffff; }
+  &__motto { margin: 0; font-size: var(--fs-body-lg); color: #ffffff; opacity: 0.9; text-shadow: 0 1px 4px rgb(0 0 0 / 0.4); }
+  &__meta { display: flex; align-items: center; gap: var(--sp-2); padding: var(--sp-3) var(--sp-4) var(--sp-3) 136px; font-size: var(--fs-caption); color: var(--nf-text-dim); flex-wrap: wrap; @media (max-width: $bp-compact) { padding-left: var(--sp-4); } }
 }
 
-.gp-banner__avatar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 78px;
-  height: 78px;
-  flex: none;
-  border-radius: 16px;
-  overflow: hidden;
-  background: linear-gradient(135deg, var(--grp-c1), var(--grp-c2));
-  border: 2px solid color-mix(in srgb, var(--grp-c1) 60%, #fff);
-  font-family: var(--nf-mono);
-  font-weight: 700;
-  font-size: 26px;
-  color: #fff;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
-}
-
-.gp-banner__avatar-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.gp-banner__meta {
-  min-width: 0;
-}
-
-.gp-banner__name {
-  margin: 0 0 6px;
-  font-weight: 800;
-  font-size: clamp(22px, 5vw, 30px);
-  letter-spacing: -0.5px;
-  color: #fff;
-}
-
-.gp-banner__tagline {
-  margin: 0 0 12px;
-  font-size: 13px;
-  color: var(--nf-text-mid);
-}
-
-.gp-banner__badges {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.gp-banner__fact {
-  font-size: 11.5px;
-  color: var(--nf-text-dim);
-}
+.gp-meta-sep { opacity: 0.5; }
+.gp-layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: var(--sp-4); align-items: start; @media (max-width: $bp-compact) { grid-template-columns: 1fr; } }
+.gp-main { display: flex; flex-direction: column; gap: var(--sp-4); min-width: 0; }
+.gp-side { position: sticky; top: 16px; @media (max-width: $bp-compact) { position: static; width: 100%; .gp-roster { width: 100%; } } }
 
 .gp-stats {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
-  margin-bottom: 16px;
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--sp-3); padding: var(--sp-4);
+  background: var(--nf-surface); border: 1px solid var(--nf-border); border-radius: var(--nf-radius-lg);
+  @media (max-width: $bp-mobile) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
-
 .gp-stat {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 14px 16px;
-  border-radius: 11px;
-  background: var(--nf-surface);
-  border: 1px solid var(--nf-border);
+  display: flex; flex-direction: column; gap: 2px;
+  &__value { font-size: var(--fs-h2); font-weight: var(--fw-bold); color: var(--nf-text); }
+  &__label { font-size: var(--fs-label); color: var(--nf-text-dim); text-transform: uppercase; letter-spacing: 0.06em; }
 }
 
-.gp-stat__value {
-  font-size: 19px;
-  font-weight: var(--fw-bold);
-  color: var(--nf-text);
+.gp-trophies { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-3); @media (max-width: $bp-compact) { grid-template-columns: 1fr; } }
+
+.gp-trophy {
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+  padding: var(--sp-4); background: var(--nf-surface); border: 1px solid var(--nf-border);
+  border-top-width: 3px; border-radius: var(--nf-radius); gap: var(--sp-2);
+  &--competitive { border-top-color: var(--nf-league-competitive); }
+  &--balanced { border-top-color: var(--nf-league-balanced); }
+  &--chaos { border-top-color: var(--nf-league-chaos); }
+  &--skeleton { border-top-color: var(--nf-border); justify-content: center; min-height: 250px; }
+  &__header { margin-bottom: var(--sp-1); }
+  &__visual { display: flex; align-items: center; justify-content: center; min-height: 120px; }
+  &__img { object-fit: contain; }
+  &__season { margin: 0; font-size: var(--fs-h3); font-weight: var(--fw-bold); color: var(--nf-text); text-wrap: balance; }
+  &__champion { display: flex; align-items: center; justify-content: center; gap: var(--sp-2); text-decoration: none; color: inherit; &:hover .gp-trophy__champ-name { color: var(--nf-primary); } }
+  &__champ-name { font-size: var(--fs-body); font-weight: var(--fw-medium); color: var(--nf-text); transition: color 0.15s ease; }
+  /* Flex con `gap`: los tres <span> del pie van pegados si no, y se lee «Temp. 2·31 partidas». */
+  &__meta { display: flex; align-items: center; justify-content: center; gap: var(--sp-2); flex-wrap: wrap; font-size: var(--fs-caption); color: var(--nf-text-dim); }
 }
 
-.gp-stat__label {
-  font-size: var(--fs-label);
-  color: var(--nf-text-dim);
+.gp-league-chip {
+  display: inline-flex; align-items: center; padding: 2px 8px; font-size: var(--fs-eyebrow); font-weight: var(--fw-bold); border-radius: var(--nf-radius-sm); text-transform: uppercase; letter-spacing: 0.04em;
+  &--competitive { background: color-mix(in srgb, var(--nf-league-competitive) 15%, transparent); color: var(--nf-league-competitive); border: 1px solid color-mix(in srgb, var(--nf-league-competitive) 30%, transparent); }
+  &--balanced { background: color-mix(in srgb, var(--nf-league-balanced) 15%, transparent); color: var(--nf-league-balanced); border: 1px solid color-mix(in srgb, var(--nf-league-balanced) 30%, transparent); }
+  &--chaos { background: color-mix(in srgb, var(--nf-league-chaos) 15%, transparent); color: var(--nf-league-chaos); border: 1px solid color-mix(in srgb, var(--nf-league-chaos) 30%, transparent); }
 }
 
-.gp-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
-  margin-bottom: 18px;
+.gp-trophy-empty {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: var(--sp-4); width: 100%; flex: 1; min-height: 200px;
+  &--all { min-height: 120px; }
+  &__text { margin: 0; font-size: var(--fs-caption); color: var(--nf-text-dim); line-height: var(--lh-snug); }
 }
 
-.gp-text {
-  margin: 0;
-  font-size: 13px;
-  line-height: 1.6;
-  color: var(--nf-text-mid);
-}
+.gp-prose { margin: 0; font-size: var(--fs-body); line-height: var(--lh-body); color: var(--nf-text-mid); }
+.gp-rules { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: var(--sp-2); }
+.gp-rule { display: flex; align-items: flex-start; gap: var(--sp-2); font-size: var(--fs-body); line-height: var(--lh-snug); color: var(--nf-text-mid); &__bullet { color: var(--nf-primary); font-size: var(--fs-caption); flex-shrink: 0; margin-top: 2px; } }
 
-.gp-rules {
-  display: flex;
-  flex-direction: column;
-  gap: 9px;
-  margin: 0;
-  padding-left: 18px;
-}
-
-.gp-rule {
-  font-size: 13px;
-  line-height: 1.5;
-  color: var(--nf-text-mid);
-}
-
-.gp-foot {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-@media (max-width: 860px) {
-  .gp-stats {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .gp-grid {
-    grid-template-columns: minmax(0, 1fr);
+.gp-roster {
+  width: 320px; background: var(--nf-surface); border: 1px solid var(--nf-border); border-radius: var(--nf-radius-lg); overflow: hidden; display: flex; flex-direction: column;
+  &__head { display: flex; align-items: center; justify-content: space-between; padding: var(--sp-3) var(--sp-4); border-bottom: 1px solid var(--nf-border); background: var(--nf-surface-2); }
+  &__title { font-size: var(--fs-body); font-weight: var(--fw-semibold); color: var(--nf-text); }
+  &__count { font-size: var(--fs-caption); color: var(--nf-text-dim); }
+  &__list {
+    display: flex; flex-direction: column;
+    &.is-scrollable { max-height: 640px; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; @media (max-width: $bp-compact) { max-height: none; overflow-y: visible; } }
   }
 }
+
+.gp-member {
+  display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-2) var(--sp-3); min-height: 56px; border-bottom: 1px solid var(--nf-border);
+  text-decoration: none; color: inherit; transition: background 0.15s ease;
+  &:hover { background: var(--nf-surface-2); }
+  &:last-child { border-bottom: none; }
+  &--skeleton { pointer-events: none; }
+  &__avatar { flex-shrink: 0; }
+  &__content { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  &__row1 { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); }
+  &__name { font-size: var(--fs-body); font-weight: var(--fw-semibold); color: var(--nf-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  &__badges { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+  &__row2 { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); font-size: var(--fs-caption); }
+  &__riot { color: var(--nf-text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  &__riot-id { font-size: var(--fs-caption); }
+  &__unlinked { color: var(--nf-text-dim); font-size: var(--fs-caption); }
+  &__rank { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+  &__elo { font-size: var(--fs-caption); color: var(--nf-text-mid); }
+}
+
+.gp-role-chip { font-size: var(--fs-eyebrow); padding: 1px 6px; background: var(--nf-surface-3); border-radius: var(--nf-radius-sm); color: var(--nf-text-dim); }
+.gp-referee-chip { font-size: var(--fs-eyebrow); padding: 1px 6px; background: color-mix(in srgb, var(--nf-gold) 15%, transparent); border: 1px solid var(--nf-border-accent); border-radius: var(--nf-radius-sm); color: var(--nf-gold); }

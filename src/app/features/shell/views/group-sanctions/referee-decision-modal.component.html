@@ -1,0 +1,182 @@
+<nf-modal title="⚠ Aviso obligatorio · Decisión arbitral requerida" width="580px">
+  <div class="rd-modal">
+    <div class="rd-modal__target">
+      <nf-avatar
+        [src]="decision().targetAvatar || null"
+        [fallback]="decision().targetName"
+        [size]="36"
+        shape="round"
+      />
+      <div class="rd-modal__target-text">
+        <strong>{{ decision().targetName }}</strong> ha llegado a 3 incidencias esta temporada
+      </div>
+    </div>
+
+    <!-- Desglose de incidencias -->
+    <div class="rd-modal__incidents" role="region" aria-label="Desglose de incidencias">
+      @for (inc of decision().incidents; track $index) {
+        <div class="rd-modal__incident-row">
+          <span class="rd-modal__incident-meta">
+            {{ inc.date }} · {{ inc.type }} · {{ inc.modality }}@if (inc.detail) { · {{ inc.detail }} }
+          </span>
+          <span class="rd-modal__incident-lp nf-mono">
+            {{ inc.lpDelta < 0 ? '−' : '+' }}{{ inc.lpDelta < 0 ? -inc.lpDelta : inc.lpDelta }} LP
+          </span>
+        </div>
+      }
+    </div>
+
+    <p class="rd-modal__lead">
+      Recomendamos vetarle {{ decision().recommendedDays }} días. Decide tú:
+    </p>
+
+    <!-- Duración -->
+    <div class="rd-modal__group">
+      <div class="rd-modal__label-row">
+        <label class="rd-modal__label nf-mono" for="rd-duration-slider">Duración</label>
+        <span class="rd-modal__duration-display">
+          <strong>{{ days() }} días</strong>
+          <span class="rd-modal__duration-max nf-mono">(máx. 14)</span>
+        </span>
+      </div>
+      <div class="rd-modal__slider-wrap">
+        <input
+          id="rd-duration-slider"
+          class="rd-modal__slider"
+          type="range"
+          min="1"
+          max="14"
+          step="1"
+          [ngModel]="days()"
+          (ngModelChange)="setDays($event)"
+        />
+        <div class="rd-modal__ticks" aria-hidden="true">
+          <button
+            type="button"
+            class="rd-modal__tick nf-mono"
+            [class.is-active]="days() === 1"
+            (click)="setDays(1)"
+          >
+            1d
+          </button>
+          <button
+            type="button"
+            class="rd-modal__tick nf-mono"
+            [class.is-active]="days() === 3"
+            (click)="setDays(3)"
+          >
+            3d
+          </button>
+          <button
+            type="button"
+            class="rd-modal__tick nf-mono"
+            [class.is-active]="days() === 7"
+            (click)="setDays(7)"
+          >
+            7d
+          </button>
+          <button
+            type="button"
+            class="rd-modal__tick nf-mono"
+            [class.is-active]="days() === 14"
+            (click)="setDays(14)"
+          >
+            14d
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Alcance -->
+    <div class="rd-modal__group">
+      <span class="rd-modal__label nf-mono">Alcance</span>
+      <div class="rd-modal__scope-toggle" role="radiogroup" aria-label="Alcance de la sanción">
+        <div
+          class="rd-modal__scope-slider"
+          [class.is-all]="scope() === 'ALL_LEAGUES'"
+          aria-hidden="true"
+        ></div>
+        <button
+          type="button"
+          role="radio"
+          class="rd-modal__scope-btn"
+          [class.is-active]="scope() === 'LEAGUE'"
+          [attr.aria-checked]="scope() === 'LEAGUE'"
+          (click)="scope.set('LEAGUE')"
+        >
+          Solo {{ decision().modality }}
+        </button>
+        <button
+          type="button"
+          role="radio"
+          class="rd-modal__scope-btn"
+          [class.is-active]="scope() === 'ALL_LEAGUES'"
+          [attr.aria-checked]="scope() === 'ALL_LEAGUES'"
+          (click)="scope.set('ALL_LEAGUES')"
+        >
+          Las tres ligas
+        </button>
+      </div>
+    </div>
+
+    <!-- Motivo -->
+    <div class="rd-modal__group">
+      <div class="rd-modal__label-row">
+        <label class="rd-modal__label nf-mono" for="rd-reason-input">Motivo</label>
+        <span class="rd-modal__counter nf-mono">{{ reason().length }}/200</span>
+      </div>
+      <input
+        id="rd-reason-input"
+        class="field__input"
+        type="text"
+        maxlength="200"
+        autocomplete="off"
+        placeholder="Motivo de la sanción"
+        [ngModel]="reason()"
+        (ngModelChange)="reason.set($event)"
+      />
+    </div>
+
+    <!-- Botonera inferior -->
+    <div class="rd-modal__foot">
+      <div class="rd-modal__foot-left">
+        @if (snoozesLeft() > 0) {
+          <button
+            nfButton
+            variant="ghost"
+            size="md"
+            type="button"
+            (click)="onSnooze()"
+          >
+            Recordármelo más tarde (quedan {{ snoozesLeft() }})
+          </button>
+        } @else {
+          <span class="rd-modal__snoozes-exhausted nf-mono">
+            Aplazamientos agotados (debes resolver)
+          </span>
+        }
+      </div>
+      <div class="rd-modal__foot-right">
+        <button
+          nfButton
+          variant="secondary"
+          size="md"
+          type="button"
+          (click)="onDismiss()"
+        >
+          No sancionar
+        </button>
+        <button
+          nfButton
+          variant="danger"
+          size="md"
+          type="button"
+          [disabled]="!isValid()"
+          (click)="onApply()"
+        >
+          Aplicar el veto
+        </button>
+      </div>
+    </div>
+  </div>
+</nf-modal>

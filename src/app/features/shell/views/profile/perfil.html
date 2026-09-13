@@ -317,12 +317,7 @@
 
             <div class="pf-mini-champs" [attr.aria-busy]="champsLoading() ? 'true' : null">
               @for (c of topSignatureChampions(); track c.championId) {
-                <!--
-                  BACKEND NOTE: no hay vista de detalle por campeón (winrate, KDA, emparejamientos, runas) porque no hay endpoint que la alimente
-                  Hasta que exista, el campeón lleva a la tierlist, que es el
-                  sitio donde hoy vive todo lo que sabemos de un campeón.
-                -->
-                <a class="pf-mini-champ" [routerLink]="['/app', 'tierlist']" [queryParams]="{ campeon: c.championId }">
+                <a class="pf-mini-champ" [routerLink]="['/app', 'campeon', c.championId]">
                   <nf-avatar
                     class="pf-mini-champ__avatar"
                     [loading]="champsLoading()"
@@ -581,12 +576,7 @@
 
         <div class="pf-champ-grid">
           @for (c of filteredChampions(); track c.championId) {
-            <!--
-              BACKEND NOTE: no hay vista de detalle por campeón (winrate, KDA, emparejamientos, runas) porque no hay endpoint que la alimente.
-              Hasta que exista, el campeón lleva a la tierlist, que es el sitio donde hoy
-              vive todo lo que sabemos de un campeón.
-            -->
-            <a class="pf-champ-tile" [routerLink]="['/app', 'tierlist']" [queryParams]="{ campeon: c.championId }">
+            <a class="pf-champ-tile" [routerLink]="['/app', 'campeon', c.championId]">
               <div class="pf-champ-tile__head">
                 <nf-avatar
                   class="pf-champ-tile__avatar"

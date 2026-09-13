@@ -2,7 +2,7 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { GroupsApi } from './groups-api';
-import { GroupsStore } from './groups-store';
+import { GroupsStore, dataUrlToBlob } from './groups-store';
 import { GroupMemberResponse, GroupRole } from './models';
 import { GroupView, groupView } from './group-view';
 import { PageResponse } from '../http';
@@ -264,6 +264,24 @@ export class GroupDetailStore {
   /** El llamante abandona el grupo. La lista se refresca en `GroupsStore.leave`. */
   async leave(): Promise<void> {
     await this.wholeGroup((groupId) => this.groups.leave(groupId));
+  }
+
+  /**
+   * Sube el avatar del grupo. Pesimista: resuelve cuando el servidor confirma, y solo entonces
+   * refresca el grupo para que la barra lateral y la cabecera pinten la foto nueva.
+   */
+  async updateAvatar(groupId: string, dataUrl: string): Promise<void> {
+    const targetId = groupId || this.currentId;
+    if (!targetId || this._busy()) return;
+    this._busy.set(true);
+    try {
+      const blob = dataUrlToBlob(dataUrl);
+      await firstValueFrom(this.api.uploadAvatar(targetId, blob));
+      await this.load(targetId);
+      await this.groups.reload();
+    } finally {
+      this._busy.set(false);
+    }
   }
 
   /** Borra el grupo (solo owner). La lista se refresca en `GroupsStore.deleteGroup`. */

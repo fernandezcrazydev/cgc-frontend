@@ -44,6 +44,14 @@ export interface ParticipantStats {
    */
   primaryRuneId?: number;
   secondaryRuneTreeId?: number;
+  /** Árbol primario (8100 Dominación, 8000 Precisión, 8200 Hechicería, 8300 Inspiración, 8400 Valor). */
+  primaryTreeId?: number;
+  /** Las tres runas menores del árbol primario, en orden de fila. */
+  primaryRuneIds?: number[];
+  /** Las dos runas elegidas del árbol secundario. */
+  secondaryRuneIds?: number[];
+  /** Los tres fragmentos de estadística. */
+  statShardIds?: number[];
   goldAt14?: number;
   csAt14?: number;
   wonLane?: boolean;
@@ -153,7 +161,7 @@ export interface Match {
   userOutcome?: MatchResultOutcome;
 }
 
-export type MatchGameMode = 'Competitivo' | 'Casual';
+export type MatchGameMode = 'Competitivo' | 'Equilibrado' | 'Caos';
 export type MatchLobbyType = 'Room' | 'Party';
 
 /** Resumen analítico del historial de un usuario */

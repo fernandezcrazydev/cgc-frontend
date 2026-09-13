@@ -1,4 +1,4 @@
-﻿<div class="view settings-page">
+<div class="view settings-page">
   <div class="view__head">
     <h1 class="view__title">Ajustes</h1>
   </div>
@@ -52,7 +52,8 @@
             @case ('privacidad') {
               <app-settings-privacy />
             }
-            @case ('apariencia') {
+            @case ('personalizacion') {
+              <app-settings-group-tabs />
               <app-settings-appearance />
             }
           }

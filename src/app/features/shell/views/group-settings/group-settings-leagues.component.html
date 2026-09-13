@@ -1,0 +1,100 @@
+@if (isLoading()) {
+  <div class="leagues-grid" aria-busy="true">
+    @for (i of [1, 2, 3]; track i) {
+      <nf-skeleton width="100%" height="340px" radius="var(--nf-radius-lg)" aria-hidden="true" />
+    }
+  </div>
+} @else {
+  <div class="leagues-grid">
+    @for (league of leagues(); track league.modality) {
+      <div
+        class="league-card"
+        tabindex="0"
+        role="button"
+        [attr.aria-label]="'Liga ' + league.label"
+        (click)="openEdit(league)"
+        (keydown.enter)="openEdit(league)"
+        (keydown.space)="openEdit(league); $event.preventDefault()"
+      >
+        <div class="league-card__top">
+          <span class="league-card__eyebrow nf-mono">{{ league.label.toUpperCase() }}</span>
+          <button
+            nfIconButton
+            size="sm"
+            [label]="'Editar liga ' + league.label"
+            (click)="openEdit(league, $event)"
+          >
+            <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path
+                d="M11.2 2.6a1.4 1.4 0 0 1 2 2L6 11.8l-2.7.9.9-2.7 7-7.4Z"
+                stroke="currentColor"
+                stroke-width="1.4"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </button>
+        </div>
+
+        <div class="league-card__podium">
+          <div class="podium">
+            <img class="podium__cup podium__cup--p2" src="/assets/trofeos/Trofeo2.webp" alt="" aria-hidden="true" />
+            <img class="podium__cup podium__cup--p1" src="/assets/trofeos/Trofeo1.webp" alt="Podio de trofeos" />
+            <img class="podium__cup podium__cup--p3" src="/assets/trofeos/Trofeo3.webp" alt="" aria-hidden="true" />
+          </div>
+        </div>
+
+        <div class="league-card__content">
+          @switch (league.state) {
+            @case ('NOT_STARTED') {
+              <div class="league-card__meta nf-mono">Sin empezar</div>
+              <div class="league-card__name league-card__name--hint">
+                «Arranca con la primera partida de esta modalidad»
+              </div>
+              <div class="league-card__dates nf-mono">{{ league.durationMonths }} meses</div>
+            }
+            @case ('IN_PROGRESS') {
+              @if (league.named) {
+                <div class="league-card__name">«{{ league.seasonName }}»</div>
+                <div class="league-card__meta nf-mono">{{ league.ordinal }} · {{ league.progress }} %</div>
+                <div class="league-card__progress-wrap">
+                  <div class="league-card__bar">
+                    <div class="league-card__fill" [style.width.%]="league.progress"></div>
+                  </div>
+                </div>
+                <div class="league-card__dates nf-mono">
+                  acaba el {{ league.endsAtLabel }} · {{ league.durationMonths }} meses
+                </div>
+              } @else {
+                <div class="league-card__name league-card__name--unnamed">
+                  «Liga {{ league.label }} · {{ league.ordinal }}»
+                </div>
+                <div class="league-card__meta nf-mono">
+                  <span>{{ league.ordinal }} · {{ league.progress }} %</span>
+                  <span class="league-card__unnamed-tag">Sin bautizar</span>
+                </div>
+                <div class="league-card__progress-wrap">
+                  <div class="league-card__bar">
+                    <div class="league-card__fill" [style.width.%]="league.progress"></div>
+                  </div>
+                </div>
+                <div class="league-card__dates nf-mono">
+                  acaba el {{ league.endsAtLabel }} · {{ league.durationMonths }} meses
+                </div>
+              }
+            }
+          }
+        </div>
+      </div>
+    }
+  </div>
+
+  @if (selectedLeague(); as sel) {
+    <app-league-edit-dialog
+      [league]="sel"
+      [groupId]="groupId()"
+      (closed)="closeEdit()"
+      (saved)="onSaved($event)"
+    />
+  }
+}

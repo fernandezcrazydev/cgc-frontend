@@ -38,6 +38,36 @@ const SCOPE_GAMES: Record<StatScope, [number, number]> = {
 
 export type StatModality = 'COMPETITIVE' | 'BALANCED' | 'CHAOS';
 
+/** Los tres rótulos, en el orden en que se pintan. Es el único sitio donde se escriben. */
+export const MODALITY_LABELS: Record<StatModality, 'Competitivo' | 'Equilibrado' | 'Caos'> = {
+  COMPETITIVE: 'Competitivo',
+  BALANCED: 'Equilibrado',
+  CHAOS: 'Caos',
+};
+
+/** El trozo de URL de cada modalidad: `?liga=caos`. Minúsculas y sin acentos. */
+export const MODALITY_SLUGS: Record<StatModality, string> = {
+  COMPETITIVE: 'competitivo',
+  BALANCED: 'equilibrado',
+  CHAOS: 'caos',
+};
+
+export function modalitySlug(m: StatModality): string {
+  return MODALITY_SLUGS[m];
+}
+
+/** `null` si el slug no es ninguno de los tres: un parámetro inventado no elige nada. */
+export function modalityFromSlug(slug: string | null | undefined): StatModality | null {
+  if (!slug) return null;
+  const normalized = slug.toLowerCase();
+  for (const [key, value] of Object.entries(MODALITY_SLUGS) as [StatModality, string][]) {
+    if (value === normalized) {
+      return key;
+    }
+  }
+  return null;
+}
+
 export interface GroupModalitySeason {
   id: string;
   label: string;
@@ -61,7 +91,7 @@ export function groupModalitiesConfig(groupId: string): GroupModalityConfig[] {
   return [
     {
       modality: 'COMPETITIVE',
-      label: 'Competitivo',
+      label: MODALITY_LABELS.COMPETITIVE,
       played: true,
       seasons: [
         { id: 'current', label: 'Temporada 2026', played: true },
@@ -71,7 +101,7 @@ export function groupModalitiesConfig(groupId: string): GroupModalityConfig[] {
     },
     {
       modality: 'BALANCED',
-      label: 'Equilibrado',
+      label: MODALITY_LABELS.BALANCED,
       played: true,
       seasons: [
         { id: 'current', label: 'Temporada 2026', played: true },
@@ -81,7 +111,7 @@ export function groupModalitiesConfig(groupId: string): GroupModalityConfig[] {
     },
     {
       modality: 'CHAOS',
-      label: 'Caos',
+      label: MODALITY_LABELS.CHAOS,
       played: chaosPlayed,
       seasons: [
         { id: 'current', label: 'Temporada 2026', played: chaosPlayed },
@@ -571,6 +601,12 @@ function pickChampions(rnd: () => number, count: number): number[] {
   return out;
 }
 
+/** Calcula deterministamente el banrate (0-45%) de un campeón para un grupo. */
+export function banRateFor(groupId: string, championId: number): number {
+  const rnd = seeded(hash(groupId + ':metagame:' + championId));
+  return Math.round(rnd() * 45);
+}
+
 /** Los tableros del metagame del grupo (§5.5.5, bloque 2). */
 export function metagameFor(groupId: string, stats: readonly MemberStats[]): MetagameBoard[] {
   if (!stats.length) return [];
@@ -587,8 +623,9 @@ export function metagameFor(groupId: string, stats: readonly MemberStats[]): Met
     };
   });
 
-  const bans = pickChampions(rnd, 3).map((championId, i) => {
-    const banned = Math.max(2, Math.round(games * (0.46 - i * 0.09) + rnd() * 3));
+  const bans = pickChampions(rnd, 3).map((championId) => {
+    const rate = banRateFor(groupId, championId);
+    const banned = Math.max(2, Math.round((games * rate) / 100));
     return {
       championId,
       value: banned + (banned === 1 ? ' ban' : ' bans'),

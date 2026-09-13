@@ -247,5 +247,87 @@ describe('notificationView · niveles semánticos y avisos obligatorios [F5.5-02
     expect(view.semanticLevel).toBe('social');
     expect(view.accent).toBe('var(--nf-blue-semantic)');
   });
+
+  it('mapea GROUP_VOTE_OPENED como aviso crítico obligatorio con glyph ◉ y botón Ir a votar', () => {
+    const view = notificationView(
+      {
+        id: 'v1',
+        type: 'GROUP_VOTE_OPENED',
+        data: {
+          groupId: 'lan-challenger',
+          groupName: 'Customs Tryhard',
+          voteId: 'vote-1',
+        },
+        read: false,
+        createdAt: '2026-07-18T11:50:00Z',
+      },
+      NOW,
+    );
+    expect(view.title).toBe('Votación del grupo');
+    expect(view.message).toBe(
+      'Hay una propuesta abierta en "Customs Tryhard". Si no votas en 24 h, cuenta como un no.',
+    );
+    expect(view.accent).toBe('var(--nf-warning)');
+    expect(view.semanticLevel).toBe('critical');
+    expect(view.glyph).toBe('◉');
+    expect(view.isMandatory).toBe(true);
+    expect(view.ctaLabel).toBe('Ir a votar');
+    expect(view.link).toEqual(['/app', 'grupos', 'lan-challenger']);
+  });
+
+  it('mapea GROUP_VOTE_OPENED con kind REFEREE_ELECTION a título y mensaje de árbitro', () => {
+    const view = notificationView(
+      {
+        id: 'v2',
+        type: 'GROUP_VOTE_OPENED',
+        data: {
+          groupId: 'los-cracks',
+          groupName: 'Los Cracks',
+          kind: 'REFEREE_ELECTION',
+        },
+        read: false,
+        createdAt: '2026-07-18T11:50:00Z',
+      },
+      NOW,
+    );
+    expect(view.title).toBe('Votación de árbitro');
+    expect(view.message).toBe(
+      'Hay que elegir árbitro en "Los Cracks". Votar es obligatorio y quedan menos de 24 h.',
+    );
+    expect(view.accent).toBe('var(--nf-warning)');
+    expect(view.semanticLevel).toBe('critical');
+    expect(view.glyph).toBe('◉');
+    expect(view.isMandatory).toBe(true);
+    expect(view.ctaLabel).toBe('Ir a votar');
+    expect(view.link).toEqual(['/app', 'grupos', 'los-cracks']);
+  });
+
+  it('mapea SANCTION_DECISION_REQUIRED como aviso obligatorio crítico con glifo ⚠ y CTA Resolver sanción', () => {
+    const view = notificationView(
+      {
+        id: 'dec1',
+        type: 'SANCTION_DECISION_REQUIRED',
+        data: {
+          groupId: 'lan-challenger',
+          groupName: 'LAN Challenger S14',
+          targetName: 'Manolito',
+          message: 'Manolito ha alcanzado 3 incidencias esta temporada. Requiere tu decisión arbitral.',
+        },
+        read: false,
+        createdAt: '2026-07-18T11:50:00Z',
+      },
+      NOW,
+    );
+    expect(view.title).toBe('Decisión arbitral requerida');
+    expect(view.message).toBe(
+      'Manolito ha alcanzado 3 incidencias esta temporada. Requiere tu decisión arbitral.',
+    );
+    expect(view.accent).toBe('var(--nf-crimson)');
+    expect(view.semanticLevel).toBe('critical');
+    expect(view.glyph).toBe('⚠');
+    expect(view.isMandatory).toBe(true);
+    expect(view.ctaLabel).toBe('Resolver sanción');
+    expect(view.link).toEqual(['/app', 'grupos', 'lan-challenger']);
+  });
 });
 

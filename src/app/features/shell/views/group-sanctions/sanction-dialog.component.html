@@ -1,0 +1,125 @@
+<nf-modal title="Sancionar" width="480px" (closed)="closed.emit()">
+  <div class="sanction-dialog">
+    @if (player(); as p) {
+      <p class="sanction-dialog__lead">
+        <strong>{{ p.name }}</strong> quedará fuera de la competición.
+      </p>
+    } @else {
+      <div class="sanction-dialog__group">
+        <label class="field__label nf-mono" for="sd-player-select">Jugador</label>
+        <nf-select
+          id="sd-player-select"
+          [options]="playerOptions()"
+          [value]="selectedPlayerId()"
+          placeholder="Selecciona un jugador"
+          (valueChange)="selectedPlayerId.set($event)"
+        />
+      </div>
+    }
+
+    <!-- Duración: Segmented con 1 / 3 / 7 / 14 / Otra -->
+    <div class="sanction-dialog__group">
+      <label class="field__label nf-mono">Duración</label>
+      <nf-segmented
+        [options]="durationOptions"
+        [value]="selectedDuration()"
+        (valueChange)="selectedDuration.set($event)"
+      />
+      @if (selectedDuration() === 'other') {
+        <div class="sanction-dialog__custom-days">
+          <input
+            class="field__input sanction-dialog__days-input"
+            type="number"
+            min="1"
+            max="90"
+            placeholder="Días (1-90)"
+            [ngModel]="customDays()"
+            (ngModelChange)="customDays.set($event)"
+          />
+        </div>
+      }
+    </div>
+
+    <!-- Alcance: dos radios -->
+    <div class="sanction-dialog__group">
+      <span class="field__label nf-mono">Alcance</span>
+      <div class="sanction-dialog__radios">
+        <label class="sanction-dialog__radio-label">
+          <input
+            type="radio"
+            name="sanction-scope"
+            value="LEAGUE"
+            [checked]="scope() === 'LEAGUE'"
+            (change)="scope.set('LEAGUE')"
+          />
+          <span>Solo {{ leagueName() }}</span>
+        </label>
+        <label class="sanction-dialog__radio-label">
+          <input
+            type="radio"
+            name="sanction-scope"
+            value="ALL_LEAGUES"
+            [checked]="scope() === 'ALL_LEAGUES'"
+            (change)="scope.set('ALL_LEAGUES')"
+          />
+          <span>Las tres ligas</span>
+        </label>
+      </div>
+
+      @if (scope() === 'ALL_LEAGUES') {
+        <div class="sanction-dialog__warning">
+          <svg class="sanction-dialog__info-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="16" x2="12" y2="12" />
+            <line x1="12" y1="8" x2="12.01" y2="8" />
+          </svg>
+          <span class="sanction-dialog__warning-text">
+            Hoy el veto solo se aplica a la liga en curso. Las tres ligas llegan con el servidor.
+          </span>
+        </div>
+      }
+    </div>
+
+    <!-- Motivo -->
+    <div class="sanction-dialog__group">
+      <div class="sanction-dialog__label-row">
+        <label class="field__label nf-mono" for="sd-reason-input">Motivo</label>
+        <span class="sanction-dialog__counter nf-mono">{{ reason().length }}/200</span>
+      </div>
+      <input
+        id="sd-reason-input"
+        class="field__input"
+        type="text"
+        maxlength="200"
+        autocomplete="off"
+        placeholder="Por qué se le aparta"
+        [ngModel]="reason()"
+        (ngModelChange)="reason.set($event)"
+      />
+      <p class="sanction-dialog__hint nf-mono">Se muestra a todo el grupo junto al jugador.</p>
+    </div>
+
+    <div class="form-foot">
+      <button
+        nfButton
+        variant="ghost"
+        size="md"
+        type="button"
+        [disabled]="submitting()"
+        (click)="closed.emit()"
+      >
+        Cancelar
+      </button>
+      <button
+        nfButton
+        variant="danger"
+        size="md"
+        type="button"
+        [disabled]="!isValid() || submitting()"
+        (click)="confirm()"
+      >
+        {{ submitting() ? 'Sancionando…' : 'Sancionar' }}
+      </button>
+    </div>
+  </div>
+</nf-modal>

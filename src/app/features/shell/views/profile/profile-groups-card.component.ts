@@ -102,11 +102,7 @@ const PER_PAGE = 4;
                     <div class="pf-group-item__info">
                       <div class="pf-group-item__name-row">
                         <span class="pf-group-item__name">{{ g.name }}</span>
-                        @if (isMember(g.id)) {
-                          <span class="pf-group-item__rank nf-mono">
-                            #{{ g.rankPosition }} · {{ g.lp }} LP
-                          </span>
-                        } @else {
+                        @if (!isMember(g.id)) {
                           <span class="pf-group-item__badge nf-mono">Grupo ajeno</span>
                         }
                       </div>

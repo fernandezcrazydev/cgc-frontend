@@ -346,11 +346,11 @@ describe('PerfilMiembro · refactor de la vista', () => {
     expect(primero?.classList.contains('pf-hero-compact')).toBe(true);
   });
 
-  it('los campeones insignia enlazan a la tierlist con queryParam', async () => {
+  it('los campeones insignia enlazan a la ficha de campeón', async () => {
     const { el } = await montar();
 
     const champ = el.querySelector<HTMLAnchorElement>('a.pf-mini-champ');
-    expect(champ?.getAttribute('href')).toContain('/app/tierlist?campeon=');
+    expect(champ?.getAttribute('href')).toMatch(/\/app\/campeon\/\d+/);
   });
 
   it('la pestaña de campeones ofrece buscador con tope de cuatro sugerencias', async () => {

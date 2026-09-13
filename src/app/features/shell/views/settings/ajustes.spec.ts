@@ -122,6 +122,12 @@ describe('Ajustes (Página principal de ajustes)', () => {
     }
   });
 
+  it('resuelve ?s=apariencia a "personalizacion" para compatibilidad de enlaces viejos', () => {
+    queryParamsSubject.next(convertToParamMap({ s: 'apariencia' }));
+    fixture.detectChanges();
+    expect(component.activeSection()).toBe('personalizacion');
+  });
+
   it('cae en "cuenta" si el query param es desconocido', () => {
     queryParamsSubject.next(convertToParamMap({ s: 'desconocido_123' }));
     fixture.detectChanges();
@@ -145,6 +151,6 @@ describe('Ajustes (Página principal de ajustes)', () => {
     expect(buttons[1].textContent.trim()).toBe('Posiciones');
     expect(buttons[2].textContent.trim()).toBe('Notificaciones');
     expect(buttons[3].textContent.trim()).toBe('Privacidad');
-    expect(buttons[4].textContent.trim()).toBe('Apariencia');
+    expect(buttons[4].textContent.trim()).toBe('Personalización');
   });
 });

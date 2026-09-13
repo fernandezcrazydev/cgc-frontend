@@ -1,0 +1,13 @@
+.sanction-dialog { display: flex; flex-direction: column; gap: 16px; }
+.sanction-dialog__lead { margin: 0; font-size: var(--fs-body); color: var(--nf-text); line-height: var(--lh-snug); }
+.sanction-dialog__group { display: flex; flex-direction: column; gap: 6px; }
+.sanction-dialog__custom-days { margin-top: 6px; }
+.sanction-dialog__days-input { width: 120px; }
+.sanction-dialog__radios { display: flex; gap: 16px; align-items: center; }
+.sanction-dialog__radio-label { display: flex; align-items: center; gap: 6px; font-size: var(--fs-body); color: var(--nf-text); cursor: pointer; }
+.sanction-dialog__warning { display: flex; align-items: center; gap: 6px; margin-top: 4px; color: var(--nf-warning); font-size: var(--fs-caption); line-height: var(--lh-snug); }
+.sanction-dialog__info-icon { flex-shrink: 0; }
+.sanction-dialog__label-row { display: flex; justify-content: space-between; align-items: center; }
+.sanction-dialog__counter { font-size: var(--fs-caption); color: var(--nf-text-dim); }
+.sanction-dialog__hint { margin: 2px 0 0 0; font-size: var(--fs-caption); color: var(--nf-text-dim); }
+.form-foot { display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-top: 8px; }

@@ -163,14 +163,6 @@
   text-overflow: ellipsis;
 }
 
-.pf-group-item__rank {
-  flex: none;
-  white-space: nowrap;
-  font-size: var(--fs-label);
-  font-weight: 700;
-  color: var(--nf-text-mid);
-}
-
 .pf-group-item__sub {
   font-size: var(--fs-label);
   color: var(--nf-text-dim);

@@ -29,7 +29,13 @@ export interface NfSelectOption {
         (change)="onChange($event)"
       >
         @for (opt of normalized; track opt.value) {
-          <option [value]="opt.value">{{ opt.label }}</option>
+          <!-- [selected] además del [value] del select de arriba: Angular aplica las propiedades
+               del elemento ANTES de crear sus hijos, así que en el primer ciclo el select todavía
+               no tiene ninguna option, el navegador descarta el valor y se queda con la primera.
+               El binding no vuelve a cambiar, así que un valor preseleccionado que no fuera el
+               primero de la lista NO se pintaba nunca; la región parecía funcionar solo porque
+               'EUW' encabeza REGIONS. -->
+          <option [value]="opt.value" [selected]="opt.value === value">{{ opt.label }}</option>
         }
       </select>
       <span class="nf-select__caret nf-mono">▾</span>

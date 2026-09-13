@@ -154,7 +154,8 @@ export class MatchFiltersComponent {
   protected readonly modeOptions: readonly NfComboboxOption[] = [
     { value: 'all', label: 'Todas' },
     { value: 'Competitivo', label: 'Competitivo' },
-    { value: 'Casual', label: 'Casual' },
+    { value: 'Equilibrado', label: 'Equilibrado' },
+    { value: 'Caos', label: 'Caos' },
   ];
 
   protected readonly lobbyTypeOptions: readonly NfComboboxOption[] = [

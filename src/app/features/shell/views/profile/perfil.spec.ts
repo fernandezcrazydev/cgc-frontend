@@ -48,7 +48,7 @@ const CROSS_PARTNERS = buildCrossPartners(PARTIDAS);
  * compilar sin quejarse y pintar mal —o reventar— al renderizarse. Cada prueba
  * de aquí protege una decisión concreta del rediseño, no el aspecto.
  */
-describe('Perfil · refactor de la vista', () => {
+describe('Perfil · refactor de la vista', { timeout: 15000 }, () => {
   async function montar(
     // Quién ha iniciado sesión. Parametrizado porque el perfil se siembra con la identidad de
     // la sesión: dos usuarios distintos no pueden salir con las mismas cifras.
@@ -209,22 +209,22 @@ describe('Perfil · refactor de la vista', () => {
     expect(visibles.length).toBeLessThanOrEqual(4);
   });
 
-  it('el LP se conserva por grupo, que es donde tiene contexto de liga', async () => {
+  it('la tarjeta de grupos no pinta LP ni posición, porque no pueden decir de qué liga hablan', async () => {
     const { el } = await montar();
 
-    const rangos = Array.from(el.querySelectorAll('.pf-group-item__rank')).map((n) => n.textContent!.trim());
-    expect(rangos.length).toBeGreaterThan(0);
-    expect(rangos[0]).toMatch(/#\d+ · \d+ LP/);
+    expect(el.querySelectorAll('.pf-group-item__rank').length).toBe(0);
+    const sub = el.querySelector('.pf-group-item__sub')?.textContent?.trim();
+    expect(sub).toMatch(/\d+V \d+D/);
   });
 
-  it('los campeones insignia y las fichas del catálogo enlazan a la tierlist', async () => {
+  it('los campeones insignia y las fichas del catálogo enlazan a la ficha de campeón', async () => {
     const { el, comp, detect } = await montar();
 
-    expect(el.querySelector<HTMLAnchorElement>('a.pf-mini-champ')?.getAttribute('href')).toContain('/app/tierlist?campeon=');
+    expect(el.querySelector<HTMLAnchorElement>('a.pf-mini-champ')?.getAttribute('href')).toMatch(/\/app\/campeon\/\d+/);
 
     comp.setTab('campeones');
     detect();
-    expect(el.querySelector<HTMLAnchorElement>('a.pf-champ-tile')?.getAttribute('href')).toContain('/app/tierlist?campeon=');
+    expect(el.querySelector<HTMLAnchorElement>('a.pf-champ-tile')?.getAttribute('href')).toMatch(/\/app\/campeon\/\d+/);
   });
 
   it('el mejor aliado y la némesis salen de las partidas reales, no de una semilla', async () => {

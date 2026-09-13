@@ -7,7 +7,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { environment } from '../../../../../environments/environment';
 import { GrupoRanking } from './grupo-ranking';
 import { GroupStore } from '../../../../core/group-store';
-import { GroupsStore } from '../../../../core/groups';
+import { GroupBridge, GroupsStore } from '../../../../core/groups';
 import { LeaderboardResponse, LeagueResponse } from '../../../../core/leagues';
 
 const GROUP_ID = 'lan-challenger';
@@ -75,6 +75,13 @@ describe('GrupoRanking', () => {
         provideHttpClientTesting(),
         provideRouter([]),
         GroupStore,
+        {
+          provide: GroupBridge,
+          useValue: {
+            status: () => 'ready',
+            ensure: () => Promise.resolve(),
+          },
+        },
         ...(myRole
           ? [
               {
@@ -470,5 +477,32 @@ describe('GrupoRanking', () => {
     component.toggleMenu('p-first', mockEventTop);
     expect(component.menuFor()).toBe('p-first');
     expect(component.menuDropup()).toBe(false);
+  });
+
+  it('al seleccionar BALANCED no se pinta tabla ni cuenta atrás ni selector de temporada, y el vacío dice lo que toca según el played de ese grupo', async () => {
+    const { component, fixture } = createComponent();
+    flushBoard();
+    flushSeasons();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(component.isCompetitive()).toBe(true);
+    expect(fixture.nativeElement.querySelector('.rk-list')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.rk-countdown')).not.toBeNull();
+
+    // Cambiar a modalidad BALANCED
+    component.setModality('BALANCED');
+    fixture.detectChanges();
+
+    expect(component.isCompetitive()).toBe(false);
+    expect(fixture.nativeElement.querySelector('.rk-list')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.rk-countdown')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.rk-season')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.rk-league-title')?.textContent?.trim()).toBe('Equilibrado');
+
+    const empty = fixture.nativeElement.querySelector('.rk-league-empty');
+    expect(empty).not.toBeNull();
+    expect(empty.textContent).toContain(component.emptyCopy().title);
+    expect(empty.textContent).toContain(component.emptyCopy().hint);
   });
 });

@@ -1,0 +1,54 @@
+<div class="referee-vote-modal">
+  <p class="referee-vote-modal__intro">{{ introText() }}</p>
+
+  @if (showSearch()) {
+    <div class="referee-vote-modal__search">
+      <input
+        type="text"
+        class="referee-vote-modal__search-input"
+        [ngModel]="searchTerm()"
+        (ngModelChange)="searchTerm.set($event)"
+        placeholder="Buscar miembro"
+        aria-label="Buscar miembro del grupo"
+      />
+    </div>
+  }
+
+  <div class="referee-vote-modal__list" role="radiogroup" aria-label="Miembros del grupo">
+    @for (m of filteredMembers(); track m.userId) {
+      <label class="referee-vote-modal__row">
+        <input
+          type="radio"
+          class="referee-vote-modal__radio"
+          name="referee-candidate"
+          [value]="m.userId"
+          [checked]="selectedCandidateId() === m.userId"
+          (change)="selectCandidate(m.userId)"
+        />
+        <nf-avatar [fallback]="m.name" [tint]="m.hue" [size]="28" shape="round" />
+        <span class="referee-vote-modal__name" [title]="m.name">{{ m.name }}</span>
+        <div class="referee-vote-modal__bar-track" aria-hidden="true">
+          <span class="referee-vote-modal__bar-fill" [style.width.%]="barPercentFor(m.userId)"></span>
+        </div>
+        <span class="referee-vote-modal__votes nf-mono">{{ votesFor(m.userId) }}</span>
+      </label>
+    } @empty {
+      <p class="referee-vote-modal__empty">Ningún miembro coincide con «{{ searchTerm() }}».</p>
+    }
+  </div>
+
+  <p class="referee-vote-modal__tally">Han votado {{ totalVoted() }} de {{ totalMembers() }} miembros</p>
+
+  <div class="referee-vote-modal__foot">
+    <button nfButton variant="ghost" size="md" (click)="closed.emit()">Cancelar</button>
+    <button
+      nfButton
+      variant="primary"
+      size="md"
+      [disabled]="!selectedCandidateId() || isExpired()"
+      (click)="confirm()"
+    >
+      Confirmar mi voto
+    </button>
+  </div>
+</div>

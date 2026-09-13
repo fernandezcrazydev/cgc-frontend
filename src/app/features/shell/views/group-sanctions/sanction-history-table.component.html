@@ -1,0 +1,107 @@
+@if (sanctions().length === 0) {
+  <div class="empty-state">
+    <div class="empty-state__icon">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="10" />
+        <line x1="12" y1="8" x2="12" y2="12" />
+        <line x1="12" y1="16" x2="12.01" y2="16" />
+      </svg>
+    </div>
+    <div class="empty-state__text nf-mono">Todavía no hay histórico</div>
+    <p class="empty-state__hint">Aquí quedan las sanciones que se levantaron o se cumplieron.</p>
+  </div>
+} @else {
+  <div class="sanction-history__scroll" [class.has-slider]="sanctions().length >= 10" tabindex="0" role="region" aria-label="Histórico de sanciones">
+    <table class="sanction-history__table">
+      <thead>
+        <tr>
+          <th scope="col">Jugador</th>
+          <th scope="col">Sanción</th>
+          <th scope="col">Alcance</th>
+          <th scope="col">Quién</th>
+          <th scope="col">Cuándo</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (s of sanctions(); track s.id) {
+          <tr
+            class="sanction-history__row"
+            [class.is-expanded]="openDetailId() === s.id"
+            (click)="toggleDetail(s.id)"
+          >
+            <td>
+              <div class="sanction-history__player-cell">
+                <nf-avatar
+                  [src]="s.targetAvatar"
+                  [fallback]="s.targetName"
+                  [tint]="s.targetHue"
+                  [size]="20"
+                />
+                <a
+                  class="sanction-history__link"
+                  [routerLink]="playerLink(s.targetUserId)"
+                  (click)="$event.stopPropagation()"
+                >
+                  {{ s.targetName }} <span class="sanction-history__chev" aria-hidden="true">›</span>
+                </a>
+              </div>
+            </td>
+            <td>
+              <span class="sanction-history__cell-val">{{ sanctionLabel(s) }}</span>
+            </td>
+            <td>
+              @if (s.seasonId) {
+                <a
+                  class="sanction-history__link"
+                  [routerLink]="['/app', 'grupos', groupId(), 'ranking']"
+                  [queryParams]="{ temporada: s.seasonId }"
+                  (click)="$event.stopPropagation()"
+                >
+                  {{ s.modality }} <span class="sanction-history__chev" aria-hidden="true">›</span>
+                </a>
+              } @else if (s.scope === 'ALL_LEAGUES') {
+                <span class="sanction-history__cell-val">Las 3 ligas</span>
+              } @else {
+                <span class="sanction-history__cell-val">{{ s.modality }}</span>
+              }
+            </td>
+            <td>
+              @if (s.byUserId) {
+                <a
+                  class="sanction-history__link"
+                  [routerLink]="playerLink(s.byUserId)"
+                  (click)="$event.stopPropagation()"
+                >
+                  {{ s.byName }} <span class="sanction-history__chev" aria-hidden="true">›</span>
+                </a>
+                <span class="sanction-history__role-tag"> ({{ roleAbbr(s.byRole) }})</span>
+              } @else {
+                <span class="sanction-history__cell-val">Sistema</span>
+              }
+            </td>
+            <td>
+              <span class="sanction-history__cell-val nf-mono">{{ formatShortDate(s.createdAt) }}</span>
+            </td>
+          </tr>
+
+          @if (openDetailId() === s.id) {
+            <tr class="sanction-history__detail-row">
+              <td colspan="5">
+                <div class="sanction-history__detail-content">
+                  <span class="sanction-history__detail-reason">«{{ s.reason }}»</span>
+                  <span class="sanction-history__detail-meta">
+                    · @if (s.status === 'LIFTED') {
+                      levantada por {{ s.liftedByName ?? 'el árbitro' }} el {{ formatEndedDate(s.liftedAt) }}
+                    } @else {
+                      cumplida el {{ formatEndedDate(s.endsAt) }}
+                    }
+                  </span>
+                </div>
+              </td>
+            </tr>
+          }
+        }
+      </tbody>
+    </table>
+  </div>
+}

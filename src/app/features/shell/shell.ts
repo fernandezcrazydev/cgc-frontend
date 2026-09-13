@@ -26,6 +26,7 @@ import { RiotAccountStore } from '../../core/riot';
 import { SessionsStore } from '../../core/sessions';
 import { DiscordStore } from '../../core/discord';
 import { PreferencesStore } from '../../core/preferences';
+import { GroupVotesStore } from '../../core/group-votes';
 import { ToastService } from '../../core/toast';
 import { RiotMetricsStore, RiotUsageStore } from '../../core/admin';
 import { NfAvatar, NfButton, NfRankEmblem, NfSkeleton, NfToastHost, NfTypeahead, NfWindow } from '../../ui';
@@ -36,6 +37,12 @@ import { FeedbackDialog } from '../feedback';
 import { RiotUsageIndicator } from './riot-usage-indicator';
 import { GroupActionsMenuComponent } from './group-actions/group-actions-menu.component';
 import { wireRiotAccountRefresh } from './riot-account-refresh';
+import { GroupSanctionsStore, SanctionScope } from '../../core/group-sanctions';
+import {
+  RefereeDecisionData,
+  RefereeDecisionModalComponent,
+  parseRefereeDecision,
+} from './views/group-sanctions/referee-decision-modal.component';
 
 /** Preferencia por dispositivo: ¿la navegación lateral arranca plegada en rail? */
 const RAIL_KEY = 'cgc-sidebar-railed';
@@ -78,6 +85,7 @@ export interface LiveRoomRow {
     NfTypeahead,
     NfRankEmblem,
     GroupActionsMenuComponent,
+    RefereeDecisionModalComponent,
   ],
   // Mismo idioma que nf-modal para cerrar con Escape. Es un no-op si el
   // desplegable de descarga no está abierto.
@@ -113,11 +121,13 @@ export class Shell {
   private readonly sessions = inject(SessionsStore);
   private readonly prefs = inject(PreferencesStore);
   private readonly discord = inject(DiscordStore);
+  private readonly sanctionsStore = inject(GroupSanctionsStore);
   /** Público: la plantilla lo cablea a `<nf-toast-host>`, que ya no lo inyecta. */
   readonly toasts = inject(ToastService);
   /** Solo para poder pararlos y vaciarlos al cerrar sesión; el indicador se arranca solo. */
   private readonly riotUsage = inject(RiotUsageStore);
   private readonly riotMetrics = inject(RiotMetricsStore);
+  private readonly votes = inject(GroupVotesStore);
 
   // ── Buscador Global de Jugadores y Grupos ──────────────────────────
   private readonly playerSearchStore = inject(PlayerSearchStore);
@@ -198,16 +208,28 @@ export class Shell {
     const backendNotifs = this.notifs.notifications();
     const readSet = this.demoReadIds();
     const dismissedSet = this.demoDismissedIds();
+    const miUserId = this.session.user()?.userId ?? '';
+
+    const isVoteAlreadyCast = (n: { type: string; data: Record<string, string> }): boolean => {
+      if (n.type === 'GROUP_VOTE_OPENED') {
+        const groupId = n.data['groupId'];
+        const voteId = n.data['voteId'];
+        if (groupId && voteId && miUserId && this.votes.hasVoted(groupId, voteId, miUserId)) {
+          return true;
+        }
+      }
+      return false;
+    };
 
     const backendMapped = backendNotifs
-      .filter((n) => !dismissedSet.has(n.id))
+      .filter((n) => !dismissedSet.has(n.id) && !isVoteAlreadyCast(n))
       .map((n) => {
         const isRead = n.read || readSet.has(n.id);
         return notificationView({ ...n, read: isRead });
       });
 
     const demoMapped = SEED_NOTIFICATIONS
-      .filter((n) => !dismissedSet.has(n.id))
+      .filter((n) => !dismissedSet.has(n.id) && !isVoteAlreadyCast(n))
       .map((n) => {
         const isRead = n.read || readSet.has(n.id);
         return notificationView({ ...n, read: isRead });
@@ -854,6 +876,95 @@ export class Shell {
     this.demoDismissedIds.update((s) => new Set(s).add(view.id));
   }
 
+  /**
+   * El botón de un aviso obligatorio hace lo que dice su etiqueta.
+   *
+   * Hasta [F5.5-23b] todos rotulaban «Entendido» a fuego y solo acusaban recibo, así que la
+   * votación del grupo —que pide «Ir a votar»— pintaba el botón equivocado y no llevaba a
+   * ninguna parte. Los que sí son un acuse de recibo (la sanción de [F5.5-02]) siguen igual:
+   * su `ctaLabel` es «Entendido» y este método los manda a `acknowledgeNotice`.
+   */
+  onMandatoryCta(view: NotificationView, event: Event): void {
+    if (view.ctaLabel === 'Resolver sanción') {
+      event.stopPropagation();
+      this.openRefereeDecision(view.id);
+      return;
+    }
+    if (view.link && view.ctaLabel && view.ctaLabel !== 'Entendido') {
+      event.stopPropagation();
+      this.openNotif(view);
+      return;
+    }
+    this.acknowledgeNotice(view, event);
+  }
+
+  // ── Decisión arbitral requerida [F5.5-22c] ──────────────────────────
+  readonly sanctionDecisionSnoozesLeft = signal(3);
+  readonly activeSanctionDecision = signal<RefereeDecisionData | null>(null);
+  readonly isSanctionDecisionSnoozed = signal(false);
+
+  openRefereeDecision(notifId: string): void {
+    const all = [...this.notifs.notifications(), ...SEED_NOTIFICATIONS];
+    const found = all.find((n) => n.id === notifId);
+    if (found) {
+      this.activeSanctionDecision.set(parseRefereeDecision(found));
+      this.closeNotifications();
+    }
+  }
+
+  snoozeSanctionDecision(): void {
+    if (this.sanctionDecisionSnoozesLeft() > 0) {
+      this.sanctionDecisionSnoozesLeft.update((n) => Math.max(0, n - 1));
+      this.isSanctionDecisionSnoozed.set(true);
+    }
+    this.activeSanctionDecision.set(null);
+  }
+
+  resolveSanctionDismiss(): void {
+    const decision = this.activeSanctionDecision();
+    if (!decision) return;
+    void this.notifs.markRead(decision.notificationId);
+    this.demoReadIds.update((s) => new Set(s).add(decision.notificationId));
+    this.toasts.info('Expediente cerrado sin sanción');
+    this.activeSanctionDecision.set(null);
+  }
+
+  resolveSanctionApply(payload: { days: number; scope: SanctionScope; reason: string }): void {
+    const decision = this.activeSanctionDecision();
+    if (!decision) return;
+
+    this.sanctionsStore.recordSanction(
+      decision.groupId,
+      {
+        kind: 'BAN',
+        targetUserId: decision.targetUserId,
+        targetName: decision.targetName,
+        targetAvatar: decision.targetAvatar ?? null,
+        targetHue: decision.targetHue ?? 0,
+        lpDelta: null,
+        days: payload.days,
+        scope: payload.scope,
+        modality: decision.modality,
+        seasonId: null,
+        seasonName: null,
+        reason: payload.reason,
+        roomId: null,
+        byUserId: this.session.user()?.userId ?? null,
+        byName: this.session.user()?.discordUsername ?? 'Árbitro',
+        byRole: 'árbitro',
+        endsAt: Date.now() + payload.days * 86_400_000,
+      },
+      [],
+      [],
+      this.session.user()?.userId ?? null,
+    );
+
+    void this.notifs.markRead(decision.notificationId);
+    this.demoReadIds.update((s) => new Set(s).add(decision.notificationId));
+    this.toasts.success(`Veto de ${payload.days} días aplicado a ${decision.targetName}`);
+    this.activeSanctionDecision.set(null);
+  }
+
   /** Confirmar lectura de un aviso obligatorio crítico [F5.5-02] */
   acknowledgeNotice(view: NotificationView, event: Event): void {
     event.stopPropagation();
@@ -938,6 +1049,19 @@ export class Shell {
   private readonly destroyRef = inject(DestroyRef);
 
   constructor() {
+    // Modal de decisión arbitral [F5.5-22c]: salta al arrancar si hay aviso obligatorio pendiente
+    effect(() => {
+      if (this.isSanctionDecisionSnoozed() || this.activeSanctionDecision()) return;
+      const readSet = this.demoReadIds();
+      const all = [...this.notifs.notifications(), ...SEED_NOTIFICATIONS];
+      const pending = all.find(
+        (n) => n.type === 'SANCTION_DECISION_REQUIRED' && !n.read && !readSet.has(n.id),
+      );
+      if (pending) {
+        this.activeSanctionDecision.set(parseRefereeDecision(pending));
+      }
+    });
+
     // La selección se aplica en un effect y no en la propia suscripción porque el grupo puede
     // no estar todavía en `GroupsStore` cuando llega la navegación (entrar por URL directa corre
     // en paralelo a `/me/groups`). Así se selecciona en cuanto se conoce, venga antes la ruta o

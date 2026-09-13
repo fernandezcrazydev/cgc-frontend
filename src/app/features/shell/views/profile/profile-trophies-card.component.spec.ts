@@ -17,7 +17,6 @@ function grupo(n: number, rankPosition = n): ProfileGroupRecord {
     losses: 10,
     wr: 67,
     rankPosition,
-    lp: 500,
     seasonName: 'Temporada 2026-Q3',
   };
 }

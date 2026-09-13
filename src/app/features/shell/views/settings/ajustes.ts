@@ -6,6 +6,7 @@ import { SettingsAccountComponent } from './settings-account.component';
 import { SettingsPositionsComponent } from './settings-positions.component';
 import { SettingsNotificationsComponent } from './settings-notifications.component';
 import { SettingsPrivacyComponent } from './settings-privacy.component';
+import { SettingsGroupTabsComponent } from './settings-group-tabs.component';
 import { SettingsAppearanceComponent } from './settings-appearance.component';
 
 export const SETTINGS_SECTIONS = [
@@ -13,7 +14,7 @@ export const SETTINGS_SECTIONS = [
   'posiciones',
   'notificaciones',
   'privacidad',
-  'apariencia',
+  'personalizacion',
 ] as const;
 export type SettingsSection = (typeof SETTINGS_SECTIONS)[number];
 
@@ -28,7 +29,11 @@ export const SECTIONS: readonly SectionConfig[] = [
   { id: 'posiciones', label: 'Posiciones', description: 'Qué juegas y qué no' },
   { id: 'notificaciones', label: 'Notificaciones', description: 'Por dónde te avisamos' },
   { id: 'privacidad', label: 'Privacidad', description: 'Quién puede llegar a ti' },
-  { id: 'apariencia', label: 'Apariencia', description: 'Cómo se ve la aplicación' },
+  {
+    id: 'personalizacion',
+    label: 'Personalización',
+    description: 'Cómo se ve la aplicación y qué pestañas te salen',
+  },
 ];
 
 @Component({
@@ -40,6 +45,7 @@ export const SECTIONS: readonly SectionConfig[] = [
     SettingsPositionsComponent,
     SettingsNotificationsComponent,
     SettingsPrivacyComponent,
+    SettingsGroupTabsComponent,
     SettingsAppearanceComponent,
   ],
   templateUrl: './ajustes.html',
@@ -60,6 +66,9 @@ export class Ajustes {
 
   readonly activeSection = computed<SettingsSection>(() => {
     const s = this.queryParamMap()?.get('s');
+    if (s === 'apariencia') {
+      return 'personalizacion';
+    }
     if (s && (SETTINGS_SECTIONS as readonly string[]).includes(s)) {
       return s as SettingsSection;
     }

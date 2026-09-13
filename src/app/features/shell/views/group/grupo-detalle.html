@@ -48,6 +48,28 @@
 
             <div class="gd-hub">
               <div class="gd-hub__main">
+                @if (refereeElection(); as refElec) {
+                  <app-hub-referee-vote-card
+                    [election]="refElec"
+                    [groupId]="g.id"
+                    [currentUserId]="myUserId()"
+                    [members]="voteMembers()"
+                    [membersLoading]="store.membersLoading()"
+                    (openVoteModal)="refereeModalOpen.set(true)"
+                  />
+                }
+
+                @for (vote of openVotes(); track vote.id) {
+                  <app-hub-vote-card
+                    [vote]="vote"
+                    [groupId]="g.id"
+                    [currentUserId]="myUserId()"
+                    [members]="voteMembers()"
+                    [membersLoading]="store.membersLoading()"
+                    (voteCast)="onVoteCast($event)"
+                  />
+                }
+
                 <div class="gd-hub__row">
                   <app-hub-lp-chart
                     class="gd-hub__chart"
@@ -243,3 +265,19 @@
         }
       </nf-modal>
     }
+
+    <!-- Votación de árbitro [F5.5-22b] -->
+    @if (refereeModalOpen()) {
+      @if (refereeElection(); as refElec) {
+        <nf-modal title="Votación de árbitro" width="560px" (closed)="refereeModalOpen.set(false)">
+          <app-referee-vote-modal
+            [election]="refElec"
+            [members]="refereeCandidates()"
+            [currentUserId]="myUserId()"
+            (voteConfirmed)="onRefereeVote($event)"
+            (closed)="refereeModalOpen.set(false)"
+          />
+        </nf-modal>
+      }
+    }
+

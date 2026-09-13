@@ -17,7 +17,6 @@ function grupo(n: number): ProfileGroupRecord {
     losses: 8,
     wr: 60,
     rankPosition: n,
-    lp: 100 + n,
     seasonName: 'Temporada 2026-Q3',
   };
 }
@@ -149,7 +148,6 @@ describe('ProfileGroupsCard', () => {
     expect(fila.querySelector('.pf-group-item__avatar')).not.toBeNull();
     expect(fila.querySelector('.pf-group-item__arrow')).not.toBeNull();
     expect(fila.querySelector('.pf-group-item__badge')?.textContent?.trim()).toBe('Grupo ajeno');
-    expect(fila.querySelector('.pf-group-item__rank')).toBeNull();
     expect(fila.querySelector('.pf-group-item__sub')?.textContent).toContain('Ver ficha');
   });
 

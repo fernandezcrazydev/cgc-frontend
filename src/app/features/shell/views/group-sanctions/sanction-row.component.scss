@@ -1,0 +1,206 @@
+@use 'breakpoints' as *;
+
+.sanction-row {
+  display: flex;
+  min-height: 92px;
+  background: var(--nf-surface);
+  border: 1px solid var(--nf-border);
+  border-radius: var(--nf-radius);
+  overflow: hidden;
+  position: relative;
+}
+
+.sanction-row__strip {
+  width: 4px;
+  flex-shrink: 0;
+}
+
+.sanction-row--ban .sanction-row__strip {
+  background: var(--nf-danger);
+}
+
+.sanction-row--auto .sanction-row__strip {
+  background: var(--nf-border-strong);
+}
+
+.sanction-row__body {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  padding: 12px 16px;
+  gap: 16px;
+  align-items: stretch;
+
+  @media (max-width: #{$bp-mobile}) {
+    flex-direction: column;
+    gap: 10px;
+    padding: 10px 12px;
+  }
+}
+
+.sanction-row__identity {
+  width: 176px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 4px;
+
+  @media (max-width: #{$bp-mobile}) {
+    width: 100%;
+  }
+}
+
+.sanction-row__user-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.sanction-row__user-name {
+  font-size: var(--fs-body);
+  font-weight: 600;
+  color: var(--nf-text);
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  &:hover {
+    color: var(--nf-primary);
+  }
+}
+
+.sanction-row__by-lines {
+  display: flex;
+  flex-direction: column;
+  padding-left: 36px;
+  font-size: var(--fs-caption);
+  color: var(--nf-text-dim);
+  line-height: var(--lh-snug);
+}
+
+.sanction-row__by-line {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sanction-row__by-link {
+  color: var(--nf-text-dim);
+  text-decoration: none;
+
+  &:hover {
+    color: var(--nf-primary);
+  }
+}
+
+.sanction-row__by-role {
+  color: var(--nf-text-dim);
+}
+
+.sanction-row__fact {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 4px;
+}
+
+.sanction-row__fact-line1 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  line-height: var(--lh-snug);
+}
+
+.sanction-row__punishment {
+  font-size: var(--fs-body);
+  font-weight: 600;
+  color: var(--nf-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sanction-row__time {
+  font-size: var(--fs-caption);
+  color: var(--nf-text-dim);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.sanction-row__fact-line2 {
+  font-size: var(--fs-body);
+  color: var(--nf-text-mid);
+  line-height: var(--lh-snug);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sanction-row__reason-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+}
+
+.sanction-row__fact-line3 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  /*
+   * 32px, y no 28: es lo que mide un `nf-btn--sm` (7px+7px de padding sobre una línea de 12px)
+   * redondeado hacia arriba. Con 28 la barra se encogía en las filas que no tienen ningún botón
+   * —ni revisión, ni levantar—, y esas filas salían 3px más bajas que las demás. La pantalla se
+   * pidió con TODAS las filas de la misma altura, así que el hueco tiene que medir lo mismo esté
+   * ocupado o vacío.
+   */
+  min-height: 32px;
+
+  @media (max-width: #{$bp-mobile}) {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+  }
+}
+
+.sanction-row__ends-wrapper {
+  display: flex;
+  align-items: center;
+}
+
+.sanction-row__ends-at {
+  font-size: var(--fs-caption);
+  color: var(--nf-text-dim);
+}
+
+.sanction-row__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+
+  @media (max-width: #{$bp-mobile}) {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+
+.sanction-row__link {
+  color: var(--nf-text);
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.sanction-row__chev {
+  color: var(--nf-text-dim);
+}
