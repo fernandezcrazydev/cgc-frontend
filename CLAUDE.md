@@ -22,6 +22,7 @@ npm start        # ng serve (dev, backend en http://localhost:8080)
 npm run build    # ng build (defaultConfiguration: production)
 npm test         # ng test (vitest vía @angular/build:unit-test)
 npm run arch     # reglas de arquitectura de este documento (ver § "Reglas verificadas")
+npm run api:types  # regenera los tipos del backend (ver § "El contrato del backend")
 ```
 
 **Antes de dar por terminado cualquier cambio: `npm run arch && npm test`.** El primero es
@@ -537,6 +538,44 @@ Reglas de oro del manejo de errores:
 - Entidades referenciadas por **id estable del backend**, nunca por `name` ni `tag` (`Nombre#REGION`).
 - Fechas del backend en ISO-8601; formatear en presentación.
 
+## El contrato del backend (`npm run api:types`)
+
+El backend publica su contrato commiteado en dos ficheros, y **los genera un test suyo que falla
+si dejan de describir lo que sirve el código**:
+
+- `cgc-backend/http/openapi.json` — la forma de cada endpoint
+- `cgc-backend/http/api-error-codes.json` — los `code` de error estables, con su status
+
+`npm run api:types` (script en `scripts/api-contract.mjs`) los lee **del disco** —`cgc-backend`
+es un repo hermano, no hace falta levantarlo— y escribe:
+
+- `src/app/core/http/api-types.d.ts` — `paths`, `operations` y `components['schemas']`
+- `src/app/core/http/api-error-codes.ts` — `ApiErrorCode`, la lista cerrada de códigos
+
+**Los dos van commiteados**: `npm run build` no puede depender de que tengas el backend clonado.
+
+Qué gana esto, en concreto:
+
+- `MESSAGES_BY_CODE` de `api-error.ts` está tipado contra `ApiErrorCode`, así que **un código que
+  el backend renombra o borra es un error de compilación aquí**. Se estrenó encontrando dos
+  traducciones muertas (`UNSUPPORTED_IMAGE` e `IMAGE_TOO_LARGE`) para un código que el backend
+  nunca ha mandado: el real es `INVALID_AVATAR`.
+- Al migrar un dominio de mock a HTTP, `api-types.d.ts` dice la forma exacta de la respuesta. No
+  la copies a mano otra vez.
+
+Ojo con dos cosas:
+
+- **Todos los campos salen opcionales** (`id?: string`). Un `record` de Java no declara
+  nulabilidad y springdoc no se la inventa. Es deuda conocida del backend, no algo que arreglar
+  aquí.
+- **`MESSAGES_BY_CODE` está tipado como `Record<ApiErrorCode, string>`, sin `Partial`.** Los 98
+  códigos están traducidos, y el compilador te obliga a mantenerlo así: un código nuevo del
+  backend **no compila** hasta que le escribes su texto en español. Ese es el aviso que antes
+  dependía de que alguien se acordara de darlo. Si algún día estorba, `Partial<Record<...>>` lo
+  relaja — y entonces lo que falte vuelve a caer al genérico por `status` sin que nadie se entere.
+
+El detalle completo está en `cgc-backend/docs/contrato-api.md`.
+
 ## Contratos pendientes de acordar con backend (preguntar antes de asumir)
 
 - ~~**Formato de error**~~ → **ACORDADO**: ProblemDetail RFC 7807 + `code` estable obligatorio.
@@ -560,6 +599,8 @@ Cuando se acuerde uno, documentarlo aquí y borrar la línea de pendientes.
    contra el mock; se re-derivarán de `Session` + backend al migrar cada dominio).
 2. **DTOs espejo**: las interfaces de `models.ts` replican exactamente la respuesta del backend
    (como `CurrentUser` ↔ `MeResponse`). Si el backend cambia, cambia el modelo; no lo parchees.
+   **Contrástalas con `core/http/api-types.d.ts`**, que es el contrato real generado — ver
+   § "El contrato del backend".
 3. **HTTP**: siempre `HttpClient` (ya provisto con `withFetch()` + `authInterceptor`). El Bearer
    se añade solo a `secureRoutes` (= `environment.apiUrl`); si añades otro host, regístralo ahí.
 4. **Componentes finos**: un componente orquesta stores y navega. Si necesitas escribir un
@@ -612,6 +653,14 @@ Cuando se acuerde uno, documentarlo aquí y borrar la línea de pendientes.
   ya arrastró un juego de tokens llamado `--nf-pink`/`--nf-cyan` que acabó pintando azul.
   Excepción única: los bandos de LoL (`'blue' | 'red'`, `.lm-side--*`, `.cp-team--*`), que
   son dominio y no tema.
+- **Nombres que un bloqueador de anuncios ocultaría, nunca.** EasyList —la lista por defecto
+  de uBlock Origin, AdBlock Plus y AdGuard— trae ~8.800 reglas cosméticas **genéricas** del
+  tipo `##.clase`, sin dominio que las acote: aplican `display:none !important` a ese nombre
+  en cualquier página. El directorio de administración se llamó `ad-grid`/`ad-card` y
+  **desapareció entero** para quien usara un bloqueador: DOM completo, guard pasado, consola
+  limpia, pantalla vacía. Nada en desarrollo lo enseña. Las reglas casan el nombre EXACTO, así
+  que el riesgo está en la **cabeza** del nombre: `gp-banner` es seguro, `banner` no. Lo vigila
+  `npm run arch` (regla `adblock-bait`); el prefijo de esa vista es hoy `adm-*`.
 - **Temas**: `core/theme` mantiene `<html data-theme>`; cada skin es un fichero en
   `src/styles/themes/` que redefine tokens. El tema por defecto (`nocturne`) vive en
   `styles/tokens/` y **no lleva atributo**, así que `:root` a secas ya es el defecto.
@@ -662,6 +711,7 @@ corre en <1s, y CI lo ejecuta en cada PR (`.github/workflows/ci.yml`). Comprueba
 | `inline-template-size` | plantilla inline > 150 líneas |
 | `font-floor` | `font-size` < 11px |
 | `font-size-raw` | `font-size` en px crudos en vez de la escala `--fs-*` |
+| `adblock-bait` | clases que los bloqueadores de anuncios ocultan solas (`ad-*`, `banner*`, `promo*`…) |
 | `viewport-units` | `100vh`/`100vw` a pelo (el zoom de `:root` los desvía un 10%) |
 | `emoji-free` | pictogramas de color en la interfaz (§ "UI kit": los iconos son SVG inline) |
 | `legacy-angular` | `@Input()`/`@Output()`/`EventEmitter` en vez de `input()`/`output()`/`model()` |

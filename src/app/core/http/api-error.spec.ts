@@ -12,12 +12,12 @@ describe('parseApiError', () => {
   it('extrae code, detail y status de un ProblemDetail', () => {
     const err = parseApiError(
       problem(400, {
-        code: 'UNSUPPORTED_IMAGE',
+        code: 'INVALID_AVATAR',
         detail: 'Unsupported image type; use JPEG or PNG',
         status: 400,
       }),
     );
-    expect(err).toMatchObject({ status: 400, code: 'UNSUPPORTED_IMAGE' });
+    expect(err).toMatchObject({ status: 400, code: 'INVALID_AVATAR' });
     expect(err.detail).toBe('Unsupported image type; use JPEG or PNG');
   });
 
@@ -51,8 +51,8 @@ describe('parseApiError', () => {
 
 describe('messageForError', () => {
   it('traduce un code conocido a su mensaje en español', () => {
-    const msg = messageForError({ status: 400, code: 'UNSUPPORTED_IMAGE', detail: null, errors: [] });
-    expect(msg).toBe('Ese formato de imagen no es válido. Usa JPEG o PNG.');
+    const msg = messageForError({ status: 400, code: 'INVALID_AVATAR', detail: null, errors: [] });
+    expect(msg).toBe('Esa imagen no vale. Tiene que ser un JPEG o un PNG de menos de 2 MB.');
   });
 
   it('cae al genérico por status y avisa en consola con un code desconocido', () => {
@@ -81,7 +81,7 @@ describe('messageForError', () => {
 
 describe('errorMessage', () => {
   it('encadena parse + message: del HttpErrorResponse directo al texto', () => {
-    const msg = errorMessage(problem(400, { code: 'UNSUPPORTED_IMAGE' }));
-    expect(msg).toBe('Ese formato de imagen no es válido. Usa JPEG o PNG.');
+    const msg = errorMessage(problem(400, { code: 'INVALID_AVATAR' }));
+    expect(msg).toBe('Esa imagen no vale. Tiene que ser un JPEG o un PNG de menos de 2 MB.');
   });
 });
