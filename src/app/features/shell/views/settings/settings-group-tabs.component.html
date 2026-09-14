@@ -1,0 +1,95 @@
+<nf-window title="Pestañas del grupo" bodyPadding="22px">
+  <div class="settings-eyebrow nf-mono">Personalización</div>
+  <p class="tab-config__lead">Elige cuáles ves y en qué orden. Mínimo tres.</p>
+
+  <div class="tab-preview-wrap">
+    <div class="tab-preview" aria-hidden="true">
+      @for (tab of visibleTabs(); track tab.path; let last = $last) {
+        <span class="tab-preview__item">{{ tab.label }}</span>
+        @if (!last) {
+          <span class="tab-preview__divider"></span>
+        }
+      }
+    </div>
+  </div>
+
+  <div class="tab-list" role="list">
+    @for (tab of tabs(); track tab.path; let i = $index; let first = $first; let last = $last) {
+      <div
+        class="tab-row"
+        role="listitem"
+        [class.is-dimmed]="!tab.visible"
+        [class.is-dragged]="draggedPath() === tab.path"
+        [class.is-drag-over]="dragOverPath() === tab.path && draggedPath() !== tab.path"
+        draggable="true"
+        (dragstart)="onDragStart($event, tab.path)"
+        (dragover)="onDragOver($event, tab.path)"
+        (dragenter)="onDragEnter($event, tab.path)"
+        (dragleave)="onDragLeave($event, tab.path)"
+        (drop)="onDrop($event, tab.path)"
+        (dragend)="onDragEnd()"
+      >
+        <span
+          class="tab-row__handle"
+          [attr.aria-label]="'Arrastrar para reordenar ' + tab.label"
+          title="Arrastrar para reordenar"
+        >
+          <svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor" aria-hidden="true">
+            <circle cx="5" cy="3" r="1.5" />
+            <circle cx="11" cy="3" r="1.5" />
+            <circle cx="5" cy="8" r="1.5" />
+            <circle cx="11" cy="8" r="1.5" />
+            <circle cx="5" cy="13" r="1.5" />
+            <circle cx="11" cy="13" r="1.5" />
+          </svg>
+        </span>
+
+        <label class="tab-row__check-label">
+          <input
+            type="checkbox"
+            class="tab-row__checkbox"
+            [checked]="tab.visible"
+            [disabled]="tab.visible && visibleCount() <= minVisibleTabs"
+            [attr.title]="tab.visible && visibleCount() <= minVisibleTabs ? 'Tienen que quedar al menos tres pestañas' : null"
+            (change)="toggle(tab.path)"
+          />
+          <span class="tab-row__label">{{ tab.label }}</span>
+        </label>
+
+        <div class="tab-row__actions">
+          <button
+            nfIconButton
+            variant="ghost"
+            size="sm"
+            [label]="'Subir ' + tab.label"
+            [disabled]="first"
+            (click)="moveUp(tab.path, i)"
+          >
+            <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="4 10 8 6 12 10" />
+            </svg>
+          </button>
+          <button
+            nfIconButton
+            variant="ghost"
+            size="sm"
+            [label]="'Bajar ' + tab.label"
+            [disabled]="last"
+            (click)="moveDown(tab.path, i)"
+          >
+            <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="4 6 8 10 12 6" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    }
+  </div>
+
+  <div class="tab-config__foot">
+    <span class="tab-config__count">{{ visibleCount() }} de 6 visibles</span>
+    <button nfButton variant="ghost" size="sm" (click)="reset()">
+      Restablecer
+    </button>
+  </div>
+</nf-window>

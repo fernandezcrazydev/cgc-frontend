@@ -1,6 +1,6 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { Injectable, Signal, WritableSignal, computed, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
-import { ChampionSummary, GameDataManifest, Perk, SummonerSpell } from './models';
+import { ChampionDetail, ChampionSummary, GameDataManifest, GameItem, Perk, SummonerSpell } from './models';
 import { GameDataApi } from './game-data-api';
 
 export type GameDataStatus = 'idle' | 'loading' | 'ready' | 'error';
@@ -17,8 +17,9 @@ const EMPTY_MANIFEST: GameDataManifest = { version: null, updatedAt: null };
  * Carga manifest + campeones + hechizos de invocador + runas a la vez. Hechizos y
  * runas son listas fijas y cortas (una docena y ~108) que el marcador de una partida
  * y el acordeón del ranking necesitan para resolver `id → icono`, así que caben en la
- * misma carga; los objetos NO entran aquí porque son una colección paginada que solo
- * usa el buscador del selector (`GameDataApi.items` suelto). Un `version: null` (nunca
+ * misma carga; los objetos se cargan enteros en memoria de forma perezosa
+ * al llamar a `item(id)` (no entran en `ensureLoaded()`) barriendo las páginas de
+ * `api.items(page, size)` una sola vez por sesión. Un `version: null` (nunca
  * se ha importado) no es un error: el backend responde 200 con catálogo vacío, así que
  * el store queda `ready` con una lista vacía, no `error`.
  */
@@ -31,14 +32,18 @@ export class GameDataStore {
   private readonly _summonerSpells = signal<SummonerSpell[]>([]);
   private readonly _perks = signal<Perk[]>([]);
   private readonly _status = signal<GameDataStatus>('idle');
+  private readonly _itemsById = signal<ReadonlyMap<number, GameItem>>(new Map());
 
   /** La carga en vuelo, para que N llamadas concurrentes compartan una petición. */
   private inFlight: Promise<void> | null = null;
+  private itemsInFlight: Promise<void> | null = null;
+  private _itemsLoaded = false;
 
   readonly status = this._status.asReadonly();
   readonly champions = this._champions.asReadonly();
   readonly summonerSpells = this._summonerSpells.asReadonly();
   readonly perks = this._perks.asReadonly();
+  readonly itemsById: Signal<ReadonlyMap<number, GameItem>> = this._itemsById.asReadonly();
 
   /** `null` si el backend nunca ha importado el catálogo. */
   readonly version = computed(() => this._manifest().version);
@@ -62,6 +67,78 @@ export class GameDataStore {
   readonly perkById = computed<Map<number, Perk>>(
     () => new Map(this._perks().map((p) => [p.id, p])),
   );
+
+  private readonly _championDetails = new Map<number, WritableSignal<ChampionDetail | null>>();
+  private readonly _detailInFlight = new Map<number, Promise<void>>();
+  private readonly _itemSignals = new Map<number, Signal<GameItem | null>>();
+
+  /** Detalle de un campeón, cacheado por id. `null` mientras carga o si no existe. */
+  championDetail(id: number): Signal<ChampionDetail | null> {
+    let sig = this._championDetails.get(id);
+    if (!sig) {
+      sig = signal<ChampionDetail | null>(null);
+      this._championDetails.set(id, sig);
+      this.fetchChampionDetail(id, sig);
+    }
+    return sig.asReadonly();
+  }
+
+  private async fetchChampionDetail(id: number, sig: WritableSignal<ChampionDetail | null>): Promise<void> {
+    if (this._detailInFlight.has(id)) return;
+    const p = (async () => {
+      try {
+        const detail = await firstValueFrom(this.api.champion(id));
+        sig.set(detail);
+      } catch {
+        sig.set(null);
+      } finally {
+        this._detailInFlight.delete(id);
+      }
+    })();
+    this._detailInFlight.set(id, p);
+  }
+
+  /** Detalle de un objeto, resuelto del mapa global de objetos. `null` mientras carga o si no existe. */
+  item(id: number): Signal<GameItem | null> {
+    void this.ensureItemsLoaded();
+    let sig = this._itemSignals.get(id);
+    if (!sig) {
+      sig = computed(() => this._itemsById().get(id) ?? null);
+      this._itemSignals.set(id, sig);
+    }
+    return sig;
+  }
+
+  private ensureItemsLoaded(): Promise<void> {
+    if (this._itemsLoaded) return Promise.resolve();
+    return (this.itemsInFlight ??= this.loadAllItems());
+  }
+
+  private async loadAllItems(): Promise<void> {
+    try {
+      const size = 200;
+      let page = 0;
+      const firstPage = await firstValueFrom(this.api.items(page, size));
+      const allItems: GameItem[] = [...firstPage.content];
+      const totalPages = firstPage.totalPages;
+
+      while (++page < totalPages) {
+        const nextPage = await firstValueFrom(this.api.items(page, size));
+        allItems.push(...nextPage.content);
+      }
+
+      const map = new Map<number, GameItem>();
+      for (const it of allItems) {
+        map.set(it.id, it);
+      }
+      this._itemsById.set(map);
+      this._itemsLoaded = true;
+    } catch {
+      // Si falla dejamos el mapa vacío y permitimos reintentar en futuras consultas
+    } finally {
+      this.itemsInFlight = null;
+    }
+  }
 
   /**
    * Devuelve cuando el catálogo está cargado, cargándolo si hace falta.
@@ -87,6 +164,12 @@ export class GameDataStore {
     this._champions.set([]);
     this._summonerSpells.set([]);
     this._perks.set([]);
+    this._championDetails.clear();
+    this._detailInFlight.clear();
+    this._itemsById.set(new Map());
+    this._itemSignals.clear();
+    this.itemsInFlight = null;
+    this._itemsLoaded = false;
     this._status.set('idle');
   }
 

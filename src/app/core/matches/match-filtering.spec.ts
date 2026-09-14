@@ -6,6 +6,7 @@ import {
   filterCrossMatches,
   filterGroupMatches,
   filterPersonalMatches,
+  gameModeOf,
   sortCrossMatches,
   sortMatches,
 } from './match-filtering';
@@ -266,5 +267,24 @@ describe('sortCrossMatches', () => {
 
     expect(sortCrossMatches(cross, 'date-asc').map((c) => c.id)).toEqual(['viejo', 'nuevo']);
     expect(sortCrossMatches(cross, 'date-desc').map((c) => c.id)).toEqual(['nuevo', 'viejo']);
+  });
+});
+
+describe('gameModeOf', () => {
+  const baseMatch = match({ id: 'm1', blue: [], red: [] });
+
+  it('resuelve las tres desde gameMode y desde modeLabel', () => {
+    // Desde gameMode
+    expect(gameModeOf({ ...baseMatch, gameMode: 'Competitivo' })).toBe('Competitivo');
+    expect(gameModeOf({ ...baseMatch, gameMode: 'Equilibrado' })).toBe('Equilibrado');
+    expect(gameModeOf({ ...baseMatch, gameMode: 'Caos' })).toBe('Caos');
+
+    // Desde modeLabel
+    expect(gameModeOf({ ...baseMatch, gameMode: undefined, modeLabel: 'Competitivo · Room' })).toBe('Competitivo');
+    expect(gameModeOf({ ...baseMatch, gameMode: undefined, modeLabel: 'Equilibrado · Party' })).toBe('Equilibrado');
+    expect(gameModeOf({ ...baseMatch, gameMode: undefined, modeLabel: 'Caos · Room' })).toBe('Caos');
+
+    // Respaldo
+    expect(gameModeOf({ ...baseMatch, gameMode: undefined, modeLabel: undefined })).toBe('Competitivo');
   });
 });

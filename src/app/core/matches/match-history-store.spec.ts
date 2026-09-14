@@ -3,6 +3,8 @@ import { provideHttpClient } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 import { MatchHistoryStore } from './match-history-store';
 import { Match, MatchParticipant } from './models';
+import { matchHasStats } from './match-view';
+import { matchFixture, participantFixture } from './match-fixtures';
 
 describe('MatchHistoryStore', () => {
   let store: MatchHistoryStore;
@@ -150,6 +152,40 @@ describe('MatchHistoryStore', () => {
     expect(store.matchesByGroup('g-1').length).toBe(1);
     expect(store.matchesByGroup('otro-grupo').length).toBe(0);
     expect(store.playedChampionIdsInPersonal()).toEqual([24]);
+  });
+
+  it('groupSummary calcula la duración media solo sobre partidas con datos y totalMatches cuenta todas', () => {
+    const p1 = participantFixture({ id: 'p1', team: 'blue' });
+    const p2 = participantFixture({ id: 'p2', team: 'red' });
+    const mWithStats = matchFixture({
+      id: 'm-stats',
+      groupId: 'g-test',
+      source: 'import',
+      durationSeconds: 1800,
+      blue: [p1],
+      red: [p2],
+    });
+    const mManual = matchFixture({
+      id: 'm-manual',
+      groupId: 'g-test',
+      source: 'manual',
+      durationSeconds: 600,
+      blue: [p1],
+      red: [p2],
+    });
+
+    store.allMatches.set([mWithStats, mManual]);
+
+    const summary = store.groupSummary('g-test');
+    expect(summary.totalMatches).toBe(2);
+    expect(summary.avgDurationMinutes).toBe(30);
+  });
+});
+
+describe('matchHasStats', () => {
+  it('devuelve false con source: manual y true con import', () => {
+    expect(matchHasStats({ source: 'manual' })).toBe(false);
+    expect(matchHasStats({ source: 'import' })).toBe(true);
   });
 });
 

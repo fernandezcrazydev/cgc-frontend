@@ -181,7 +181,7 @@ export class GroupsStore {
  * Vive aquí porque hoy solo lo usa el alta de grupo; si aparece un segundo consumidor, se
  * sube a `shared/`.
  */
-function dataUrlToBlob(dataUrl: string): Blob {
+export function dataUrlToBlob(dataUrl: string): Blob {
   const [meta, base64] = dataUrl.split(',');
   const mime = /data:([^;]+)/.exec(meta)?.[1] ?? 'application/octet-stream';
   const binary = atob(base64);

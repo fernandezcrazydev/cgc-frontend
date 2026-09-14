@@ -1,0 +1,69 @@
+<nf-modal [title]="modalTitle()" width="480px" (closed)="closed.emit()">
+  <div class="sanction-appeal">
+    @if (mode() === 'read') {
+      <div class="sanction-appeal__head">
+        <div class="sanction-appeal__user-line">
+          <nf-avatar
+            [src]="sanction().targetAvatar"
+            [fallback]="sanction().targetName"
+            [tint]="sanction().targetHue"
+            [size]="28"
+          />
+          <span class="sanction-appeal__meta">{{ appealMeta() }}</span>
+        </div>
+        <p class="sanction-appeal__subject">
+          Sobre: <strong>{{ sanctionSummary() }}</strong>
+        </p>
+      </div>
+
+      <blockquote class="sanction-appeal__quote">
+        <p class="sanction-appeal__quote-text">«{{ sanction().appeal?.text }}»</p>
+      </blockquote>
+
+      <div class="form-foot">
+        <button nfButton variant="ghost" size="md" type="button" (click)="closed.emit()">
+          Cerrar
+        </button>
+        @if (isReferee()) {
+          <button nfButton variant="secondary" size="md" type="button" (click)="lift()">
+            Levantar sanción
+          </button>
+        }
+      </div>
+    } @else {
+      <p class="sanction-appeal__intro">
+        Se lo mandas a {{ refereeName() ?? 'Victor' }}, el árbitro del grupo. Lo lee todo el grupo, y solo puedes pedirlo una vez.
+      </p>
+
+      <div class="sanction-appeal__field">
+        <textarea
+          class="sanction-appeal__textarea field__input"
+          maxlength="300"
+          rows="4"
+          placeholder="Explica por qué debería revisarse la sanción..."
+          [ngModel]="appealText()"
+          (ngModelChange)="appealText.set($event)"
+        ></textarea>
+        <div class="sanction-appeal__counter nf-mono">
+          {{ appealText().length }} / 300
+        </div>
+      </div>
+
+      <div class="form-foot">
+        <button nfButton variant="ghost" size="md" type="button" (click)="closed.emit()">
+          Cancelar
+        </button>
+        <button
+          nfButton
+          variant="primary"
+          size="md"
+          type="button"
+          [disabled]="!appealText().trim()"
+          (click)="submitAppeal()"
+        >
+          Enviar
+        </button>
+      </div>
+    }
+  </div>
+</nf-modal>

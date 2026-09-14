@@ -12,8 +12,24 @@
  * filtradas en servidor). `MatchFilterState` es justo la forma de esos parámetros, así que
  * sobrevive; las tres funciones de abajo se borran.
  */
+import { MODALITY_LABELS } from '../group-stats';
 import { CrossMatch, CrossRelation } from './cross-history';
 import { Lane, Match, MatchGameMode, MatchLobbyType } from './models';
+
+/** La modalidad de una partida, con el rótulo compuesto como respaldo para datos antiguos. */
+export function gameModeOf(m: Match): MatchGameMode {
+  if (m.gameMode) {
+    return m.gameMode;
+  }
+  if (m.modeLabel) {
+    for (const label of Object.values(MODALITY_LABELS)) {
+      if (m.modeLabel.includes(label)) {
+        return label as MatchGameMode;
+      }
+    }
+  }
+  return 'Competitivo';
+}
 
 export type MatchSortBy = 'date-desc' | 'date-asc' | 'duration-desc' | 'kills-desc';
 
@@ -100,7 +116,7 @@ export function filterPersonalMatches(list: readonly Match[], f: MatchFilterStat
     if (f.role !== 'all' && m.userParticipant?.role !== f.role) return false;
     if (f.championId !== 'all' && m.userParticipant?.championId !== f.championId) return false;
     if (f.season !== 'all' && (m.leagueName ?? m.group.seasonName ?? m.group.name) !== f.season) return false;
-    if (f.gameMode !== 'all' && (m.gameMode ?? (m.modeLabel?.includes('Casual') ? 'Casual' : 'Competitivo')) !== f.gameMode) return false;
+    if (f.gameMode !== 'all' && gameModeOf(m) !== f.gameMode) return false;
     if (f.lobbyType !== 'all' && (m.lobbyType ?? (m.modeLabel?.includes('Party') ? 'Party' : 'Room')) !== f.lobbyType) return false;
     return matchesQuery(m, f.searchQuery);
   });
@@ -122,7 +138,7 @@ export function filterGroupMatches(list: readonly Match[], f: MatchFilterState):
       return false;
     }
     if (f.season !== 'all' && (m.leagueName ?? m.group.seasonName ?? m.group.name) !== f.season) return false;
-    if (f.gameMode !== 'all' && (m.gameMode ?? (m.modeLabel?.includes('Casual') ? 'Casual' : 'Competitivo')) !== f.gameMode) return false;
+    if (f.gameMode !== 'all' && gameModeOf(m) !== f.gameMode) return false;
     if (f.lobbyType !== 'all' && (m.lobbyType ?? (m.modeLabel?.includes('Party') ? 'Party' : 'Room')) !== f.lobbyType) return false;
     return matchesQuery(m, f.searchQuery);
   });
@@ -147,7 +163,7 @@ export function filterCrossMatches(
     if (f.role !== 'all' && c.me.role !== f.role) return false;
     if (f.championId !== 'all' && c.me.championId !== f.championId) return false;
     if (f.season !== 'all' && (c.match.leagueName ?? c.match.group.seasonName ?? c.match.group.name) !== f.season) return false;
-    if (f.gameMode !== 'all' && (c.match.gameMode ?? (c.match.modeLabel?.includes('Casual') ? 'Casual' : 'Competitivo')) !== f.gameMode) return false;
+    if (f.gameMode !== 'all' && gameModeOf(c.match) !== f.gameMode) return false;
     if (f.lobbyType !== 'all' && (c.match.lobbyType ?? (c.match.modeLabel?.includes('Party') ? 'Party' : 'Room')) !== f.lobbyType) return false;
     return matchesQuery(c.match, f.searchQuery);
   });

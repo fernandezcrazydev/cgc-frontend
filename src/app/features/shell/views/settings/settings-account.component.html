@@ -1,0 +1,283 @@
+    <div class="settings-account">
+      <!-- 1.a · Cuenta de Riot -->
+      <nf-window title="Cuenta de Riot" bodyPadding="22px">
+        <div class="settings-eyebrow nf-mono">Vinculación de cuenta de Riot</div>
+
+        @switch (riot.status()) {
+          @case ('loading') {
+            <div aria-busy="true"><nf-skeleton width="100%" height="70px" radius="8px" /></div>
+          }
+          @case ('error') {
+            <div class="pf-riot-box pf-riot-box--empty">
+              <div>
+                <div class="pf-riot-box__title">Error al cargar la cuenta Riot</div>
+                <p class="pf-riot-box__text">Comprueba tu conexión e inténtalo de nuevo.</p>
+              </div>
+              <button nfButton variant="ghost" size="sm" (click)="retryRiot()">Reintentar</button>
+            </div>
+          }
+          @default {
+            @if (riot.account(); as account) {
+              <div class="pf-riot-box pf-riot-box--linked">
+                <nf-avatar
+                  class="pf-riot-box__logo"
+                  [src]="account.profileIconUrl"
+                  [fallback]="account.riotId"
+                  [size]="46"
+                  shape="square"
+                />
+                <div class="pf-riot-box__meta">
+                  <div class="pf-riot-box__id">{{ account.riotId }}</div>
+                  <div class="pf-riot-box__sub nf-mono">
+                    <span class="pf-meta-chip">{{ account.region }}</span>
+                    @switch (account.strength) {
+                      @case ('VERIFIED') {
+                        <span class="pf-meta-chip pf-meta-chip--verified">✓ Verificada</span>
+                      }
+                      @case ('PAIRED') {
+                        <span class="pf-meta-chip">↔ Vinculada app</span>
+                      }
+                      @default {
+                        <span class="pf-meta-chip">Sin verificar</span>
+                      }
+                    }
+                  </div>
+                </div>
+                <div class="pf-riot-box__actions">
+                  <a
+                    class="nf-icon-btn nf-icon-btn--ghost nf-icon-btn--sm"
+                    [href]="opgg(account.riotId)"
+                    target="_blank"
+                    rel="noopener"
+                    aria-label="Abrir esta cuenta en OP.GG (se abre en otra pestaña)"
+                    title="Abrir esta cuenta en OP.GG"
+                  >
+                    <svg viewBox="0 0 16 16" width="16" height="16" fill="none" aria-hidden="true">
+                      <path
+                        d="M5.5 10.5 10.5 5.5M6 5.5h4.5V10"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                    </svg>
+                  </a>
+                  <button nfButton variant="ghost" size="sm" [disabled]="riot.saving()" (click)="askUnlink()">
+                    Desvincular
+                  </button>
+                </div>
+              </div>
+
+              @if (account.strength !== 'VERIFIED') {
+                <div class="pf-riot-verify-banner">
+                  <div class="pf-riot-verify-banner__text">
+                    <strong>¿Quieres verificar la titularidad?</strong> Abre la app de escritorio para comprobar tu cuenta mediante cambio de icono.
+                  </div>
+                  <button nfButton variant="riot" size="sm" (click)="openConnect()">
+                    <img class="nf-btn__riot-mark" src="/riot/riotgames_logo.webp" alt="" aria-hidden="true" />
+                    Verificar con la app
+                  </button>
+                </div>
+              }
+            } @else {
+              <div class="pf-riot-box pf-riot-box--empty">
+                <div>
+                  <div class="pf-riot-box__title">Sin cuenta de Riot vinculada</div>
+                  <p class="pf-riot-box__text">
+                    Vincula tu cuenta para importar automáticamente tus estadísticas de invocador.
+                    @if (relinkAvailableAt(); as until) {
+                      <br /><span class="pf-hint">Re-vinculación disponible el {{ until }}.</span>
+                    }
+                  </p>
+                </div>
+                <div class="pf-riot-box__cta-btns">
+                  <button nfButton variant="riot" size="sm" (click)="openConnect()">
+                    <img class="nf-btn__riot-mark" src="/riot/riotgames_logo.webp" alt="" aria-hidden="true" />
+                    Conectar la app
+                  </button>
+                  <button nfButton variant="ghost" size="sm" [disabled]="riot.saving()" (click)="startLinking()">
+                    Escribir mi Riot ID
+                  </button>
+                </div>
+              </div>
+            }
+          }
+        }
+      </nf-window>
+
+      <!-- 1.b · Sesiones activas -->
+      <nf-window title="Sesiones" bodyPadding="22px">
+        <div class="settings-eyebrow nf-mono">Sesiones activas</div>
+        <div class="setting-sub setting-sub--help session-intro">
+          Dónde tienes la sesión abierta ahora mismo: navegadores y la app de escritorio. Cierra
+          la de un dispositivo que ya no uses o que no reconozcas.
+        </div>
+
+        <div [attr.aria-busy]="sessions.isLoading() || null">
+          @switch (sessions.status()) {
+            @case ('loading') {
+              <nf-skeleton width="100%" height="52px" />
+              <nf-skeleton width="100%" height="52px" />
+            }
+            @case ('error') {
+              <div class="setting-row setting-row--last">
+                <div class="setting-sub">No se han podido cargar las sesiones.</div>
+                <button nfButton variant="ghost" size="sm" (click)="retrySessions()">Reintentar</button>
+              </div>
+            }
+            @default {
+              @if (sessions.sessions(); as list) {
+                @if (list.length === 0) {
+                  <div class="session-empty nf-mono">No hay ninguna sesión abierta.</div>
+                } @else {
+                  @for (session of list; track session.id; let last = $last) {
+                    <div class="setting-row" [class.setting-row--last]="last">
+                      <div>
+                        <div class="setting-title">
+                          {{ label(session) }}
+                          @if (session.current) {
+                            <nf-badge color="secondary">Este dispositivo</nf-badge>
+                          }
+                        </div>
+                        <div class="setting-sub nf-mono">{{ sessionMeta(session) }}</div>
+                      </div>
+                      @if (!session.current) {
+                        <button
+                          nfButton
+                          variant="danger"
+                          size="sm"
+                          [disabled]="sessions.isClosing(session.id)"
+                          [attr.aria-label]="'Cerrar la sesión de ' + label(session)"
+                          (click)="closeSession(session)"
+                        >
+                          Cerrar
+                        </button>
+                      }
+                    </div>
+                  }
+                }
+              }
+            }
+          }
+        </div>
+      </nf-window>
+
+      <!-- 1.c · Cerrar sesión -->
+      <nf-window title="Cerrar sesión" bodyPadding="22px">
+        <div class="settings-eyebrow nf-mono">Sesión en este dispositivo</div>
+        <div class="logout-row">
+          <div class="setting-sub setting-sub--help">
+            Salir de tu cuenta en este dispositivo. Las sesiones de otros dispositivos siguen abiertas.
+          </div>
+          <button nfButton variant="danger" size="md" (click)="confirmLogout.set(true)">
+            Cerrar sesión
+          </button>
+        </div>
+      </nf-window>
+    </div>
+
+    <!-- Modal Vincular Riot ID -->
+    @if (linking()) {
+      <nf-modal title="Vincular cuenta de Riot" (closed)="cancelLinking()">
+        <div class="settings-eyebrow nf-mono">Vincular cuenta de Riot</div>
+        <div class="riot-link">
+          <p class="riot-link__text">
+            Introduce tu Riot ID tal y como aparece en el cliente (ej. <code>Nombre#TAG</code>).
+          </p>
+        </div>
+        <div class="form-grid">
+          <div class="field">
+            <label class="field__label nf-mono" for="settings-riot-id">Riot ID</label>
+            <input
+              id="settings-riot-id"
+              class="field__input"
+              type="text"
+              placeholder="Nombre#TAG"
+              autocomplete="off"
+              [value]="riotIdDraft()"
+              (input)="riotIdDraft.set($any($event.target).value)"
+              (keydown.enter)="confirmLink()"
+            />
+          </div>
+          <div class="field">
+            <label class="field__label nf-mono">Región</label>
+            <nf-select
+              [options]="regions"
+              [value]="regionDraft()"
+              (valueChange)="setRegion($event)"
+            />
+          </div>
+        </div>
+        <div class="form-foot">
+          <button nfButton variant="primary" size="md" [disabled]="!canLink()" (click)="confirmLink()">
+            {{ riot.saving() ? 'Vinculando…' : 'Vincular' }}
+          </button>
+          <button nfButton variant="ghost" size="md" [disabled]="riot.saving()" (click)="cancelLinking()">
+            Cancelar
+          </button>
+        </div>
+      </nf-modal>
+    }
+
+    <!-- Modal Desvincular Riot -->
+    @if (unlinking(); as account) {
+      <nf-modal title="Desvincular cuenta de Riot" width="440px" (closed)="cancelUnlink()">
+        <div class="settings-eyebrow nf-mono">Desvincular cuenta de Riot</div>
+        <p class="confirm__text">
+          Vas a desvincular <strong>{{ account.riotId }}</strong>. Tus partidas y grupos no se tocan.
+        </p>
+        <div class="form-foot">
+          <button nfButton variant="danger" size="md" [disabled]="riot.saving()" (click)="confirmUnlink()">
+            {{ riot.saving() ? 'Desvinculando…' : 'Sí, desvincular' }}
+          </button>
+          <button nfButton variant="ghost" size="md" [disabled]="riot.saving()" (click)="cancelUnlink()">
+            Cancelar
+          </button>
+        </div>
+      </nf-modal>
+    }
+
+    <!-- Modal Conectar App de Escritorio -->
+    @if (connecting()) {
+      <nf-modal title="Conectar la aplicación" width="460px" (closed)="closeConnect()">
+        <div class="settings-eyebrow nf-mono">Conectar app de escritorio</div>
+        <p class="riot-link__text">Abre la app de escritorio y pulsa «Conectar» o pega este código:</p>
+        <div class="connect-fallback">
+          @if (pairingCode(); as pc) {
+            <div class="connect-code" [class.is-expired]="codeExpired()">
+              <span class="connect-code__value nf-mono">{{ pc.code }}</span>
+              <button nfButton variant="ghost" size="sm" (click)="copyCode(pc.code)">
+                {{ copied() ? 'Copiado' : 'Copiar' }}
+              </button>
+            </div>
+            <p class="connect-code__hint nf-mono">
+              {{ codeExpired() ? 'Caducado. Genera otro.' : 'Caduca en ' + codeCountdown() }}
+            </p>
+            <button nfButton variant="ghost" size="sm" [disabled]="riot.generatingCode()" (click)="generateCode()">
+              Generar otro
+            </button>
+          } @else {
+            <button nfButton variant="primary" size="md" [disabled]="riot.generatingCode()" (click)="generateCode()">
+              {{ riot.generatingCode() ? 'Generando…' : 'Generar código' }}
+            </button>
+          }
+        </div>
+        <div class="form-foot">
+          <button nfButton variant="ghost" size="md" (click)="closeConnect()">Cerrar</button>
+        </div>
+      </nf-modal>
+    }
+
+    <!-- Modal Confirmar Cerrar Sesión -->
+    @if (confirmLogout()) {
+      <nf-modal title="Cerrar sesión" width="420px" (closed)="confirmLogout.set(false)">
+        <div class="settings-eyebrow nf-mono">Cerrar sesión</div>
+        <p class="confirm__text">
+          ¿Seguro que quieres <strong>cerrar sesión</strong>? Tendrás que volver a iniciar sesión para acceder.
+        </p>
+        <div class="form-foot">
+          <button nfButton variant="ghost" size="md" (click)="confirmLogout.set(false)">Cancelar</button>
+          <button nfButton variant="danger" size="md" (click)="logout()">Cerrar sesión</button>
+        </div>
+      </nf-modal>
+    }

@@ -995,7 +995,7 @@
       <div class="md-manual-hero" [class.is-blue-win]="match()?.winningTeam === 'blue'" [class.is-red-win]="match()?.winningTeam === 'red'">
         <div class="c-row c-row--between md-manual-hero__top">
           <span class="c-badge c-badge--dim nf-mono">REGISTRO MANUAL</span>
-          <span class="c-stat-lbl nf-mono">{{ match()?.leagueName ?? 'Liga de Grupo' }} · {{ formatDuration(match()?.durationSeconds ?? 0) }}</span>
+          <span class="c-stat-lbl nf-mono">{{ match()?.leagueName ?? 'Liga de Grupo' }}</span>
         </div>
 
         <div class="md-manual-hero__body">
@@ -1036,10 +1036,9 @@
             @for (p of match()?.blueTeam?.participants; track p.id) {
               <div class="md-manual-player-row" [class.is-current-user]="isCurrentUser(p.id)">
                 <nf-lane-icon class="md-manual-player__role" [lane]="p.role" mode="original" />
-                <nf-avatar [src]="championIcon(p.championId)" [fallback]="p.championName" [size]="28" shape="square" />
+                <nf-avatar [src]="p.avatarUrl ?? null" [fallback]="p.riotId" [size]="28" shape="square" />
                 <div class="c-col min-w-0" style="flex: 1">
                   <span class="md-manual-player__name">{{ p.riotId }}</span>
-                  <span class="md-manual-player__champ nf-mono">{{ p.championName }}</span>
                 </div>
                 <span class="md-manual-player__lp nf-mono" [class.is-positive]="p.lpDelta > 0" [class.is-negative]="p.lpDelta < 0">
                   {{ p.lpDelta > 0 ? '+' + p.lpDelta : p.lpDelta }} LP
@@ -1059,10 +1058,9 @@
             @for (p of match()?.redTeam?.participants; track p.id) {
               <div class="md-manual-player-row" [class.is-current-user]="isCurrentUser(p.id)">
                 <nf-lane-icon class="md-manual-player__role" [lane]="p.role" mode="original" />
-                <nf-avatar [src]="championIcon(p.championId)" [fallback]="p.championName" [size]="28" shape="square" />
+                <nf-avatar [src]="p.avatarUrl ?? null" [fallback]="p.riotId" [size]="28" shape="square" />
                 <div class="c-col min-w-0" style="flex: 1">
                   <span class="md-manual-player__name">{{ p.riotId }}</span>
-                  <span class="md-manual-player__champ nf-mono">{{ p.championName }}</span>
                 </div>
                 <span class="md-manual-player__lp nf-mono" [class.is-positive]="p.lpDelta > 0" [class.is-negative]="p.lpDelta < 0">
                   {{ p.lpDelta > 0 ? '+' + p.lpDelta : p.lpDelta }} LP

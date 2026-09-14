@@ -178,7 +178,7 @@ export class NfCombobox {
 
   protected readonly selectedOption = computed(() => {
     const v = this.value();
-    return v ? this.options().find((o) => o.value === v) ?? null : null;
+    return this.options().find((o) => o.value === v) ?? null;
   });
 
   /** Cerrado enseña la etiqueta elegida; abierto, lo que el usuario está escribiendo. */

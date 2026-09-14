@@ -1,0 +1,163 @@
+    <div class="view">
+      <div class="view__head">
+        <div class="view__eyebrow nf-mono">Administración · seguridad</div>
+        <h1 class="view__title">Registro de seguridad</h1>
+        <p class="view__lead">
+          Quién intenta entrar, desde qué dirección y con qué cliente. Se guardan 90 días.
+        </p>
+      </div>
+
+      <div class="as-filters">
+        <label class="as-filter">
+          <span class="as-filter__label">Periodo</span>
+          <nf-select [options]="windowLabels" [value]="windowLabel()" (valueChange)="onWindow($event)" />
+        </label>
+        <label class="as-filter">
+          <span class="as-filter__label">Tipo</span>
+          <nf-select [options]="kindLabels" [value]="kindLabel()" (valueChange)="onKind($event)" />
+        </label>
+        <label class="as-filter as-filter--ip">
+          <span class="as-filter__label">Dirección o rango</span>
+          <input
+            class="as-input nf-mono"
+            type="text"
+            placeholder="88.98.97.149 o 88.98.97.0/24"
+            [value]="ipDraft()"
+            (input)="ipDraft.set($any($event.target).value)"
+            (keydown.enter)="applyIp()"
+          />
+        </label>
+        <button nfButton variant="secondary" size="sm" (click)="applyIp()">Filtrar</button>
+        @if (narrowed()) {
+          <button nfButton variant="ghost" size="sm" (click)="clearFilters()">Quitar filtros</button>
+        }
+      </div>
+
+      @if (store.status() === 'error') {
+        <div class="as-empty">
+          <p class="as-empty__text">No se ha podido cargar el registro de seguridad.</p>
+          <button nfButton variant="secondary" size="md" (click)="retry()">Reintentar</button>
+        </div>
+      } @else {
+        <!-- Resumen: la forma del periodo -->
+        <section class="as-section" [attr.aria-busy]="store.loading() ? 'true' : null">
+          <h2 class="as-section__title">Resumen del periodo</h2>
+          @if (store.loading()) {
+            <div class="as-tiles">
+              @for (i of skeletonTiles; track i) {
+                <nf-skeleton width="100%" height="76px" radius="10px" />
+              }
+            </div>
+          } @else if (store.summary(); as s) {
+            <div class="as-tiles">
+              @for (entry of s.byKind; track entry.kind) {
+                <div class="as-tile" [class.is-zero]="entry.events === 0">
+                  <span class="as-tile__value nf-mono">{{ entry.events | number }}</span>
+                  <span class="as-tile__label">{{ label(entry.kind) }}</span>
+                </div>
+              }
+            </div>
+            @if (abandonRatio(); as ratio) {
+              <p class="as-note">
+                Se han iniciado {{ ratio.starts | number }} logins y solo
+                {{ ratio.successes | number }} han llegado a completarse. Un desajuste así no lo
+                hacen personas: mira el ranking de abajo.
+              </p>
+            }
+          } @else {
+            <p class="as-note">No se ha podido cargar el resumen.</p>
+          }
+        </section>
+
+        <!-- Ranking: la parte accionable -->
+        <section class="as-section" [attr.aria-busy]="store.loading() ? 'true' : null">
+          <h2 class="as-section__title">Quién genera estos eventos</h2>
+          <p class="as-section__hint">
+            Ordenado por actividad. La dirección, el país y el cliente son lo que necesitas para
+            escribir una regla de bloqueo en Cloudflare.
+          </p>
+          @if (store.loading()) {
+            <div class="as-clients">
+              @for (i of skeletonRows; track i) {
+                <nf-skeleton width="100%" height="58px" radius="8px" />
+              }
+            </div>
+          } @else if (store.clients(); as clients) {
+            @if (clients.length === 0) {
+              <p class="as-note">Ningún evento con dirección en este periodo.</p>
+            } @else {
+              <div class="as-clients">
+                @for (c of clients; track c.clientIp) {
+                  <div class="as-client" [class.is-hot]="isNoisy(c)">
+                    <span class="as-client__ip nf-mono">{{ c.clientIp }}</span>
+                    <span class="as-client__country nf-mono">{{ c.country ?? '—' }}</span>
+                    <span class="as-client__ua" [title]="c.lastUserAgent ?? ''">
+                      {{ c.lastUserAgent ?? 'Sin User-Agent' }}
+                    </span>
+                    <span class="as-client__rate nf-mono" title="Eventos por hora">
+                      {{ c.eventsPerHour | number: '1.0-1' }}/h
+                    </span>
+                    <span class="as-client__events nf-mono">{{ c.events | number }}</span>
+                    <button
+                      type="button"
+                      class="as-client__filter"
+                      [title]="'Ver solo ' + c.clientIp"
+                      (click)="filterByIp(c.clientIp)"
+                    >Ver solo esta</button>
+                  </div>
+                }
+              </div>
+            }
+          } @else {
+            <p class="as-note">No se ha podido cargar el ranking.</p>
+          }
+        </section>
+
+        <!-- Listado: el detalle evento a evento -->
+        <section class="as-section" [attr.aria-busy]="store.loading() ? 'true' : null">
+          <h2 class="as-section__title">Eventos</h2>
+          @if (store.loading()) {
+            <div class="as-list">
+              @for (i of skeletonRows; track i) {
+                <nf-skeleton width="100%" height="52px" radius="8px" />
+              }
+            </div>
+          } @else if (store.page(); as pg) {
+            @if (pg.content.length === 0) {
+              <!-- Siempre hay un periodo aplicado, así que "no hay nada" a secas sería mentira:
+                   lo honesto es decir dónde se ha buscado y sugerir ensanchar. -->
+              <p class="as-note">
+                {{
+                  narrowed()
+                    ? 'Ningún evento con estos filtros. Prueba a quitarlos o a ampliar el periodo.'
+                    : 'Ningún evento en este periodo. Prueba con uno más largo.'
+                }}
+              </p>
+            } @else {
+              <div class="as-list">
+                @for (e of pg.content; track e.id) {
+                  <div class="as-row">
+                    <nf-badge [color]="color(e.kind)">{{ label(e.kind) }}</nf-badge>
+                    <span class="as-row__ip nf-mono">{{ e.clientIp ?? '—' }}</span>
+                    <span class="as-row__path nf-mono" [title]="e.requestPath ?? ''">
+                      {{ e.requestPath ?? '—' }}
+                    </span>
+                    <span class="as-row__ua" [title]="e.userAgent ?? ''">{{ e.userAgent ?? '—' }}</span>
+                    <span class="as-row__when nf-mono">{{ e.occurredAt | date: 'dd/MM/yy HH:mm:ss' }}</span>
+                  </div>
+                }
+              </div>
+
+              <nf-pagination
+                [total]="pg.totalElements"
+                [pageSize]="pg.size"
+                [page]="pg.page + 1"
+                (pageChange)="goToPage($event)"
+              />
+            }
+          } @else {
+            <p class="as-note">No se han podido cargar los eventos.</p>
+          }
+        </section>
+      }
+    </div>

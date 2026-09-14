@@ -1,12 +1,14 @@
-@use 'breakpoints' as *;
+﻿@use 'breakpoints' as *;
 
 .gd-card {
   --gd-accent: var(--nf-gold);
   position: relative;
   background: radial-gradient(120% 90% at 10% 10%, color-mix(in srgb, var(--gd-accent) 8%, transparent), var(--nf-surface));
   border: 1px solid color-mix(in srgb, var(--gd-accent) 35%, var(--nf-border));
+  transition: border-color 0.14s, box-shadow 0.14s, transform 0.14s;
 
   &[data-variant='wood'] { --gd-accent: #b87842; }
+  &:hover { border-color: var(--nf-border-strong); box-shadow: var(--nf-shadow); transform: translateY(-1px); }
 }
 
 .gd-card__title-wrap { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
@@ -33,4 +35,8 @@
 @media (max-width: $bp-compact) {
   .gd-card__body { flex-direction: column; align-items: flex-start; gap: 14px; }
   .gd-card__stats { width: 100%; align-items: flex-start; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gd-card { transition: none; &:hover { transform: none; } }
 }

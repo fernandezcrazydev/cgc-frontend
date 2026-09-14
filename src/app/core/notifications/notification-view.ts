@@ -133,6 +133,25 @@ export function notificationView(n: NotificationResponse, now = Date.now()): Not
         link: groupLink(n),
       };
     }
+    case 'SANCTION_DECISION_REQUIRED': {
+      const targetName = n.data['targetName'];
+      return {
+        ...base,
+        title: 'Decisión arbitral requerida',
+        message:
+          n.data['message'] ??
+          (targetName
+            ? `${targetName} ha alcanzado 3 incidencias. Requiere tu decisión.`
+            : 'Un jugador ha alcanzado 3 incidencias. Requiere tu decisión arbitral.'),
+        accent: 'var(--nf-crimson)',
+        semanticLevel: 'critical',
+        glyph: '⚠',
+        isMandatory: true,
+        invite: null,
+        ctaLabel: 'Resolver sanción',
+        link: groupLink(n),
+      };
+    }
     case 'GROUP_KICKED': {
       const groupName = n.data['groupName'];
       return {
@@ -323,6 +342,26 @@ export function notificationView(n: NotificationResponse, now = Date.now()): Not
         invite: null,
         link: lobbyLink(n),
         ctaLabel: 'Unirme a la sala',
+      };
+    }
+    case 'GROUP_VOTE_OPENED': {
+      const groupName = n.data['groupName'];
+      const isReferee = n.data['kind'] === 'REFEREE_ELECTION';
+      return {
+        ...base,
+        title: isReferee ? 'Votación de árbitro' : 'Votación del grupo',
+        message:
+          n.data['message'] ??
+          (isReferee
+            ? `Hay que elegir árbitro en "${groupName}". Votar es obligatorio y quedan menos de 24 h.`
+            : `Hay una propuesta abierta en "${groupName}". Si no votas en 24 h, cuenta como un no.`),
+        accent: 'var(--nf-warning)',
+        semanticLevel: 'critical',
+        glyph: '◉',
+        isMandatory: true,
+        invite: null,
+        ctaLabel: 'Ir a votar',
+        link: groupLink(n),
       };
     }
     case 'LOBBY_CANCELLED': {

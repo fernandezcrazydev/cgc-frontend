@@ -6,7 +6,7 @@ import {
   MatchParticipant,
   UserMatchHistorySummary,
 } from './models';
-import { kdaRatio } from './match-view';
+import { kdaRatio, matchHasStats } from './match-view';
 import {
   CrossMatch,
   CrossPartner,
@@ -170,11 +170,15 @@ export class MatchHistoryStore {
     if (total === 0) return EMPTY_GROUP_SUMMARY;
 
     let blueWins = 0;
+    for (const m of matches) {
+      if (m.winningTeam === 'blue') blueWins++;
+    }
+
+    const statsMatches = matches.filter(matchHasStats);
     let totalDuration = 0;
     const mvpCounts = new Map<string, number>();
 
-    for (const m of matches) {
-      if (m.winningTeam === 'blue') blueWins++;
+    for (const m of statsMatches) {
       totalDuration += m.durationSeconds;
 
       const mvp = participantsOf(m).find((p) => p.id === m.mvpParticipantId);
@@ -185,6 +189,8 @@ export class MatchHistoryStore {
 
     const blueWinrate = total === 0 ? 0 : Math.round((blueWins / total) * 100);
     const redWinrate = total === 0 ? 0 : 100 - blueWinrate;
+    const avgDurationMinutes =
+      statsMatches.length === 0 ? 0 : Math.round(totalDuration / statsMatches.length / 60);
 
     return {
       totalMatches: total,
@@ -192,7 +198,7 @@ export class MatchHistoryStore {
       redSideWins: total - blueWins,
       blueWinrate,
       redWinrate,
-      avgDurationMinutes: Math.round(totalDuration / total / 60),
+      avgDurationMinutes,
       topMvpName,
       topMvpCount,
     };

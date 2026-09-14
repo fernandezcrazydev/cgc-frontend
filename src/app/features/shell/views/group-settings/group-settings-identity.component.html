@@ -1,0 +1,118 @@
+<div class="form-grid">
+  <!-- Avatar del grupo -->
+  <div class="field">
+    <span class="field__label">Avatar del grupo</span>
+    <div class="gs-avatar-row">
+      <nf-avatar-picker
+        [value]="draftAvatar()"
+        [initials]="group().initials"
+        [c1]="group().c1"
+        [c2]="group().c2"
+        (valueChange)="onAvatarChange($event)"
+      />
+      <!-- Sin pista de formato aquí: `nf-avatar-picker` ya pinta la suya («PNG · JPG · WEBP ·
+           máx 4MB») justo debajo del botón de subir, y son la misma frase dicha dos veces. La de
+           la primitiva además es la correcta: acepta WEBP. -->
+      <div class="gs-avatar-meta">
+        <button
+          nfButton
+          variant="primary"
+          size="md"
+          [disabled]="!avatarChanged() || isSavingAvatar()"
+          (click)="saveAvatar()"
+        >
+          @if (isSavingAvatar()) {
+            Guardando...
+          } @else {
+            Guardar la foto
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="gs-separator"></div>
+
+  <!-- Nombre del grupo -->
+  <div class="field">
+    <label class="field__label" for="gs-group-name">Nombre del grupo</label>
+    <input
+      id="gs-group-name"
+      class="field__input"
+      type="text"
+      [value]="group().name"
+      disabled
+    />
+  </div>
+
+  <!-- #TAG y Región en dos columnas -->
+  <div class="gs-form-row">
+    <div class="field">
+      <label class="field__label" for="gs-group-tag">#TAG</label>
+      <input
+        id="gs-group-tag"
+        class="field__input"
+        type="text"
+        [value]="group().tag ?? ''"
+        disabled
+      />
+    </div>
+
+    <div class="field">
+      <span class="field__label">Región</span>
+      <div class="gs-select-disabled">
+        <nf-select
+          [options]="[group().region ?? 'EUW']"
+          [value]="group().region ?? 'EUW'"
+        />
+      </div>
+    </div>
+  </div>
+
+  <!-- Lema -->
+  <div class="field">
+    <label class="field__label" for="gs-group-tagline">Lema</label>
+    <input
+      id="gs-group-tagline"
+      class="field__input"
+      type="text"
+      [value]="profile().tagline"
+      disabled
+    />
+  </div>
+
+  <!-- Sobre la comunidad -->
+  <div class="field">
+    <label class="field__label" for="gs-group-desc">Sobre la comunidad</label>
+    <textarea
+      id="gs-group-desc"
+      class="field__input gs-textarea"
+      rows="3"
+      [value]="profile().description"
+      disabled
+    ></textarea>
+  </div>
+
+  <!-- Reglas de la casa -->
+  <div class="field">
+    <label class="field__label" for="gs-group-rules">Reglas de la casa</label>
+    <textarea
+      id="gs-group-rules"
+      class="field__input gs-textarea"
+      rows="4"
+      [value]="rulesJoined()"
+      disabled
+    ></textarea>
+  </div>
+
+  <!-- BACKEND NOTE: falta PATCH /groups/{id} que acepte name, tag, region, tagline, description y rules (Fase 6 filas 19 y 20). -->
+  <div class="gs-note">
+    <svg class="gs-note__icon" viewBox="0 0 16 16" width="16" height="16" fill="none" aria-hidden="true">
+      <circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.5" />
+      <path d="M8 5v.5M8 7.5v4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+    </svg>
+    <span>
+      El nombre, el #TAG, la región, el lema, la descripción y las reglas todavía no se pueden cambiar: el servidor no tiene por dónde guardarlos. Se podrán editar más adelante.
+    </span>
+  </div>
+</div>

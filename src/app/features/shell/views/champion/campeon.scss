@@ -1,0 +1,195 @@
+@use 'breakpoints' as *;
+
+.cf-view {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  padding: var(--sp-6) var(--sp-4);
+  max-width: var(--container);
+  margin-inline: auto;
+  width: 100%;
+}
+
+.cf-back-bar {
+  display: flex;
+  align-items: center;
+}
+
+.cf-back-link {
+  font-size: var(--fs-body);
+  color: var(--nf-text-dim);
+  cursor: pointer;
+  user-select: none;
+  text-decoration: none;
+  transition: color var(--nf-dur-fast) var(--nf-ease-out);
+
+  &:hover {
+    color: var(--nf-primary);
+    text-decoration: underline;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--nf-focus);
+    outline-offset: 2px;
+  }
+}
+
+.cf-page {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: var(--sp-4);
+  align-items: stretch;
+  max-width: var(--container);
+  margin-inline: auto;
+  width: 100%;
+}
+
+.cf-card-slot {
+  grid-column: span 12;
+}
+
+.cf-card {
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--nf-radius);
+  border: 1px solid var(--nf-border);
+  background: var(--nf-surface);
+  padding: var(--sp-4);
+  transition: transform var(--nf-dur-fast) var(--nf-ease-out), border-color var(--nf-dur-fast) var(--nf-ease-out), box-shadow var(--nf-dur-fast) var(--nf-ease-out);
+
+  > * {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+  }
+
+  &:hover {
+    transform: translateY(-2px);
+    border-color: var(--nf-border-strong);
+    box-shadow: var(--nf-shadow-pop);
+  }
+
+  &--cabecera {
+    grid-column: span 12;
+    order: 1;
+    padding: 0;
+    background: transparent;
+    border: none;
+    overflow: hidden;
+
+    &:hover {
+      transform: none;
+      box-shadow: none;
+    }
+  }
+
+  &--macro {
+    grid-column: span 4;
+    order: 2;
+  }
+
+  &--espec {
+    grid-column: span 4;
+    order: 3;
+  }
+
+  &--skills {
+    grid-column: span 4;
+    order: 4;
+  }
+
+  &--sinergias {
+    grid-column: span 3;
+    order: 5;
+  }
+
+  &--counters {
+    grid-column: span 3;
+    order: 6;
+  }
+
+  &--builds {
+    grid-column: span 6;
+    order: 7;
+  }
+
+  &--unplayed {
+    grid-column: span 12;
+    order: 2;
+    padding: var(--sp-8) var(--sp-4);
+    text-align: center;
+    gap: var(--sp-2);
+  }
+
+  @media (max-width: #{$bp-compact}) {
+    &--cabecera { grid-column: span 12; }
+    &--macro    { grid-column: span 6; }
+    &--espec    { grid-column: span 6; }
+    &--skills   { grid-column: span 12; }
+    &--sinergias { grid-column: span 6; }
+    &--counters { grid-column: span 6; }
+    &--builds   { grid-column: span 12; }
+    &--unplayed { grid-column: span 12; }
+  }
+
+  @media (max-width: #{$bp-mobile}) {
+    &--cabecera,
+    &--macro,
+    &--espec,
+    &--skills,
+    &--sinergias,
+    &--counters,
+    &--builds,
+    &--unplayed {
+      grid-column: span 12;
+    }
+  }
+}
+
+.cf-unplayed-msg {
+  font-size: var(--fs-h3);
+  font-weight: 600;
+  color: var(--nf-text);
+  margin: 0;
+}
+
+.cf-unplayed-hint {
+  font-size: var(--fs-body);
+  color: var(--nf-text-dim);
+  margin: 0;
+}
+
+.cf-state-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-3);
+  padding: var(--sp-12) var(--sp-4);
+  text-align: center;
+  border-radius: var(--nf-radius);
+  border: 1px solid var(--nf-border);
+  background: var(--nf-surface);
+}
+
+.cf-state-title {
+  font-size: var(--fs-h2);
+  font-weight: 700;
+  color: var(--nf-text);
+  margin: 0;
+}
+
+.cf-state-text {
+  font-size: var(--fs-body);
+  color: var(--nf-text-dim);
+  margin: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cf-card,
+  .cf-back-link {
+    transition: none;
+    transform: none;
+  }
+}

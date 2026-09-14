@@ -1,0 +1,12 @@
+.sanction-appeal { display: flex; flex-direction: column; gap: 16px; }
+.sanction-appeal__head { display: flex; flex-direction: column; gap: 8px; }
+.sanction-appeal__user-line { display: flex; align-items: center; gap: 8px; }
+.sanction-appeal__meta { font-size: var(--fs-body); color: var(--nf-text); font-weight: 500; }
+.sanction-appeal__subject { margin: 0; font-size: var(--fs-caption); color: var(--nf-text-mid); }
+.sanction-appeal__quote { margin: 0; padding: 12px 16px; background: var(--nf-surface-2); border-left: 3px solid var(--nf-border-strong); border-radius: var(--nf-radius-sm); }
+.sanction-appeal__quote-text { margin: 0; font-size: var(--fs-body); color: var(--nf-text); line-height: var(--lh-snug); font-style: italic; }
+.sanction-appeal__intro { margin: 0; font-size: var(--fs-body); color: var(--nf-text-mid); line-height: var(--lh-snug); }
+.sanction-appeal__field { display: flex; flex-direction: column; gap: 4px; }
+.sanction-appeal__textarea { width: 100%; box-sizing: border-box; resize: vertical; min-height: 80px; font-family: inherit; }
+.sanction-appeal__counter { align-self: flex-end; font-size: var(--fs-caption); color: var(--nf-text-dim); }
+.form-foot { display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-top: 8px; }

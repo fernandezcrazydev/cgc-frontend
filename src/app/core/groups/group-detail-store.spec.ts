@@ -74,6 +74,12 @@ class ApiStub {
     this.deleteCalls++;
     return of(undefined);
   }
+  uploadCalls: { groupId: string; file: Blob }[] = [];
+
+  uploadAvatar(groupId: string, file: Blob): Observable<any> {
+    this.uploadCalls.push({ groupId, file });
+    return of({ groupId, name: 'Los Cracks', region: 'EUW', matchmakingPreset: 'BALANCED', avatarUrl: 'http://example.com/avatar.png' });
+  }
   myGroups(): Observable<GroupMembershipResponse[]> {
     return of([]);
   }
@@ -202,6 +208,15 @@ describe('GroupDetailStore', () => {
     expect(api.leaveCalls).toBe(1);
     await store.deleteGroup();
     expect(api.deleteCalls).toBe(1);
+  });
+
+  it('updateAvatar sube la imagen, recarga el detalle y refresca los grupos', async () => {
+    await store.load('g1');
+    const dummyDataUrl = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+    await store.updateAvatar('g1', dummyDataUrl);
+    expect(api.uploadCalls).toHaveLength(1);
+    expect(api.uploadCalls[0].groupId).toBe('g1');
+    expect(store.status()).toBe('ready');
   });
 
   it('clear resetea el detalle', async () => {

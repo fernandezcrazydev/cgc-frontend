@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input } from '@angular/core';
 import { Match } from '../../../../core/matches/models';
+import { matchHasStats } from '../../../../core/matches/match-view';
 import { formatMatchDate } from '../../../../shared/date-format';
 import { Viewport } from '../../../../shared/viewport';
 import { MatchHistoryUiState } from './match-history-ui';
@@ -41,7 +42,7 @@ let panelSeq = 0;
       [class.is-loss]="accent() === 'loss'"
       [class.is-neutral]="accent() === 'neutral'"
       [class.is-blue]="accent() === 'blue'"
-      [class.is-expanded]="isExpanded()"
+      [class.is-expanded]="canExpand() && isExpanded()"
       [class.has-focus-pulse]="isFocused()"
       [attr.data-match-id]="match().id"
     >
@@ -106,7 +107,7 @@ let panelSeq = 0;
         </div>
       </div>
 
-      @if (!rowIsControl()) {
+      @if (canExpand() && !rowIsControl()) {
         <button
           type="button"
           class="m-card__toggle"
@@ -134,7 +135,7 @@ let panelSeq = 0;
         </button>
       }
 
-      @if (isExpanded()) {
+      @if (canExpand() && isExpanded()) {
         <div class="m-card__accordion" [id]="panelId" role="region" [attr.aria-label]="panelLabel()">
           <!--
             Ranura con contenido por defecto: quien no proyecte nada obtiene la alineación de
@@ -171,8 +172,10 @@ export class MatchCardShellComponent {
 
   protected readonly panelId = `m-card-panel-${++panelSeq}`;
 
+  protected readonly canExpand = computed(() => matchHasStats(this.match()));
+
   /** Con ratón la fila es el control; con el dedo lo es la franja del pie. */
-  protected readonly rowIsControl = computed(() => !this.viewport.isMobile());
+  protected readonly rowIsControl = computed(() => this.canExpand() && !this.viewport.isMobile());
 
   protected readonly isExpanded = computed(() => this.ui.isExpanded(this.match().id));
   protected readonly isFocused = computed(() => this.ui.focusedId() === this.match().id);
@@ -213,10 +216,11 @@ export class MatchCardShellComponent {
 
   /** En móvil la fila no es un control: un toque en su fondo no debe desplegar nada. */
   protected toggleFromRow(): void {
-    if (this.rowIsControl()) this.toggle();
+    if (this.canExpand() && this.rowIsControl()) this.toggle();
   }
 
   protected toggle(): void {
+    if (!this.canExpand()) return;
     this.ui.toggleExpand(this.match().id);
   }
 }
@@ -224,3 +228,4 @@ export class MatchCardShellComponent {
 function capitalize(text: string): string {
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
+

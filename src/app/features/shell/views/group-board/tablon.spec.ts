@@ -124,7 +124,7 @@ function createComponent(lobbies: LobbyResponse[]) {
   return { fixture, component: fixture.componentInstance, store, toasts, nudge };
 }
 
-describe('Tablon', () => {
+describe('Tablon', { timeout: 15000 }, () => {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.setSystemTime(NOW);

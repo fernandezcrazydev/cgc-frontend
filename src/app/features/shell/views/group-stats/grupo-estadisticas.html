@@ -46,6 +46,16 @@
             (valueChange)="setModality($event)"
             ariaLabel="Modalidad competitiva"
           />
+
+          <a
+            nfButton
+            variant="secondary"
+            size="sm"
+            [routerLink]="historyLink()"
+            [queryParams]="historyQueryParams()"
+          >
+            Historial
+          </a>
         </div>
 
         @if (tab() === 'rendimiento') {

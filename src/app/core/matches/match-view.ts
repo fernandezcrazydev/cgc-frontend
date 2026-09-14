@@ -10,12 +10,27 @@
 import { hash } from '../group-ranking';
 import {
   Lane,
+  Match,
   MatchParticipant,
   MatchResultOutcome,
   ParticipantStats,
   TeamSide,
   TeamSummary,
 } from './models';
+
+/**
+ * ¿Trae esta partida telemetría?
+ *
+ * `source: 'manual'` significa que el anfitrión registró a mano quién ganó porque nadie de la sala
+ * tenía la aplicación de escritorio emparejada: la partida da LP y rating, pero no KDA, ni oro, ni
+ * MVP, ni duración, ni qué campeón jugó nadie.
+ *
+ * BACKEND NOTE: hoy se deduce de `source`. Cuando exista la ingesta real, el DTO dirá directamente
+ * si la partida trae telemetría y esta función leerá ese campo en vez de deducirlo.
+ */
+export function matchHasStats(match: Pick<Match, 'source'>): boolean {
+  return match.source !== 'manual';
+}
 
 /**
  * `undefined` = la partida existe pero el usuario no la jugó (caso normal en el historial de

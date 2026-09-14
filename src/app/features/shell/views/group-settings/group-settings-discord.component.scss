@@ -1,0 +1,156 @@
+.dc-block {
+  margin: 0 0 14px;
+}
+
+.dc-foot {
+  margin-top: 10px;
+}
+
+.dc-gap {
+  height: 12px;
+}
+
+.dc-help {
+  margin-top: 14px;
+  border-top: 1px solid var(--nf-border);
+  padding-top: 12px;
+
+  &__summary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: var(--fs-caption);
+    color: var(--nf-text-dim);
+
+    &:hover {
+      color: var(--nf-text);
+    }
+  }
+
+  &__count {
+    font-size: var(--fs-label);
+    color: var(--nf-text-dim);
+    border: 1px solid var(--nf-border);
+    border-radius: 999px;
+    padding: 1px 8px;
+  }
+
+  &__body {
+    margin-top: 12px;
+  }
+
+  &__steps {
+    margin: 0 0 12px;
+    padding-left: 20px;
+    font-size: var(--fs-caption);
+    line-height: 1.65;
+    color: var(--nf-text-dim);
+
+    b {
+      color: var(--nf-text);
+      font-weight: 600;
+    }
+
+    li + li {
+      margin-top: 6px;
+    }
+  }
+}
+
+.dc-steps {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 20px;
+  padding: 0;
+  list-style: none;
+}
+
+.dc-step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  font-size: var(--fs-caption);
+  color: var(--nf-text-dim);
+
+  &:not(:last-child)::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--nf-border);
+  }
+
+  &:last-child {
+    flex: none;
+  }
+
+  &__dot {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 1px solid var(--nf-border);
+    font-size: var(--fs-label);
+    line-height: 1;
+  }
+
+  &__label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &--now {
+    color: var(--nf-text);
+
+    .dc-step__dot {
+      border-color: var(--nf-primary);
+      color: var(--nf-primary);
+    }
+  }
+
+  &--done .dc-step__dot {
+    border-color: var(--nf-success);
+    color: var(--nf-success);
+  }
+}
+
+.dc-done {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+
+  &__mark {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 1px solid var(--nf-success);
+    color: var(--nf-success);
+    font-size: var(--fs-caption);
+    line-height: 1;
+  }
+}
+
+.dc-channel {
+  font-variant-numeric: tabular-nums;
+  color: var(--nf-primary);
+}
+
+.dc-error {
+  margin-top: 14px;
+  font-size: var(--fs-caption);
+  line-height: 1.5;
+  color: var(--nf-danger);
+
+  &--banner {
+    margin: 0 0 18px;
+  }
+}

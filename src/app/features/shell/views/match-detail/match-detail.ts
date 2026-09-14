@@ -17,7 +17,7 @@ import { Match, MatchParticipant, TeamSummary } from '../../../../core/matches/m
 import { GameDataStore } from '../../../../core/game-data';
 import { NfAvatar, NfLaneIcon, NfSegmented } from '../../../../ui';
 import { MatchScoreboardComponent } from '../match-history/match-scoreboard.component';
-import { computeMatchScores, formatKda, itemBg, laneLabel } from '../../../../core/matches/match-view';
+import { computeMatchScores, formatKda, itemBg, laneLabel, matchHasStats } from '../../../../core/matches/match-view';
 import { formatNumber } from '../../../../shared/date-format';
 
 export interface ObjectiveRow {
@@ -256,7 +256,7 @@ export class MatchDetail {
   readonly hasDetailedStats = computed(() => {
     const m = this.match();
     if (!m) return true;
-    return m.source !== 'manual';
+    return matchHasStats(m);
   });
 
   /** Participante del usuario si jugó esta partida (B.4) */

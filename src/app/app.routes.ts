@@ -1,4 +1,5 @@
-import { Routes } from '@angular/router';
+import { inject } from '@angular/core';
+import { Router, Routes } from '@angular/router';
 import { adminGuard, authGuard } from './core/auth';
 import { Login } from './features/login/login';
 import { Shell } from './features/shell/shell';
@@ -63,6 +64,12 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/shell/views/group/grupo-perfil').then((m) => m.GrupoPerfil),
       },
+      {
+        path: 'grupos/:id/ajustes',
+        title: 'Ajustes del grupo · Sale Custom',
+        loadComponent: () =>
+          import('./features/shell/views/group-settings/ajustes-grupo').then((m) => m.AjustesGrupo),
+      },
       // La zona de juego, con un nivel por objeto del dominio (`FlujoJuego.md` §2): el
       // tablón lista lo que hay, la convocatoria es la llamada a jugar, y la sala son los
       // diez. Las tres rutas anteriores —`partidas`, `partidas/:roomId` y
@@ -113,10 +120,12 @@ export const routes: Routes = [
           ),
       },
       {
-        path: 'grupos/:id/discord',
-        title: 'Discord · Sale Custom',
+        path: 'grupos/:id/sanciones',
+        title: 'Sanciones · Sale Custom',
         loadComponent: () =>
-          import('./features/shell/views/group/grupo-discord').then((m) => m.GrupoDiscord),
+          import('./features/shell/views/group-sanctions/sanciones-grupo').then(
+            (m) => m.SancionesGrupo,
+          ),
       },
       {
         path: 'grupos/:id/historial',
@@ -179,27 +188,36 @@ export const routes: Routes = [
         ],
       },
       // Redirects de compatibilidad para enlaces profundos
+      {
+        path: 'grupos/:id/discord',
+        redirectTo: (route) =>
+          inject(Router).createUrlTree(
+            ['/app', 'grupos', route.params['id'], 'ajustes'],
+            { queryParams: { s: 'discord' } },
+          ),
+      },
       { path: 'grupos/:id/crear-partida', redirectTo: 'grupos/:id/tablon' },
       { path: 'grupos/:id/partidas', pathMatch: 'full', redirectTo: 'grupos/:id/tablon' },
       { path: 'grupos/:id/partidas/:roomId', redirectTo: 'grupos/:id/convocatoria/:roomId' },
+      { path: 'historial-cruzado/:playerId', redirectTo: 'jugador/:playerId' },
       { path: 'versus/:playerId', redirectTo: 'jugador/:playerId/contra' },
       { path: 'versus/:playerId/:matchId', redirectTo: 'jugador/:playerId/contra/:matchId' },
       { path: 'synergy/:playerId', redirectTo: 'jugador/:playerId/juntos' },
       { path: 'synergy/:playerId/:matchId', redirectTo: 'jugador/:playerId/juntos/:matchId' },
-      { path: 'historial-cruzado/:playerId', redirectTo: 'jugador/:playerId' },
-      { path: 'grupos/:id/campeon/:championId', redirectTo: 'grupos/:id/tierlist' },
-      { path: 'campeon/:championId', redirectTo: 'tierlist' },
       {
-        path: 'pruebas',
-        title: 'Pruebas Hall of Fame · Sale Custom',
-        canActivate: [adminGuard],
-        loadComponent: () =>
-          import('./features/shell/views/pruebas/pruebas-hof').then((m) => m.PruebasHof),
+        path: 'grupos/:id/campeon/:championId',
+        title: 'Campeón · Sale Custom',
+        loadComponent: () => import('./features/shell/views/champion/campeon').then((m) => m.Campeon),
+      },
+      {
+        path: 'campeon/:championId',
+        title: 'Campeón · Sale Custom',
+        loadComponent: () => import('./features/shell/views/champion/campeon').then((m) => m.Campeon),
       },
       {
         path: 'ajustes',
         title: 'Ajustes · Sale Custom',
-        loadComponent: () => import('./features/shell/views/ajustes').then((m) => m.Ajustes),
+        loadComponent: () => import('./features/shell/views/settings/ajustes').then((m) => m.Ajustes),
       },
       // Administración: además del authGuard del padre, exige rol ADMIN (el backend revalida).
       {

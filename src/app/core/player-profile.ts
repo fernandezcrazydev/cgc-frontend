@@ -22,8 +22,6 @@ export interface ProfileGroupRecord {
   wr: number;
   /** Posición en la tabla de la temporada activa del grupo */
   rankPosition: number;
-  /** Puntos de liga en el grupo */
-  lp: number;
   seasonName: string;
 }
 
@@ -236,6 +234,7 @@ export interface PlayerProfile {
   topChampions: ProfileChampion[];
   groupCount: number;
   groups: ProfileGroupRecord[];
+  isPrivate?: boolean;
 }
 
 /** Perfil completo de un miembro para la vista de terceros `/app/perfil/:id` */
@@ -354,7 +353,6 @@ export function buildPlayerProfile(
     const wins = Math.round(games * wr);
     const losses = Math.max(0, games - wins);
     const rankPosition = 1 + (Math.floor(grnd() * Math.max(1, g.members)));
-    const lp = Math.round(40 + grnd() * 210);
     return {
       id: g.id,
       name: g.name,
@@ -367,7 +365,6 @@ export function buildPlayerProfile(
       losses,
       wr: games ? Math.round((wins / games) * 100) : 0,
       rankPosition,
-      lp,
       seasonName: SEASON_NAME,
     };
   });
@@ -617,9 +614,11 @@ export function buildMemberProfile(
   );
 
   const combinedGroups = [...baseProfile.groups, ...externalGroupsFor(tag)];
+  const isPrivate = targetMember?.isPrivate ?? (tag.toLowerCase().includes('secret') || tag.toLowerCase().includes('privad') || targetTag.toLowerCase().includes('secret') || targetTag.toLowerCase().includes('privad'));
 
   return {
     ...baseProfile,
+    isPrivate,
     groups: combinedGroups,
     groupCount: combinedGroups.length,
     targetUserId: targetMember?.userId ?? tag,
@@ -679,7 +678,6 @@ function externalGroupsFor(tag: string): ProfileGroupRecord[] {
       // El winrate se calcula, no se sortea: es el mismo error que tenía el desglose por rol.
       wr: Math.round((wins / games) * 100),
       rankPosition: 1 + Math.floor(rnd() * 8),
-      lp: 40 + Math.floor(rnd() * 280),
       seasonName: SEASON_NAME,
     };
   });

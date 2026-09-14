@@ -70,6 +70,7 @@ export function matchFixture(over: {
   id: string;
   groupId?: string;
   groupName?: string;
+  source?: 'manual' | 'import';
   decidedAt?: string;
   durationSeconds?: number;
   winningTeam?: TeamSide;
@@ -92,7 +93,7 @@ export function matchFixture(over: {
       color1: '#000',
       color2: '#111',
     },
-    source: 'manual',
+    source: over.source ?? 'import',
     durationSeconds: over.durationSeconds ?? 1800,
     decidedAt: over.decidedAt ?? '2026-06-23T21:00:00Z',
     winningTeam,

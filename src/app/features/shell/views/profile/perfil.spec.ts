@@ -48,7 +48,7 @@ const CROSS_PARTNERS = buildCrossPartners(PARTIDAS);
  * compilar sin quejarse y pintar mal —o reventar— al renderizarse. Cada prueba
  * de aquí protege una decisión concreta del rediseño, no el aspecto.
  */
-describe('Perfil · refactor de la vista', () => {
+describe('Perfil · refactor de la vista', { timeout: 15000 }, () => {
   async function montar(
     // Quién ha iniciado sesión. Parametrizado porque el perfil se siembra con la identidad de
     // la sesión: dos usuarios distintos no pueden salir con las mismas cifras.
@@ -156,10 +156,11 @@ describe('Perfil · refactor de la vista', () => {
   it('sin cuenta vinculada el encabezado ofrece el botón de Riot con su color de marca', async () => {
     const { el } = await montar();
 
-    const boton = el.querySelector<HTMLButtonElement>('.pf-hero-compact__riot');
+    const boton = el.querySelector<HTMLAnchorElement>('.pf-hero-compact__riot');
     expect(boton).not.toBeNull();
     expect(boton!.classList.contains('nf-btn--riot')).toBe(true);
     expect(boton!.textContent).toContain('Vincular Riot ID');
+    expect(boton!.getAttribute('href')).toBe('/app/ajustes');
     // Lleva el logo oficial, no un glifo de texto.
     expect(boton!.querySelector('.nf-btn__riot-mark')).not.toBeNull();
     expect(boton!.textContent).not.toContain('＋');
@@ -208,40 +209,40 @@ describe('Perfil · refactor de la vista', () => {
     expect(visibles.length).toBeLessThanOrEqual(4);
   });
 
-  it('el LP se conserva por grupo, que es donde tiene contexto de liga', async () => {
+  it('la tarjeta de grupos no pinta LP ni posición, porque no pueden decir de qué liga hablan', async () => {
     const { el } = await montar();
 
-    const rangos = Array.from(el.querySelectorAll('.pf-group-item__rank')).map((n) => n.textContent!.trim());
-    expect(rangos.length).toBeGreaterThan(0);
-    expect(rangos[0]).toMatch(/#\d+ · \d+ LP/);
+    expect(el.querySelectorAll('.pf-group-item__rank').length).toBe(0);
+    const sub = el.querySelector('.pf-group-item__sub')?.textContent?.trim();
+    expect(sub).toMatch(/\d+V \d+D/);
   });
 
-  it('los campeones insignia y las fichas del catálogo enlazan a la tierlist', async () => {
+  it('los campeones insignia y las fichas del catálogo enlazan a la ficha de campeón', async () => {
     const { el, comp, detect } = await montar();
 
-    expect(el.querySelector<HTMLAnchorElement>('a.pf-mini-champ')?.getAttribute('href')).toBe('/app/tierlist');
+    expect(el.querySelector<HTMLAnchorElement>('a.pf-mini-champ')?.getAttribute('href')).toMatch(/\/app\/campeon\/\d+/);
 
-    comp.activeTab.set('campeones');
+    comp.setTab('campeones');
     detect();
-    expect(el.querySelector<HTMLAnchorElement>('a.pf-champ-tile')?.getAttribute('href')).toBe('/app/tierlist');
+    expect(el.querySelector<HTMLAnchorElement>('a.pf-champ-tile')?.getAttribute('href')).toMatch(/\/app\/campeon\/\d+/);
   });
 
   it('el mejor aliado y la némesis salen de las partidas reales, no de una semilla', async () => {
     const { el } = await montar();
 
-    const sinergia = el.querySelector<HTMLAnchorElement>('a.pf-h2h-compact--ally');
-    const rivalidad = el.querySelector<HTMLAnchorElement>('a.pf-h2h-compact--nemesis');
+    const sinergia = el.querySelector<HTMLAnchorElement>('a.pf-vs-tile--synergy');
+    const rivalidad = el.querySelector<HTMLAnchorElement>('a.pf-vs-tile--rivalry');
 
     // 3 de 4 juntos y 0 de 4 enfrentados: los mismos números que dirá su página.
-    expect(sinergia?.textContent).toContain('75% WR juntos');
-    expect(rivalidad?.textContent).toContain('0% WR en duelo');
+    expect(sinergia?.textContent).toContain('75 % WR juntos');
+    expect(rivalidad?.textContent).toContain('0 % WR en duelo');
   });
 
   it('la sinergia lleva a /app/synergy y la rivalidad a /app/versus', async () => {
     const { el } = await montar();
 
-    const sinergia = el.querySelector<HTMLAnchorElement>('a.pf-h2h-compact--ally, .pf-h2h-compact--ally a, .pf-h2h-compact--ally');
-    const rivalidad = el.querySelector<HTMLAnchorElement>('a.pf-h2h-compact--nemesis, .pf-h2h-compact--nemesis a, .pf-h2h-compact--nemesis');
+    const sinergia = el.querySelector<HTMLAnchorElement>('a.pf-vs-tile--synergy');
+    const rivalidad = el.querySelector<HTMLAnchorElement>('a.pf-vs-tile--rivalry');
 
     expect(sinergia?.getAttribute('href')).toContain('/app/synergy/');
     expect(rivalidad?.getAttribute('href')).toContain('/app/versus/');
@@ -250,7 +251,7 @@ describe('Perfil · refactor de la vista', () => {
   it('el buscador de campeones va junto al filtro de posición', async () => {
     const { el, comp, detect } = await montar();
 
-    comp.activeTab.set('campeones');
+    comp.setTab('campeones');
     detect();
 
     const grupo = el.querySelector('.pf-champ-toolbar-compact__filters');
@@ -261,7 +262,7 @@ describe('Perfil · refactor de la vista', () => {
   it('elegir un campeón en el buscador deja solo ese en la rejilla', async () => {
     const { comp, detect } = await montar();
 
-    comp.activeTab.set('campeones');
+    comp.setTab('campeones');
     detect();
     expect(comp.filteredChampions().length).toBeGreaterThan(1);
 
@@ -302,7 +303,7 @@ describe('Perfil · refactor de la vista', () => {
   it('una posición sin partidas dice que no tiene datos, no un winrate', async () => {
     // Sin ninguna partida no hay nada que medir en ninguna de las cinco posiciones.
     const { el, comp, detect } = await montar('N1ghtfang', []);
-    comp.activeTab.set('dna');
+    comp.setTab('dna');
     detect();
 
     const tabla = el.querySelector('.pf-role-table');
@@ -310,5 +311,35 @@ describe('Perfil · refactor de la vista', () => {
     expect(tabla!.querySelectorAll('.pf-nodata').length).toBe(10);
     // Y ni una sola celda de porcentaje inventada en la tabla de roles.
     expect(tabla!.textContent).not.toMatch(/\d+%/);
+  });
+
+  it('renderiza la gráfica de LP y la vitrina de trofeos en la pestaña Resumen', async () => {
+    const { el } = await montar();
+
+    expect(el.querySelector('app-profile-lp-chart')).not.toBeNull();
+    expect(el.querySelector('app-profile-trophies-card')).not.toBeNull();
+    // La gráfica del perfil ES la del hub (`hub-lp`), no una copia con otro aspecto.
+    expect(el.querySelector('app-hub-lp-chart .hub-lp')).not.toBeNull();
+    expect(el.querySelector('.pf-trophies-card')).not.toBeNull();
+    // La vitrina es editable solo aquí, en el perfil propio.
+    expect(el.querySelector('.pf-trophies-card button[nfIconButton]')).not.toBeNull();
+  });
+
+  it('las seis tarjetas de ADN enseñan una nota con una décima y coma decimal', async () => {
+    const { el, comp, detect } = await montar();
+    comp.setTab('dna');
+    detect();
+
+    const scores = el.querySelectorAll('.pf-dna-card__score');
+    expect(scores.length).toBe(6);
+    scores.forEach((s) => {
+      expect(s.textContent?.trim()).toMatch(/^(\d+,\d|—)$/);
+      expect(s.textContent).not.toContain('/10');
+      expect(s.textContent).not.toContain('sobre');
+      const aria = s.getAttribute('aria-label');
+      if (s.textContent?.trim() !== '—') {
+        expect(aria).toMatch(/^Nota de esta faceta: \d+,\d sobre 10$/);
+      }
+    });
   });
 });

@@ -1,0 +1,9 @@
+/* La gráfica en sí la pinta `HubLpChartComponent` con sus propias hojas (`hub-card.scss` y
+   `hub-lp-chart.component.scss`): aquí no se estila nada suyo a propósito, porque la razón de
+   reutilizar el componente es que las dos pantallas se vean igual. Esto solo coloca el bloque
+   dentro de la columna del perfil. */
+
+:host,
+app-hub-lp-chart {
+  display: block;
+}

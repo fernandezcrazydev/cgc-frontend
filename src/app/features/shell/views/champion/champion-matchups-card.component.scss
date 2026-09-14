@@ -1,0 +1,142 @@
+.cf-card-inner {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.cf-card__title {
+  font-size: var(--fs-h2);
+  font-weight: 700;
+  color: var(--nf-text);
+  margin: 0;
+}
+
+.d-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-3);
+}
+
+.d-card-actions {
+  display: flex;
+  align-items: center;
+}
+
+.d-card-search-toggle {
+  color: var(--nf-text-dim);
+
+  &:hover {
+    color: var(--nf-text);
+  }
+}
+
+.d-card-search-row {
+  margin-bottom: var(--sp-3);
+  animation: d-search-slide-down var(--nf-dur-fast) var(--nf-ease-out);
+}
+
+@keyframes d-search-slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.d-common-empty {
+  font-size: var(--fs-caption);
+  color: var(--nf-text-dim);
+  font-style: italic;
+  margin: 0;
+  padding: var(--sp-2) 0;
+  text-align: center;
+}
+
+.d-alt4 {
+  &__body {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: var(--sp-3);
+    flex: 1;
+  }
+
+  &__tiles {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--sp-2);
+    flex-wrap: wrap;
+  }
+
+  &__tile {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    cursor: default;
+
+    &:hover {
+      .d-alt4__icon {
+        transform: scale(1.08);
+        box-shadow: 0 0 0 2px var(--nf-primary);
+      }
+
+      .d-alt4__wr {
+        color: var(--nf-text);
+      }
+    }
+  }
+
+  &__icon {
+    width: 44px;
+    height: 44px;
+    border-radius: var(--nf-radius-sm);
+    object-fit: cover;
+    transition: transform var(--nf-dur-fast) var(--nf-ease-out), box-shadow var(--nf-dur-fast) var(--nf-ease-out);
+
+    &--ally {
+      box-shadow: 0 0 0 2px var(--nf-ally);
+    }
+
+    &--rival {
+      box-shadow: 0 0 0 2px var(--nf-rival);
+    }
+  }
+
+  &__wr {
+    font-size: var(--fs-caption);
+    font-weight: 700;
+    transition: color var(--nf-dur-fast) var(--nf-ease-out);
+
+    &--ally {
+      color: var(--nf-ally);
+    }
+
+    &--rival {
+      color: var(--nf-rival);
+    }
+  }
+
+  &__games {
+    font-size: var(--fs-label);
+    color: var(--nf-text-dim);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .d-card-search-toggle,
+  .d-card-search-row,
+  .d-alt4__tile,
+  .d-alt4__icon,
+  .d-alt4__wr {
+    transition: none;
+    transform: none;
+    animation: none;
+  }
+}

@@ -777,3 +777,54 @@
 .field__preview strong {
   color: var(--nf-text);
 }
+
+.grp-leagues-disclaimer {
+  grid-column: 1 / -1;
+  background: var(--nf-surface-2);
+  border: 1px solid var(--nf-border);
+  border-radius: var(--nf-radius);
+  padding: var(--sp-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  font-size: var(--fs-body);
+}
+
+.grp-leagues-disclaimer__eyebrow {
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+  letter-spacing: 0.05em;
+}
+
+.grp-leagues-disclaimer__desc {
+  font-size: var(--fs-body);
+  color: var(--nf-text);
+  margin: 0;
+  line-height: var(--lh-snug);
+}
+
+.grp-leagues-disclaimer__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+
+.grp-leagues-disclaimer__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: var(--fs-body);
+  color: var(--nf-text);
+
+  .nf-mono {
+    font-size: var(--fs-label);
+    color: var(--nf-text-dim);
+  }
+}
+
+.grp-leagues-disclaimer__foot {
+  font-size: var(--fs-caption);
+  color: var(--nf-text-dim);
+  margin: 0;
+  line-height: var(--lh-snug);
+}

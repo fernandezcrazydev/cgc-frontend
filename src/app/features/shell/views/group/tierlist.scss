@@ -1,5 +1,5 @@
-/* ── Vista Tierlist de Campeones del Grupo ────────────────────────────────────
-   Estilos dedicados para la tabla analítica competitiva de metagame y su cajón Deep-Dive. */
+﻿/* ── Vista Tierlist de Campeones del Grupo ────────────────────────────────────
+   Estilos dedicados para la tabla analítica competitiva de metagame. */
 
 .tierlist-view {
   display: flex;
@@ -213,9 +213,17 @@
     }
   }
 
-  &.is-expanded {
-    background: rgba(255, 255, 255, 0.05);
-    border-bottom-color: transparent;
+  &.is-focused {
+    animation: tierlistFocusPulse 1.8s ease-out forwards;
+  }
+}
+
+@keyframes tierlistFocusPulse {
+  0% {
+    background: color-mix(in srgb, var(--nf-primary, #ec4899) 25%, transparent);
+  }
+  100% {
+    background: transparent;
   }
 }
 
@@ -262,12 +270,6 @@
 
   &.col-specialist {
     min-width: 180px;
-  }
-
-  &.col-chevron {
-    width: 36px;
-    text-align: center;
-    padding: 10px 14px 10px 0;
   }
 }
 
@@ -317,25 +319,6 @@
   display: flex;
   align-items: center;
   gap: 10px;
-}
-
-/* ── Chevron Indicador de Expansión (Mismo estilo que Historial) ───────────── */
-.tierlist-chevron {
-  flex: none;
-  color: var(--nf-text-dim);
-  transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1), color 0.16s;
-  display: inline-block;
-  vertical-align: middle;
-}
-
-.tierlist-tr.is-clickable:hover .tierlist-chevron,
-.tierlist-tr.is-clickable:focus-visible .tierlist-chevron {
-  color: var(--nf-secondary, #6366f1);
-}
-
-.tierlist-tr.is-expanded .tierlist-chevron {
-  transform: rotate(180deg);
-  color: var(--nf-secondary, #6366f1);
 }
 
 .tierlist-champ-avatar {
@@ -524,159 +507,6 @@
 .tierlist-no-specialist {
   font-size: 12px;
   color: var(--nf-text-dim);
-}
-
-/* ── Cajón Desplegable Deep-Dive ───────────────────────────────────────────── */
-.tierlist-drawer-tr {
-  background: var(--nf-surface-2, #1d1d23);
-  border-bottom: 2px solid color-mix(in srgb, var(--nf-primary, #ec4899) 30%, transparent);
-}
-
-.tierlist-drawer-td {
-  padding: 16px 20px;
-}
-
-.tierlist-drawer-content {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.tierlist-drawer-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.tierlist-drawer-eyebrow {
-  font-size: 11.5px;
-  color: var(--nf-primary, #ec4899);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  font-weight: 600;
-}
-
-.tierlist-drawer-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
-
-  @media (max-width: 900px) {
-    grid-template-columns: 1fr;
-  }
-}
-
-.tierlist-drawer-card {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 14px 16px;
-  border-radius: 9px;
-  background: var(--nf-surface-1, #151518);
-  border: 1px solid var(--nf-border);
-}
-
-.drawer-card-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.drawer-card-icon {
-  font-size: var(--fs-body);
-}
-
-.drawer-card-title {
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--nf-text);
-}
-
-.drawer-metrics-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.drawer-metric-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  font-size: 12px;
-}
-
-.drawer-metric-label {
-  color: var(--nf-text-dim);
-}
-
-.drawer-metric-val {
-  font-weight: 600;
-  color: var(--nf-text);
-
-  &.is-positive {
-    color: #10b981;
-  }
-
-  &.is-negative {
-    color: #f43f5e;
-  }
-}
-
-/* Lista de Jugadores en el Drawer */
-.drawer-players-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  max-height: 140px;
-  overflow-y: auto;
-}
-
-.drawer-player-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 6px;
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.02);
-}
-
-.drawer-player-meta {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  flex: 1;
-}
-
-.drawer-player-name {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--nf-text);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.drawer-player-stats {
-  font-size: 10.5px;
-  color: var(--nf-text-dim);
-}
-
-.drawer-player-badge {
-  font-size: var(--fs-label);
-  font-weight: 600;
-  color: var(--nf-text-mid);
-  white-space: nowrap;
-
-  &.is-positive {
-    color: #10b981;
-  }
-}
-
-.drawer-player-empty {
-  font-size: 11.5px;
-  color: var(--nf-text-dim);
-  padding: 8px 0;
 }
 
 /* ── Estado Vacío y Filtros Vacíos ─────────────────────────────────────────── */

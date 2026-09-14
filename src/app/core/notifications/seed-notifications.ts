@@ -20,6 +20,40 @@ import { NotificationResponse } from './models';
  */
 export const SEED_NOTIFICATIONS: NotificationResponse[] = [
   {
+    id: 'demo-notif-sanction-decision-1',
+    type: 'SANCTION_DECISION_REQUIRED',
+    data: {
+      groupId: 'lan-challenger',
+      groupName: 'LAN Challenger S14',
+      targetUserId: 'user-manolito-3',
+      targetName: 'Manolito',
+      targetAvatar: '',
+      modality: 'Equilibrado',
+      recommendedDays: '7',
+      incidents: JSON.stringify([
+        { date: '5 sept', type: 'Ausencia', modality: 'Equilibrado', detail: '', lpDelta: -5 },
+        { date: '8 sept', type: 'Abandono', modality: 'Equilibrado', detail: 'Sala #4092', lpDelta: -10 },
+        { date: '12 sept', type: 'Abandono', modality: 'Equilibrado', detail: 'Sala #4131', lpDelta: -10 },
+      ]),
+      message: 'Manolito ha alcanzado 3 incidencias esta temporada. Requiere tu decisión arbitral.',
+    },
+    read: true,
+    createdAt: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'demo-notif-vote-1',
+    type: 'GROUP_VOTE_OPENED',
+    data: {
+      groupId: 'lan-challenger',
+      groupName: 'Customs Tryhard',
+      voteId: 'demo-vote-1',
+      message:
+        'Adri propone cerrar la temporada "Copa del Nexo" en "Customs Tryhard". Si no votas en 24 h, cuenta como un no.',
+    },
+    read: false,
+    createdAt: new Date(Date.now() - 25 * 60 * 1000).toISOString(), // Hace 25 min
+  },
+  {
     id: 'demo-notif-sanction-1',
     type: 'SANCTION_ISSUED',
     data: {

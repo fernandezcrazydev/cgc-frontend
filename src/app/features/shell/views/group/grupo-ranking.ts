@@ -26,19 +26,31 @@ import {
   NfRankEmblem,
   NfCombobox,
   NfComboboxOption,
+  NfSegmentOption,
+  NfSegmented,
   NfSkeleton,
   NfTypeahead,
 } from '../../../../ui';
 import { GroupBridge, GroupDetailStore, GroupsStore } from '../../../../core/groups';
 import { GroupStore } from '../../../../core/group-store';
 import { hash, mapLeaderboardEntries, RankEntry } from '../../../../core/group-ranking';
+import { groupRefereeFor } from '../../../../core/group-hub';
+import { GroupSanctionsStore } from '../../../../core/group-sanctions';
+import { Session } from '../../../../core/auth';
 import { LeaderboardSearchSuggestion, LeaguesStore } from '../../../../core/leagues';
 import { ServerClock, errorMessage } from '../../../../core/http';
 import { ToastService } from '../../../../core/toast';
 import { MatchHistoryStore } from '../../../../core/matches/match-history-store';
 import { GameDataStore } from '../../../../core/game-data';
 import { Lane, Match, MatchItemSlot, MatchParticipant } from '../../../../core/matches/models';
+import {
+  MODALITY_LABELS,
+  StatModality,
+  groupModalitiesConfig,
+  modalitySlug,
+} from '../../../../core/group-stats';
 import { formatDurationMinutes, formatMatchDate } from '../../../../shared/date-format';
+import { SanctionDialogComponent } from '../group-sanctions/sanction-dialog.component';
 
 /**
  * Columnas por las que se puede ordenar la clasificación.
@@ -127,7 +139,9 @@ const SEASON_LENGTH_DAYS = 14;
     NfSkeleton,
     NfModal,
     NfCombobox,
+    NfSegmented,
     NfTypeahead,
+    SanctionDialogComponent,
   ],
   // Tres hojas y no una: el podio y el cajon de historial se separaron por el presupuesto
   // `anyComponentStyle` de Angular, y hay que declararlas TODAS o no se cargan.
@@ -145,12 +159,40 @@ export class GrupoRanking {
   private readonly destroyRef = inject(DestroyRef);
   private readonly toasts = inject(ToastService);
   private readonly clock = inject(ServerClock);
+  private readonly session = inject(Session);
+  private readonly sanctionsStore = inject(GroupSanctionsStore);
+  private readonly queryParamMap = this.route.queryParamMap
+    ? toSignal(this.route.queryParamMap, { initialValue: this.route.snapshot?.queryParamMap ?? null })
+    : signal(null);
   readonly bridge = inject(GroupBridge);
   readonly leagues = inject(LeaguesStore);
   /** Solo para expulsar: es quien tiene la acción y sabe si hay una escritura en vuelo. */
   private readonly groupDetail = inject(GroupDetailStore);
   private readonly matchHistory = inject(MatchHistoryStore);
   private readonly gameData = inject(GameDataStore);
+
+  readonly currentUserId = computed(() => this.session.user()?.userId ?? null);
+  readonly currentUserName = computed(() => this.session.user()?.discordUsername ?? null);
+
+  readonly isReferee = computed(() => {
+    const gid = this.id();
+    if (!gid) return false;
+    const refId = groupRefereeFor(gid, this.groupStore.rosterOf(gid));
+    const me = this.currentUserId();
+    return Boolean(me && refId && me === refId);
+  });
+
+  /** El roster mock, que es el contexto con el que se siembran las sanciones del grupo. */
+  readonly sanctionRoster = computed(() => {
+    const gid = this.id();
+    return gid ? this.groupStore.rosterOf(gid) : [];
+  });
+
+  readonly isOwner = computed(() => {
+    const gid = this.id();
+    if (!gid) return false;
+    return this.groupsStore.byId(gid)?.role === 'OWNER';
+  });
 
   /** Devuelve las partidas del grupo en las que participó el jugador seleccionado. */
   matchesOf(playerId: string): DrawerMatchItem[] {
@@ -397,7 +439,7 @@ export class GrupoRanking {
   protected readonly NO_TREND_HINT = "Aún no ha jugado partidas de las que sacar una tendencia";
   protected readonly NO_AVG_HINT = "Aún no ha jugado partidas de las que sacar una media";
 
-  private readonly id = toSignal(
+  readonly id = toSignal(
     this.route.paramMap.pipe(map((p) => p.get('id'))),
     { initialValue: this.route.snapshot.paramMap.get('id') },
   );
@@ -422,6 +464,68 @@ export class GrupoRanking {
   });
 
   readonly leagueName = computed(() => this.leagues.league()?.name ?? 'Liga oficial');
+
+  /* ---- Modalidad de la clasificación ---- */
+  readonly modality = signal<StatModality>('COMPETITIVE');
+  readonly isCompetitive = computed(() => this.modality() === 'COMPETITIVE');
+  readonly currentModalityLabel = computed(() => MODALITY_LABELS[this.modality()]);
+
+  readonly modalityOptions: readonly NfSegmentOption[] = [
+    { value: 'COMPETITIVE', label: MODALITY_LABELS.COMPETITIVE },
+    { value: 'BALANCED', label: MODALITY_LABELS.BALANCED },
+    { value: 'CHAOS', label: MODALITY_LABELS.CHAOS },
+  ];
+
+  setModality(val: string): void {
+    this.modality.set(val as StatModality);
+  }
+
+  readonly emptyCopy = computed(() => {
+    const g = this.group();
+    const mod = this.modality();
+    const label = MODALITY_LABELS[mod];
+    if (!g) {
+      return {
+        title: `${label} no tiene clasificación todavía`,
+        hint: 'Su temporada arrancará con la primera partida de esta modalidad que juegue el grupo.',
+      };
+    }
+    const config = groupModalitiesConfig(g.id);
+    const item = config.find((c) => c.modality === mod);
+    const played = item?.played ?? false;
+    if (!played) {
+      return {
+        title: `${label} no tiene clasificación todavía`,
+        hint: 'Su temporada arrancará con la primera partida de esta modalidad que juegue el grupo.',
+      };
+    }
+    return {
+      title: `La clasificación de ${label} todavía no está disponible`,
+      hint: 'El grupo ya juega esta modalidad. Su clasificación propia llegará con el resto de la temporada.',
+    };
+  });
+
+  readonly historyLink = computed(() => {
+    const g = this.group();
+    return g ? ['/app', 'grupos', g.id, 'historial'] : ['/app', 'historial'];
+  });
+
+  readonly historyQueryParams = computed(() => {
+    const params: Record<string, string> = {
+      liga: modalitySlug(this.modality()),
+    };
+    if (this.isCompetitive()) {
+      const viewingId = this.leagues.viewingLeagueId();
+      const season = viewingId
+        ? this.leagues.seasons().find((s) => s.id === viewingId)
+        : (this.leagues.league() ?? this.leagues.seasons().find((s) => s.status !== 'FINISHED'));
+      const seasonName = season?.name;
+      if (seasonName) {
+        params['temporada'] = seasonName;
+      }
+    }
+    return params;
+  });
 
   readonly rows = computed<RankEntry[]>(() => {
     const list = mapLeaderboardEntries(this.leagues.rows());
@@ -624,39 +728,41 @@ export class GrupoRanking {
     return mine > theirs;
   }
 
+  canSanctionPlayer(e: RankEntry): boolean {
+    if (this.isOwner()) {
+      return e.groupRole !== 'OWNER';
+    }
+    if (this.isReferee()) {
+      return e.playerId !== this.currentUserId();
+    }
+    return false;
+  }
+
+  canLiftSanctionPlayer(e: RankEntry): boolean {
+    return this.isReferee();
+  }
+
+  hasMenuActions(e: RankEntry): boolean {
+    if (e.banned) {
+      return this.canLiftSanctionPlayer(e) || this.canActOn(e);
+    }
+    return this.canSanctionPlayer(e) || this.canActOn(e);
+  }
+
   // ── Sancionar ─────────────────────────────────────────────────────────
-  readonly sanctionFor = signal<RankEntry | null>(null);
-  readonly sanctionReason = signal('');
-  /** `''` = indefinida. El backend acepta `until` nulo. */
-  readonly sanctionUntil = signal('');
+  readonly sanctionFor = signal<{ userId: string; name: string } | null>(null);
 
   openSanction(e: RankEntry): void {
     this.closeMenu();
-    this.sanctionReason.set('');
-    this.sanctionUntil.set('');
-    this.sanctionFor.set(e);
+    this.sanctionFor.set({ userId: e.playerId, name: e.name });
   }
 
   closeSanction(): void {
     this.sanctionFor.set(null);
   }
 
-  async confirmSanction(): Promise<void> {
-    const target = this.sanctionFor();
-    const groupId = this.id();
-    const reason = this.sanctionReason().trim();
-    if (!target || !groupId || !reason) return;
-    try {
-      await this.leagues.sanction(groupId, target.playerId, {
-        reason,
-        // `datetime-local` da hora local sin zona; se manda en ISO con la del navegador.
-        until: this.sanctionUntil() ? new Date(this.sanctionUntil()).toISOString() : null,
-      });
-      this.closeSanction();
-      this.toasts.success(`${target.name} queda fuera de la competición`);
-    } catch (e) {
-      this.toasts.error(errorMessage(e));
-    }
+  onSanctionConfirmed(): void {
+    void this.leagues.reload();
   }
 
   async liftSanction(e: RankEntry): Promise<void> {
@@ -665,6 +771,19 @@ export class GrupoRanking {
     if (!groupId) return;
     try {
       await this.leagues.liftSanction(groupId, e.playerId);
+      const byName = this.currentUserName() ?? 'el árbitro';
+      // El store de sanciones se direcciona por ID DE SANCIÓN, no por jugador: pasarle el
+      // `playerId` no levantaba nada y, al no llevar roster ni temporadas, sembraba la lista del
+      // grupo desde cero y dejaba el panel enseñando otra cosa. Se busca la sanción activa de ese
+      // jugador y se levanta esa, con el mismo contexto con el que la pantalla la pintó.
+      const roster = this.groupStore.rosterOf(groupId);
+      const seasons = this.leagues.seasons();
+      const mine = this.sanctionsStore
+        .sanctionsOf(groupId, roster, seasons, this.currentUserId())()
+        .find((s) => s.targetUserId === e.playerId && s.status === 'ACTIVE');
+      if (mine) {
+        this.sanctionsStore.lift(groupId, mine.id, byName, roster, seasons, this.currentUserId());
+      }
       this.toasts.success(`${e.name} vuelve a la competición`);
     } catch (err) {
       this.toasts.error(errorMessage(err));
@@ -858,11 +977,29 @@ export class GrupoRanking {
       // en bucle hasta agotar la memoria del proceso. La única dependencia aquí debe ser `id`.
       untracked(() => {
         void this.bridge.ensure(id);
-        void this.leagues.loadSeasons(id);
+
         // Al cambiar de grupo se empieza de cero: la clasificación del anterior no vale ni como
         // estado intermedio. El store descarta además la respuesta que llegue tarde.
+        //
+        // VA PRIMERO, y el orden es el bug que tuvo esto: `clear()` vacía también la lista de
+        // temporadas, así que lanzado DESPUÉS de `loadSeasons` borraba justo lo que se acababa de
+        // pedir. El `?temporada=` de un enlace del panel de sanciones no encontraba su id en una
+        // lista vacía y la pantalla se quedaba siempre en la temporada en curso.
         this.leagues.clear();
         void this.leagues.ensureLoaded(id);
+
+        // `ensureLoaded` ya ha fijado el grupo del store, así que cuando lleguen las temporadas
+        // la selección sí dispara su propia carga y gana por número de secuencia.
+        void this.leagues.loadSeasons(id).then(() => {
+          const seasonParam = this.queryParamMap()?.get('temporada');
+          if (!seasonParam) return;
+          // Un id que ya no existe —una temporada borrada, un enlace viejo— se ignora en
+          // silencio: se queda la temporada en curso, que es un destino correcto, en vez de
+          // pedirle al servidor una liga que no está.
+          if (this.leagues.seasons().some((s) => s.id === seasonParam)) {
+            void this.leagues.selectSeason(seasonParam);
+          }
+        });
       });
     });
 
