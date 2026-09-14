@@ -148,7 +148,7 @@
 
                     <div class="m-player-row__champ-wrap">
                       <a
-                        [routerLink]="['/app', 'tierlist']"
+                        [routerLink]="['/app', 'campeon', p.championId]"
                         [title]="'Ver estadísticas de ' + championName(p.championId)"
                       >
                         <nf-avatar
@@ -216,7 +216,7 @@
                       </div>
                       <a
                         class="m-player-row__champ-name nf-mono"
-                        [routerLink]="['/app', 'tierlist']"
+                        [routerLink]="['/app', 'campeon', p.championId]"
                         [title]="'Ver estadísticas de ' + championName(p.championId)"
                       >
                         {{ championName(p.championId) }}
@@ -432,7 +432,7 @@
 
                     <div class="m-player-row__champ-wrap">
                       <a
-                        [routerLink]="['/app', 'tierlist']"
+                        [routerLink]="['/app', 'campeon', p.championId]"
                         [title]="'Ver estadísticas de ' + championName(p.championId)"
                       >
                         <nf-avatar
@@ -500,7 +500,7 @@
                       </div>
                       <a
                         class="m-player-row__champ-name nf-mono"
-                        [routerLink]="['/app', 'tierlist']"
+                        [routerLink]="['/app', 'campeon', p.championId]"
                         [title]="'Ver estadísticas de ' + championName(p.championId)"
                       >
                         {{ championName(p.championId) }}
@@ -663,7 +663,7 @@
                   </a>
                   <a
                     class="m-rank-champ nf-mono"
-                    [routerLink]="['/app', 'tierlist']"
+                    [routerLink]="['/app', 'campeon', row.player.championId]"
                     [title]="'Ver estadísticas de ' + championName(row.player.championId)"
                   >
                     {{ championName(row.player.championId) }}
@@ -717,7 +717,7 @@
                 <!-- Jugador Azul -->
                 <div class="m-lane-card__side m-lane-card__side--blue" [class.is-winner]="lane.blue.stats.wonLane">
                   <a
-                    [routerLink]="['/app', 'tierlist']"
+                    [routerLink]="['/app', 'campeon', lane.blue.championId]"
                     [title]="'Ver estadísticas de ' + championName(lane.blue.championId)"
                   >
                     <nf-avatar
@@ -738,7 +738,7 @@
                     </a>
                     <a
                       class="m-lane-card__champ nf-mono"
-                      [routerLink]="['/app', 'tierlist']"
+                      [routerLink]="['/app', 'campeon', lane.blue.championId]"
                       [title]="'Ver estadísticas de ' + championName(lane.blue.championId)"
                     >
                       {{ championName(lane.blue.championId) }}
@@ -757,7 +757,7 @@
                 <!-- Jugador Rojo -->
                 <div class="m-lane-card__side m-lane-card__side--red" [class.is-winner]="lane.red.stats.wonLane">
                   <a
-                    [routerLink]="['/app', 'tierlist']"
+                    [routerLink]="['/app', 'campeon', lane.red.championId]"
                     [title]="'Ver estadísticas de ' + championName(lane.red.championId)"
                   >
                     <nf-avatar
@@ -778,7 +778,7 @@
                     </a>
                     <a
                       class="m-lane-card__champ nf-mono"
-                      [routerLink]="['/app', 'tierlist']"
+                      [routerLink]="['/app', 'campeon', lane.red.championId]"
                       [title]="'Ver estadísticas de ' + championName(lane.red.championId)"
                     >
                       {{ championName(lane.red.championId) }}

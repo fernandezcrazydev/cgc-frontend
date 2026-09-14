@@ -23,7 +23,7 @@
  * compartido del mock; debe pasar al id estable del backend (CLAUDE.md, § "Datos").
  */
 import { Lane, Match, MatchParticipant, TeamSide, TeamSummary } from './models';
-import { damageShare, kdaRatio } from './match-view';
+import { damageShare, kdaRatio, matchHasStats } from './match-view';
 
 /** Cómo coincidisteis en una partida: en el mismo equipo o en bandos opuestos. */
 export type CrossRelation = 'ally' | 'enemy';
@@ -271,6 +271,7 @@ export function aggregateCross(list: readonly CrossMatch[]): CrossAggregate {
   let wonLaneGames = 0;
   let wonLaneWins = 0;
 
+  let statsGames = 0;
   let myKills = 0;
   let myDeaths = 0;
   let myAssists = 0;
@@ -301,44 +302,48 @@ export function aggregateCross(list: readonly CrossMatch[]): CrossAggregate {
       if (won) laneWins++;
     }
 
-    if (c.me.stats.wonLane !== undefined) {
-      wonLaneGames++;
-      if (c.me.stats.wonLane) wonLaneWins++;
-    }
+    if (matchHasStats(c.match)) {
+      statsGames++;
 
-    myKills += c.me.stats.kills;
-    myDeaths += c.me.stats.deaths;
-    myAssists += c.me.stats.assists;
-    theirKills += c.them.stats.kills;
-    theirDeaths += c.them.stats.deaths;
-    theirAssists += c.them.stats.assists;
+      if (c.me.stats.wonLane !== undefined) {
+        wonLaneGames++;
+        if (c.me.stats.wonLane) wonLaneWins++;
+      }
 
-    myShare += damageShare(c.me, c.myTeam);
-    theirShare += damageShare(c.them, c.theirTeam);
-    myCsPerMin += c.me.stats.csPerMin;
-    theirCsPerMin += c.them.stats.csPerMin;
-    myVision += c.me.stats.visionScore;
-    theirVision += c.them.stats.visionScore;
+      myKills += c.me.stats.kills;
+      myDeaths += c.me.stats.deaths;
+      myAssists += c.me.stats.assists;
+      theirKills += c.them.stats.kills;
+      theirDeaths += c.them.stats.deaths;
+      theirAssists += c.them.stats.assists;
 
-    if (c.me.stats.goldAt14 !== undefined && c.them.stats.goldAt14 !== undefined) {
-      goldDiff += c.me.stats.goldAt14 - c.them.stats.goldAt14;
-      goldAt14Games++;
-    }
+      myShare += damageShare(c.me, c.myTeam);
+      theirShare += damageShare(c.them, c.theirTeam);
+      myCsPerMin += c.me.stats.csPerMin;
+      theirCsPerMin += c.them.stats.csPerMin;
+      myVision += c.me.stats.visionScore;
+      theirVision += c.them.stats.visionScore;
 
-    const matchupKey = c.me.championId + ':' + c.them.championId;
-    const matchup = matchups.get(matchupKey);
-    if (matchup) {
-      matchup.games++;
-      if (won) matchup.wins++;
-    } else {
-      matchups.set(matchupKey, {
-        myChampionId: c.me.championId,
-        myChampionName: c.me.championName,
-        theirChampionId: c.them.championId,
-        theirChampionName: c.them.championName,
-        games: 1,
-        wins: won ? 1 : 0,
-      });
+      if (c.me.stats.goldAt14 !== undefined && c.them.stats.goldAt14 !== undefined) {
+        goldDiff += c.me.stats.goldAt14 - c.them.stats.goldAt14;
+        goldAt14Games++;
+      }
+
+      const matchupKey = c.me.championId + ':' + c.them.championId;
+      const matchup = matchups.get(matchupKey);
+      if (matchup) {
+        matchup.games++;
+        if (won) matchup.wins++;
+      } else {
+        matchups.set(matchupKey, {
+          myChampionId: c.me.championId,
+          myChampionName: c.me.championName,
+          theirChampionId: c.them.championId,
+          theirChampionName: c.them.championName,
+          games: 1,
+          wins: won ? 1 : 0,
+        });
+      }
     }
 
     const roleKey = c.me.role + ':' + c.them.role;
@@ -351,8 +356,8 @@ export function aggregateCross(list: readonly CrossMatch[]): CrossAggregate {
     }
   }
 
-  const myKda = kdaRatio({ kills: myKills, deaths: myDeaths, assists: myAssists });
-  const theirKda = kdaRatio({ kills: theirKills, deaths: theirDeaths, assists: theirAssists });
+  const myKda = statsGames > 0 ? kdaRatio({ kills: myKills, deaths: myDeaths, assists: myAssists }) : 0;
+  const theirKda = statsGames > 0 ? kdaRatio({ kills: theirKills, deaths: theirDeaths, assists: theirAssists }) : 0;
 
   return {
     games,
@@ -367,12 +372,12 @@ export function aggregateCross(list: readonly CrossMatch[]): CrossAggregate {
     kdaMe: round2(myKda),
     kdaThem: round2(theirKda),
     kdaDiff: round2(myKda - theirKda),
-    damageShareMe: Math.round(myShare / games),
-    damageShareThem: Math.round(theirShare / games),
-    csPerMinMe: round1(myCsPerMin / games),
-    csPerMinThem: round1(theirCsPerMin / games),
-    visionMe: Math.round(myVision / games),
-    visionThem: Math.round(theirVision / games),
+    damageShareMe: statsGames > 0 ? Math.round(myShare / statsGames) : 0,
+    damageShareThem: statsGames > 0 ? Math.round(theirShare / statsGames) : 0,
+    csPerMinMe: statsGames > 0 ? round1(myCsPerMin / statsGames) : 0,
+    csPerMinThem: statsGames > 0 ? round1(theirCsPerMin / statsGames) : 0,
+    visionMe: statsGames > 0 ? Math.round(myVision / statsGames) : 0,
+    visionThem: statsGames > 0 ? Math.round(theirVision / statsGames) : 0,
     goldAt14Diff: goldAt14Games > 0 ? Math.round(goldDiff / goldAt14Games) : 0,
     goldAt14Games,
     topMatchups: [...matchups.values()].sort((a, b) => b.games - a.games || b.wins - a.wins),

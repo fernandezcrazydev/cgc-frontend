@@ -18,6 +18,7 @@ import { hash } from '../group-ranking';
 import { banRateFor } from '../group-stats';
 import { MatchHistoryStore } from '../matches/match-history-store';
 import { Lane, Match, MatchParticipant } from '../matches/models';
+import { matchHasStats } from '../matches/match-view';
 import { ChampionStatsSource } from './champion-stats-api';
 import { ChampionStatsStore } from './champion-stats-store';
 import {
@@ -81,11 +82,11 @@ export class ChampionStatsMockSource implements ChampionStatsSource {
   constructor(private readonly matchHistory: MatchHistoryStore) {}
 
   private getMatches(groupId: string | null): Match[] {
-    if (groupId) {
-      const direct = this.matchHistory.matchesByGroup(groupId);
-      return direct.length > 0 ? direct : this.matchHistory.allMatches();
-    }
-    return this.matchHistory.allMatches();
+    const direct = groupId ? this.matchHistory.matchesByGroup(groupId) : [];
+    const raw = direct.length > 0 ? direct : this.matchHistory.allMatches();
+    // Una partida registrada a mano no tiene campeones ni cifras que agregar: contarla aqui
+    // metria ceros en el winrate y el KDA de cada campeon.
+    return raw.filter(matchHasStats);
   }
 
   board(groupId: string | null): Observable<ChampionBoard> {

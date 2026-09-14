@@ -69,7 +69,7 @@
                   <div class="m-lineup__champ-wrap">
                     <a
                       class="m-lineup__champ-link"
-                      [routerLink]="['/app', 'tierlist']"
+                      [routerLink]="['/app', 'campeon', p.championId]"
                       [title]="'Ver estadísticas de ' + championName(p)"
                       (click)="$event.stopPropagation()"
                     >
@@ -135,7 +135,7 @@
                   </div>
                   <a
                     class="m-lineup__champ-name nf-mono"
-                    [routerLink]="['/app', 'tierlist']"
+                    [routerLink]="['/app', 'campeon', p.championId]"
                     [title]="'Ver estadísticas de ' + championName(p)"
                     (click)="$event.stopPropagation()"
                   >

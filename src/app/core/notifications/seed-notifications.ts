@@ -37,7 +37,7 @@ export const SEED_NOTIFICATIONS: NotificationResponse[] = [
       ]),
       message: 'Manolito ha alcanzado 3 incidencias esta temporada. Requiere tu decisión arbitral.',
     },
-    read: false,
+    read: true,
     createdAt: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
   },
   {

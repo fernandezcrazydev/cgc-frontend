@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { Match, MatchParticipant } from '../../../../core/matches/models';
-import { matchWinnerLabel } from '../../../../core/matches/match-view';
+import { matchHasStats, matchWinnerLabel } from '../../../../core/matches/match-view';
 import { GameDataStore } from '../../../../core/game-data';
 import { formatCompact, formatDuration } from '../../../../shared/date-format';
 import { NfAvatar } from '../../../../ui';
@@ -21,6 +21,11 @@ import { MatchCardShellComponent } from './match-card-shell.component';
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterLink, NfAvatar, MatchCardShellComponent],
+  styles: [
+    `
+      .m-card__no-stats { color: var(--nf-text-dim); font-size: var(--fs-label); }
+    `,
+  ],
   template: `
     <app-match-card-shell
       [match]="match()"
@@ -39,7 +44,9 @@ import { MatchCardShellComponent } from './match-card-shell.component';
           <span class="m-card__side-dot" aria-hidden="true"></span>
           {{ winnerLabel() }}
         </div>
-        <span class="m-card__duration nf-mono">{{ duration() }}</span>
+        @if (hasStats()) {
+          <span class="m-card__duration nf-mono">{{ duration() }}</span>
+        }
       </div>
 
       <!-- El enfrentamiento -->
@@ -54,10 +61,10 @@ import { MatchCardShellComponent } from './match-card-shell.component';
                 >
                   <nf-avatar
                     class="m-card__mini-avatar"
-                    [loading]="champsLoading()"
-                    [src]="championIcon(p.championId)"
-                    [fallback]="p.championName"
-                    [tint]="p.championId"
+                    [loading]="hasStats() && champsLoading()"
+                    [src]="hasStats() ? championIcon(p.championId) : (p.avatarUrl ?? null)"
+                    [fallback]="hasStats() ? p.championName : p.riotId"
+                    [tint]="hasStats() ? p.championId : 0"
                     [size]="24"
                     shape="square"
                     [title]="playerTitle(p)"
@@ -69,16 +76,22 @@ import { MatchCardShellComponent } from './match-card-shell.component';
               </span>
             }
           </div>
-          <span class="m-card__team-score nf-mono">{{ match().blueTeam.totalKills }}</span>
+          @if (hasStats()) {
+            <span class="m-card__team-score nf-mono">{{ match().blueTeam.totalKills }}</span>
+          }
         </div>
 
         <div class="m-card__score-meta">
           <span class="m-card__vs-badge nf-mono">VS</span>
-          <span class="m-card__gold-diff nf-mono">{{ goldDiff() }}</span>
+          @if (hasStats()) {
+            <span class="m-card__gold-diff nf-mono">{{ goldDiff() }}</span>
+          }
         </div>
 
         <div class="m-card__team-roster m-card__team-roster--red">
-          <span class="m-card__team-score nf-mono">{{ match().redTeam.totalKills }}</span>
+          @if (hasStats()) {
+            <span class="m-card__team-score nf-mono">{{ match().redTeam.totalKills }}</span>
+          }
           <div class="m-card__champ-avatars">
             @for (p of match().redTeam.participants; track p.id) {
               <span class="m-card__slot" [class.is-you]="isCurrentUser(p)">
@@ -88,10 +101,10 @@ import { MatchCardShellComponent } from './match-card-shell.component';
                 >
                   <nf-avatar
                     class="m-card__mini-avatar"
-                    [loading]="champsLoading()"
-                    [src]="championIcon(p.championId)"
-                    [fallback]="p.championName"
-                    [tint]="p.championId"
+                    [loading]="hasStats() && champsLoading()"
+                    [src]="hasStats() ? championIcon(p.championId) : (p.avatarUrl ?? null)"
+                    [fallback]="hasStats() ? p.championName : p.riotId"
+                    [tint]="hasStats() ? p.championId : 0"
                     [size]="24"
                     shape="square"
                     [title]="playerTitle(p)"
@@ -108,47 +121,56 @@ import { MatchCardShellComponent } from './match-card-shell.component';
 
       <!-- MVP, balance en la clasificación y tus cifras -->
       <div class="m-card__mvp-block">
-        @if (mvp(); as best) {
-          <a
-            class="m-card__mvp-chip nf-mono"
-            [routerLink]="isCurrentUser(best) ? ['/app', 'perfil'] : ['/app', 'perfil', best.userId]"
-            (click)="$event.stopPropagation()"
-          >
-            MVP · {{ best.riotId }}
-          </a>
-        }
+        @if (hasStats()) {
+          @if (mvp(); as best) {
+            <a
+              class="m-card__mvp-chip nf-mono"
+              [routerLink]="isCurrentUser(best) ? ['/app', 'perfil'] : ['/app', 'perfil', best.userId]"
+              (click)="$event.stopPropagation()"
+            >
+              MVP · {{ best.riotId }}
+            </a>
+          }
 
-        @if (lpSummary(); as lp) {
-          <span class="m-card__lp-impact nf-mono">Balance LP: {{ lp }}</span>
-        }
+          @if (lpSummary(); as lp) {
+            <span class="m-card__lp-impact nf-mono">Balance LP: {{ lp }}</span>
+          }
 
-        @if (me(); as u) {
-          <div class="m-card__you-stats" [class.is-blue]="u.team === 'blue'" [class.is-red]="u.team === 'red'">
-            <nf-avatar
-              class="m-card__you-champ"
-              [loading]="champsLoading()"
-              [src]="championIcon(u.championId)"
-              [fallback]="u.championName"
-              [tint]="u.championId"
-              [size]="24"
-              shape="square"
-              [title]="championName(u.championId)"
-            />
-            <span class="m-card__you-kda nf-mono">
-              {{ u.stats.kills }}<span class="m-card__you-sep">/</span
-              ><span class="m-deaths">{{ u.stats.deaths }}</span
-              ><span class="m-card__you-sep">/</span>{{ u.stats.assists }}
-            </span>
-            @if (u.lpDelta !== 0) {
-              <span class="m-card__you-lp nf-mono" [class.is-gain]="u.lpDelta > 0" [class.is-loss]="u.lpDelta < 0">
-                {{ u.lpDelta > 0 ? '+' : '' }}{{ u.lpDelta }} LP
+          @if (me(); as u) {
+            <div class="m-card__you-stats" [class.is-blue]="u.team === 'blue'" [class.is-red]="u.team === 'red'">
+              <nf-avatar
+                class="m-card__you-champ"
+                [loading]="champsLoading()"
+                [src]="championIcon(u.championId)"
+                [fallback]="u.championName"
+                [tint]="u.championId"
+                [size]="24"
+                shape="square"
+                [title]="championName(u.championId)"
+              />
+              <span class="m-card__you-kda nf-mono">
+                {{ u.stats.kills }}<span class="m-card__you-sep">/</span
+                ><span class="m-deaths">{{ u.stats.deaths }}</span
+                ><span class="m-card__you-sep">/</span>{{ u.stats.assists }}
               </span>
-            }
-          </div>
+              @if (u.lpDelta !== 0) {
+                <span class="m-card__you-lp nf-mono" [class.is-gain]="u.lpDelta > 0" [class.is-loss]="u.lpDelta < 0">
+                  {{ u.lpDelta > 0 ? '+' : '' }}{{ u.lpDelta }} LP
+                </span>
+              }
+            </div>
+          } @else {
+            <div class="m-card__you-stats m-card__you-stats--none nf-mono">
+              <span class="m-card__you-none">Sin participación</span>
+            </div>
+          }
         } @else {
-          <div class="m-card__you-stats m-card__you-stats--none nf-mono">
-            <span class="m-card__you-none">Sin participación</span>
-          </div>
+          <span class="m-card__no-stats nf-mono">Sin estadísticas · solo se registró el resultado</span>
+          @if (me(); as u) {
+            @if (u.lpDelta !== 0) {
+              <span class="m-card__you-lp nf-mono" [class.is-gain]="u.lpDelta > 0" [class.is-loss]="u.lpDelta < 0">{{ u.lpDelta > 0 ? '+' : '' }}{{ u.lpDelta }} LP</span>
+            }
+          }
         }
       </div>
     </app-match-card-shell>
@@ -160,6 +182,8 @@ export class GroupMatchCardComponent {
   private readonly gameData = inject(GameDataStore);
 
   protected readonly champsLoading = computed(() => this.gameData.status() === 'loading');
+
+  protected readonly hasStats = computed(() => matchHasStats(this.match()));
 
   protected readonly me = computed(() => this.match().userParticipant);
 
@@ -215,8 +239,11 @@ export class GroupMatchCardComponent {
   }
 
   protected playerTitle(p: MatchParticipant): string {
-    const name = this.gameData.championById().get(p.championId)?.name ?? p.championName;
     const you = this.isCurrentUser(p) ? ' · tú' : '';
+    if (!this.hasStats()) {
+      return `${p.riotId} · ${p.role}${you}`;
+    }
+    const name = this.gameData.championById().get(p.championId)?.name ?? p.championName;
     return `${p.riotId} · ${name} · ${p.role}${you}`;
   }
 }

@@ -6,8 +6,10 @@ import { GameDataStore } from '../../../../core/game-data';
 import { matchFixture, participantFixture } from '../../../../core/matches/match-fixtures';
 import { Match } from '../../../../core/matches/models';
 import { Viewport } from '../../../../shared/viewport';
+import { GroupMatchCardComponent } from './group-match-card.component';
 import { MatchCardShellComponent } from './match-card-shell.component';
 import { MatchHistoryUiState } from './match-history-ui';
+import { PersonalMatchCardComponent } from './personal-match-card.component';
 
 const yo = participantFixture({ id: 'me', team: 'blue', riotId: 'N1ghtfang#LAN' });
 const otro = participantFixture({ id: 'foe', team: 'red', riotId: 'Pix3lQueen#LAN' });
@@ -96,5 +98,94 @@ describe('MatchCardShellComponent · ranura del acordeón', () => {
 
     expect(el.querySelector('.propio')?.textContent).toBe('desglose propio');
     expect(el.querySelector('app-match-lineup')).toBeNull();
+  });
+});
+
+describe('GroupMatchCardComponent', () => {
+  it('con una partida manual no hay avatares de campeón, no se pintan las bajas totales ni la diferencia de oro, y sí aparece el texto Sin estadísticas', async () => {
+    await TestBed.configureTestingModule({
+      imports: [GroupMatchCardComponent],
+      providers: [
+        provideRouter([]),
+        MatchHistoryUiState,
+        {
+          provide: GameDataStore,
+          useValue: {
+            status: signal('ready'),
+            championById: signal(new Map([[1, { id: 1, name: 'Campeón', iconUrl: 'icon.png' }]])),
+            summonerSpellById: signal(new Map()),
+            perkById: signal(new Map()),
+            ensureLoaded: () => {},
+          },
+        },
+        { provide: Viewport, useValue: { isMobile: signal(false), isNarrow: signal(false) } },
+      ],
+    }).compileComponents();
+
+    const yoManual = participantFixture({ id: 'me', team: 'blue', riotId: 'N1ghtfang#LAN', lpDelta: 20 });
+    const manualMatch = matchFixture({
+      id: 'm-manual',
+      source: 'manual',
+      blue: [yoManual],
+      red: [otro],
+      userParticipant: yoManual,
+    });
+
+    const fixture = TestBed.createComponent(GroupMatchCardComponent);
+    fixture.componentRef.setInput('match', manualMatch);
+    fixture.detectChanges();
+
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('.m-card__duration')).toBeNull();
+    expect(el.querySelector('.m-card__team-score')).toBeNull();
+    expect(el.querySelector('.m-card__gold-diff')).toBeNull();
+    expect(el.querySelector('.m-card__chevron')).toBeNull();
+    expect(el.querySelector('.m-card__you-kda')).toBeNull();
+    expect(el.querySelector('.m-card__you-champ')).toBeNull();
+    expect(el.querySelector('.m-card__you-lp')?.textContent).toContain('+20 LP');
+    expect(el.textContent).toContain('Sin estadísticas');
+
+    el.querySelector<HTMLElement>('.m-card__main')!.click();
+    fixture.detectChanges();
+    expect(el.querySelector('.m-card__accordion')).toBeNull();
+  });
+});
+
+describe('PersonalMatchCardComponent', () => {
+  it('el enlace del campeón apunta a /app/campeon/<id>', async () => {
+    await TestBed.configureTestingModule({
+      imports: [PersonalMatchCardComponent],
+      providers: [
+        provideRouter([]),
+        MatchHistoryUiState,
+        {
+          provide: GameDataStore,
+          useValue: {
+            status: signal('ready'),
+            championById: signal(new Map([[1, { id: 1, name: 'Campeón', iconUrl: 'icon.png' }]])),
+            summonerSpellById: signal(new Map()),
+            perkById: signal(new Map()),
+            ensureLoaded: () => {},
+          },
+        },
+        { provide: Viewport, useValue: { isMobile: signal(false), isNarrow: signal(false) } },
+      ],
+    }).compileComponents();
+
+    const importMatch = matchFixture({
+      id: 'm-import',
+      source: 'import',
+      blue: [yo],
+      red: [otro],
+      userParticipant: yo,
+    });
+
+    const fixture = TestBed.createComponent(PersonalMatchCardComponent);
+    fixture.componentRef.setInput('match', importMatch);
+    fixture.detectChanges();
+
+    const el = fixture.nativeElement as HTMLElement;
+    const champLinks = el.querySelectorAll<HTMLAnchorElement>('a[href="/app/campeon/1"]');
+    expect(champLinks.length).toBeGreaterThan(0);
   });
 });
