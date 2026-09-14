@@ -29,6 +29,89 @@ export interface ObjectiveRow {
   isDragons?: boolean;
 }
 
+/** Un vértice de la huella táctica: dónde cae cada bando sobre ese eje y dónde va el icono. */
+export interface RadarAxis {
+  id: string;
+  name: string;
+  icon: string;
+  blueX: number;
+  blueY: number;
+  redX: number;
+  redY: number;
+  iconX: number;
+  iconY: number;
+}
+
+export interface TacticalRadar {
+  /** Mallas concéntricas, de fuera a dentro. */
+  rings: string[];
+  bluePoints: string;
+  redPoints: string;
+  iconSize: number;
+  axes: RadarAxis[];
+}
+
+const RADAR_CX = 120;
+const RADAR_CY = 118;
+const RADAR_MAX_R = 72;
+/** Un bando que no se llevó nada no puede caer en el centro: el polígono se volvería un punto. */
+const RADAR_MIN_R = 8;
+const RADAR_ICON_GAP = 26;
+const RADAR_ICON_SIZE = 24;
+
+/**
+ * Geometría de la huella táctica. El número de lados sale de los objetivos que le pasen
+ * —hoy seis, o sea un hexágono—, y el radio de cada vértice es el reparto de ESE objetivo
+ * entre los dos equipos, no su cifra bruta: las torres se cuentan por ocho y el barón por
+ * uno, así que sin normalizar el polígono solo dibujaría cuál es el objetivo más numeroso.
+ */
+function tacticalRadarOf(objectives: readonly ObjectiveRow[]): TacticalRadar {
+  const sides = objectives.length;
+  const round = (v: number) => Math.round(v * 10) / 10;
+  const pointAt = (i: number, r: number) => {
+    const angle = -Math.PI / 2 + (i * 2 * Math.PI) / sides;
+    return { x: round(RADAR_CX + r * Math.cos(angle)), y: round(RADAR_CY + r * Math.sin(angle)) };
+  };
+  const radiusOf = (mine: number, rival: number) => {
+    const total = mine + rival;
+    const share = total ? mine / total : 0.5;
+    return RADAR_MIN_R + share * (RADAR_MAX_R - RADAR_MIN_R);
+  };
+
+  const axes: RadarAxis[] = objectives.map((o, i) => {
+    const blue = pointAt(i, radiusOf(o.blueScore, o.redScore));
+    const red = pointAt(i, radiusOf(o.redScore, o.blueScore));
+    const icon = pointAt(i, RADAR_MAX_R + RADAR_ICON_GAP);
+    return {
+      id: o.id,
+      name: o.name,
+      icon: o.icon,
+      blueX: blue.x,
+      blueY: blue.y,
+      redX: red.x,
+      redY: red.y,
+      iconX: round(icon.x - RADAR_ICON_SIZE / 2),
+      iconY: round(icon.y - RADAR_ICON_SIZE / 2),
+    };
+  });
+
+  const ring = (factor: number) =>
+    objectives
+      .map((_, i) => {
+        const p = pointAt(i, RADAR_MAX_R * factor);
+        return `${p.x},${p.y}`;
+      })
+      .join(' ');
+
+  return {
+    rings: [ring(1), ring(0.66), ring(0.33)],
+    bluePoints: axes.map((a) => `${a.blueX},${a.blueY}`).join(' '),
+    redPoints: axes.map((a) => `${a.redX},${a.redY}`).join(' '),
+    iconSize: RADAR_ICON_SIZE,
+    axes,
+  };
+}
+
 export interface VisionSlide {
   id: string;
   title: string;
@@ -304,8 +387,12 @@ export class MatchDetail {
     { id: 'grubs', name: 'Larvas', icon: '/assets/objectives/grubs.png', blueScore: 6, redScore: 0 },
     { id: 'herald', name: 'Heraldo', icon: '/assets/objectives/herald.png', blueScore: 1, redScore: 0 },
     { id: 'baron', name: 'Barón', icon: '/assets/objectives/baron.png', blueScore: 1, redScore: 0 },
+    { id: 'elder', name: 'Dragón anciano', icon: '/assets/objectives/dragon_elder.png', blueScore: 1, redScore: 0 },
     { id: 'towers', name: 'Torres', icon: '/assets/objectives/tower.png', blueScore: 8, redScore: 2 },
   ];
+
+  /** La huella táctica sale de la lista de arriba, no de coordenadas escritas a mano. */
+  readonly tacticalRadar = tacticalRadarOf(this.objectives);
 
   // Iconos de los dragones elementales obtenidos en la partida
   readonly blueDragons = [

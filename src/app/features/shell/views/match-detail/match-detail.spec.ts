@@ -39,6 +39,39 @@ describe('MatchDetail', () => {
     expect(component.activeVisionIndex()).toBe(0);
   });
 
+  it('la huella táctica es un hexágono con un vértice por objetivo de la grieta', () => {
+    expect(component.objectives.map((o) => o.id)).toContain('elder');
+    expect(component.tacticalRadar.axes).toHaveLength(component.objectives.length);
+    expect(component.tacticalRadar.axes).toHaveLength(6);
+
+    // Seis vértices por polígono: las tres mallas y las dos huellas de equipo.
+    const vertices = (points: string) => points.trim().split(/\s+/).length;
+    for (const ring of component.tacticalRadar.rings) {
+      expect(vertices(ring)).toBe(6);
+    }
+    expect(vertices(component.tacticalRadar.bluePoints)).toBe(6);
+    expect(vertices(component.tacticalRadar.redPoints)).toBe(6);
+  });
+
+  it('el radio de cada vértice es el reparto del objetivo, no su cifra bruta', () => {
+    const axisOf = (id: string) => component.tacticalRadar.axes.find((a) => a.id === id)!;
+    const radius = (x: number, y: number) => Math.hypot(x - 120, y - 118);
+
+    // Las torres van 8-2 y el barón 1-0: sin normalizar, las torres dominarían el dibujo.
+    const towers = axisOf('towers');
+    const baron = axisOf('baron');
+    expect(radius(baron.blueX, baron.blueY)).toBeGreaterThan(radius(towers.blueX, towers.blueY));
+
+    // Y en cada eje el bando que se lo llevó queda por fuera del que no.
+    for (const o of component.objectives) {
+      if (o.blueScore === o.redScore) continue;
+      const a = axisOf(o.id);
+      const blue = radius(a.blueX, a.blueY);
+      const red = radius(a.redX, a.redY);
+      expect(o.blueScore > o.redScore ? blue > red : red > blue).toBe(true);
+    }
+  });
+
   it('sincroniza el hover entre radar y grieta', () => {
     component.setHoveredObjective('baron');
     expect(component.hoveredObjectiveId()).toBe('baron');

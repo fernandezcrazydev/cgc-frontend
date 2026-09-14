@@ -55,6 +55,15 @@ const MOCK_TELEMETRY: MapTelemetry = {
       iconUrl: '/assets/objectives/baron.png',
     },
     {
+      id: 'elder',
+      label: 'Dragón anciano',
+      winrate: 91,
+      wins: 10,
+      games: 11,
+      impact: 'Decisivo',
+      iconUrl: '/assets/objectives/dragon_elder.png',
+    },
+    {
       id: 'tower',
       label: 'Primera torre',
       winrate: 78,
@@ -86,11 +95,11 @@ describe('StatsMapTelemetryComponent', () => {
     expect(text).not.toContain('Bando rojo');
   });
 
-  it('muestra los cinco objetivos incluyendo las larvas (grubs) con sus iconos', () => {
+  it('muestra los seis objetivos incluyendo larvas y dragón anciano con sus iconos', () => {
     const { fixture } = createComponent(MOCK_TELEMETRY);
     const items = fixture.nativeElement.querySelectorAll('.tm-objective');
 
-    expect(items).toHaveLength(5);
+    expect(items).toHaveLength(6);
 
     const labels = Array.from(items).map(
       (el) => (el as HTMLElement).querySelector('.tm-objective__label')?.textContent?.trim(),
@@ -100,11 +109,12 @@ describe('StatsMapTelemetryComponent', () => {
       'Larvas del vacío',
       'Heraldo de la grieta',
       'Primer barón',
+      'Dragón anciano',
       'Primera torre',
     ]);
 
     const images = fixture.nativeElement.querySelectorAll('.tm-objective__icon');
-    expect(images).toHaveLength(5);
+    expect(images).toHaveLength(6);
   });
 
   it('muestra esqueletos de carga mientras loading es true', () => {

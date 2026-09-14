@@ -21,7 +21,7 @@
 .tm-pacing__unit { font-size: var(--fs-label); color: var(--nf-text-dim); font-weight: var(--fw-semibold); }
 .tm-pacing__sub { font-size: var(--fs-label); color: var(--nf-text-dim); }
 
-.tm-objectives { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin: 8px 0 0; padding: 0; list-style: none; }
+.tm-objectives { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; margin: 8px 0 0; padding: 0; list-style: none; }
 .tm-objective {
   --tm-accent: var(--nf-secondary);
   position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: center; text-align: center; justify-content: space-between; gap: 10px; padding: 14px 10px; border-radius: 12px;

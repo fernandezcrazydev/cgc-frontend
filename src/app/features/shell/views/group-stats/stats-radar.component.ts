@@ -16,8 +16,10 @@ export interface RadarPoint {
 }
 
 /**
- * Radar pentagonal de control de objetivos (§5.5.5, bloque 1 - visualización complementaria):
- * Dibuja la huella de dominio táctico sobre los 5 objetivos de la grieta.
+ * Radar hexagonal de control de objetivos (§5.5.5, bloque 1 - visualización complementaria):
+ * Dibuja la huella de dominio táctico sobre los 6 objetivos de la grieta. El número de
+ * vértices sale de los objetivos que llegan, no de una constante: si el dominio añade o
+ * quita uno, el polígono lo sigue.
  */
 @Component({
   selector: 'app-stats-radar',
@@ -36,7 +38,7 @@ export interface RadarPoint {
         </div>
       } @else if (radarData(); as data) {
         <div class="st-radar__body">
-          <svg class="st-radar__svg" viewBox="0 0 280 260" aria-label="Radar pentagonal de control de objetivos">
+          <svg class="st-radar__svg" viewBox="0 0 280 260" aria-label="Radar hexagonal de control de objetivos">
             <defs>
               <radialGradient id="stRadarGrad" cx="50%" cy="50%" r="50%">
                 <stop offset="0%" stop-color="var(--nf-primary)" stop-opacity="0.55" />
@@ -123,8 +125,9 @@ export class StatsRadarComponent {
     const cx = 140;
     const cy = 130;
     const maxR = 90;
+    const sides = t.objectives.length;
     const points: RadarPoint[] = t.objectives.map((o, i) => {
-      const angle = -Math.PI / 2 + (i * 2 * Math.PI) / 5;
+      const angle = -Math.PI / 2 + (i * 2 * Math.PI) / sides;
       const r = (o.winrate / 100) * maxR;
       const x = cx + r * Math.cos(angle);
       const y = cy + r * Math.sin(angle);
