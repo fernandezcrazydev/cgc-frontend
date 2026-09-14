@@ -170,7 +170,7 @@ describe('GrupoEstadisticas', () => {
     const { component } = createComponent(unaTemporada);
 
     expect(component.players()).toHaveLength(ROSTER.length);
-    expect(component.telemetry()?.objectives).toHaveLength(5);
+    expect(component.telemetry()?.objectives).toHaveLength(6);
     expect(component.metagame()).toHaveLength(4);
     expect(component.records()).toHaveLength(9);
   });

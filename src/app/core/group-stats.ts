@@ -333,7 +333,7 @@ export function statsFor(groupId: string, roster: readonly Member[], scope: Stat
 
 // ===================== Telemetría de mapa =====================
 
-export type ObjectiveId = 'dragon' | 'grubs' | 'herald' | 'baron' | 'tower';
+export type ObjectiveId = 'dragon' | 'grubs' | 'herald' | 'baron' | 'elder' | 'tower';
 
 /** Cuánto pesa quedarse un objetivo en la victoria del grupo. */
 export interface ObjectiveImpact {
@@ -387,6 +387,7 @@ const OBJECTIVE_LABELS: Record<ObjectiveId, string> = {
   grubs: 'Larvas del vacío',
   herald: 'Heraldo de la grieta',
   baron: 'Primer barón',
+  elder: 'Dragón anciano',
   tower: 'Primera torre',
 };
 
@@ -395,10 +396,11 @@ const OBJECTIVE_ICONS: Record<ObjectiveId, string> = {
   grubs: '/assets/objectives/grubs.png',
   herald: '/assets/objectives/herald.png',
   baron: '/assets/objectives/baron.png',
+  elder: '/assets/objectives/dragon_elder.png',
   tower: '/assets/objectives/tower.png',
 };
 
-const OBJECTIVE_ORDER: ObjectiveId[] = ['dragon', 'grubs', 'herald', 'baron', 'tower'];
+const OBJECTIVE_ORDER: ObjectiveId[] = ['dragon', 'grubs', 'herald', 'baron', 'elder', 'tower'];
 
 function impactOf(winrate: number): ObjectiveImpact['impact'] {
   if (winrate >= 82) return 'Decisivo';

@@ -5,7 +5,8 @@ import { MapTelemetry, ObjectiveId } from '../../../../core/group-stats';
 /**
  * Telemetría de mapa y control de objetivos (§5.5.5, bloque 1 de la pestaña de
  * rendimiento): balance de victorias entre Equipo azul y Equipo rojo, e impacto de
- * los cinco objetivos principales de la grieta (dragón, larvas, heraldo, barón y torre).
+ * los seis objetivos principales de la grieta (dragón, larvas, heraldo, barón, dragón
+ * anciano y torre).
  */
 @Component({
   selector: 'app-stats-map-telemetry',
@@ -22,7 +23,7 @@ import { MapTelemetry, ObjectiveId } from '../../../../core/group-stats';
         <nf-skeleton width="100%" height="70px" radius="10px" />
         <nf-skeleton width="100%" height="58px" radius="10px" />
         <div class="st-grid tm-objectives">
-          @for (s of [0, 1, 2, 3, 4]; track s) {
+          @for (s of [0, 1, 2, 3, 4, 5]; track s) {
             <nf-skeleton width="100%" height="110px" radius="12px" />
           }
         </div>
@@ -164,6 +165,7 @@ export class StatsMapTelemetryComponent {
       grubs: 'https://raw.communitydragon.org/latest/game/assets/ux/minimap/icons/grub.png',
       herald: 'https://raw.communitydragon.org/latest/game/assets/ux/minimap/icons/riftherald.png',
       baron: 'https://raw.communitydragon.org/latest/game/assets/ux/minimap/icons/baron.png',
+      elder: 'https://raw.communitydragon.org/latest/game/assets/ux/minimap/icons/dragon_elder.png',
       tower: 'https://raw.communitydragon.org/latest/game/assets/ux/minimap/icons/tower.png',
     };
     if (img.src !== fallbacks[id]) {
