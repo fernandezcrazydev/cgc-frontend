@@ -184,7 +184,7 @@
           </div>
         </div>
 
-        <!-- 2. Huella Táctica (Radar Pentagonal interactivo, 25% de ancho) -->
+        <!-- 2. Huella Táctica (radar hexagonal interactivo, 25% de ancho) -->
         <div class="c-card c-card--surface">
           <div class="c-row c-row--between">
             <span class="c-card-title nf-mono">HUELLA TÁCTICA</span>
@@ -192,31 +192,58 @@
           </div>
 
           <div class="c-radar-container">
-            <svg viewBox="0 0 240 240" class="c-radar-svg">
-              <polygon points="120,40 186,88 161,164 79,164 54,88" class="c-radar-grid" />
-              <polygon points="120,60 166,93 148,149 92,149 74,93" class="c-radar-grid" />
-              <polygon points="120,80 145,99 135,134 105,134 95,99" class="c-radar-grid" />
+            <svg
+              viewBox="0 0 240 240"
+              class="c-radar-svg"
+              role="img"
+              aria-label="Huella táctica: reparto de cada objetivo de la grieta entre los dos equipos"
+            >
+              @for (ring of tacticalRadar.rings; track $index) {
+                <polygon [attr.points]="ring" class="c-radar-grid" />
+              }
 
-              <polygon points="120,48 186,88 155,160 83,160 54,88" class="c-radar-blue" />
-              <polygon points="120,84 120,90 125,120 115,120 102,90" class="c-radar-red" />
+              <polygon [attr.points]="tacticalRadar.bluePoints" class="c-radar-blue" />
+              <polygon [attr.points]="tacticalRadar.redPoints" class="c-radar-red" />
 
-              <circle cx="120" cy="48" r="4.5" class="c-radar-node c-radar-node--blue" [class.is-active]="hoveredObjectiveId() === 'dragons'" (mouseenter)="setHoveredObjective('dragons')" (mouseleave)="setHoveredObjective(null)" />
-              <circle cx="186" cy="88" r="4.5" class="c-radar-node c-radar-node--blue" [class.is-active]="hoveredObjectiveId() === 'grubs'" (mouseenter)="setHoveredObjective('grubs')" (mouseleave)="setHoveredObjective(null)" />
-              <circle cx="155" cy="160" r="4.5" class="c-radar-node c-radar-node--blue" [class.is-active]="hoveredObjectiveId() === 'herald'" (mouseenter)="setHoveredObjective('herald')" (mouseleave)="setHoveredObjective(null)" />
-              <circle cx="83" cy="160" r="4.5" class="c-radar-node c-radar-node--blue" [class.is-active]="hoveredObjectiveId() === 'baron'" (mouseenter)="setHoveredObjective('baron')" (mouseleave)="setHoveredObjective(null)" />
-              <circle cx="54" cy="88" r="4.5" class="c-radar-node c-radar-node--blue" [class.is-active]="hoveredObjectiveId() === 'towers'" (mouseenter)="setHoveredObjective('towers')" (mouseleave)="setHoveredObjective(null)" />
+              @for (a of tacticalRadar.axes; track a.id) {
+                <circle
+                  [attr.cx]="a.blueX"
+                  [attr.cy]="a.blueY"
+                  r="4.5"
+                  class="c-radar-node c-radar-node--blue"
+                  [class.is-active]="hoveredObjectiveId() === a.id"
+                  (mouseenter)="setHoveredObjective(a.id)"
+                  (mouseleave)="setHoveredObjective(null)"
+                />
+              }
 
-              <circle cx="120" cy="84" r="4.5" class="c-radar-node c-radar-node--red" [class.is-active]="hoveredObjectiveId() === 'dragons'" (mouseenter)="setHoveredObjective('dragons')" (mouseleave)="setHoveredObjective(null)" />
-              <circle cx="120" cy="90" r="4.5" class="c-radar-node c-radar-node--red" [class.is-active]="hoveredObjectiveId() === 'grubs'" (mouseenter)="setHoveredObjective('grubs')" (mouseleave)="setHoveredObjective(null)" />
-              <circle cx="125" cy="120" r="4.5" class="c-radar-node c-radar-node--red" [class.is-active]="hoveredObjectiveId() === 'herald'" (mouseenter)="setHoveredObjective('herald')" (mouseleave)="setHoveredObjective(null)" />
-              <circle cx="115" cy="120" r="4.5" class="c-radar-node c-radar-node--red" [class.is-active]="hoveredObjectiveId() === 'baron'" (mouseenter)="setHoveredObjective('baron')" (mouseleave)="setHoveredObjective(null)" />
-              <circle cx="102" cy="90" r="4.5" class="c-radar-node c-radar-node--red" [class.is-active]="hoveredObjectiveId() === 'towers'" (mouseenter)="setHoveredObjective('towers')" (mouseleave)="setHoveredObjective(null)" />
+              @for (a of tacticalRadar.axes; track a.id) {
+                <circle
+                  [attr.cx]="a.redX"
+                  [attr.cy]="a.redY"
+                  r="4.5"
+                  class="c-radar-node c-radar-node--red"
+                  [class.is-active]="hoveredObjectiveId() === a.id"
+                  (mouseenter)="setHoveredObjective(a.id)"
+                  (mouseleave)="setHoveredObjective(null)"
+                />
+              }
 
-              <image href="/assets/objectives/dragon.png" x="108" y="10" width="24" height="24" class="c-radar-icon" [class.is-active]="hoveredObjectiveId() === 'dragons'" (mouseenter)="setHoveredObjective('dragons')" (mouseleave)="setHoveredObjective(null)" />
-              <image href="/assets/objectives/grubs.png" x="195" y="75" width="24" height="24" class="c-radar-icon" [class.is-active]="hoveredObjectiveId() === 'grubs'" (mouseenter)="setHoveredObjective('grubs')" (mouseleave)="setHoveredObjective(null)" />
-              <image href="/assets/objectives/herald.png" x="165" y="175" width="24" height="24" class="c-radar-icon" [class.is-active]="hoveredObjectiveId() === 'herald'" (mouseenter)="setHoveredObjective('herald')" (mouseleave)="setHoveredObjective(null)" />
-              <image href="/assets/objectives/baron.png" x="50" y="175" width="24" height="24" class="c-radar-icon" [class.is-active]="hoveredObjectiveId() === 'baron'" (mouseenter)="setHoveredObjective('baron')" (mouseleave)="setHoveredObjective(null)" />
-              <image href="/assets/objectives/tower.png" x="20" y="75" width="24" height="24" class="c-radar-icon" [class.is-active]="hoveredObjectiveId() === 'towers'" (mouseenter)="setHoveredObjective('towers')" (mouseleave)="setHoveredObjective(null)" />
+              @for (a of tacticalRadar.axes; track a.id) {
+                <image
+                  [attr.href]="a.icon"
+                  [attr.x]="a.iconX"
+                  [attr.y]="a.iconY"
+                  [attr.width]="tacticalRadar.iconSize"
+                  [attr.height]="tacticalRadar.iconSize"
+                  class="c-radar-icon"
+                  [class.is-active]="hoveredObjectiveId() === a.id"
+                  (mouseenter)="setHoveredObjective(a.id)"
+                  (mouseleave)="setHoveredObjective(null)"
+                >
+                  <title>{{ a.name }}</title>
+                </image>
+              }
             </svg>
           </div>
         </div>
