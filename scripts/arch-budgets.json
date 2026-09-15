@@ -5,7 +5,7 @@
   "views-scss-size": 2651,
   "dead-css": 0,
   "orphan-stylesheet": 0,
-  "css-total-size": 19034,
+  "css-total-size": 19058,
   "inline-template-size": 0,
   "font-floor": 37,
   "font-size-raw": 285,
@@ -89,6 +89,13 @@
       "de": 19033,
       "a": 19034,
       "motivo": "la regla .c-stats-stage que se me quedo fuera al recuperar el tablero"
+    },
+    {
+      "fecha": "2026-09-15",
+      "regla": "css-total-size",
+      "de": 19034,
+      "a": 19058,
+      "motivo": "las tarjetas del tablero que enlazan al perfil necesitan su propio color y su hover: un <a> sin color hereda el azul del navegador"
     }
   ]
 }

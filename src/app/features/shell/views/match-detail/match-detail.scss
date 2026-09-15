@@ -377,7 +377,7 @@
 
 .c-podium-meta { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 
-.c-podium-name { font-size: var(--fs-label); font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.c-podium-name { font-size: var(--fs-label); font-weight: 700; color: var(--nf-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .c-podium-val { font-size: var(--fs-label); font-weight: 800; color: var(--nf-text); }
 
@@ -500,3 +500,37 @@
 /* El campeón del podio de daño. Sin insignia de nivel: el backend no sirve ese campo, y un
    número inventado ahí se lee como medido. */
 .c-podium-champ { width: 24px; height: 24px; border-radius: var(--nf-radius-sm); flex: none; }
+
+/* ── Las tarjetas que enlazan al perfil ──
+   El podio, las menciones y el jugador de MVP/ACE son `<a>`, y un `<a>` sin `color` hereda el
+   azul de enlace del navegador: los nombres del podio salian azules y subrayados, como un
+   enlace de los noventa dentro de una tarjeta. La pista de que se puede pulsar la da el borde
+   al pasar por encima, que es como se comportan el resto de tarjetas de la app. */
+.c-podium-item,
+.c-pillar-box,
+.c-player-col {
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 0.14s, background 0.14s;
+}
+
+.c-podium-item:hover,
+.c-podium-item:focus-visible,
+.c-pillar-box:hover,
+.c-pillar-box:focus-visible {
+  border-color: var(--nf-border-strong);
+  background: var(--nf-surface-2);
+}
+
+/* El del héroe no tiene borde propio: su señal es el nombre, que sube de brillo. */
+.c-player-col:hover .c-name,
+.c-player-col:focus-visible .c-name {
+  color: var(--nf-text);
+  text-decoration: underline;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .c-podium-item,
+  .c-pillar-box,
+  .c-player-col { transition: none; }
+}
