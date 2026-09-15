@@ -32,6 +32,7 @@ import {
 import { GameDataStore } from '../../../../core/game-data';
 import { NfAvatar, NfButton, NfSkeleton } from '../../../../ui';
 import { MatchScoreboardComponent } from '../match-history/match-scoreboard.component';
+import { MatchCommentsComponent } from './match-comments.component';
 import {
   formatCompact,
   formatDurationUnits,
@@ -264,7 +265,14 @@ export function tacticalRadarOf(objectives: readonly ObjectiveRow[]): TacticalRa
   selector: 'app-match-detail',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, NfAvatar, NfButton, NfSkeleton, MatchScoreboardComponent],
+  imports: [
+    RouterLink,
+    NfAvatar,
+    NfButton,
+    NfSkeleton,
+    MatchScoreboardComponent,
+    MatchCommentsComponent,
+  ],
   templateUrl: './match-detail.html',
   styleUrls: ['./match-detail.scss'],
 })
@@ -320,6 +328,14 @@ export class MatchDetail {
   /** Los dos equipos con su nombre ya resuelto: con color si lo tienen, por hueco si no. */
   readonly teams = computed(() =>
     (this.match()?.teams ?? []).map((t) => ({ ...t, label: teamLabel(t) })),
+  );
+
+  /**
+   * Los diez que la jugaron. Lo consume el hilo de comentarios para saber si esta persona puede
+   * escribir en él — leerlo lo puede todo el grupo, escribirlo solo ellos.
+   */
+  readonly participantIds = computed<readonly string[]>(() =>
+    (this.match()?.teams ?? []).flatMap((team) => team.participants.map((p) => p.userId)),
   );
 
   readonly metaLine = computed(() => {

@@ -175,6 +175,8 @@ export interface FakeMatchHistoryOptions {
   groupSampleTotal?: number;
   detail?: Match | null;
   personalStatus?: 'idle' | 'loading' | 'ready' | 'error';
+  /** El 403 `PROFILE_PRIVATE` del cruce: llega dentro de un error, y no es un error. */
+  personalProfilePrivate?: boolean;
   groupStatus?: 'idle' | 'loading' | 'ready' | 'error';
   detailStatus?: 'idle' | 'loading' | 'ready' | 'error';
   detailNotFound?: boolean;
@@ -212,6 +214,7 @@ export function fakeMatchHistoryStore(options: FakeMatchHistoryOptions = {}) {
     personalMatches: () => personal,
     personalTotal: () => options.personalTotal ?? personal.length,
     personalStatus: () => options.personalStatus ?? 'ready',
+    personalProfilePrivate: () => options.personalProfilePrivate ?? false,
     groupMatches: () => group,
     groupTotal: () => options.groupTotal ?? group.length,
     groupStatus: () => options.groupStatus ?? 'ready',

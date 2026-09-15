@@ -1,5 +1,5 @@
 /**
- * Los cinco endpoints del historial de partidas. Único sitio del dominio que conoce
+ * Los endpoints del historial de partidas y del hilo de comentarios de una de ellas. Único sitio del dominio que conoce
  * `environment.apiUrl`; el Bearer lo añade `authInterceptor` porque la URL cuelga de ahí.
  *
  * No captura errores ni guarda estado: de eso se encarga `MatchHistoryStore`. Aquí solo se
@@ -17,7 +17,13 @@ import { environment } from '../../../environments/environment';
 import type { components } from '../http/api-types';
 import { PageResponse } from '../http';
 import { GroupMatchQuery, PersonalMatchQuery, PersonalSummaryQuery } from './match-filtering';
-import { GroupHistorySummary, Match, MatchDetail, PersonalHistorySummary } from './models';
+import {
+  GroupHistorySummary,
+  Match,
+  MatchComment,
+  MatchDetail,
+  PersonalHistorySummary,
+} from './models';
 import {
   MatchMappingContext,
   toGroupSummary,
@@ -88,6 +94,38 @@ export class MatchesApi {
     return this.http
       .get<MatchDetailDto>(`${environment.apiUrl}/matches/${matchId}`)
       .pipe(map((dto) => toMatchDetail(dto, ctx)));
+  }
+
+  /**
+   * `GET /matches/{matchId}/comments` — el hilo entero, de más antiguo a más nuevo.
+   *
+   * Sin paginar y sin parámetros: no puede haber más de diez, uno por jugador. Petición aparte y
+   * no dentro del detalle porque escribir uno tendría que refrescar el marcador entero para verlo
+   * aparecer; así solo se vuelve a pedir el hilo.
+   */
+  comments(matchId: string): Observable<MatchComment[]> {
+    return this.http.get<MatchComment[]>(`${environment.apiUrl}/matches/${matchId}/comments`);
+  }
+
+  /**
+   * `POST /matches/{matchId}/comments` — deja el tuyo, y devuelve cómo ha quedado guardado.
+   *
+   * Los 403/409/400 con los que puede responder (`NOT_MATCH_PARTICIPANT`,
+   * `COMMENT_ALREADY_EXISTS`, `COMMENT_TOO_LONG`) los traduce `errorMessage()`; aquí no se
+   * capturan.
+   */
+  leaveComment(matchId: string, text: string): Observable<MatchComment> {
+    return this.http.post<MatchComment>(
+      `${environment.apiUrl}/matches/${matchId}/comments`,
+      { text },
+    );
+  }
+
+  /** `DELETE /matches/{matchId}/comments/{commentId}` — solo para admins del grupo. */
+  deleteComment(matchId: string, commentId: string): Observable<void> {
+    return this.http.delete<void>(
+      `${environment.apiUrl}/matches/${matchId}/comments/${commentId}`,
+    );
   }
 }
 

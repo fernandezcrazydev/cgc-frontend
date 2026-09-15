@@ -148,4 +148,35 @@ describe('MatchesApi', () => {
     expect(detail?.gameVersion).toBe('14.24.1');
     expect(detail?.match.teams[0].objectives?.barons).toBe(2);
   });
+  // ── El hilo de comentarios ──────────────────────────────────────────────
+
+  it('pide el hilo de una partida sin parametros: no puede haber mas de diez', () => {
+    let thread: unknown;
+    api.comments('m1').subscribe((res) => (thread = res));
+
+    const req = http.expectOne(`${environment.apiUrl}/matches/m1/comments`);
+    expect(req.request.method).toBe('GET');
+    expect(req.request.params.keys()).toEqual([]);
+    req.flush([{ id: 'c1', userId: 'u1', text: 'que remontada' }]);
+
+    expect(thread).toHaveLength(1);
+  });
+
+  /** El cuerpo lleva solo el texto: autor, fecha e id los pone el servidor. */
+  it('deja un comentario con POST y solo el texto en el cuerpo', () => {
+    api.leaveComment('m1', 'menuda remontada').subscribe();
+
+    const req = http.expectOne(`${environment.apiUrl}/matches/m1/comments`);
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({ text: 'menuda remontada' });
+    req.flush({ id: 'c1', userId: 'u1', text: 'menuda remontada' });
+  });
+
+  it('borra un comentario por su id, dentro de su partida', () => {
+    api.deleteComment('m1', 'c1').subscribe();
+
+    const req = http.expectOne(`${environment.apiUrl}/matches/m1/comments/c1`);
+    expect(req.request.method).toBe('DELETE');
+    req.flush(null);
+  });
 });

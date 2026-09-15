@@ -62,6 +62,27 @@ export class SettingsStore {
     }
   }
 
+  /**
+   * Cambia un ajuste dejando los demás como están.
+   *
+   * El endpoint es un PUT completo —omitir un campo es un 422— así que alguien tiene que rellenar
+   * los otros dos. Que lo haga cada pantalla es el patrón que ya falló una vez en potencia: al
+   * entrar el tercer ajuste, un componente que sigue mandando dos lo apagaría sin que nadie lo
+   * pidiera, y no hay forma de verlo en su diff. Aquí la base es siempre la última versión que
+   * confirmó el servidor.
+   *
+   * Lanza si los ajustes no están cargados todavía: sin una base que completar, un PUT parcial
+   * escribiría valores por defecto encima de lo que el usuario tenga guardado. La vista nunca llega
+   * ahí porque pinta un skeleton mientras `settings()` es null.
+   */
+  patch(change: Partial<UserSettings>): Promise<UserSettings> {
+    const current = this._settings();
+    if (!current) {
+      return Promise.reject(new Error('Los ajustes todavía no están cargados'));
+    }
+    return this.update({ ...current, ...change });
+  }
+
   /** Al cerrar sesión no debe quedar rastro de los ajustes del usuario anterior. */
   clear(): void {
     this.inFlight = null;

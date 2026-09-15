@@ -724,6 +724,17 @@
 
         <!-- ============================ MARCADOR =========================== -->
         <app-match-scoreboard [match]="m" />
+
+        <!-- =========================== COMENTARIOS ========================= -->
+        <!--
+          El hilo va al final y no arriba a propósito: se lee después de mirar lo que pasó, y quien
+          viene a escribir el suyo ya ha recorrido el marcador de camino.
+        -->
+        <app-match-comments
+          [matchId]="m.id"
+          [groupId]="m.groupId"
+          [participantIds]="participantIds()"
+        />
       }
     }
   }

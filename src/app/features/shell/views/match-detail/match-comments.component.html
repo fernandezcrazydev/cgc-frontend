@@ -1,0 +1,125 @@
+<section class="mc" [attr.aria-busy]="comments.status() === 'loading' || null">
+  <header class="mc__head">
+    <h2 class="mc__heading nf-mono">Comentarios</h2>
+    @if (comments.status() === 'ready' && thread().length > 0) {
+      <span class="mc__count nf-mono">{{ thread().length }} de 10</span>
+    }
+  </header>
+
+  @switch (comments.status()) {
+    @case ('loading') {
+      <div class="mc__list">
+        @for (row of skeletonRows; track row) {
+          <div class="mc__row" aria-hidden="true">
+            <nf-skeleton width="34px" height="34px" radius="50%" />
+            <div class="mc__body">
+              <nf-skeleton width="140px" height="12px" />
+              <nf-skeleton width="100%" height="34px" radius="var(--nf-radius-sm)" />
+            </div>
+          </div>
+        }
+      </div>
+    }
+
+    @case ('error') {
+      <div class="mc__empty">
+        <p class="mc__empty-text">No hemos podido cargar los comentarios de esta partida.</p>
+        <button nfButton variant="ghost" size="sm" (click)="retry()">Reintentar</button>
+      </div>
+    }
+
+    @default {
+      @if (thread().length === 0) {
+        <p class="mc__empty-text">
+          Todavía no hay comentarios. Aquí es donde los diez que la jugaron cuentan lo que pasó.
+        </p>
+      } @else {
+        <ul class="mc__list">
+          @for (comment of thread(); track comment.id) {
+            <li class="mc__row" [class.mc__row--mine]="comment.userId === myUserId()">
+              <nf-avatar
+                [src]="comment.avatarUrl"
+                [fallback]="authorName(comment)"
+                [tint]="tintOf(comment.userId)"
+                [size]="34"
+                [alt]="authorName(comment)"
+              />
+              <div class="mc__body">
+                <div class="mc__meta">
+                  <span class="mc__author">{{ authorName(comment) }}</span>
+                  <span class="mc__when nf-mono" [title]="longDate(comment.createdAt)">
+                    {{ relative(comment.createdAt) }}
+                  </span>
+
+                  @if (canModerate()) {
+                    <button
+                      class="mc__delete"
+                      type="button"
+                      nfButton
+                      variant="ghost"
+                      size="sm"
+                      [disabled]="comments.deleting() !== null"
+                      [attr.aria-label]="'Borrar el comentario de ' + authorName(comment)"
+                      (click)="remove(comment.id)"
+                    >
+                      Borrar
+                    </button>
+                  }
+                </div>
+                <p class="mc__text">{{ comment.text }}</p>
+              </div>
+            </li>
+          }
+        </ul>
+      }
+
+      <!--
+        La caja solo aparece cuando de verdad se puede escribir. Es la misma decisión que la
+        pantalla de Reparto: no se ofrece una puerta cerrada. Quien no jugó, y quien ya dejó el
+        suyo, ven una frase que explica por qué — no un formulario que va a dar 403 o 409.
+      -->
+      @if (canWrite()) {
+        <form class="mc__compose" (ngSubmit)="submit()">
+          <label class="mc__label" for="mc-text">Tu versión de la partida</label>
+          <textarea
+            id="mc-text"
+            class="mc__input"
+            rows="3"
+            [attr.maxlength]="maxLength"
+            [disabled]="comments.saving()"
+            [value]="draft()"
+            (input)="onDraft($event)"
+            placeholder="Lo que recuerdes: la jugada que la decidió, quién la salvó, lo que salió mal…"
+          ></textarea>
+          <div class="mc__compose-foot">
+            <span class="mc__counter nf-mono" [class.mc__counter--tight]="remaining() <= 50">
+              {{ remaining() }}
+            </span>
+            <button
+              nfButton
+              variant="primary"
+              size="sm"
+              type="submit"
+              [disabled]="!canSubmit()"
+            >
+              {{ comments.saving() ? 'Enviando…' : 'Publicar' }}
+            </button>
+          </div>
+          <p class="mc__note">
+            Una vez publicado no se puede editar ni borrar. Solo un administrador del grupo puede
+            retirarlo.
+          </p>
+        </form>
+      } @else if (alreadyCommented()) {
+        <p class="mc__note mc__note--standalone">
+          Ya dejaste el tuyo. Los comentarios no se editan: es lo que hace que cuenten lo que
+          pensabas entonces y no lo que conviene ahora.
+        </p>
+      } @else if (!iPlayed()) {
+        <p class="mc__note mc__note--standalone">
+          Esta partida no la jugaste, así que puedes leer el hilo pero no escribir en él.
+        </p>
+      }
+    }
+  }
+</section>

@@ -90,10 +90,7 @@ export class SettingsNotificationsComponent {
     if (this.settings.saving() || enabled === previous) return;
     this.discordNotifs.set(enabled);
     try {
-      await this.settings.update({
-        allowGroupInvites: this.settings.settings()?.allowGroupInvites ?? true,
-        discordNotifications: enabled,
-      });
+      await this.settings.patch({ discordNotifications: enabled });
       this.toasts.success(
         enabled ? 'Te avisaremos por Discord' : 'No te avisaremos por Discord',
       );

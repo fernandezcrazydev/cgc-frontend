@@ -8,16 +8,18 @@ describe('SettingsNotificationsComponent', () => {
   let component: SettingsNotificationsComponent;
   let fixture: ComponentFixture<SettingsNotificationsComponent>;
   let settingsSignal: WritableSignal<UserSettings | null>;
-  let updateSpy: ReturnType<typeof vi.fn>;
+  let patchSpy: ReturnType<typeof vi.fn>;
 
   beforeEach(async () => {
     settingsSignal = signal<UserSettings | null>({
       allowGroupInvites: true,
       discordNotifications: true,
+      profileVisibility: 'PUBLIC',
     });
-    updateSpy = vi.fn().mockResolvedValue({
+    patchSpy = vi.fn().mockResolvedValue({
       allowGroupInvites: true,
       discordNotifications: false,
+      profileVisibility: 'PUBLIC',
     });
 
     const mockSettings = {
@@ -27,7 +29,7 @@ describe('SettingsNotificationsComponent', () => {
       saving: signal(false),
       ensureLoaded: vi.fn(),
       reload: vi.fn(),
-      update: updateSpy,
+      patch: patchSpy,
     };
 
     const mockToasts = {
@@ -57,10 +59,9 @@ describe('SettingsNotificationsComponent', () => {
 
   it('cambiar notificaciones de discord guarda y muestra toast', async () => {
     await component.setDiscordNotifs(false);
-    expect(updateSpy).toHaveBeenCalledWith({
-      allowGroupInvites: true,
-      discordNotifications: false,
-    });
+    // `patch` y no `update`: quien completa el PUT con los otros dos ajustes es el store, no cada
+    // pantalla. Antes lo hacia el componente, y al entrar el tercer campo lo habria apagado.
+    expect(patchSpy).toHaveBeenCalledWith({ discordNotifications: false });
     const toasts = TestBed.inject(ToastService);
     expect(toasts.success).toHaveBeenCalledWith('No te avisaremos por Discord');
   });

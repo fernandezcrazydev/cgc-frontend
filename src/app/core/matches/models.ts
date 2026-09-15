@@ -248,6 +248,30 @@ export interface MatchDetail {
   gameVersion: string | null;
 }
 
+/**
+ * Un comentario del hilo de una partida (`GET /matches/{id}/comments`).
+ *
+ * **Trae a su autor pegado**, igual que los diez asientos del marcador y por el mismo motivo: esta
+ * pantalla se abre también desde el historial personal, que cruza grupos, así que no hay ningún
+ * censo contra el que resolver un id — y puede que ni sigas siendo miembro de ese grupo.
+ * `discordUsername` y `avatarUrl` son los de HOY: sirven para reconocer a alguien, no para
+ * registrar lo que pasó. Llegan `null` para una cuenta borrada, y entonces el hueco se pinta como
+ * hueco: lo que alguien dijo sobrevive a su cuenta.
+ *
+ * No hay `updatedAt`, y su ausencia es la funcionalidad: un comentario no se edita. Tampoco hay
+ * `riotId` —ese vive en el asiento y es el del día que se jugó— ni `reactions`, que no existen
+ * todavía en ningún sitio (`cgc-backend#95`).
+ */
+export interface MatchComment {
+  id: string;
+  userId: string;
+  discordUsername: string | null;
+  avatarUrl: string | null;
+  text: string;
+  /** ISO-8601. Lo pone el servidor: si viajara en el cuerpo, cualquiera diría que habló antes. */
+  createdAt: string;
+}
+
 /** Resumen del historial del usuario (`GET /me/matches/summary`). */
 export interface PersonalHistorySummary {
   totalMatches: number;
