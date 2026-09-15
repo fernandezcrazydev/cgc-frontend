@@ -261,6 +261,11 @@
    insignia de nivel de campeon, que el backend no sirve.
    ============================================================================ */
 
+/* El contenedor de los tres pisos. Se me quedó fuera al recuperar el CSS: la extracción iba
+   con una lista de prefijos escrita a mano en vez de con las clases que usa la plantilla, y
+   nada avisa de una clase del markup que no tiene regla —`dead-css` mira justo al revés—. */
+.c-stats-stage { display: flex; flex-direction: column; gap: 14px; }
+
 .c-floor { display: grid; gap: 14px; align-items: stretch; }
 
 .c-floor--floor1 { grid-template-columns: repeat(3, 1fr); @media (max-width: $bp-compact) { grid-template-columns: 1fr; } }
