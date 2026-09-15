@@ -36,6 +36,7 @@ import {
   laneImpactFor,
   mapTelemetryFor,
   metagameFor,
+  modalitySlug,
   multikillsFor,
   statsFor,
 } from '../../../../core/group-stats';
@@ -161,6 +162,15 @@ export class GrupoEstadisticas {
   readonly scope = computed<StatScope>(() =>
     this.seasonId() === 'all' ? 'historico' : 'temporada',
   );
+
+  readonly historyLink = computed(() => {
+    const g = this.group();
+    return g ? ['/app', 'grupos', g.id, 'historial'] : ['/app', 'historial'];
+  });
+
+  readonly historyQueryParams = computed(() => ({
+    liga: modalitySlug(this.modality()),
+  }));
 
   /* ---- Pestañas ---- */
 

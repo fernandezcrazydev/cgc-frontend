@@ -1,0 +1,152 @@
+@switch (groupDetail.status()) {
+  @case ('loading') {
+    <div class="view" aria-busy="true">
+      <div class="sanciones__meta-bar">
+        <nf-skeleton width="200px" height="24px" radius="4px" />
+        <div class="sanciones__meta-actions">
+          <nf-skeleton width="110px" height="32px" radius="6px" />
+          <nf-skeleton width="90px" height="32px" radius="6px" />
+        </div>
+      </div>
+
+      <div class="sanciones__content">
+        <div class="sanciones__section">
+          <nf-skeleton width="120px" height="20px" radius="4px" />
+          <div class="sanciones__active-list">
+            <nf-skeleton width="100%" height="92px" radius="8px" />
+            <nf-skeleton width="100%" height="92px" radius="8px" />
+            <nf-skeleton width="100%" height="92px" radius="8px" />
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+
+  @case ('not-found') {
+    <div class="view">
+      <div class="empty-state">
+        <div class="empty-state__icon">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+        </div>
+        <div class="empty-state__text nf-mono">Grupo no encontrado</div>
+        <p class="empty-state__hint">Este grupo no existe o ya no eres miembro.</p>
+        <button nfButton variant="ghost" size="md" [routerLink]="['/app', 'grupos']">‹ Todos los grupos</button>
+      </div>
+    </div>
+  }
+
+  @default {
+    @if (group(); as g) {
+      <div class="view">
+        <div class="sanciones__meta-bar">
+          <div class="sanciones__referee-info">
+            @if (referee(); as ref) {
+              <span class="sanciones__referee-label">
+                Árbitro:
+                <a [routerLink]="['/app', 'perfil', ref.userId]" class="sanciones__referee-link">
+                  {{ ref.name }} <span class="sanciones__chev" aria-hidden="true">›</span>
+                </a>
+              </span>
+            } @else {
+              <span class="sanciones__no-referee">Sin árbitro · el grupo tiene que votar uno</span>
+            }
+          </div>
+
+          <div class="sanciones__meta-actions">
+            @if (isOwnerOrAdmin()) {
+              <button nfButton variant="secondary" size="sm" type="button" (click)="openVote()">
+                Abrir votación
+              </button>
+            }
+
+            @if (canSanction()) {
+              <button nfButton variant="danger" size="sm" type="button" (click)="openSanctionModal()">
+                Sancionar
+              </button>
+            }
+          </div>
+        </div>
+
+        <div class="sanciones__content">
+          <!-- Sección ACTIVAS -->
+          <section class="sanciones__section" aria-labelledby="sec-activas-title">
+            <h2 id="sec-activas-title" class="sanciones__section-title nf-mono">
+              ACTIVAS ({{ activeSanctions().length }})
+            </h2>
+
+            @if (activeSanctions().length === 0) {
+              <div class="empty-state">
+                <div class="empty-state__icon">
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="12" />
+                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                  </svg>
+                </div>
+                <div class="empty-state__text nf-mono">Ninguna sanción activa</div>
+                <p class="empty-state__hint">
+                  Cuando el sistema penalice a alguien o el árbitro ponga un veto, aparecerá aquí.
+                </p>
+              </div>
+            } @else {
+              <div class="sanciones__active-list">
+                @for (s of activeSanctions(); track s.id) {
+                  <app-sanction-row
+                    [sanction]="s"
+                    [groupId]="g.id"
+                    [currentUserId]="currentUserId()"
+                    [isReferee]="isReferee()"
+                    [hasReferee]="referee() !== null"
+                    (openAppealRead)="openAppealRead($event)"
+                    (openAppealWrite)="openAppealWrite($event)"
+                    (liftSanction)="liftSanction($event)"
+                  />
+                }
+              </div>
+            }
+          </section>
+
+          <!-- Sección HISTÓRICO -->
+          <section class="sanciones__section" aria-labelledby="sec-hist-title">
+            <h2 id="sec-hist-title" class="sanciones__section-title nf-mono">
+              HISTÓRICO ({{ historySanctions().length }})
+            </h2>
+
+            <app-sanction-history-table
+              [sanctions]="historySanctions()"
+              [groupId]="g.id"
+              [currentUserId]="currentUserId()"
+            />
+          </section>
+        </div>
+      </div>
+    }
+  }
+}
+
+@if (appealModalData(); as data) {
+  <app-sanction-appeal-modal
+    [mode]="data.mode"
+    [sanction]="data.sanction"
+    [groupId]="routeId()"
+    [isReferee]="isReferee()"
+    [refereeName]="referee()?.name ?? null"
+    [currentUserId]="currentUserId()"
+    [currentUserName]="currentUserName()"
+    (closed)="closeAppealModal()"
+  />
+}
+
+@if (showSanctionDialog()) {
+  <app-sanction-dialog
+    [groupId]="routeId()"
+    [roster]="roster()"
+    [currentUserId]="currentUserId()"
+    [currentUserName]="currentUserName()"
+    [actorRole]="isReferee() ? 'árbitro' : 'propietario'"
+    (closed)="closeSanctionModal()"
+  />
+}

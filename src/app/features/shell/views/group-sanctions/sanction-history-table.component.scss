@@ -1,0 +1,128 @@
+.sanction-history__scroll {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--nf-border);
+  border-radius: var(--nf-radius);
+  background: var(--nf-surface);
+
+  &.has-slider {
+    max-height: 440px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--nf-border-strong) transparent;
+
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: var(--nf-border);
+      border-radius: 999px;
+    }
+
+    &::-webkit-scrollbar-thumb:hover {
+      background: var(--nf-border-strong);
+    }
+
+    .sanction-history__table thead th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+  }
+}
+
+.sanction-history__table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: var(--fs-body);
+  line-height: var(--lh-snug);
+  min-width: 580px;
+
+  th {
+    padding: 10px 14px;
+    font-size: var(--fs-caption);
+    font-weight: 600;
+    color: var(--nf-text-dim);
+    border-bottom: 1px solid var(--nf-border);
+    background: var(--nf-surface-2);
+    user-select: none;
+  }
+
+  td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--nf-border);
+    color: var(--nf-text);
+  }
+}
+
+.sanction-history__row {
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+
+  &:hover {
+    background: var(--nf-surface-2);
+  }
+
+  &.is-expanded {
+    background: var(--nf-surface-2);
+  }
+}
+
+.sanction-history__player-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sanction-history__link {
+  color: var(--nf-text);
+  text-decoration: none;
+  font-weight: 500;
+
+  &:hover {
+    color: var(--nf-primary);
+  }
+}
+
+.sanction-history__chev {
+  color: var(--nf-text-dim);
+}
+
+.sanction-history__cell-val {
+  color: var(--nf-text);
+}
+
+.sanction-history__role-tag {
+  color: var(--nf-text-dim);
+  font-size: var(--fs-caption);
+}
+
+.sanction-history__detail-row {
+  background: var(--nf-surface-3);
+
+  td {
+    padding: 10px 14px 12px 14px;
+    border-bottom: 1px solid var(--nf-border);
+  }
+}
+
+.sanction-history__detail-content {
+  font-size: var(--fs-body);
+  color: var(--nf-text);
+  line-height: var(--lh-snug);
+}
+
+.sanction-history__detail-reason {
+  color: var(--nf-text-mid);
+}
+
+.sanction-history__detail-meta {
+  font-size: var(--fs-caption);
+  color: var(--nf-text-dim);
+}

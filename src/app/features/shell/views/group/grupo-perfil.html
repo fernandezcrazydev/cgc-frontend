@@ -1,0 +1,285 @@
+@switch (store.status()) {
+  @case ('loading') {
+    <div class="view" aria-busy="true">
+      <div class="view-back nf-mono">
+        <nf-skeleton width="140px" height="16px" radius="4px" aria-hidden="true" />
+      </div>
+      <nf-skeleton class="gp-banner--skeleton" width="100%" height="228px" radius="16px" aria-hidden="true" />
+
+      <div class="gp-layout">
+        <div class="gp-main">
+          <div class="gp-stats">
+            @for (i of [1, 2, 3, 4]; track i) {
+              <div class="gp-stat">
+                <nf-skeleton width="60px" height="28px" radius="4px" aria-hidden="true" />
+                <nf-skeleton width="90px" height="12px" radius="4px" aria-hidden="true" />
+              </div>
+            }
+          </div>
+
+          <nf-window title="Palmarés">
+            <div class="gp-trophies">
+              @for (i of [1, 2, 3]; track i) {
+                <div class="gp-trophy gp-trophy--skeleton">
+                  <nf-skeleton width="72px" height="20px" radius="4px" aria-hidden="true" />
+                  <nf-skeleton width="120px" height="120px" radius="8px" aria-hidden="true" />
+                  <nf-skeleton width="110px" height="18px" radius="4px" aria-hidden="true" />
+                  <nf-skeleton width="90px" height="24px" radius="12px" aria-hidden="true" />
+                  <nf-skeleton width="80px" height="14px" radius="4px" aria-hidden="true" />
+                </div>
+              }
+            </div>
+          </nf-window>
+
+          <nf-window title="Sobre la comunidad">
+            <nf-skeleton width="100%" height="54px" radius="4px" aria-hidden="true" />
+          </nf-window>
+
+          <nf-window title="Reglas de la casa">
+            <div style="display: flex; flex-direction: column; gap: var(--sp-2);">
+              <nf-skeleton width="90%" height="16px" radius="4px" aria-hidden="true" />
+              <nf-skeleton width="85%" height="16px" radius="4px" aria-hidden="true" />
+              <nf-skeleton width="80%" height="16px" radius="4px" aria-hidden="true" />
+            </div>
+          </nf-window>
+        </div>
+
+        <aside class="gp-side">
+          <div class="gp-roster">
+            <div class="gp-roster__head">
+              <span class="gp-roster__title">Miembros</span>
+              <nf-skeleton width="24px" height="16px" radius="4px" aria-hidden="true" />
+            </div>
+            <div class="gp-roster__list">
+              @for (i of [1, 2, 3, 4, 5, 6]; track i) {
+                <div class="gp-member gp-member--skeleton">
+                  <nf-skeleton width="36px" height="36px" radius="50%" aria-hidden="true" />
+                  <div class="gp-member__content">
+                    <div class="gp-member__row1">
+                      <nf-skeleton width="80px" height="16px" radius="4px" aria-hidden="true" />
+                      <nf-skeleton width="60px" height="16px" radius="4px" aria-hidden="true" />
+                    </div>
+                    <div class="gp-member__row2">
+                      <nf-skeleton width="70px" height="12px" radius="4px" aria-hidden="true" />
+                      <nf-skeleton width="50px" height="12px" radius="4px" aria-hidden="true" />
+                    </div>
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  }
+  @case ('error') {
+    <div class="view">
+      <div class="empty-state">
+        <div class="empty-state__icon">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
+        </div>
+        <div class="empty-state__text nf-mono">Error al cargar</div>
+        <p class="empty-state__hint">No se pudo cargar la ficha del grupo.</p>
+        <button nfButton variant="secondary" size="md" (click)="reload()">Reintentar</button>
+      </div>
+    </div>
+  }
+  @case ('not-found') {
+    <div class="view">
+      <div class="empty-state">
+        <div class="empty-state__icon">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+        </div>
+        <div class="empty-state__text nf-mono">Grupo no encontrado</div>
+        <p class="empty-state__hint">Este grupo no existe o ya no eres miembro.</p>
+        <button nfButton variant="ghost" size="md" [routerLink]="['/app', 'grupos']">‹ Todos los grupos</button>
+      </div>
+    </div>
+  }
+  @default {
+    @if (store.group(); as g) {
+      <div class="view">
+        <a class="view-back nf-mono" [routerLink]="['/app', 'grupos', g.id]">
+          <span class="view-back__arrow" aria-hidden="true">‹</span> {{ g.name }}
+        </a>
+
+        <!-- 1. Banner de identidad institucional -->
+        <header class="gp-banner" [style.--grp-c1]="g.c1" [style.--grp-c2]="g.c2">
+          <div class="gp-banner__ribbon">
+            <div class="gp-banner__action">
+              @if (store.canManage()) {
+                <button nfButton variant="secondary" size="sm" [routerLink]="['/app', 'grupos', g.id, 'ajustes']">
+                  Ajustes del grupo
+                </button>
+              }
+            </div>
+            <div class="gp-banner__identity">
+              <div class="gp-banner__avatar-wrap">
+                <nf-avatar [fallback]="g.initials" [tint]="[g.c1, g.c2]" [size]="96" shape="round" />
+              </div>
+              <div class="gp-banner__text">
+                <div class="gp-banner__title-row">
+                  <h1 class="gp-banner__name">{{ g.name }}</h1>
+                  @if (g.tag) {
+                    <span class="gp-banner__tag nf-mono">#{{ g.tag }}</span>
+                  }
+                </div>
+                <p class="gp-banner__motto">{{ profile().tagline }}</p>
+              </div>
+            </div>
+          </div>
+          <div class="gp-banner__meta nf-mono">
+            <span>{{ g.region ?? 'Sin región' }}</span>
+            <span class="gp-meta-sep" aria-hidden="true">&#183;</span>
+            <span>{{ store.memberCount() }} {{ store.memberCount() === 1 ? 'miembro' : 'miembros' }}</span>
+            <span class="gp-meta-sep" aria-hidden="true">&#183;</span>
+            <span>Desde {{ profile().foundedAt }}</span>
+          </div>
+        </header>
+
+        <!-- Rejilla a dos columnas: Principal + Directorio de miembros -->
+        <div class="gp-layout">
+          <div class="gp-main">
+            <!-- 2. Tira de cuatro cifras -->
+            <div class="gp-stats">
+              @for (stat of profile().stats; track stat.label) {
+                <div class="gp-stat">
+                  <span class="gp-stat__value nf-mono">{{ stat.value }}</span>
+                  <span class="gp-stat__label">{{ stat.label }}</span>
+                </div>
+              }
+            </div>
+
+            <!-- 3. Palmarés (por encima de "Sobre la comunidad", ajuste 2) -->
+            <nf-window title="Palmarés">
+              @if (hasAnyTrophy()) {
+                <div class="gp-trophies">
+                  @for (t of palmares(); track t.modality) {
+                    <article class="gp-trophy" [class]="'gp-trophy--' + (t.modality | lowercase)">
+                      <div class="gp-trophy__header">
+                        <span class="gp-league-chip" [class]="'gp-league-chip--' + (t.modality | lowercase)">{{ t.league }}</span>
+                      </div>
+                      @if (t.season && t.champion) {
+                        <div class="gp-trophy__visual">
+                          <img
+                            class="gp-trophy__img"
+                            src="/assets/trofeos/Trofeo1.webp"
+                            alt="Trofeo de campeón"
+                            width="120"
+                            height="120"
+                            loading="lazy"
+                            decoding="async"
+                          />
+                        </div>
+                        <h3 class="gp-trophy__season">{{ t.season.name }}</h3>
+                        @if (t.champion.userId) {
+                          <a class="gp-trophy__champion" [routerLink]="['/app', 'perfil', t.champion.userId]">
+                            <nf-avatar [src]="t.champion.avatar ?? null" [fallback]="t.champion.name" [tint]="t.champion.hue" [size]="24" shape="round" />
+                            <span class="gp-trophy__champ-name">{{ t.champion.name }}</span>
+                          </a>
+                        } @else {
+                          <div class="gp-trophy__champion">
+                            <nf-avatar [src]="t.champion.avatar ?? null" [fallback]="t.champion.name" [tint]="t.champion.hue" [size]="24" shape="round" />
+                            <span class="gp-trophy__champ-name">{{ t.champion.name }}</span>
+                          </div>
+                        }
+                        <div class="gp-trophy__meta nf-mono">
+                          <span>{{ t.season.ordinal }}</span>
+                          <span class="gp-meta-sep" aria-hidden="true">&#183;</span>
+                          <span>{{ t.games }} {{ t.games === 1 ? 'partida' : 'partidas' }}</span>
+                        </div>
+                      } @else {
+                        <div class="gp-trophy-empty">
+                          <p class="gp-trophy-empty__text">
+                            <strong>{{ t.league }}</strong> &#183; Todavía no ha terminado ninguna temporada.<br />
+                            El primer trofeo se graba cuando se cierre la primera.
+                          </p>
+                        </div>
+                      }
+                    </article>
+                  }
+                </div>
+              } @else {
+                <div class="gp-trophy-empty gp-trophy-empty--all">
+                  <p class="gp-trophy-empty__text">
+                    Este grupo todavía no ha cerrado ninguna temporada.<br />
+                    El palmarés se llena solo cuando termine la primera.
+                  </p>
+                </div>
+              }
+            </nf-window>
+
+            <!-- 4. Sobre la comunidad -->
+            <nf-window title="Sobre la comunidad">
+              <p class="gp-prose">{{ profile().description }}</p>
+            </nf-window>
+
+            <!-- 5. Reglas de la casa -->
+            <nf-window title="Reglas de la casa">
+              <ul class="gp-rules">
+                @for (rule of profile().rules; track rule) {
+                  <li class="gp-rule">
+                    <span class="gp-rule__bullet" aria-hidden="true">&#9670;</span>
+                    <span>{{ rule }}</span>
+                  </li>
+                }
+              </ul>
+            </nf-window>
+          </div>
+
+          <!-- Aside: Directorio de miembros -->
+          <aside class="gp-side">
+            <div class="gp-roster">
+              <div class="gp-roster__head">
+                <span class="gp-roster__title">Miembros</span>
+                <span class="gp-roster__count nf-mono">{{ store.memberCount() }}</span>
+              </div>
+              <div class="gp-roster__list" [class.is-scrollable]="isRosterScrollable()">
+                @for (m of directoryMembers(); track m.userId) {
+                  <a class="gp-member" [routerLink]="['/app', 'perfil', m.userId]">
+                    <div class="gp-member__avatar">
+                      <nf-avatar [src]="m.avatarUrl" [fallback]="m.discordUsername" [tint]="m.hue" [size]="36" shape="round" />
+                    </div>
+                    <div class="gp-member__content">
+                      <div class="gp-member__row1">
+                        <span class="gp-member__name">{{ m.discordUsername }}</span>
+                        <div class="gp-member__badges">
+                          <span class="gp-role-chip">{{ m.roleLabel }}</span>
+                          @if (m.isReferee) {
+                            <span class="gp-referee-chip">Árbitro</span>
+                          }
+                        </div>
+                      </div>
+                      <div class="gp-member__row2">
+                        <div class="gp-member__riot">
+                          @if (m.riotId) {
+                            <span class="gp-member__riot-id nf-mono">{{ m.riotId }}</span>
+                          } @else {
+                            <span class="gp-member__unlinked">Sin cuenta vinculada</span>
+                          }
+                        </div>
+                        <div class="gp-member__rank">
+                          @if (m.rank) {
+                            <nf-rank-emblem [tier]="m.rank.tier" [label]="m.rank.label" [size]="18" />
+                            <span class="gp-member__elo">{{ m.rank.name }}</span>
+                          }
+                        </div>
+                      </div>
+                    </div>
+                  </a>
+                }
+              </div>
+            </div>
+          </aside>
+        </div>
+      </div>
+    }
+  }
+}

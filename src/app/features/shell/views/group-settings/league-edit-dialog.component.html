@@ -1,0 +1,164 @@
+<nf-modal [title]="dialogTitle()" width="520px" (closed)="closed.emit()">
+  @if (step() === 'edit') {
+    <div class="dialog-body">
+      <!-- 1. Skin del trofeo -->
+      <div class="field">
+        <label class="field__label nf-mono">SKIN DEL TROFEO</label>
+        <div class="skins-grid">
+          <button type="button" class="skin-card skin-card--selected" aria-pressed="true">
+            <div class="skin-card__podium">
+              <div class="podium">
+                <img class="podium__cup podium__cup--p2" src="/assets/trofeos/Trofeo2.webp" alt="" aria-hidden="true" />
+                <img class="podium__cup podium__cup--p1" src="/assets/trofeos/Trofeo1.webp" alt="Podio de trofeos" />
+                <img class="podium__cup podium__cup--p3" src="/assets/trofeos/Trofeo3.webp" alt="" aria-hidden="true" />
+              </div>
+            </div>
+            <div class="skin-card__label nf-mono">
+              <span>Clásica</span>
+              <span class="skin-card__check" aria-hidden="true">✓</span>
+            </div>
+          </button>
+
+          <button type="button" class="skin-card skin-card--disabled" disabled>
+            <div class="skin-card__placeholder">Próximamente</div>
+          </button>
+
+          <button type="button" class="skin-card skin-card--disabled" disabled>
+            <div class="skin-card__placeholder">Próximamente</div>
+          </button>
+        </div>
+      </div>
+
+      <!-- 2. Nombre de la temporada -->
+      <div class="field">
+        <label class="field__label nf-mono" for="league-season-name">{{ nameFieldLabel() }}</label>
+        <input
+          id="league-season-name"
+          class="field__input"
+          type="text"
+          maxlength="40"
+          [placeholder]="defaultSeasonName()"
+          [ngModel]="seasonNameInput()"
+          (ngModelChange)="seasonNameInput.set($event)"
+        />
+        <p class="field__hint">El trofeo se llamará «{{ liveTrofeeName() }}»</p>
+      </div>
+
+      <!-- 3. Duración -->
+      <div class="field">
+        <label class="field__label nf-mono">Duración</label>
+        <div class="league-duration-row">
+          <nf-select
+            [options]="durationOptions"
+            [value]="durationValue()"
+            (valueChange)="durationValue.set($event)"
+          />
+          <span class="league-duration-range nf-mono">{{ durationRangeLabel() }}</span>
+        </div>
+      </div>
+
+      <!-- 4. Aviso según el estado -->
+      <div class="league-notice-box">
+        @switch (league().state) {
+          @case ('NOT_STARTED') {
+            <p class="league-notice-box__text">
+              Esta temporada todavía no ha empezado: lo que guardes se aplicará en cuanto arranque con la primera partida de esta modalidad.
+            </p>
+          }
+          @case ('IN_PROGRESS') {
+            @if (!league().named) {
+              <p class="league-notice-box__text">
+                Esta temporada arrancó sin nombre, así que el que pongas será el suyo. La duración, en cambio, no mueve su fecha de fin: se aplicará a la siguiente.
+              </p>
+            } @else {
+              <p class="league-notice-box__text">
+                Esta temporada está en marcha. Lo que guardes NO cambia su nombre ni su fecha de fin: se aplicará a la siguiente. Para cambiar los de esta hace falta votación unánime del grupo.
+              </p>
+              <div class="league-notice-box__action">
+                <button nfButton variant="secondary" size="sm" type="button" (click)="openProposeStep()">
+                  Proponer al grupo cerrarla o renombrarla
+                </button>
+              </div>
+            }
+          }
+        }
+      </div>
+
+      <!-- 5. Acciones -->
+      <div class="modal-actions">
+        <button nfButton variant="ghost" size="md" type="button" (click)="closed.emit()">Cancelar</button>
+        <button nfButton variant="primary" size="md" type="button" [disabled]="!hasChanges()" (click)="save()">Guardar</button>
+      </div>
+    </div>
+  } @else {
+    <div class="dialog-body">
+      <!-- Paso 2: Proponer al grupo -->
+      <div class="field">
+        <label class="field__label nf-mono">Qué se propone</label>
+        <div class="propose-options">
+          <label class="propose-option">
+            <input
+              type="radio"
+              name="propose-kind"
+              value="SEASON_CLOSE"
+              aria-label="Cerrar la temporada ya"
+              [checked]="proposeKind() === 'SEASON_CLOSE'"
+              (change)="proposeKind.set('SEASON_CLOSE')"
+            />
+            <span>Cerrar la temporada «{{ league().seasonName ?? ('Liga ' + league().label) }}» ya</span>
+          </label>
+          <label class="propose-option propose-option--inline">
+            <input
+              type="radio"
+              name="propose-kind"
+              value="SEASON_RENAME"
+              aria-label="Renombrar la temporada"
+              [checked]="proposeKind() === 'SEASON_RENAME'"
+              (change)="proposeKind.set('SEASON_RENAME')"
+            />
+            <span>Renombrarla a</span>
+            <input
+              class="field__input field__input--sm"
+              type="text"
+              maxlength="40"
+              placeholder="Liga de Otoño 2026"
+              [disabled]="proposeKind() !== 'SEASON_RENAME'"
+              [ngModel]="proposedName()"
+              (ngModelChange)="proposedName.set($event)"
+            />
+          </label>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="field__label nf-mono" for="propose-reason">Motivo (lo verá todo el grupo)</label>
+        <textarea
+          id="propose-reason"
+          class="field__input field__textarea"
+          rows="2"
+          placeholder="Explica el motivo..."
+          [ngModel]="reason()"
+          (ngModelChange)="reason.set($event)"
+        ></textarea>
+      </div>
+
+      <p class="propose-disclaimer">
+        Hace falta que TODOS los miembros voten a favor, y la votación dura 24 h. Quien no vote cuenta como un no.
+      </p>
+
+      <div class="modal-actions">
+        <button nfButton variant="ghost" size="md" type="button" (click)="backToEdit()">Volver</button>
+        <button
+          nfButton
+          variant="primary"
+          size="md"
+          type="button"
+          [disabled]="!canSubmitProposal()"
+          (click)="submitProposal()"
+        >
+          Abrir la votación
+        </button>
+      </div>
+    </div>
+  }
+</nf-modal>

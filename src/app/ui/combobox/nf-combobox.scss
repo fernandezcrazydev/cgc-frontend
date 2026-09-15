@@ -46,6 +46,9 @@
   font-size: 13px;
   color: var(--nf-text);
   outline: none;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
 }
 /* Con icono a la izquierda el texto ya respira: el padding lo pone el gap. */
 .nf-combobox__icon + .nf-combobox__input {

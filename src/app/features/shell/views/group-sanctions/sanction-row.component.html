@@ -1,0 +1,115 @@
+<article
+  class="sanction-row"
+  [class.sanction-row--ban]="sanction().kind === 'BAN'"
+  [class.sanction-row--auto]="sanction().kind === 'AUTO_LP'"
+>
+  <div class="sanction-row__strip" aria-hidden="true"></div>
+
+  <div class="sanction-row__body">
+    <!-- Columna de identidad: 176px fixed -->
+    <div class="sanction-row__identity">
+      <div class="sanction-row__user-head">
+        <nf-avatar
+          [src]="sanction().targetAvatar"
+          [fallback]="sanction().targetName"
+          [tint]="sanction().targetHue"
+          [size]="28"
+        />
+        <a class="sanction-row__user-name" [routerLink]="playerLink(sanction().targetUserId)">
+          {{ sanction().targetName }} <span class="sanction-row__chev" aria-hidden="true">›</span>
+        </a>
+      </div>
+
+      <div class="sanction-row__by-lines">
+        @if (sanction().kind === 'BAN') {
+          <div class="sanction-row__by-line">
+            por
+            @if (sanction().byUserId) {
+              <a class="sanction-row__by-link" [routerLink]="playerLink(sanction().byUserId)">
+                {{ sanction().byName }} <span class="sanction-row__chev" aria-hidden="true">›</span>
+              </a>
+            } @else {
+              <span>{{ sanction().byName }}</span>
+            }
+          </div>
+          <div class="sanction-row__by-role">({{ sanction().byRole }})</div>
+        } @else {
+          <div class="sanction-row__by-line">Automática</div>
+          <div class="sanction-row__by-role">del sistema</div>
+        }
+      </div>
+    </div>
+
+    <!-- Columna del hecho: elástica -->
+    <div class="sanction-row__fact">
+      <!-- Línea 1: El castigo y antigüedad -->
+      <div class="sanction-row__fact-line1">
+        <div class="sanction-row__punishment">
+          @if (sanction().kind === 'BAN') {
+            <span>Sin jugar · </span>
+            @if (sanction().scope === 'ALL_LEAGUES') {
+              <span>las 3 ligas</span>
+            } @else {
+              <a class="sanction-row__link" [routerLink]="['/app', 'grupos', groupId(), 'ranking']">
+                {{ sanction().modality }} <span class="sanction-row__chev" aria-hidden="true">›</span>
+              </a>
+            }
+            <span> · {{ sanction().days }} días</span>
+          } @else {
+            <span>−{{ -sanction().lpDelta! }} LP · </span>
+            <a class="sanction-row__link" [routerLink]="['/app', 'grupos', groupId(), 'ranking']">
+              {{ sanction().modality }} <span class="sanction-row__chev" aria-hidden="true">›</span>
+            </a>
+          }
+        </div>
+        <span class="sanction-row__time">{{ relativeTime() }}</span>
+      </div>
+
+      <!-- Línea 2: Motivo (truncado con ellipsis) -->
+      <div class="sanction-row__fact-line2">
+        @if (sanction().kind === 'BAN') {
+          <span class="sanction-row__reason-text" [title]="sanction().reason">«{{ sanction().reason }}»</span>
+        } @else {
+          <span class="sanction-row__reason-text" [title]="sanction().reason">
+            {{ sanction().reason }}@if (sanction().roomId) { · <a class="sanction-row__link" [routerLink]="['/app', 'grupos', groupId(), 'sala', sanction().roomId]">Sala #{{ sanction().roomId }}</a>}
+          </span>
+        }
+      </div>
+
+      <!-- Línea 3: Barra de acciones -->
+      <div class="sanction-row__fact-line3">
+        <div class="sanction-row__ends-wrapper">
+          @if (sanction().kind === 'BAN' && sanction().endsAt) {
+            <span class="sanction-row__ends-at">{{ endsAtLabel() }}</span>
+          }
+        </div>
+
+        <div class="sanction-row__actions">
+          @if (sanction().appeal) {
+            <button nfButton variant="ghost" size="sm" type="button" (click)="openAppealRead.emit(sanction())">
+              Revisión ›
+            </button>
+          } @else if (isCurrentUserTarget()) {
+            <button
+              nfButton
+              variant="ghost"
+              size="sm"
+              type="button"
+              [disabled]="!hasReferee()"
+              [title]="!hasReferee() ? 'El grupo no tiene árbitro. Hay que votar uno antes.' : ''"
+              (click)="openAppealWrite.emit(sanction())"
+            >
+              Pedir revisión
+            </button>
+          }
+
+          @if (isReferee()) {
+            <button nfButton variant="secondary" size="sm" type="button" (click)="liftSanction.emit(sanction())">
+              Levantar
+            </button>
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+</article>

@@ -16,6 +16,11 @@
         </div>
       </div>
 
+      <div class="rk-league-axis">
+        <nf-skeleton width="280px" height="36px" radius="8px" />
+        <nf-skeleton width="90px" height="32px" radius="8px" />
+      </div>
+
       <div class="rk-top3-grid">
         @for (s of [1, 2, 3]; track s) {
           <div class="rk-top-card">
@@ -77,9 +82,8 @@
         <div class="rk-header-left">
           <!-- Solo con más de una temporada: un selector con una sola opción no es una
                elección, es un adorno que sugiere que hay algo más donde no lo hay. -->
-          @if (seasonOptions().length > 1) {
+          @if (isCompetitive() && seasonOptions().length > 1) {
             <div class="rk-season">
-              <span class="rk-season__label nf-mono">Temporada</span>
               <!-- Combobox y no el select nativo: aquel es legacy (Input/Output) y se
                    quedaba desincronizado del store — la tabla cambiaba de temporada y el
                    desplegable seguía rotulando la anterior. Este va con signals, así que
@@ -101,11 +105,11 @@
 
         <div class="rk-league-title-group">
           <span class="rk-league-eyebrow nf-mono">Clasificación oficial</span>
-          <h1 class="rk-league-title">{{ leagueName() }}</h1>
+          <h1 class="rk-league-title">{{ isCompetitive() ? leagueName() : currentModalityLabel() }}</h1>
         </div>
 
         <div class="rk-header-right">
-          @if (countdown(); as cd) {
+          @if (isCompetitive() && countdown(); as cd) {
             <div class="rk-countdown" [class.is-expired]="cd.isExpired">
               <div class="rk-countdown__status">
                 <span
@@ -150,10 +154,51 @@
       </div>
     </div>
 
-    @if (leagues.status() === 'error') {
+    <div class="rk-league-axis">
+      <nf-segmented
+        [options]="modalityOptions"
+        [value]="modality()"
+        (valueChange)="setModality($event)"
+        ariaLabel="Modalidad de la clasificación"
+      />
+      <a
+        nfButton
+        variant="secondary"
+        size="sm"
+        class="rk-league-axis__history"
+        [routerLink]="historyLink()"
+        [queryParams]="historyQueryParams()"
+      >
+        Historial
+      </a>
+    </div>
+
+    @if (!isCompetitive()) {
+      <div class="rk-league-empty">
+        <div class="empty-state">
+          <div class="empty-state__icon">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
+              <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+              <path d="M4 22h16" />
+              <path d="M10 14.66V17c0 .55-.45 1-1 1H8c-.55 0-1 .45-1 1v1c0 .55.45 1 1 1h8c.55 0 1-.45 1-1v-1c0-.55-.45-1-1-1h-1c-.55 0-1-.45-1-1v-2.34" />
+              <path d="M6 4h12a2 2 0 0 1 2 2v3a6 6 0 0 1-6 6h-4a6 6 0 0 1-6-6V6a2 2 0 0 1 2-2Z" />
+            </svg>
+          </div>
+          <p class="empty-state__text nf-mono">{{ emptyCopy().title }}</p>
+          <p class="empty-state__hint">{{ emptyCopy().hint }}</p>
+        </div>
+      </div>
+    } @else if (leagues.status() === 'error') {
       <!-- Error, no vacío: hubo un fallo y hay algo que reintentar. -->
       <div class="empty-state" role="alert">
-        <span class="empty-state__icon">⚠️</span>
+        <span class="empty-state__icon">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+            <line x1="12" y1="9" x2="12" y2="13" />
+            <line x1="12" y1="17" x2="12.01" y2="17" />
+          </svg>
+        </span>
         <p class="empty-state__text nf-mono">No se pudo cargar la clasificación</p>
         <p class="empty-state__hint">{{ leagues.error() }}</p>
         <button nfButton variant="secondary" size="md" (click)="retry()">Reintentar</button>
@@ -161,7 +206,15 @@
     } @else if (leagues.isEmpty()) {
       <!-- Vacío, no error: la liga existe, simplemente aún no se ha jugado nada. -->
       <div class="empty-state">
-        <span class="empty-state__icon">🏆</span>
+        <span class="empty-state__icon">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
+            <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+            <path d="M4 22h16" />
+            <path d="M10 14.66V17c0 .55-.45 1-1 1H8c-.55 0-1 .45-1 1v1c0 .55.45 1 1 1h8c.55 0 1-.45 1-1v-1c0-.55-.45-1-1-1h-1c-.55 0-1-.45-1-1v-2.34" />
+            <path d="M6 4h12a2 2 0 0 1 2 2v3a6 6 0 0 1-6 6h-4a6 6 0 0 1-6-6V6a2 2 0 0 1 2-2Z" />
+          </svg>
+        </span>
         <p class="empty-state__text nf-mono">La liga aún no tiene participantes</p>
         <p class="empty-state__hint">
           Cuando juguéis vuestra primera custom, el podio y la clasificación aparecerán aquí.
@@ -171,13 +224,22 @@
         </button>
       </div>
     } @else {
-      @if (leagues.isSeasonClosed()) {
+      <div class="rk-competitive-content">
+        @if (leagues.isSeasonClosed()) {
         <!-- La temporada acabó. La clasificación sigue debajo, ya en solo lectura: es el
              resultado final, no una tabla viva. La siguiente temporada no aparece sola —
              reiniciar el LP de todo el grupo es una decisión de un admin. -->
         <div class="rk-season-over" role="status">
           <div class="rk-season-over__head">
-            <span class="rk-season-over__trophy" aria-hidden="true">🏆</span>
+            <span class="rk-season-over__trophy" aria-hidden="true">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
+                <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+                <path d="M4 22h16" />
+                <path d="M10 14.66V17c0 .55-.45 1-1 1H8c-.55 0-1 .45-1 1v1c0 .55.45 1 1 1h8c.55 0 1-.45 1-1v-1c0-.55-.45-1-1-1h-1c-.55 0-1-.45-1-1v-2.34" />
+                <path d="M6 4h12a2 2 0 0 1 2 2v3a6 6 0 0 1-6 6h-4a6 6 0 0 1-6-6V6a2 2 0 0 1 2-2Z" />
+              </svg>
+            </span>
             <div class="rk-season-over__text">
               <p class="rk-season-over__title">Temporada finalizada</p>
               @if (leagues.champion(); as champ) {
@@ -397,7 +459,7 @@
                    Solo aparece si hay algo que ofrecer: quien lo abre gestiona el grupo Y
                    supera en rango a esta fila. Sobre el propietario, o sobre uno mismo, no
                    hay ninguna acción posible y ni el botón se pinta. -->
-              @if (canManageMembers() && canActOn(e)) {
+              @if (canManageMembers() && hasMenuActions(e)) {
                 <span class="rk-actions">
                   <button
                     type="button"
@@ -413,27 +475,33 @@
                   @if (menuFor() === e.playerId) {
                     <span class="rk-actions__menu" [class.is-dropup]="menuDropup()" role="menu" [attr.aria-label]="'Acciones sobre ' + e.name">
                       @if (e.banned) {
-                        <button
-                          type="button"
-                          class="rk-actions__item"
-                          role="menuitem"
-                          [disabled]="leagues.isSanctioning(e.playerId)"
-                          (click)="liftSanction(e)"
-                        >Levantar sanción</button>
+                        @if (canLiftSanctionPlayer(e)) {
+                          <button
+                            type="button"
+                            class="rk-actions__item"
+                            role="menuitem"
+                            [disabled]="leagues.isSanctioning(e.playerId)"
+                            (click)="liftSanction(e)"
+                          >Levantar sanción</button>
+                        }
                       } @else {
+                        @if (canSanctionPlayer(e)) {
+                          <button
+                            type="button"
+                            class="rk-actions__item"
+                            role="menuitem"
+                            (click)="openSanction(e)"
+                          >Sancionar</button>
+                        }
+                      }
+                      @if (canActOn(e)) {
                         <button
                           type="button"
-                          class="rk-actions__item"
+                          class="rk-actions__item rk-actions__item--danger"
                           role="menuitem"
-                          (click)="openSanction(e)"
-                        >Sancionar</button>
+                          (click)="askKick(e)"
+                        >Expulsar del grupo</button>
                       }
-                      <button
-                        type="button"
-                        class="rk-actions__item rk-actions__item--danger"
-                        role="menuitem"
-                        (click)="askKick(e)"
-                      >Expulsar del grupo</button>
                     </span>
                   }
                 </span>
@@ -507,13 +575,6 @@
                               [title]="m.champName"
                             />
 
-                            <!--
-                              Aquí iban los hechizos y las runas. No se sirven: están guardados
-                              en el backend, pero con nombres de campo sacados de la
-                              documentación del cliente de LoL que nadie ha visto en un payload
-                              medido. Lo que se pintaba era una tabla de reserva por línea —el
-                              jungla siempre con Smite azul— que no describía ninguna partida.
-                            -->
                           </div>
 
                           <div class="rk-match__vs-block">
@@ -538,13 +599,11 @@
                           </div>
 
                           <div class="rk-match__kda">
-                            @if (m.kills !== null) {
-                              <span class="rk-match__kda-line nf-mono">
-                                {{ m.kills }} / <span class="rk-match__deaths">{{ m.deaths }}</span> / {{ m.assists }}
-                              </span>
-                            }
-                            @if (m.csLabel; as cs) {
-                              <span class="rk-match__kda-sub nf-mono">{{ cs }}</span>
+                            <span class="rk-match__kda-line nf-mono">
+                              {{ m.kills }} / <span class="rk-match__deaths">{{ m.deaths }}</span> / {{ m.assists }}
+                            </span>
+                            @if (m.csLabel) {
+                              <span class="rk-match__kda-sub nf-mono">{{ m.csLabel }}</span>
                             }
                           </div>
 
@@ -558,7 +617,15 @@
                     </div>
                   } @else {
                     <div class="empty-state">
-                      <span class="empty-state__icon">🎮</span>
+                      <span class="empty-state__icon">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                          <line x1="6" y1="12" x2="10" y2="12" />
+                          <line x1="8" y1="10" x2="8" y2="14" />
+                          <line x1="15" y1="13" x2="15.01" y2="13" />
+                          <line x1="18" y1="11" x2="18.01" y2="11" />
+                          <rect x="2" y="6" width="20" height="12" rx="6" />
+                        </svg>
+                      </span>
                       <p class="empty-state__text nf-mono">Sin partidas todavía</p>
                       <p class="empty-state__hint">
                         El historial por jugador aparecerá cuando se registren partidas de la liga.
@@ -580,6 +647,7 @@
           (pageChange)="goToPage($event)"
         />
       }
+      </div>
     }
   } @else {
     <div class="view__head">
@@ -655,56 +723,17 @@
 </ng-template>
 
 @if (sanctionFor(); as target) {
-  <nf-modal title="Sancionar" width="460px" (closed)="closeSanction()">
-    <div class="rk-sanction">
-      <p class="rk-sanction__lead">
-        <strong>{{ target.name }}</strong> quedará fuera de la competición y caerá al final de
-        la clasificación bajo cualquier orden.
-      </p>
-
-      <label class="field__label nf-mono" for="rk-sanction-reason">Motivo</label>
-      <input
-        id="rk-sanction-reason"
-        class="field__input"
-        type="text"
-        maxlength="200"
-        autocomplete="off"
-        placeholder="Por qué se le aparta"
-        [ngModel]="sanctionReason()"
-        (ngModelChange)="sanctionReason.set($event)"
-      />
-      <!-- El motivo lo lee el resto del grupo en la tabla, así que no puede quedar vacío: una
-           sanción sin explicación es indistinguible de un error del administrador. -->
-      <p class="rk-sanction__hint nf-mono">Se muestra a todo el grupo junto al jugador.</p>
-
-      <label class="field__label nf-mono" for="rk-sanction-until">Hasta</label>
-      <input
-        id="rk-sanction-until"
-        class="field__input"
-        type="datetime-local"
-        [ngModel]="sanctionUntil()"
-        (ngModelChange)="sanctionUntil.set($event)"
-      />
-      <p class="rk-sanction__hint nf-mono">Déjalo vacío para una sanción indefinida.</p>
-
-      <div class="form-foot">
-        <button
-          nfButton
-          variant="ghost"
-          size="md"
-          [disabled]="leagues.isSanctioning(target.playerId)"
-          (click)="closeSanction()"
-        >Cancelar</button>
-        <button
-          nfButton
-          variant="danger"
-          size="md"
-          [disabled]="!sanctionReason().trim() || leagues.isSanctioning(target.playerId)"
-          (click)="confirmSanction()"
-        >{{ leagues.isSanctioning(target.playerId) ? 'Sancionando…' : 'Sancionar' }}</button>
-      </div>
-    </div>
-  </nf-modal>
+  <app-sanction-dialog
+    [groupId]="id()!"
+    [player]="target"
+    [roster]="sanctionRoster()"
+    [leagueName]="leagueName()"
+    [actorRole]="isReferee() ? 'árbitro' : 'propietario'"
+    [currentUserId]="currentUserId()"
+    [currentUserName]="currentUserName()"
+    (closed)="closeSanction()"
+    (confirmed)="onSanctionConfirmed()"
+  />
 }
 
 @if (kickFor(); as target) {

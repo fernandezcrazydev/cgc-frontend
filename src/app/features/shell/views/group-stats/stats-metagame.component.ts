@@ -43,7 +43,6 @@ import { MetagameBoard } from '../../../../core/group-stats';
                     <a
                       class="mg-entry"
                       [routerLink]="championRoute(entry.championId)"
-                      [queryParams]="championQueryParams(entry.championId)"
                       [attr.data-podium]="i < 3 ? i + 1 : null"
                       [attr.data-worst]="board.id === 'worst-winrate' ? true : null"
                       [attr.title]="'Ver información de ' + championName(entry.championId)"
@@ -107,11 +106,7 @@ export class StatsMetagameComponent {
 
   protected championRoute(id: number): (string | number)[] {
     const gid = this.groupId();
-    return gid ? ['/app', 'grupos', gid, 'tierlist'] : ['/app', 'tierlist'];
-  }
-
-  protected championQueryParams(id: number): Record<string, number> {
-    return { campeon: id };
+    return gid ? ['/app', 'grupos', gid, 'campeon', id] : ['/app', 'campeon', id];
   }
 
   protected championIcon(id: number): string | null {

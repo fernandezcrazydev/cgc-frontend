@@ -1,0 +1,75 @@
+@use 'breakpoints' as *;
+
+.pf-vs-tile__sub {
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+}
+
+/* ── Notas de ADN en cabecera ───────────────────────────────────────── */
+
+.pf-dna-card__score {
+  font-size: var(--fs-h3);
+  font-weight: 700;
+  margin-left: auto;
+  color: var(--nf-text);
+  line-height: 1;
+
+  &.pf-pos {
+    color: var(--nf-pos);
+  }
+
+  &.pf-neg {
+    color: var(--nf-neg);
+  }
+}
+
+/* ── Tabla de Rendimiento Detallado por Posición ────────────────────── */
+
+.pf-role-table {
+  display: flex;
+  flex-direction: column;
+  overflow-x: auto;
+}
+
+.pf-role-table__row {
+  display: grid;
+  grid-template-columns: 1.5fr 1.2fr 1fr 1.2fr 1fr;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--nf-border);
+  font-size: 12px;
+  align-items: center;
+}
+
+.pf-role-table__row:last-child {
+  border-bottom: none;
+}
+
+.pf-role-table__row--head {
+  background: var(--nf-surface);
+  font-weight: 700;
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+}
+
+.pf-role-table__lane {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  color: var(--nf-text);
+}
+
+.pf-role-table__lane-name {
+  color: var(--nf-text);
+}
+
+.pf-nodata {
+  color: var(--nf-text-dim);
+  font-size: 11.5px;
+  cursor: help;
+}
+
+.pf-role-table__tag {
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+}

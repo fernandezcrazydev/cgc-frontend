@@ -27,6 +27,22 @@ import {
 } from './models';
 
 /**
+ * ¿Trae esta partida telemetría?
+ *
+ * `hasStats: false` significa que el anfitrión registró a mano quién ganó y nadie de la sala
+ * exportó la partida desde el cliente: da LP y rating, pero no KDA, ni oro, ni MVP, ni duración,
+ * ni qué campeón jugó nadie.
+ *
+ * Antes se deducía de `source !== 'manual'`, con la nota de que el día que existiese la ingesta
+ * real el DTO lo diría directamente. Ese día es hoy: `GroupMatchResponse` trae `hasStats`, así que
+ * la función lo LEE en vez de deducirlo. Se queda como función, y no se llama al campo a pelo, para
+ * que las plantillas sigan preguntando lo mismo en un solo sitio.
+ */
+export function matchHasStats(match: Pick<Match, 'hasStats'>): boolean {
+  return match.hasStats;
+}
+
+/**
  * `undefined` = la partida existe pero el usuario no la jugó (caso normal en el historial de
  * grupo). No es lo mismo que una derrota, y las plantillas lo trataban como tal.
  */

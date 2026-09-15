@@ -128,4 +128,28 @@ describe('Semáforo y Notificaciones Semánticas en la Campana [F5.5-02]', () =>
     expect(recent.length).toBe(1);
     expect(recent[0].id).toBe('s1');
   });
+
+  it('reconoce la notificación SANCTION_DECISION_REQUIRED como aviso obligatorio crítico con CTA Resolver sanción', () => {
+    const sanctionDecision = notificationView(
+      {
+        id: 'sd-1',
+        type: 'SANCTION_DECISION_REQUIRED',
+        data: {
+          groupId: 'lan-challenger',
+          groupName: 'LAN Challenger S14',
+          targetName: 'Manolito',
+          message: 'Manolito ha alcanzado 3 incidencias. Requiere tu decisión.',
+        },
+        read: false,
+        createdAt: '2026-07-18T11:50:00Z',
+      },
+      NOW,
+    );
+
+    expect(sanctionDecision.isMandatory).toBe(true);
+    expect(sanctionDecision.semanticLevel).toBe('critical');
+    expect(sanctionDecision.ctaLabel).toBe('Resolver sanción');
+    expect(sanctionDecision.title).toBe('Decisión arbitral requerida');
+    expect(computeSeverity([sanctionDecision])).toBe('critical');
+  });
 });

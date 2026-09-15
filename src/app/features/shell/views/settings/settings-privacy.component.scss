@@ -1,0 +1,5 @@
+.setting-row { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 16px 0; }
+.setting-row--last { padding-bottom: 4px; }
+.setting-title { font-size: var(--fs-body); font-weight: var(--fw-bold); color: var(--nf-text); }
+.setting-sub { font-size: var(--fs-label); color: var(--nf-text-dim); margin-top: 3px; }
+.setting-sub--help { font-size: var(--fs-caption); letter-spacing: 0; line-height: 1.45; margin-top: 5px; max-width: 48ch; }

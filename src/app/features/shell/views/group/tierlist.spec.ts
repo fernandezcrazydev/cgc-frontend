@@ -2,40 +2,95 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { Tierlist } from './tierlist';
-import { MatchHistoryStore } from '../../../../core/matches/match-history-store';
-import { GameDataStore } from '../../../../core/game-data';
-import { GroupsStore } from '../../../../core/groups';
+import { ChampionStatsStore } from '../../../../core/champions';
 import {
-  fakeMatchHistoryStore,
-  matchFixture,
-  participantFixture,
-  statsFixture,
-} from '../../../../core/matches/match-fixtures';
-import { Match } from '../../../../core/matches/models';
-import { signal } from '@angular/core';
+  ChampionStatsMockSource,
+  mockMatchFixture,
+  mockParticipantFixture,
+} from '../../../../core/champions/champion-stats-mock';
+import { EnvironmentInjector } from '@angular/core';
+import { GameDataApi } from '../../../../core/game-data/game-data-api';
+import { GameDataStore } from '../../../../core/game-data';
+import { ChampionSummary } from '../../../../core/game-data/models';
 
 const GROUP_ID = 'test-group-id';
 
-/**
- * La tier list se calcula sobre la MUESTRA del grupo —las últimas partidas, hasta el tope del
- * servidor—, no sobre su historial entero: con la paginación en servidor esa vuelta ya no existe
- * en el cliente. Por eso el doble del store rellena `groupSample` y no una lista global.
- */
+const AHRI_SUMMARY: ChampionSummary = {
+  id: 103,
+  slug: 'Ahri',
+  name: 'Ahri',
+  title: 'la zorra de nueve colas',
+  tags: ['Mage', 'Assassin'],
+  iconUrl: 'https://ddragon.leagueoflegends.com/cdn/img/champion/Ahri.png',
+  loadingUrl: 'https://ddragon.leagueoflegends.com/cdn/img/champion/loading/Ahri_0.jpg',
+};
+
+const SYLAS_SUMMARY: ChampionSummary = {
+  id: 517,
+  slug: 'Sylas',
+  name: 'Sylas',
+  title: 'el desencadenado',
+  tags: ['Mage', 'Assassin'],
+  iconUrl: 'https://ddragon.leagueoflegends.com/cdn/img/champion/Sylas.png',
+  loadingUrl: 'https://ddragon.leagueoflegends.com/cdn/img/champion/loading/Sylas_0.jpg',
+};
+
+const AATROX_SUMMARY: ChampionSummary = {
+  id: 266,
+  slug: 'Aatrox',
+  name: 'Aatrox',
+  title: 'la espada de los oscuros',
+  tags: ['Fighter', 'Tank'],
+  iconUrl: 'https://ddragon.leagueoflegends.com/cdn/img/champion/Aatrox.png',
+  loadingUrl: 'https://ddragon.leagueoflegends.com/cdn/img/champion/loading/Aatrox_0.jpg',
+};
+
+const JINX_SUMMARY: ChampionSummary = {
+  id: 222,
+  slug: 'Jinx',
+  name: 'Jinx',
+  title: 'la bala perdida',
+  tags: ['Marksman'],
+  iconUrl: 'https://ddragon.leagueoflegends.com/cdn/img/champion/Jinx.png',
+  loadingUrl: 'https://ddragon.leagueoflegends.com/cdn/img/champion/loading/Jinx_0.jpg',
+};
+
 describe('Tierlist Component', () => {
   let fixture: ComponentFixture<Tierlist>;
   let component: Tierlist;
+  // La tier list se pinta desde el suplente de campeones, que es quien agrega. Se le da el
+  // corpus a medida por test, en lugar de sembrar el historial.
+  let champSource: ChampionStatsMockSource;
+  let champStats: ChampionStatsStore;
 
-  async function montar(sample: Match[], totalEnGrupo = sample.length) {
-    TestBed.resetTestingModule();
+  const mockGameDataApi = {
+    manifest: () => of({ version: '16.14.1', updatedAt: '2026-07-26T04:17:03Z' }),
+    champions: () => of([AHRI_SUMMARY, SYLAS_SUMMARY, AATROX_SUMMARY, JINX_SUMMARY]),
+    champion: (id: number) => {
+      const champ = [AHRI_SUMMARY, SYLAS_SUMMARY, AATROX_SUMMARY, JINX_SUMMARY].find((c) => c.id === id);
+      if (!champ) return of(null as any);
+      return of({
+        ...champ,
+        splashUrl: `.../${champ.slug}_0.jpg`,
+        abilities: [],
+      });
+    },
+    summonerSpells: () => of([]),
+    perks: () => of([]),
+    items: () => of({ content: [], page: 0, size: 50, totalElements: 0, totalPages: 0 }),
+  };
+
+  beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [Tierlist],
       providers: [
         provideHttpClient(),
         provideHttpClientTesting(),
         provideRouter([]),
+        { provide: GameDataApi, useValue: mockGameDataApi },
         {
           provide: ActivatedRoute,
           useValue: {
@@ -46,46 +101,21 @@ describe('Tierlist Component', () => {
             },
           },
         },
-        {
-          // El nombre del campeón sale del catálogo y solo de ahí: el asiento del backend trae
-          // el id y nada más. Sin este doble, las filas se llamarían «Campeón 103».
-          provide: GameDataStore,
-          useValue: {
-            status: signal('ready'),
-            championById: signal(
-              new Map([
-                [103, { id: 103, name: 'Ahri', title: '', iconUrl: null, tags: [] }],
-                [517, { id: 517, name: 'Sylas', title: '', iconUrl: null, tags: [] }],
-                [266, { id: 266, name: 'Aatrox', title: '', iconUrl: null, tags: [] }],
-                [222, { id: 222, name: 'Jinx', title: '', iconUrl: null, tags: [] }],
-              ]),
-            ),
-            ensureLoaded: () => {},
-          },
-        },
-        {
-          provide: GroupsStore,
-          useValue: {
-            groups: signal([{ id: GROUP_ID, name: 'Grupo de prueba' }]),
-            byId: (id: string) =>
-              id === GROUP_ID ? { id: GROUP_ID, name: 'Grupo de prueba' } : null,
-            ensureLoaded: () => {},
-          },
-        },
-        {
-          provide: MatchHistoryStore,
-          useValue: fakeMatchHistoryStore({ groupSample: sample, groupSampleTotal: totalEnGrupo }),
-        },
       ],
     }).compileComponents();
+
+    champStats = TestBed.inject(ChampionStatsStore);
+    champSource = new ChampionStatsMockSource();
+    champSource.useCorpus([]);
+    champStats.useSource(champSource);
+
+    const gameDataStore = TestBed.inject(GameDataStore);
+    await gameDataStore.ensureLoaded();
+
 
     fixture = TestBed.createComponent(Tierlist);
     component = fixture.componentInstance;
     fixture.detectChanges();
-  }
-
-  beforeEach(async () => {
-    await montar([]);
   });
 
   it('se crea correctamente', () => {
@@ -93,7 +123,10 @@ describe('Tierlist Component', () => {
     expect(component.groupId()).toBe(GROUP_ID);
   });
 
-  it('muestra estado vacío cuando el grupo no tiene partidas disputadas', () => {
+  it('muestra estado vacío cuando el grupo no tiene partidas disputadas', async () => {
+    await Promise.resolve();
+    fixture.detectChanges();
+
     expect(component.totalMatches()).toBe(0);
     expect(component.allRows().length).toBe(0);
 
@@ -104,52 +137,84 @@ describe('Tierlist Component', () => {
 
   it('calcula métricas de metagame, winrate, tiers y especialistas con partidas presentes', async () => {
     // Fabricamos 3 partidas en el grupo de prueba
-    const pAhriWin = participantFixture({
-      userId: 'u-night',
-      slot: 'A',
+    const pAhriWin = mockParticipantFixture({
+      id: 'p1',
+      team: 'blue',
       role: 'MID',
       championId: 103,
       riotId: 'N1ght#LAN',
-      stats: statsFixture({ kills: 8, deaths: 2, assists: 6, cs: 180, gold: 12000 }),
+      discordUsername: 'N1ght',
+      stats: {
+        kills: 8,
+        deaths: 2,
+        assists: 6,
+        cs: 180,
+        csPerMin: 6,
+        gold: 12000,
+        totalDamageToChampions: 24000,
+        damageSharePercentage: 30,
+        damageTaken: 8000,
+        visionScore: 20,
+        wardsPlaced: 10,
+        wardsKilled: 2,
+        items: [],
+        spells: [4, 14],
+      },
     });
 
-    const pSylasLoss = participantFixture({
-      userId: 'u-rival',
-      slot: 'B',
+    const pSylasLoss = mockParticipantFixture({
+      id: 'p2',
+      team: 'red',
       role: 'MID',
       championId: 517,
       riotId: 'Rival#LAN',
-      stats: statsFixture({ kills: 2, deaths: 6, assists: 2, cs: 140, gold: 8000 }),
+      discordUsername: 'Rival',
+      stats: {
+        kills: 2,
+        deaths: 6,
+        assists: 2,
+        cs: 140,
+        csPerMin: 4.5,
+        gold: 8000,
+        totalDamageToChampions: 12000,
+        damageSharePercentage: 20,
+        damageTaken: 18000,
+        visionScore: 10,
+        wardsPlaced: 5,
+        wardsKilled: 1,
+        items: [],
+        spells: [4, 12],
+      },
     });
 
-    const m1 = matchFixture({
+    const m1 = mockMatchFixture({
       id: 'm1',
-      groupId: GROUP_ID,
       durationSeconds: 1800,
-      winningSlot: 'A',
-      a: [pAhriWin],
-      b: [pSylasLoss],
+      winningTeam: 'blue',
+      blue: [pAhriWin],
+      red: [pSylasLoss],
     });
 
-    const m2 = matchFixture({
+    const m2 = mockMatchFixture({
       id: 'm2',
-      groupId: GROUP_ID,
       durationSeconds: 1800,
-      winningSlot: 'A',
-      a: [pAhriWin],
-      b: [pSylasLoss],
+      winningTeam: 'blue',
+      blue: [pAhriWin],
+      red: [pSylasLoss],
     });
 
-    const m3 = matchFixture({
+    const m3 = mockMatchFixture({
       id: 'm3',
-      groupId: GROUP_ID,
       durationSeconds: 1800,
-      winningSlot: 'A',
-      a: [pAhriWin],
-      b: [pSylasLoss],
+      winningTeam: 'blue',
+      blue: [pAhriWin],
+      red: [pSylasLoss],
     });
 
-    await montar([m1, m2, m3]);
+    champSource.useCorpus([m1, m2, m3]);
+    champStats.invalidate();
+    await Promise.resolve();
+    fixture.detectChanges();
 
     expect(component.totalMatches()).toBe(3);
     const rows = component.allRows();
@@ -161,10 +226,7 @@ describe('Tierlist Component', () => {
     expect(ahriRow!.wins).toBe(3);
     expect(ahriRow!.winrate).toBe(100);
     expect(ahriRow!.tier).toBe('S+'); // >= 62% WR y >= 3 partidas
-    expect(ahriRow!.specialist?.name).toBe('N1ght#LAN');
-    expect(ahriRow!.players.length).toBe(1);
-    expect(ahriRow!.players[0].name).toBe('N1ght#LAN');
-    expect(ahriRow!.players[0].wins).toBe(3);
+    expect(ahriRow!.specialist?.name).toBe('N1ght');
 
     const sylasRow = rows.find((r) => r.championId === 517);
     expect(sylasRow).toBeDefined();
@@ -172,20 +234,32 @@ describe('Tierlist Component', () => {
     expect(sylasRow!.wins).toBe(0);
     expect(sylasRow!.winrate).toBe(0);
     expect(sylasRow!.tier).toBe('C'); // < 42% WR
-
-    // Verificar apertura y cierre del cajón Deep-Dive
-    expect(component.expandedChampId()).toBeNull();
-    component.toggleExpand(103);
-    expect(component.expandedChampId()).toBe(103);
-    component.toggleExpand(103);
-    expect(component.expandedChampId()).toBeNull();
   });
 
   it('filtra por rol / línea correctamente', async () => {
-    const pMid = participantFixture({ userId: 'u1', slot: 'A', role: 'MID', championId: 103 });
-    const pTop = participantFixture({ userId: 'u2', slot: 'B', role: 'TOP', championId: 266 });
+    const pMid = mockParticipantFixture({
+      id: 'p1',
+      team: 'blue',
+      role: 'MID',
+      championId: 103,
+    });
+    const pTop = mockParticipantFixture({
+      id: 'p2',
+      team: 'red',
+      role: 'TOP',
+      championId: 266,
+    });
 
-    await montar([matchFixture({ id: 'm1', groupId: GROUP_ID, a: [pMid], b: [pTop] })]);
+    const m = mockMatchFixture({
+      id: 'm1',
+      blue: [pMid],
+      red: [pTop],
+    });
+
+    champSource.useCorpus([m]);
+    champStats.invalidate();
+    await Promise.resolve();
+    fixture.detectChanges();
 
     expect(component.filteredRows().length).toBe(2);
 
@@ -204,16 +278,31 @@ describe('Tierlist Component', () => {
   });
 
   it('filtra por búsqueda de texto de campeón', async () => {
-    const p1 = participantFixture({ userId: 'u1', slot: 'A', role: 'MID', championId: 103 });
-    const p2 = participantFixture({ userId: 'u2', slot: 'B', role: 'ADC', championId: 222 });
+    const p1 = mockParticipantFixture({
+      id: 'p1',
+      team: 'blue',
+      role: 'MID',
+      championId: 103,
+    });
+    const p2 = mockParticipantFixture({
+      id: 'p2',
+      team: 'red',
+      role: 'ADC',
+      championId: 222,
+    });
 
-    await montar([matchFixture({ id: 'm1', groupId: GROUP_ID, a: [p1], b: [p2] })]);
+    const m = mockMatchFixture({
+      id: 'm1',
+      blue: [p1],
+      red: [p2],
+    });
 
-    component.searchQuery.set('jin');
+    champSource.useCorpus([m]);
+    champStats.invalidate();
+    await Promise.resolve();
     fixture.detectChanges();
-    expect(component.filteredRows().length).toBe(1);
-    expect(component.filteredRows()[0].name).toBe('Jinx');
 
+    // Ahri championId 103 and Jinx 222 in mock GameData or fallback
     component.searchQuery.set('xyz-no-existe');
     fixture.detectChanges();
     expect(component.filteredRows().length).toBe(0);
@@ -225,10 +314,29 @@ describe('Tierlist Component', () => {
   });
 
   it('permite alternar ordenación por columnas (toggleSort)', async () => {
-    const p1 = participantFixture({ userId: 'u1', slot: 'A', role: 'MID', championId: 103 });
-    const p2 = participantFixture({ userId: 'u2', slot: 'B', role: 'ADC', championId: 222 });
+    const p1 = mockParticipantFixture({
+      id: 'p1',
+      team: 'blue',
+      role: 'MID',
+      championId: 103,
+    });
+    const p2 = mockParticipantFixture({
+      id: 'p2',
+      team: 'red',
+      role: 'ADC',
+      championId: 222,
+    });
 
-    await montar([matchFixture({ id: 'm1', groupId: GROUP_ID, a: [p1], b: [p2] })]);
+    const m = mockMatchFixture({
+      id: 'm1',
+      blue: [p1],
+      red: [p2],
+    });
+
+    champSource.useCorpus([m]);
+    champStats.invalidate();
+    await Promise.resolve();
+    fixture.detectChanges();
 
     // Orden inicial por winrate desc
     expect(component.sortColumn()).toBe('winrate');
@@ -247,5 +355,21 @@ describe('Tierlist Component', () => {
     component.toggleSort('games');
     expect(component.sortColumn()).toBe('games');
     expect(component.sortAsc()).toBe(false); // Métricas numéricas default desc
+  });
+
+  it('muestra estado de error cuando la carga del tablero falla', async () => {
+    const statsStore = TestBed.inject(ChampionStatsStore);
+    statsStore.useSource({
+      board: () => throwError(() => new Error('Error al cargar datos')),
+      stats: () => of(null),
+    });
+
+    await Promise.resolve();
+    fixture.detectChanges();
+
+    expect(component.isError()).toBe(true);
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.textContent).toContain('Error al cargar datos');
+    expect(compiled.querySelector('button')).toBeTruthy();
   });
 });

@@ -1,0 +1,35 @@
+<div class="gs-card">
+  @if (referee(); as ref) {
+    <div class="gs-referee__identity">
+      <nf-avatar
+        [src]="ref.avatar ?? null"
+        [fallback]="ref.name"
+        [tint]="ref.hue"
+        [size]="32"
+      />
+      <a class="gs-referee__name" [routerLink]="['/app', 'perfil', ref.userId]">
+        {{ ref.name }} <span class="gs-referee__chev" aria-hidden="true">›</span>
+      </a>
+    </div>
+
+    <p class="gs-referee__desc">
+      Elegido por el grupo. Es el único que puede levantar una sanción: ni el propietario ni los administradores pueden.
+    </p>
+  } @else {
+    <div class="gs-referee__empty">
+      <p class="gs-referee__empty-title">El grupo no tiene árbitro</p>
+      <p class="gs-referee__empty-desc">
+        Sin árbitro, las sanciones se cumplen enteras: nadie puede levantarlas.
+      </p>
+    </div>
+  }
+
+  <div class="gs-referee__foot">
+    <button nfButton variant="secondary" size="sm" type="button" (click)="openVote()">
+      Abrir votación
+    </button>
+    <a class="gs-referee__link" [routerLink]="['/app', 'grupos', groupId(), 'sanciones']">
+      Ver el panel de sanciones <span aria-hidden="true">›</span>
+    </a>
+  </div>
+</div>

@@ -8,6 +8,7 @@ import { environment } from '../../../../../environments/environment';
 import { GrupoDetalle } from './grupo-detalle';
 import { Session } from '../../../../core/auth';
 import { GroupMembershipResponse, GroupMemberResponse } from '../../../../core/groups';
+import { GroupVotesStore } from '../../../../core/group-votes';
 import { LeaderboardResponse } from '../../../../core/leagues';
 import { LobbyResponse } from '../../../../core/lobbies';
 
@@ -100,6 +101,10 @@ function lobby(signedUp: number): LobbyResponse {
 describe('GrupoDetalle (hub del grupo)', () => {
   let http: HttpTestingController;
 
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
   /**
    * La carga del hub encadena dos peticiones en un `Promise.all`, así que hace falta más de un
    * turno de estabilización antes de que el store pase a `ready`.
@@ -185,12 +190,12 @@ describe('GrupoDetalle (hub del grupo)', () => {
     expect(fixture.nativeElement.querySelector('.gd-hero-actions')).toBeNull();
   });
 
-  it('ofrece el perfil del grupo entre historial y discord', async () => {
+  it('ofrece las seis secciones visibles por defecto', async () => {
     const { component, fixture } = createComponent();
     await settle(fixture);
 
     const paths = component.visibleSections().map((s) => s.path);
-    expect(paths).toEqual(['ranking', 'tierlist', 'estadisticas', 'historial', 'perfil', 'discord']);
+    expect(paths).toEqual(['ranking', 'tierlist', 'estadisticas', 'historial', 'perfil', 'sanciones']);
   });
 
   it('ofrece crear partida cuando no hay ninguna sala abierta', async () => {
@@ -208,20 +213,6 @@ describe('GrupoDetalle (hub del grupo)', () => {
 
     expect(component.liveLobby()).not.toBeNull();
     expect(component.signedUp(component.liveLobby()!)).toBe(8);
-  });
-
-  it('enseña Discord solo a quien gestiona el grupo', async () => {
-    const { component, fixture } = createComponent('MEMBER');
-    await settle(fixture);
-
-    expect(component.visibleSections().map((s) => s.path)).not.toContain('discord');
-  });
-
-  it('incluye Discord en las secciones del owner', async () => {
-    const { component, fixture } = createComponent('OWNER');
-    await settle(fixture);
-
-    expect(component.visibleSections().map((s) => s.path)).toContain('discord');
   });
 
   it('arma el top 10 de la clasificación sin repetir a quien está en el podio', async () => {
@@ -250,5 +241,33 @@ describe('GrupoDetalle (hub del grupo)', () => {
 
     expect(component.myStanding()?.rank).toBe(3);
     expect(component.myStanding()?.lpValue).toBe(420);
+  });
+
+  it('deriva las votaciones abiertas y permite emitir voto', async () => {
+    const { component, fixture } = createComponent();
+    await settle(fixture);
+
+    const votesStore = TestBed.inject(GroupVotesStore);
+    expect(component.openVotes()).toHaveLength(0);
+    expect(fixture.nativeElement.querySelector('app-hub-vote-card')).toBeNull();
+
+    votesStore.open(GROUP_ID, {
+      kind: 'SEASON_CLOSE',
+      proposedBy: 'Adri',
+      proposedByRole: 'admin',
+      leagueLabel: 'Caos',
+      seasonName: 'Copa del Nexo',
+      proposedName: null,
+      reason: 'se configuró a 6 meses por error',
+    });
+    fixture.detectChanges();
+
+    expect(component.openVotes()).toHaveLength(1);
+    expect(fixture.nativeElement.querySelector('app-hub-vote-card')).not.toBeNull();
+
+    const vote = component.openVotes()[0];
+    component.onVoteCast({ voteId: vote.id, inFavor: true });
+
+    expect(votesStore.hasVoted(GROUP_ID, vote.id, ME)).toBe(true);
   });
 });

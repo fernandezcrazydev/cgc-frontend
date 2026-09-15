@@ -1,4 +1,10 @@
-import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
+import {
+  ApplicationConfig,
+  EnvironmentInjector,
+  inject,
+  provideBrowserGlobalErrorListeners,
+  provideEnvironmentInitializer,
+} from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/http';
 import {
@@ -59,5 +65,27 @@ export const appConfig: ApplicationConfig = {
     // volver a la app obligaba a pulsar "entrar con Discord" otra vez. Con localStorage
     // la sesión sobrevive al cierre del navegador y se renueva sola con el refresh token.
     { provide: AbstractSecurityStorage, useClass: DefaultLocalStorageService },
+    // Suplente de las FICHAS DE CAMPEON, y ya solo eso. La semilla de partidas que se cargaba
+    // aqui al lado se ha ido: `GET /api/v1/groups/{id}/matches` existe, y el historial lo trae
+    // `MatchesApi`. Las fichas no han corrido la misma suerte — de `champions` el backend solo
+    // sirve el catalogo (`/game-data/champions`), no las estadisticas por grupo— asi que su
+    // suplente sigue siendo lo unico que hay.
+    //
+    // El guard envuelve la ENTRADA ENTERA del array, no el cuerpo del inicializador: en
+    // produccion el proveedor directamente no se registra. El `import()` es dinamico para que el
+    // modulo no cuelgue del bundle inicial.
+    //
+    // BACKEND NOTE: muere con `GET /api/v1/groups/{groupId}/champions` y los otros dos que lista
+    // `champion-stats-api.ts`.
+    ...(environment.production
+      ? []
+      : [
+          provideEnvironmentInitializer(() => {
+            const injector = inject(EnvironmentInjector);
+            void import('./core/champions/champion-stats-mock').then(({ installChampionStatsMock }) => {
+              installChampionStatsMock(injector);
+            });
+          }),
+        ]),
   ],
 };

@@ -1,0 +1,105 @@
+@use 'breakpoints' as *;
+
+.hub-referee-vote__countdown {
+  font-size: var(--fs-label);
+  color: var(--nf-warning);
+}
+
+.hub-referee-vote__content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.hub-referee-vote__explanation {
+  margin: 0;
+  font-size: var(--fs-body);
+  color: var(--nf-text);
+  line-height: var(--lh-body, 1.4);
+}
+
+.hub-referee-vote__tally-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.hub-referee-vote__tally-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.hub-referee-vote__tally-label {
+  font-size: var(--fs-body);
+  color: var(--nf-text);
+  white-space: nowrap;
+}
+
+.hub-referee-vote__progressbar {
+  flex: 1;
+  min-width: 120px;
+  height: 6px;
+  background: var(--nf-surface-2);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.hub-referee-vote__progressbar-fill {
+  display: block;
+  height: 100%;
+  background: var(--nf-primary);
+  border-radius: 3px;
+  transition: width 0.2s ease;
+}
+
+.hub-referee-vote__leader {
+  margin: 0;
+  font-size: var(--fs-label);
+  color: var(--nf-text-dim);
+}
+
+.hub-referee-vote__foot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+
+.hub-referee-vote__status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: var(--sp-2, 8px);
+}
+
+.hub-referee-vote__status-text {
+  font-size: var(--fs-body);
+  color: var(--nf-text);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: $bp-narrow) {
+  .hub-referee-vote__foot {
+    width: 100%;
+    > button {
+      width: 100%;
+      min-height: 44px;
+    }
+  }
+
+  .hub-referee-vote__status-row {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+    gap: 8px;
+    > button {
+      min-height: 44px;
+    }
+  }
+}

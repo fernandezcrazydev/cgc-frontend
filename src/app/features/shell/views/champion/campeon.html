@@ -1,0 +1,129 @@
+<div class="cf-view">
+  <div class="cf-back-bar">
+    <a class="cf-back-link" [routerLink]="backRoute()" tabindex="0">
+      {{ backLabel() }}
+    </a>
+  </div>
+
+  @if (isLoading()) {
+    <!-- 1. Estado Cargando -->
+    <main class="cf-page" aria-busy="true">
+      <div class="cf-card cf-card--cabecera">
+        <nf-skeleton width="100%" height="180px" />
+      </div>
+      <div class="cf-card cf-card--macro">
+        <nf-skeleton width="100%" height="160px" />
+      </div>
+      <div class="cf-card cf-card--espec">
+        <nf-skeleton width="100%" height="160px" />
+      </div>
+      <div class="cf-card cf-card--skills">
+        <nf-skeleton width="100%" height="160px" />
+      </div>
+      <div class="cf-card cf-card--sinergias">
+        <nf-skeleton width="100%" height="160px" />
+      </div>
+      <div class="cf-card cf-card--counters">
+        <nf-skeleton width="100%" height="160px" />
+      </div>
+      <div class="cf-card cf-card--builds">
+        <nf-skeleton width="100%" height="160px" />
+      </div>
+    </main>
+  } @else if (isNotFound()) {
+    <!-- 2. Campeón no existe -->
+    <div class="cf-state-box">
+      <h2 class="cf-state-title">Campeón no encontrado</h2>
+      <p class="cf-state-text">No hay ningún campeón con ese identificador.</p>
+      <a nfButton variant="secondary" size="md" [routerLink]="backRoute()">
+        Volver
+      </a>
+    </div>
+  } @else if (isError()) {
+    <!-- 4. Error -->
+    <div class="cf-state-box">
+      <h2 class="cf-state-title">Error al cargar datos</h2>
+      <p class="cf-state-text">{{ errorMessage() }}</p>
+      <button nfButton variant="primary" size="md" (click)="retry()">
+        Reintentar
+      </button>
+    </div>
+  } @else {
+    <main class="cf-page">
+      <!-- 1. Cabecera (span 12) -->
+      <div class="cf-card-slot cf-card--cabecera">
+        <app-champion-hero
+          [detail]="detail()"
+          [summary]="summary()"
+          [stats]="stats()"
+        />
+      </div>
+
+      @if (stats(); as s) {
+        <!-- 2. Fase temprana y macro (span 4) -->
+        <article class="cf-card cf-card--macro">
+          <app-champion-macro-card [stats]="s" />
+        </article>
+
+        <!-- 3. Especialistas del grupo (span 4) -->
+        <article class="cf-card cf-card--espec">
+          <app-champion-specialists-card
+            [players]="s.specialists"
+            [hasGroup]="!!groupId()"
+          />
+        </article>
+
+        <!-- 4. Habilidades (span 4) -->
+        <article class="cf-card cf-card--skills">
+          <app-champion-skills-card
+            [abilities]="detail()?.abilities ?? []"
+            [order]="s.skillOrder"
+          />
+        </article>
+
+        <!-- 5. Sinergias (span 3) -->
+        <article class="cf-card cf-card--sinergias">
+          <app-champion-matchups-card
+            title="Sinergias"
+            [entries]="s.synergies"
+            kind="ally"
+            [isSearchOpen]="activeSearch() === 'sinergias'"
+            (searchToggled)="onSearchToggled('sinergias', $event)"
+          />
+        </article>
+
+        <!-- 6. Counters (span 3) -->
+        <article class="cf-card cf-card--counters">
+          <app-champion-matchups-card
+            title="Counters"
+            [entries]="s.counters"
+            kind="rival"
+            [isSearchOpen]="activeSearch() === 'counters'"
+            (searchToggled)="onSearchToggled('counters', $event)"
+          />
+        </article>
+
+        <!-- 7. Objetos y runas (span 6) -->
+        <article class="cf-card cf-card--builds">
+          <app-champion-builds-card
+            [items]="s.items"
+            [runePage]="s.runePage"
+            [totalGames]="s.games"
+            [championName]="summary()?.name ?? 'Campeón'"
+            [hasGroup]="!!groupId()"
+          />
+        </article>
+      } @else {
+        <!-- 3. Campeón existe pero no se ha jugado aquí -->
+        <div class="cf-card cf-card--unplayed">
+          <p class="cf-unplayed-msg">
+            Todavía no se ha jugado con {{ summary()?.name ?? 'este campeón' }} en {{ scopeLabel() }}.
+          </p>
+          <p class="cf-unplayed-hint">
+            Cuando alguien lo elija en una partida del grupo, aquí aparecerán sus estadísticas.
+          </p>
+        </div>
+      }
+    </main>
+  }
+</div>

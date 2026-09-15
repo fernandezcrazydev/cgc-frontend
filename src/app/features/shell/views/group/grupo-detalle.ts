@@ -20,39 +20,31 @@ import { GroupStore } from '../../../../core/group-store';
 import { RankEntry, mapLeaderboardEntries } from '../../../../core/group-ranking';
 import {
   duelsFor,
+  groupRefereeFor,
   hubCommentsFor,
-  hubSeasonsFor,
-  lpSeriesFor,
+  SeasonChoice,
+  leagueSeriesFor,
   triviaFor,
 } from '../../../../core/group-hub';
 import { SHOWCASE_MEDAL_IDS, medalBoardsFor } from '../../../../core/group-medals';
+import { GroupMemberLite, GroupVotesStore } from '../../../../core/group-votes';
 import { ToastService } from '../../../../core/toast';
 import { GroupActionsService } from '../../group-actions/group-actions.service';
 import { errorMessage } from '../../../../core/http';
+import { HubVoteCardComponent } from '../group-hub/hub-vote-card.component';
+import { HubRefereeVoteCardComponent } from '../group-hub/hub-referee-vote-card.component';
+import {
+  RefereeCandidate,
+  RefereeVoteModalComponent,
+} from '../group-hub/referee-vote-modal.component';
 import { HubCommentsComponent } from '../group-hub/hub-comments.component';
 import { HubDuelsComponent } from '../group-hub/hub-duels.component';
 import { HubLiveRoomComponent } from '../group-hub/hub-live-room.component';
-import { HubLpChartComponent } from '../group-hub/hub-lp-chart.component';
+import { HubLpChartComponent, LeagueSeasonChange } from '../group-hub/hub-lp-chart.component';
 import { HubRosterPanelComponent, RosterAction } from '../group-hub/hub-roster-panel.component';
 import { HubTriviaComponent } from '../group-hub/hub-trivia.component';
 import { HubTrophyCaseComponent } from '../group-hub/hub-trophy-case.component';
-
-/** Secciones del grupo que enlaza la barra bajo la cabecera. */
-interface HubSection {
-  path: string;
-  label: string;
-  /** Solo para quien gestiona el grupo (owner o admin). */
-  adminOnly?: boolean;
-}
-
-const SECTIONS: HubSection[] = [
-  { path: 'ranking', label: 'Clasificación' },
-  { path: 'tierlist', label: 'Tierlist' },
-  { path: 'estadisticas', label: 'Estadísticas' },
-  { path: 'historial', label: 'Historial' },
-  { path: 'perfil', label: 'Perfil' },
-  { path: 'discord', label: 'Discord', adminOnly: true },
-];
+import { GroupTabsService } from '../../../../core/group-tabs';
 
 @Component({
   selector: 'app-grupo-detalle',
@@ -65,6 +57,9 @@ const SECTIONS: HubSection[] = [
     NfModal,
     NfSkeleton,
     NfWindow,
+    HubVoteCardComponent,
+    HubRefereeVoteCardComponent,
+    RefereeVoteModalComponent,
     HubCommentsComponent,
     HubDuelsComponent,
     HubLiveRoomComponent,
@@ -73,255 +68,7 @@ const SECTIONS: HubSection[] = [
     HubTriviaComponent,
     HubTrophyCaseComponent,
   ],
-  template: `
-    @switch (store.status()) {
-      @case ('loading') {
-        <div class="view" aria-busy="true">
-          <nf-skeleton width="100%" height="42px" radius="10px" />
-          <div class="gd-hub">
-            <div class="gd-hub__main">
-              <nf-skeleton width="100%" height="240px" radius="12px" />
-              <nf-skeleton width="100%" height="180px" radius="12px" />
-            </div>
-            <nf-skeleton width="100%" height="520px" radius="12px" />
-          </div>
-        </div>
-      }
-      @case ('error') {
-        <div class="view">
-          <div class="empty-state">
-            <div class="empty-state__icon">⚠</div>
-            <div class="empty-state__text nf-mono">Error al cargar</div>
-            <p class="empty-state__hint">No se pudo cargar el grupo.</p>
-            <button nfButton variant="secondary" size="md" (click)="reload()">Reintentar</button>
-          </div>
-        </div>
-      }
-      @case ('not-found') {
-        <div class="view">
-          <div class="empty-state">
-            <div class="empty-state__icon">🔍</div>
-            <div class="empty-state__text nf-mono">Grupo no encontrado</div>
-            <p class="empty-state__hint">Este grupo no existe o ya no eres miembro.</p>
-            <button nfButton variant="ghost" size="md" [routerLink]="['/app', 'grupos']">← Todos los grupos</button>
-          </div>
-        </div>
-      }
-      @default {
-        @if (store.group(); as g) {
-          <div class="view">
-            <!-- Barra de secciones del grupo (§5.5.4). Repite la navegación de la barra lateral a
-                 propósito: el hub es el punto de entrada del grupo y desde aquí se salta a sus
-                 secciones sin cruzar la pantalla. El botón de Discord solo existe para quien
-                 gestiona el grupo. -->
-            <nav class="gd-sections" aria-label="Secciones del grupo">
-              @for (section of visibleSections(); track section.path) {
-                <a class="gd-sections__link" [routerLink]="['/app', 'grupos', g.id, section.path]">
-                  {{ section.label }}
-                </a>
-              }
-            </nav>
-
-            <div class="gd-hub">
-              <div class="gd-hub__main">
-                <div class="gd-hub__row">
-                  <app-hub-lp-chart
-                    class="gd-hub__chart"
-                    [series]="lpSeries()"
-                    [seasons]="seasons()"
-                    [seasonId]="seasonId()"
-                    [loading]="hubLoading()"
-                    (seasonChange)="seasonId.set($event)"
-                  />
-                  <app-hub-trophy-case
-                    class="gd-hub__trophies"
-                    [trophies]="trophies()"
-                    [groupId]="g.id"
-                    [loading]="hubLoading()"
-                  />
-                </div>
-
-                <app-hub-live-room
-                  [lobby]="liveLobby()"
-                  [groupId]="g.id"
-                  [loading]="lobbies.isLoading()"
-                />
-
-                <app-hub-comments [comments]="comments()" [groupId]="g.id" [loading]="hubLoading()" />
-
-                <div class="gd-hub__twins">
-                  <app-hub-duels [duels]="duels()" [loading]="hubLoading()" />
-                  <app-hub-trivia [items]="trivia()" [loading]="hubLoading()" />
-                </div>
-              </div>
-
-              <aside class="gd-hub__side">
-                <app-hub-roster-panel
-                  [groupId]="g.id"
-                  [members]="members()"
-                  [memberCount]="store.memberCount()"
-                  [pageSize]="store.membersPageSize()"
-                  [page]="store.membersPage()"
-                  [membersLoading]="store.membersLoading()"
-                  [currentUserId]="myUserId()"
-                  [canManage]="store.canManage()"
-                  [isOwner]="store.isOwner()"
-                  [myRole]="store.myRole()"
-                  [acting]="store.acting()"
-                  [pendingRequests]="joinRequests.pendingGroupRequestsCount()"
-                  [pendingInvites]="groupInvitations.invitations().length"
-                  [ranking]="topTen()"
-                  [rankingLoading]="leagues.isLoading()"
-                  [rankingError]="leagues.status() === 'error'"
-                  [myStanding]="myStanding()"
-                  (action)="onRosterAction($event)"
-                  (pageChange)="goToMembersPage($event)"
-                  (requestsOpen)="showRequests.set(true)"
-                  (invitesOpen)="openInvitesList()"
-                />
-              </aside>
-            </div>
-          </div>
-        }
-      }
-    }
-
-    @if (kick(); as m) {
-      <div class="modal-overlay" (click)="kick.set(null)">
-        <div class="modal" (click)="$event.stopPropagation()">
-          <nf-window title="Expulsar" bodyPadding="24px">
-            <p class="gd-confirm">¿Expulsar a <strong>{{ m.discordUsername }}</strong> del grupo?</p>
-            <div class="form-foot">
-              <button nfButton variant="ghost" size="md" [disabled]="store.isActing(m.userId)" (click)="kick.set(null)">Cancelar</button>
-              <button nfButton variant="danger" size="md" [disabled]="store.isActing(m.userId)" (click)="doKick(m)">Expulsar</button>
-            </div>
-          </nf-window>
-        </div>
-      </div>
-    }
-    @if (transferTo(); as m) {
-      <div class="modal-overlay" (click)="transferTo.set(null)">
-        <div class="modal" (click)="$event.stopPropagation()">
-          <nf-window title="Transferir propiedad" bodyPadding="24px">
-            <p class="gd-confirm">
-              ¿Transferir la <strong>propiedad</strong> a <strong>{{ m.discordUsername }}</strong>?
-              Pasarás a ser admin.
-            </p>
-            <div class="form-foot">
-              <button nfButton variant="ghost" size="md" [disabled]="store.isActing(m.userId)" (click)="transferTo.set(null)">Cancelar</button>
-              <button nfButton variant="primary" size="md" [disabled]="store.isActing(m.userId)" (click)="doTransfer(m)">Transferir ♛</button>
-            </div>
-          </nf-window>
-        </div>
-      </div>
-    }
-
-    <!-- Solicitudes de ingreso: viven en su propia capa, abiertas desde el pie del roster. -->
-    @if (showRequests()) {
-      <nf-modal title="Solicitudes de ingreso" width="520px" (closed)="showRequests.set(false)">
-        <div class="gd-members">
-          @for (req of joinRequests.groupRequests(); track req.id) {
-            <div class="gd-member">
-              <nf-avatar
-                [src]="req.userAvatarUrl ?? null"
-                [fallback]="req.username"
-                [tint]="tintOf(req.userId)"
-                [size]="38"
-                shape="square"
-              />
-              <div class="gd-member__meta">
-                <div class="gd-member__name nf-mono">{{ req.username }}</div>
-                <div class="gd-member__role nf-mono">Solicitud de ingreso pendiente</div>
-              </div>
-              <div class="gd-member__actions">
-                <button
-                  nfButton
-                  variant="primary"
-                  size="sm"
-                  [disabled]="joinRequests.pending()"
-                  (click)="acceptRequest(req.id)"
-                >Aceptar</button>
-                <button
-                  nfButton
-                  variant="danger"
-                  size="sm"
-                  [disabled]="joinRequests.pending()"
-                  (click)="declineRequest(req.id)"
-                >Rechazar</button>
-              </div>
-            </div>
-          } @empty {
-            <div class="gd-invites-empty">
-              <div class="gd-invites-empty__text nf-mono">Sin solicitudes de ingreso pendientes</div>
-              <p class="empty-state__hint">Los jugadores que encuentren este grupo por #TAG podrán solicitar unirse.</p>
-            </div>
-          }
-        </div>
-      </nf-modal>
-    }
-
-    <!-- Invitaciones enviadas y pendientes de respuesta. -->
-    @if (showInvites()) {
-      <nf-modal title="Invitaciones enviadas" width="520px" (closed)="showInvites.set(false)">
-        @switch (groupInvitations.status()) {
-          @case ('loading') {
-            <div class="gd-members" aria-busy="true">
-              @for (s of [0, 1, 2]; track s) {
-                <div class="gd-member">
-                  <nf-skeleton width="38px" height="38px" radius="11px" />
-                  <div class="gd-member__meta">
-                    <nf-skeleton width="140px" height="13px" />
-                    <nf-skeleton width="80px" height="11px" />
-                  </div>
-                </div>
-              }
-            </div>
-          }
-          @case ('error') {
-            <div class="gd-invites-empty">
-              <div class="gd-invites-empty__text nf-mono">Error al cargar invitaciones</div>
-              <button nfButton variant="secondary" size="sm" (click)="reloadInvites()">Reintentar</button>
-            </div>
-          }
-          @default {
-            @if (groupInvitations.invitations().length) {
-              <div class="gd-members">
-                @for (inv of groupInvitations.invitations(); track inv.id) {
-                  <div class="gd-member">
-                    <nf-avatar
-                      [src]="inv.avatarUrl ?? null"
-                      [fallback]="inv.discordUsername ?? '?'"
-                      [tint]="tintOf(inv.inviteeUserId)"
-                      [size]="38"
-                      shape="square"
-                    />
-                    <div class="gd-member__meta">
-                      <div class="gd-member__name nf-mono">{{ inv.discordUsername ?? '—' }}</div>
-                      <div class="gd-member__role nf-mono">Invitación pendiente</div>
-                    </div>
-                    <div class="gd-member__actions">
-                      <button
-                        nfButton
-                        variant="danger"
-                        size="sm"
-                        [disabled]="groupInvitations.isCancelling(inv.id)"
-                        (click)="cancelInvite(inv)"
-                      >Cancelar</button>
-                    </div>
-                  </div>
-                }
-              </div>
-            } @else {
-              <div class="gd-invites-empty">
-                <div class="gd-invites-empty__text nf-mono">Sin invitaciones pendientes</div>
-                <button nfButton variant="secondary" size="sm" (click)="openInvite()">Invitar a alguien</button>
-              </div>
-            }
-          }
-        }
-      </nf-modal>
-    }
-  `,
+  templateUrl: './grupo-detalle.html',
 })
 export class GrupoDetalle {
   /** Etiqueta en español del rol del backend (OWNER -> Capitán). */
@@ -333,6 +80,7 @@ export class GrupoDetalle {
   readonly lobbies = inject(LobbiesStore);
   readonly groupInvitations = inject(GroupInvitationsStore);
   readonly joinRequests = inject(JoinRequestsStore);
+  private readonly groupTabs = inject(GroupTabsService);
   private readonly session = inject(Session);
   private readonly toasts = inject(ToastService);
   private readonly router = inject(Router);
@@ -341,6 +89,7 @@ export class GrupoDetalle {
   private readonly groupActions = inject(GroupActionsService);
   /** Roster completo del grupo, sembrado por el puente: es lo que alimenta la maqueta del hub. */
   private readonly groupStore = inject(GroupStore);
+  private readonly votes = inject(GroupVotesStore);
   private readonly destroyRef = inject(DestroyRef);
 
   /** Id del grupo desde la ruta. */
@@ -360,10 +109,7 @@ export class GrupoDetalle {
   readonly myUserId = computed(() => this.session.user()?.userId ?? null);
 
   // ── Secciones y gestión ─────────────────────────────────────────────
-  /** Discord solo lo ve quien gestiona el grupo (§5.5.4). */
-  readonly visibleSections = computed(() =>
-    SECTIONS.filter((s) => !s.adminOnly || this.store.canManage()),
-  );
+  readonly visibleSections = computed(() => this.groupTabs.visibleTabs());
 
   // ── Clasificación ───────────────────────────────────────────────────
   /** Podio y página cargada, sin duplicados y por puesto: el top 10 de la columna lateral. */
@@ -416,7 +162,18 @@ export class GrupoDetalle {
 
   // ── Maqueta del hub (placeholder de `core/group-hub.ts`) ─────────────
   /** Temporada elegida en la gráfica de LP. Estado de interfaz. */
-  readonly seasonId = signal('current');
+  /**
+   * Qué temporada se está mirando de cada liga. Vacío = la más reciente de cada una.
+   *
+   * Es por liga y no del grupo porque **la «temporada del grupo» no existe**: cada modalidad lleva
+   * su propia cuenta y sus propias fechas (`FlujoJuego.md` §3.1, §3.2), y con 6, 3 y 2 meses de
+   * duración en un año caben ~2 de Competitivo frente a ~6 de Caos.
+   */
+  readonly leagueSeasons = signal<SeasonChoice>({});
+
+  protected pickSeason(change: LeagueSeasonChange): void {
+    this.leagueSeasons.update((current) => ({ ...current, [change.modality]: change.seasonId }));
+  }
 
   /** El roster del hub no llega con el detalle, sino con el puente: mientras viaja, esqueletos. */
   readonly hubLoading = computed(
@@ -431,8 +188,50 @@ export class GrupoDetalle {
     return id ? this.groupStore.rosterOf(id) : [];
   });
 
-  readonly seasons = computed(() => hubSeasonsFor(this.routeId()));
-  readonly lpSeries = computed(() => lpSeriesFor(this.routeId(), this.seasonId()));
+  /** Miembros reales del grupo, en la forma mínima que la votación necesita. */
+  readonly voteMembers = computed<GroupMemberLite[]>(() =>
+    this.hubRoster().map((m) => ({ userId: m.userId ?? m.tag, name: m.name })),
+  );
+
+  readonly refereeCandidates = computed<RefereeCandidate[]>(() =>
+    this.hubRoster().map((m) => ({
+      userId: m.userId ?? m.tag,
+      name: m.name,
+      hue: m.hue,
+      avatar: m.avatar,
+    })),
+  );
+
+  readonly refereeElection = computed(() => {
+    const referee = groupRefereeFor(this.routeId(), this.hubRoster());
+    if (referee !== null) {
+      return null;
+    }
+    return this.votes.refereeElectionFor(this.routeId(), this.voteMembers(), this.myUserId())();
+  });
+
+  readonly refereeModalOpen = signal(false);
+
+  onRefereeVote(candidateUserId: string): void {
+    const me = this.myUserId();
+    const gId = this.routeId();
+    if (!me || !gId) return;
+    this.votes.castRefereeVote(gId, me, candidateUserId, this.voteMembers(), me);
+    this.refereeModalOpen.set(false);
+    this.toasts.success('Voto registrado.');
+  }
+
+  readonly openVotes = computed(() => this.votes.votesFor(this.routeId(), this.voteMembers())());
+
+  onVoteCast(event: { voteId: string; inFavor: boolean }): void {
+    const me = this.myUserId();
+    const gId = this.routeId();
+    if (!me || !gId) return;
+    this.votes.cast(gId, event.voteId, me, event.inFavor);
+    this.toasts.success('Voto registrado.');
+  }
+
+  readonly lpSeries = computed(() => leagueSeriesFor(this.routeId(), this.leagueSeasons()));
   /**
    * Los cuatro hitos de la vitrina salen del catálogo de medallas del Hall of Fame
    * (§5.5.5), no de una lista propia: al pulsar uno se abre exactamente esa medalla.

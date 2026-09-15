@@ -1,0 +1,26 @@
+@use 'breakpoints' as *;
+
+.tab-config__lead { font-size: var(--fs-body); color: var(--nf-text-dim); margin: 6px 0 0; }
+.tab-preview-wrap { overflow-x: auto; margin-top: 14px; margin-bottom: 18px; }
+.tab-preview { display: inline-flex; align-items: center; background: var(--nf-surface-2); border: 1px solid var(--nf-border); border-radius: var(--nf-radius-sm); padding: 6px 10px; min-width: 0; }
+.tab-preview__item { font-size: var(--fs-caption); color: var(--nf-text-mid); white-space: nowrap; padding: 2px 8px; }
+.tab-preview__divider { width: 1px; height: 14px; background: var(--nf-border); flex: none; }
+.tab-list { display: flex; flex-direction: column; gap: 8px; }
+.tab-row { display: flex; align-items: center; gap: 12px; padding: 6px 12px; background: var(--nf-surface-2); border: 1px solid var(--nf-border); border-radius: var(--nf-radius); min-height: 48px; transition: border-color 0.15s, opacity 0.15s; }
+.tab-row.is-dimmed { color: var(--nf-text-dim); }
+.tab-row.is-dimmed .tab-row__label { color: var(--nf-text-dim); }
+.tab-row.is-dragged { opacity: 0.5; }
+.tab-row.is-drag-over { border-top: 2px solid var(--nf-primary); }
+.tab-row__handle { display: grid; place-items: center; width: 44px; height: 44px; flex: none; cursor: grab; color: var(--nf-text-dim); }
+.tab-row__handle:hover { color: var(--nf-text); }
+.tab-row__check-label { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; cursor: pointer; min-height: 44px; }
+.tab-row__checkbox { width: 16px; height: 16px; cursor: pointer; accent-color: var(--nf-primary); flex: none; }
+.tab-row__checkbox:disabled { cursor: not-allowed; }
+.tab-row__label { font-size: var(--fs-body); font-weight: var(--fw-bold); color: var(--nf-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tab-row__actions { display: flex; align-items: center; gap: 4px; flex: none; }
+.tab-config__foot { display: flex; align-items: center; justify-content: space-between; margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--nf-border); }
+.tab-config__count { font-size: var(--fs-caption); color: var(--nf-text-dim); }
+
+@media (max-width: $bp-mobile) {
+  .tab-row { padding: 6px 8px; }
+}

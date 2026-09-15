@@ -35,9 +35,11 @@ export type NotificationType =
   | 'LOBBY_PROMOTED'
   | 'LOBBY_CANCELLED'
   | 'SANCTION_ISSUED'
+  | 'SANCTION_DECISION_REQUIRED'
   | 'GROUP_KICKED'
   | 'MVP_EARNED'
-  | 'TIER_PROMOTED';
+  | 'TIER_PROMOTED'
+  | 'GROUP_VOTE_OPENED';
 
 /** Nivel de severidad / categoría semántica para el semáforo de la campana [F5.5-02] */
 export type NotificationSemanticLevel = 'critical' | 'achievement' | 'room' | 'social';

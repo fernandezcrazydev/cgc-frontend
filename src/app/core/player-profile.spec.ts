@@ -187,7 +187,6 @@ describe('globalRecord', () => {
     losses: Math.max(0, games - wins),
     wr: games ? Math.round((wins / games) * 100) : 0,
     rankPosition: 1,
-    lp: 100,
     seasonName: 'Temporada 2026-Q3',
   });
 

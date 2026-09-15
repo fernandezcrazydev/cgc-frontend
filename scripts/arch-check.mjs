@@ -221,13 +221,26 @@ const RULES = [
       // que lo que sale de él reaparezca engordado en otro sitio.
       // Cuenta CSS, no formato: sin comentarios ni líneas en blanco. Si contara líneas en
       // bruto, repartir un fichero en varios lo haría "crecer" solo por sus cabeceras.
+      //
+      // `views/pruebas/` NO cuenta, y es la única excepción. Esa vista es el banco de pruebas
+      // donde se renderizan las cinco alternativas de un bloque visual para que el usuario elija
+      // mirando la pantalla: es andamio con fecha de caducidad, se borra entero en cuanto el ítem
+      // se cierra, y nunca se enseña fuera del desarrollo. Contarlo hacía que maquetar cinco
+      // variantes de una tarjeta —1.491 líneas el 2026-09-11— pareciera una regresión del
+      // producto, y empujaba a subir el presupuesto para todos con tal de poder seguir.
+      //
+      // La exención vale para sus hojas Y para su CSS inline: si solo eximiera las hojas, una
+      // maqueta podría esquivarla escribiendo su CSS dentro del `.ts`, que es exactamente el
+      // agujero que cierra el conteo de `styles: [...]` de aquí abajo.
+      const EXENTA = 'views/pruebas/';
+      const cuenta = (f) => !f.path.includes(EXENTA); // `f.path` ya viene con barras normales
       const lines = (css) => stripComments(css).split('\n').filter((l) => l.trim()).length;
 
-      let n = pick('.scss', '.css').reduce((s, f) => s + lines(f.read()), 0);
+      let n = pick('.scss', '.css').filter(cuenta).reduce((s, f) => s + lines(f.read()), 0);
       // Y el CSS escondido en `styles: [...]` de los `.ts`: si no contara, sacar una hoja de
       // su componente —lo que pide la guía— saldría en el diff como un empeoramiento.
       for (const f of pick('.ts')) {
-        if (isSpec(f)) continue;
+        if (isSpec(f) || !cuenta(f)) continue;
         n += inlineCss(f.read()).reduce((s, css) => s + lines(css), 0);
       }
       return Array.from({ length: n }, () => hit('src/**/*.{scss,css}', 0, 'línea de CSS'));
@@ -536,6 +549,31 @@ const RULES = [
 
 /* ──────────────────────────────────── runner ──────────────────────────────────── */
 const fix = process.argv.includes('--fix');
+
+/**
+ * `--subir "<motivo>"` — la única forma de que un presupuesto crezca.
+ *
+ * Existe porque subirlo a mano editando el JSON es trabajo de mono, y automatizarlo del todo ya se
+ * probó y salió mal: `arch:fix` escribía el valor medido de TODAS las reglas, así que una que había
+ * empeorado se llevaba su techo hacia arriba sin decisión de nadie. El 2026-09-11 se tragó así
+ * 1.112 líneas de CSS que había metido otra tarea.
+ *
+ * La separación que hace útil a la regla no es «cuánto», que lo calcula el script, sino **«es
+ * legítimo que crezca»**, que no lo puede saber una máquina: una pantalla nueva legítimamente trae
+ * CSS, y CSS duplicado sin querer también. Por eso el motivo es obligatorio y queda escrito junto
+ * al número, donde lo ve quien revisa el PR y no enterrado en un mensaje de commit.
+ */
+const iSubir = process.argv.indexOf('--subir');
+const motivo = iSubir >= 0 ? (process.argv[iSubir + 1] || '').trim() : null;
+if (iSubir >= 0 && !motivo) {
+  console.error('--subir necesita un motivo:  npm run arch:fix -- --subir "pagina de Ajustes nueva"');
+  process.exit(1);
+}
+if (motivo && !fix) {
+  console.error('--subir solo tiene sentido con --fix:  npm run arch:fix -- --subir "<motivo>"');
+  process.exit(1);
+}
+
 let budgets = {};
 try {
   budgets = JSON.parse(readFileSync(BUDGETS_FILE, 'utf8'));
@@ -543,15 +581,50 @@ try {
   /* primera ejecución: se crea con --fix */
 }
 
+/** Por qué subió cada presupuesto alguna vez. No es una regla: las reglas lo ignoran. */
+const historial = Array.isArray(budgets._historial) ? budgets._historial : [];
+delete budgets._historial;
+
 const C = { green: '[32m', red: '[31m', yellow: '[33m', dim: '[2m', off: '[0m' };
+/** Sin fichero de presupuestos no hay trinquete que respetar: la primera pasada los siembra. */
+const primeraVez = Object.keys(budgets).length === 0;
 let failed = false;
+let intentoDeSubir = 0;
+/** Lo que ha subido en esta pasada, para dejarlo escrito en `_historial`. */
+const subidas = [];
 const next = {};
 
 for (const rule of RULES) {
   const found = rule.run();
   const budget = budgets[rule.id] ?? 0;
   const unit = rule.unit || 'incumplimientos';
-  next[rule.id] = found.length;
+
+  /*
+   * `arch:fix` SOLO BAJA. Antes escribía `found.length` a secas, y eso convertía el trinquete en un
+   * pasamanos: una regla que había empeorado se llevaba su presupuesto hacia arriba sin que nadie
+   * lo decidiera, y el diff enseñaba un número mayor sin una sola línea que lo justificase.
+   *
+   * Pasó el 2026-09-11: un `arch:fix` lanzado para bajar `inline-template-size` de 15 a 1 subió de
+   * paso `css-total-size` de 17.230 a 18.342, absorbiendo 1.112 líneas de CSS que había metido
+   * OTRA tarea. Y este fichero viaja a un repositorio compartido donde CI lo lee en cada pull
+   * request: subir un presupuesto es subirle el techo a las otras dos personas del equipo.
+   */
+  if (!primeraVez && found.length > budget && !motivo) {
+    next[rule.id] = budget; // empeorar no da derecho a más presupuesto
+    if (fix) intentoDeSubir += 1;
+  } else if (!primeraVez && found.length > budget) {
+    // Con `--subir "<motivo>"` sí crece, y queda escrito por qué y cuánto.
+    next[rule.id] = found.length;
+    subidas.push({
+      fecha: new Date().toISOString().slice(0, 10),
+      regla: rule.id,
+      de: budget,
+      a: found.length,
+      motivo,
+    });
+  } else {
+    next[rule.id] = found.length;
+  }
 
   if (found.length > budget) {
     failed = true;
@@ -569,8 +642,32 @@ for (const rule of RULES) {
 }
 
 if (fix) {
-  writeFileSync(BUDGETS_FILE, JSON.stringify(next, null, 2) + '\n');
+  const salida = { ...next };
+  const todo = [...historial, ...subidas];
+  if (todo.length) salida._historial = todo;
+  writeFileSync(BUDGETS_FILE, JSON.stringify(salida, null, 2) + '\n');
   console.log(`\n${C.green}Presupuestos reescritos en scripts/arch-budgets.json${C.off}`);
+
+  for (const s of subidas) {
+    console.log(`${C.yellow}  ↑ ${s.regla}  ${s.de} -> ${s.a}${C.off}  ${C.dim}(${s.motivo})${C.off}`);
+  }
+  if (subidas.length) {
+    console.log(
+      `${C.dim}  El motivo queda en "_historial" del propio fichero, para que quien revise el PR\n` +
+        `  lo vea pegado al número y no tenga que buscarlo en un mensaje de commit.${C.off}`,
+    );
+  }
+
+  if (intentoDeSubir) {
+    console.log(
+      `${C.yellow}  ${intentoDeSubir} regla(s) han empeorado y su presupuesto NO se ha subido.${C.off}\n` +
+        `${C.dim}  arch:fix solo baja. Si el crecimiento es legítimo —una pantalla nueva trae CSS\n` +
+        `  suyo— dilo y sube con motivo:\n` +
+        `    npm run arch:fix -- --subir "pagina de Ajustes nueva"\n` +
+        `  Si no lo es, el sitio donde se arregla es el código, no el presupuesto.${C.off}`,
+    );
+    process.exit(1); // un fix que deja reglas en rojo no puede salir con 0
+  }
   process.exit(0);
 }
 

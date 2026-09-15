@@ -1,0 +1,162 @@
+@switch (store.status()) {
+  @case ('loading') {
+    <div class="view" aria-busy="true">
+      <div class="view-back nf-mono">
+        <nf-skeleton width="140px" height="16px" radius="4px" aria-hidden="true" />
+      </div>
+
+      <div class="view__head">
+        <nf-skeleton width="240px" height="32px" radius="6px" aria-hidden="true" />
+        <nf-skeleton width="180px" height="18px" radius="4px" aria-hidden="true" />
+      </div>
+
+      <div class="gs-layout">
+        <aside class="gs-nav-desktop" aria-hidden="true">
+          <div class="gs-nav-list">
+            @for (i of [1, 2, 3, 4, 5]; track i) {
+              <nf-skeleton width="100%" height="44px" radius="6px" />
+            }
+          </div>
+        </aside>
+
+        <main class="gs-content" aria-hidden="true">
+          <div class="gs-section-header">
+            <nf-skeleton width="160px" height="28px" radius="6px" />
+            <nf-skeleton width="280px" height="16px" radius="4px" />
+          </div>
+
+          <div class="gs-section-body">
+            <nf-skeleton width="100%" height="120px" radius="8px" />
+            <nf-skeleton width="100%" height="54px" radius="8px" />
+            <nf-skeleton width="100%" height="54px" radius="8px" />
+          </div>
+        </main>
+      </div>
+    </div>
+  }
+
+  @case ('error') {
+    <div class="view">
+      <div class="empty-state">
+        <div class="empty-state__icon">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
+        </div>
+        <div class="empty-state__text nf-mono">Error al cargar</div>
+        <p class="empty-state__hint">No se pudo cargar el grupo.</p>
+        <button nfButton variant="secondary" size="md" (click)="reload()">Reintentar</button>
+      </div>
+    </div>
+  }
+
+  @case ('not-found') {
+    <div class="view">
+      <div class="empty-state">
+        <div class="empty-state__icon">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+        </div>
+        <div class="empty-state__text nf-mono">Grupo no encontrado</div>
+        <p class="empty-state__hint">Este grupo no existe o ya no eres miembro.</p>
+        <button nfButton variant="ghost" size="md" [routerLink]="['/app', 'grupos']">‹ Todos los grupos</button>
+      </div>
+    </div>
+  }
+
+  @default {
+    @if (store.group(); as g) {
+      @if (!store.canManage()) {
+        <div class="view">
+          <a class="view-back nf-mono" [routerLink]="['/app', 'grupos', g.id]">
+            <span class="view-back__arrow" aria-hidden="true">‹</span> {{ g.name }}
+          </a>
+
+          <div class="empty-state">
+            <div class="empty-state__text nf-mono">Solo la administración del grupo</div>
+            <p class="empty-state__hint">Los ajustes de un grupo los cambian su propietario y sus administradores.</p>
+            <button nfButton variant="secondary" size="md" [routerLink]="['/app', 'grupos', g.id]">‹ Volver al grupo</button>
+          </div>
+        </div>
+      } @else {
+        <div class="view">
+          <a class="view-back nf-mono" [routerLink]="['/app', 'grupos', g.id]">
+            <span class="view-back__arrow" aria-hidden="true">‹</span> {{ g.name }}
+          </a>
+
+          <div class="view__head">
+            <h1 class="view__title">Ajustes del grupo</h1>
+            <p class="gs-header__subtitle">
+              {{ g.name }}@if (g.tag) { · #{{ g.tag }} }
+            </p>
+          </div>
+
+          <div class="gs-layout">
+            <!-- Índice de secciones: escritorio (sticky) -->
+            <aside class="gs-nav-desktop" aria-label="Secciones de ajustes del grupo">
+              <nav class="gs-nav-list">
+                @for (sec of sections; track sec.id) {
+                  <button
+                    type="button"
+                    class="gs-nav-btn"
+                    [class.is-active]="activeSection() === sec.id"
+                    [attr.aria-current]="activeSection() === sec.id ? 'true' : null"
+                    (click)="setSection(sec.id)"
+                  >
+                    {{ sec.label }}
+                  </button>
+                }
+              </nav>
+            </aside>
+
+            <!-- Índice de secciones: móvil (segmentado horizontal) -->
+            <div class="gs-nav-mobile" aria-label="Secciones de ajustes del grupo">
+              <nf-segmented
+                [options]="mobileSegmentOptions"
+                [value]="activeSection()"
+                (valueChange)="setSection($any($event))"
+              />
+            </div>
+
+            <!-- Contenido fluido derecho -->
+            <main class="gs-content">
+              <header class="gs-section-header">
+                <h2 class="gs-section-header__title">{{ activeSectionConfig().label }}</h2>
+                <p class="gs-section-header__desc">{{ activeSectionConfig().description }}</p>
+              </header>
+
+              @for (_ of [activeSection()]; track _) {
+                <div class="gs-section-body">
+                  @switch (activeSection()) {
+                    @case ('identidad') {
+                      <app-group-settings-identity [group]="g" />
+                    }
+                    @case ('acceso') {
+                      <app-group-settings-access [groupId]="g.id" />
+                    }
+                    @case ('ligas') {
+                      <app-group-settings-leagues [groupId]="g.id" />
+                    }
+                    @case ('arbitro') {
+                      <app-group-settings-referee [groupId]="g.id" />
+                    }
+                    @case ('discord') {
+                      <app-group-settings-discord [groupId]="g.id" />
+                    }
+                    @case ('peligro') {
+                      <app-group-settings-danger [group]="g" />
+                    }
+                  }
+                </div>
+              }
+            </main>
+          </div>
+        </div>
+      }
+    }
+  }
+}

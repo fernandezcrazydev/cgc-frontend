@@ -26,12 +26,17 @@ import {
   NfRankEmblem,
   NfCombobox,
   NfComboboxOption,
+  NfSegmentOption,
+  NfSegmented,
   NfSkeleton,
   NfTypeahead,
 } from '../../../../ui';
 import { GroupBridge, GroupDetailStore, GroupsStore } from '../../../../core/groups';
 import { GroupStore } from '../../../../core/group-store';
 import { hash, mapLeaderboardEntries, RankEntry } from '../../../../core/group-ranking';
+import { groupRefereeFor } from '../../../../core/group-hub';
+import { GroupSanctionsStore } from '../../../../core/group-sanctions';
+import { Session } from '../../../../core/auth';
 import { LeaderboardSearchSuggestion, LeaguesStore } from '../../../../core/leagues';
 import { ServerClock, errorMessage } from '../../../../core/http';
 import { ToastService } from '../../../../core/toast';
@@ -44,7 +49,14 @@ import {
   participantName,
   participantsOf,
 } from '../../../../core/matches/match-view';
+import {
+  MODALITY_LABELS,
+  StatModality,
+  groupModalitiesConfig,
+  modalitySlug,
+} from '../../../../core/group-stats';
 import { formatDurationMinutes, formatMatchDate } from '../../../../shared/date-format';
+import { SanctionDialogComponent } from '../group-sanctions/sanction-dialog.component';
 
 /**
  * Columnas por las que se puede ordenar la clasificación.
@@ -60,11 +72,12 @@ type SortKey = 'rank' | 'wr';
 type SortDir = 'asc' | 'desc';
 
 /**
- * Una partida en el cajón de un jugador del ranking.
+ * Una fila del cajon de partidas recientes.
  *
- * Todo lo que dependía de la subida es anulable, **nunca cero**: sin exportar no hay campeón, ni
- * KDA, ni CS. Y ya no hay hechizos, runas ni objetos: el backend no los sirve, y lo que se
- * pintaba era una tabla de reserva por línea que no describía ninguna partida real.
+ * Trae lo que sirve `GET /groups/{id}/matches` y ni un campo mas. Se fueron los hechizos, las
+ * runas, la variante de castigo y el inventario: eran del modelo de la semilla local, el
+ * contrato real no los tiene, y pintarlos a base de valores por defecto habria dado una pagina
+ * de runas identicas para todo el mundo con aspecto de dato.
  */
 export interface DrawerMatchItem {
   id: string;
@@ -86,6 +99,22 @@ export interface DrawerMatchItem {
   csLabel: string | null;
   lpDelta: number | null;
 }
+
+const SECOND_SPELL_FALLBACK: Record<Lane, number> = {
+  TOP: 12,
+  JUNGLA: 1102,
+  MID: 14,
+  ADC: 7,
+  SUPPORT: 3,
+};
+
+const RUNES_FALLBACK: Record<Lane, { primary: number; secondary: number }> = {
+  TOP: { primary: 8437, secondary: 8000 },
+  JUNGLA: { primary: 8010, secondary: 8300 },
+  MID: { primary: 8112, secondary: 8200 },
+  ADC: { primary: 8008, secondary: 8300 },
+  SUPPORT: { primary: 8465, secondary: 8400 },
+};
 
 /**
  * Duración de una temporada abierta desde aquí.
@@ -119,7 +148,9 @@ const SEASON_LENGTH_DAYS = 14;
     NfSkeleton,
     NfModal,
     NfCombobox,
+    NfSegmented,
     NfTypeahead,
+    SanctionDialogComponent,
   ],
   // Tres hojas y no una: el podio y el cajon de historial se separaron por el presupuesto
   // `anyComponentStyle` de Angular, y hay que declararlas TODAS o no se cargan.
@@ -137,6 +168,11 @@ export class GrupoRanking {
   private readonly destroyRef = inject(DestroyRef);
   private readonly toasts = inject(ToastService);
   private readonly clock = inject(ServerClock);
+  private readonly session = inject(Session);
+  private readonly sanctionsStore = inject(GroupSanctionsStore);
+  private readonly queryParamMap = this.route.queryParamMap
+    ? toSignal(this.route.queryParamMap, { initialValue: this.route.snapshot?.queryParamMap ?? null })
+    : signal(null);
   readonly bridge = inject(GroupBridge);
   readonly leagues = inject(LeaguesStore);
   /** Solo para expulsar: es quien tiene la acción y sabe si hay una escritura en vuelo. */
@@ -144,18 +180,40 @@ export class GrupoRanking {
   private readonly matchHistory = inject(MatchHistoryStore);
   private readonly gameData = inject(GameDataStore);
 
-  /**
-   * Las partidas de ese jugador dentro de la muestra del grupo.
-   *
-   * La muestra son las últimas partidas del grupo, no su historial entero: con la paginación en
-   * servidor esa vuelta ya no existe en el cliente. Por eso el cajón enseña «las cinco más
-   * recientes de las que tenemos» y no «sus cinco últimas», que es una afirmación más fuerte.
-   *
-   * **Se busca por `userId` y solo por `userId`.** La versión anterior caía a comparar el Riot ID
-   * por prefijo cuando no encontraba el id, y con eso «Nef» casaba con «Nefarian». Tampoco hay
-   * ya un respaldo determinista de cinco partidas inventadas: un cajón vacío es la respuesta
-   * correcta cuando ese jugador no aparece en la muestra.
-   */
+  readonly currentUserId = computed(() => this.session.user()?.userId ?? null);
+  readonly currentUserName = computed(() => this.session.user()?.discordUsername ?? null);
+
+  readonly isReferee = computed(() => {
+    const gid = this.id();
+    if (!gid) return false;
+    const refId = groupRefereeFor(gid, this.groupStore.rosterOf(gid));
+    const me = this.currentUserId();
+    return Boolean(me && refId && me === refId);
+  });
+
+  /** El roster mock, que es el contexto con el que se siembran las sanciones del grupo. */
+  readonly sanctionRoster = computed(() => {
+    const gid = this.id();
+    return gid ? this.groupStore.rosterOf(gid) : [];
+  });
+
+  readonly isOwner = computed(() => {
+    const gid = this.id();
+    if (!gid) return false;
+    return this.groupsStore.byId(gid)?.role === 'OWNER';
+  });
+
+  /** Devuelve las partidas del grupo en las que participó el jugador seleccionado. */
+  private championName(championId: number | null): string {
+    if (championId == null) return 'Campeón sin registrar';
+    return this.gameData.championById().get(championId)?.name ?? `Campeón ${championId}`;
+  }
+
+  private championIcon(championId: number | null): string | null {
+    if (championId == null) return null;
+    return this.gameData.championById().get(championId)?.iconUrl ?? null;
+  }
+
   matchesOf(playerId: string): DrawerMatchItem[] {
     const result: DrawerMatchItem[] = [];
 
@@ -199,15 +257,115 @@ export class GrupoRanking {
     return result.slice(0, 5);
   }
 
-  /** Solo el catálogo sabe el nombre: el asiento trae el id y nada más. */
-  private championName(championId: number | null): string {
-    if (championId == null) return 'Campeón sin registrar';
-    return this.gameData.championById().get(championId)?.name ?? `Campeón ${championId}`;
+  protected spellIcon(id: number): string | null {
+    if (id === 1102) {
+      return 'https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/data/spells/icons2d/1102_smite.png';
+    }
+    if (id === 1101) {
+      return 'https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/data/spells/icons2d/1101_smite.png';
+    }
+    if (id === 1103) {
+      return 'https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/data/spells/icons2d/1103_smite.png';
+    }
+    if (id === 11) {
+      return 'https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/data/spells/icons2d/summoner_smite.png';
+    }
+
+    const fromStore = typeof this.gameData.summonerSpellById === 'function'
+      ? this.gameData.summonerSpellById().get(id)?.iconUrl
+      : null;
+    if (fromStore) return fromStore;
+
+    const names: Record<number, string> = {
+      4: 'SummonerFlash',
+      12: 'SummonerTeleport',
+      11: 'SummonerSmite',
+      14: 'SummonerDot',
+      7: 'SummonerHeal',
+      21: 'SummonerBarrier',
+      3: 'SummonerExhaust',
+      6: 'SummonerHaste',
+    };
+    const key = names[id] ?? 'SummonerFlash';
+    return `https://ddragon.leagueoflegends.com/cdn/14.24.1/img/spell/${key}.png`;
   }
 
-  private championIcon(championId: number | null): string | null {
-    if (championId == null) return null;
-    return this.gameData.championById().get(championId)?.iconUrl ?? null;
+  protected spellName(id: number): string {
+    if (id === 1102) return 'Smite Desatado (Azul - Caminavientos)';
+    if (id === 1101) return 'Smite de Furia (Rojo - Garramélica)';
+    if (id === 1103) return 'Smite de Vitalidad (Verde - Brincamusgo)';
+    if (id === 11) return 'Smite (Sin evolucionar)';
+
+    const fromStore = typeof this.gameData.summonerSpellById === 'function'
+      ? this.gameData.summonerSpellById().get(id)?.name
+      : null;
+    if (fromStore) return fromStore;
+
+    const names: Record<number, string> = {
+      4: 'Destello',
+      12: 'Teleportar',
+      11: 'Smite',
+      14: 'Ignición',
+      7: 'Curar',
+      21: 'Barrera',
+      3: 'Extenuación',
+      6: 'Fantasmal',
+    };
+    return names[id] ?? `Hechizo ${id}`;
+  }
+
+  protected runeIcon(id: number | undefined): string | null {
+    if (!id) return null;
+    const fromStore = typeof this.gameData.perkById === 'function'
+      ? this.gameData.perkById().get(id)?.iconUrl
+      : null;
+    if (fromStore) return fromStore;
+    const icons: Record<number, string> = {
+      8010: 'https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Precision/Conqueror/Conqueror.png',
+      8008: 'https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Precision/LethalTempo/LethalTempoTemp.png',
+      8021: 'https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Precision/FleetFootwork/FleetFootwork.png',
+      8005: 'https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Precision/PressTheAttack/PressTheAttack.png',
+      8112: 'https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Domination/Electrocute/Electrocute.png',
+      8128: 'https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Domination/DarkHarvest/DarkHarvest.png',
+      8214: 'https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Sorcery/SummonAery/SummonAery.png',
+      8229: 'https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Sorcery/ArcaneComet/ArcaneComet.png',
+      8437: 'https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Resolve/GraspOfTheUndying/GraspOfTheUndying.png',
+      8465: 'https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Resolve/Guardian/Guardian.png',
+      8351: 'https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Inspiration/GlacialAugment/GlacialAugment.png',
+      8000: 'https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/7201_Precision.png',
+      8100: 'https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/7200_Domination.png',
+      8200: 'https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/7202_Sorcery.png',
+      8300: 'https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/7203_Whimsy.png',
+      8400: 'https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/7204_Resolve.png',
+    };
+    return icons[id] ?? null;
+  }
+
+  protected runeName(id: number | undefined): string {
+    if (!id) return 'Runa';
+    const fromStore = typeof this.gameData.perkById === 'function'
+      ? this.gameData.perkById().get(id)?.name
+      : null;
+    if (fromStore) return fromStore;
+    const names: Record<number, string> = {
+      8010: 'Conquistador',
+      8008: 'Compás Letal',
+      8021: 'Pies Veloces',
+      8005: 'Ataque Intensificado',
+      8112: 'Electrocutar',
+      8128: 'Cosecha Oscura',
+      8214: 'Invocar a Aery',
+      8229: 'Cometa Arcano',
+      8437: 'Garras del Inmortal',
+      8465: 'Protector',
+      8351: 'Mejora Glacial',
+      8000: 'Precisión',
+      8100: 'Dominación',
+      8200: 'Brujería',
+      8300: 'Inspiración',
+      8400: 'Valor',
+    };
+    return names[id] ?? `Runa ${id}`;
   }
 
   /** Texto único para todo lo que aún no tiene fuente de datos. */
@@ -216,7 +374,7 @@ export class GrupoRanking {
   protected readonly NO_TREND_HINT = "Aún no ha jugado partidas de las que sacar una tendencia";
   protected readonly NO_AVG_HINT = "Aún no ha jugado partidas de las que sacar una media";
 
-  private readonly id = toSignal(
+  readonly id = toSignal(
     this.route.paramMap.pipe(map((p) => p.get('id'))),
     { initialValue: this.route.snapshot.paramMap.get('id') },
   );
@@ -241,6 +399,68 @@ export class GrupoRanking {
   });
 
   readonly leagueName = computed(() => this.leagues.league()?.name ?? 'Liga oficial');
+
+  /* ---- Modalidad de la clasificación ---- */
+  readonly modality = signal<StatModality>('COMPETITIVE');
+  readonly isCompetitive = computed(() => this.modality() === 'COMPETITIVE');
+  readonly currentModalityLabel = computed(() => MODALITY_LABELS[this.modality()]);
+
+  readonly modalityOptions: readonly NfSegmentOption[] = [
+    { value: 'COMPETITIVE', label: MODALITY_LABELS.COMPETITIVE },
+    { value: 'BALANCED', label: MODALITY_LABELS.BALANCED },
+    { value: 'CHAOS', label: MODALITY_LABELS.CHAOS },
+  ];
+
+  setModality(val: string): void {
+    this.modality.set(val as StatModality);
+  }
+
+  readonly emptyCopy = computed(() => {
+    const g = this.group();
+    const mod = this.modality();
+    const label = MODALITY_LABELS[mod];
+    if (!g) {
+      return {
+        title: `${label} no tiene clasificación todavía`,
+        hint: 'Su temporada arrancará con la primera partida de esta modalidad que juegue el grupo.',
+      };
+    }
+    const config = groupModalitiesConfig(g.id);
+    const item = config.find((c) => c.modality === mod);
+    const played = item?.played ?? false;
+    if (!played) {
+      return {
+        title: `${label} no tiene clasificación todavía`,
+        hint: 'Su temporada arrancará con la primera partida de esta modalidad que juegue el grupo.',
+      };
+    }
+    return {
+      title: `La clasificación de ${label} todavía no está disponible`,
+      hint: 'El grupo ya juega esta modalidad. Su clasificación propia llegará con el resto de la temporada.',
+    };
+  });
+
+  readonly historyLink = computed(() => {
+    const g = this.group();
+    return g ? ['/app', 'grupos', g.id, 'historial'] : ['/app', 'historial'];
+  });
+
+  readonly historyQueryParams = computed(() => {
+    const params: Record<string, string> = {
+      liga: modalitySlug(this.modality()),
+    };
+    if (this.isCompetitive()) {
+      const viewingId = this.leagues.viewingLeagueId();
+      const season = viewingId
+        ? this.leagues.seasons().find((s) => s.id === viewingId)
+        : (this.leagues.league() ?? this.leagues.seasons().find((s) => s.status !== 'FINISHED'));
+      const seasonName = season?.name;
+      if (seasonName) {
+        params['temporada'] = seasonName;
+      }
+    }
+    return params;
+  });
 
   readonly rows = computed<RankEntry[]>(() => {
     const list = mapLeaderboardEntries(this.leagues.rows());
@@ -443,39 +663,41 @@ export class GrupoRanking {
     return mine > theirs;
   }
 
+  canSanctionPlayer(e: RankEntry): boolean {
+    if (this.isOwner()) {
+      return e.groupRole !== 'OWNER';
+    }
+    if (this.isReferee()) {
+      return e.playerId !== this.currentUserId();
+    }
+    return false;
+  }
+
+  canLiftSanctionPlayer(e: RankEntry): boolean {
+    return this.isReferee();
+  }
+
+  hasMenuActions(e: RankEntry): boolean {
+    if (e.banned) {
+      return this.canLiftSanctionPlayer(e) || this.canActOn(e);
+    }
+    return this.canSanctionPlayer(e) || this.canActOn(e);
+  }
+
   // ── Sancionar ─────────────────────────────────────────────────────────
-  readonly sanctionFor = signal<RankEntry | null>(null);
-  readonly sanctionReason = signal('');
-  /** `''` = indefinida. El backend acepta `until` nulo. */
-  readonly sanctionUntil = signal('');
+  readonly sanctionFor = signal<{ userId: string; name: string } | null>(null);
 
   openSanction(e: RankEntry): void {
     this.closeMenu();
-    this.sanctionReason.set('');
-    this.sanctionUntil.set('');
-    this.sanctionFor.set(e);
+    this.sanctionFor.set({ userId: e.playerId, name: e.name });
   }
 
   closeSanction(): void {
     this.sanctionFor.set(null);
   }
 
-  async confirmSanction(): Promise<void> {
-    const target = this.sanctionFor();
-    const groupId = this.id();
-    const reason = this.sanctionReason().trim();
-    if (!target || !groupId || !reason) return;
-    try {
-      await this.leagues.sanction(groupId, target.playerId, {
-        reason,
-        // `datetime-local` da hora local sin zona; se manda en ISO con la del navegador.
-        until: this.sanctionUntil() ? new Date(this.sanctionUntil()).toISOString() : null,
-      });
-      this.closeSanction();
-      this.toasts.success(`${target.name} queda fuera de la competición`);
-    } catch (e) {
-      this.toasts.error(errorMessage(e));
-    }
+  onSanctionConfirmed(): void {
+    void this.leagues.reload();
   }
 
   async liftSanction(e: RankEntry): Promise<void> {
@@ -484,6 +706,19 @@ export class GrupoRanking {
     if (!groupId) return;
     try {
       await this.leagues.liftSanction(groupId, e.playerId);
+      const byName = this.currentUserName() ?? 'el árbitro';
+      // El store de sanciones se direcciona por ID DE SANCIÓN, no por jugador: pasarle el
+      // `playerId` no levantaba nada y, al no llevar roster ni temporadas, sembraba la lista del
+      // grupo desde cero y dejaba el panel enseñando otra cosa. Se busca la sanción activa de ese
+      // jugador y se levanta esa, con el mismo contexto con el que la pantalla la pintó.
+      const roster = this.groupStore.rosterOf(groupId);
+      const seasons = this.leagues.seasons();
+      const mine = this.sanctionsStore
+        .sanctionsOf(groupId, roster, seasons, this.currentUserId())()
+        .find((s) => s.targetUserId === e.playerId && s.status === 'ACTIVE');
+      if (mine) {
+        this.sanctionsStore.lift(groupId, mine.id, byName, roster, seasons, this.currentUserId());
+      }
       this.toasts.success(`${e.name} vuelve a la competición`);
     } catch (err) {
       this.toasts.error(errorMessage(err));
@@ -677,15 +912,29 @@ export class GrupoRanking {
       // en bucle hasta agotar la memoria del proceso. La única dependencia aquí debe ser `id`.
       untracked(() => {
         void this.bridge.ensure(id);
-        void this.leagues.loadSeasons(id);
-        // El cajón de cada jugador enseña sus partidas recientes dentro del grupo: hacen falta
-        // las últimas partidas, no una página de seis.
-        const group = this.groupsStore.byId(id);
-        if (group) void this.matchHistory.ensureGroupSample({ id: group.id, name: group.name });
+
         // Al cambiar de grupo se empieza de cero: la clasificación del anterior no vale ni como
         // estado intermedio. El store descarta además la respuesta que llegue tarde.
+        //
+        // VA PRIMERO, y el orden es el bug que tuvo esto: `clear()` vacía también la lista de
+        // temporadas, así que lanzado DESPUÉS de `loadSeasons` borraba justo lo que se acababa de
+        // pedir. El `?temporada=` de un enlace del panel de sanciones no encontraba su id en una
+        // lista vacía y la pantalla se quedaba siempre en la temporada en curso.
         this.leagues.clear();
         void this.leagues.ensureLoaded(id);
+
+        // `ensureLoaded` ya ha fijado el grupo del store, así que cuando lleguen las temporadas
+        // la selección sí dispara su propia carga y gana por número de secuencia.
+        void this.leagues.loadSeasons(id).then(() => {
+          const seasonParam = this.queryParamMap()?.get('temporada');
+          if (!seasonParam) return;
+          // Un id que ya no existe —una temporada borrada, un enlace viejo— se ignora en
+          // silencio: se queda la temporada en curso, que es un destino correcto, en vez de
+          // pedirle al servidor una liga que no está.
+          if (this.leagues.seasons().some((s) => s.id === seasonParam)) {
+            void this.leagues.selectSeason(seasonParam);
+          }
+        });
       });
     });
 
@@ -753,7 +1002,6 @@ export class GrupoRanking {
   }
 }
 
-/** `Pix3lQueen#LAN` → `{ name: 'Pix3lQueen', tag: 'LAN' }`. Sin `#`, no hay etiqueta que pintar. */
 function splitRiotId(riotId: string): { name: string; tag: string | null } {
   const [name, tag] = riotId.split('#');
   return { name: name || riotId, tag: tag ?? null };

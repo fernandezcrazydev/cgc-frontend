@@ -1,4 +1,10 @@
-/* Select (global, ViewEncapsulation.None) */
+/* Select (global, ViewEncapsulation.None)
+
+   Las custom properties `--nf-select-*` son la forma de ajustarlo desde fuera. Una hoja de
+   componente encapsulada NO alcanza a `.nf-select__field`, que vive en la plantilla de esta
+   primitiva y no lleva su `_ngcontent` (ver CLAUDE.md § localidad del CSS); las custom properties
+   sí heredan a través de esa frontera. Se fijan sobre el host `nf-select`, nunca con `::ng-deep`.
+   Mismo patrón que `nf-pagination.scss` y `nf-typeahead.scss`. */
 
 .nf-select {
   position: relative;
@@ -10,10 +16,10 @@
   -webkit-appearance: none;
   appearance: none;
   width: 100%;
-  padding: 11px 36px 11px 14px;
+  padding: var(--nf-select-padding, 11px 36px 11px 14px);
   font-family: var(--nf-font);
   font-weight: var(--fw-bold);
-  font-size: 13px;
+  font-size: var(--nf-select-font-size, 13px);
   color: var(--nf-text);
   background: var(--nf-inset);
   border: var(--bw-2) solid var(--nf-border);
@@ -28,9 +34,16 @@
   outline: none;
   border-color: var(--nf-secondary);
 }
+/* Las opciones heredaban la tipografía del navegador: el campo cerrado se veía de la app y la
+   lista desplegada no. El tamaño sale de la MISMA custom property que usa el campo, para que los
+   dos no puedan divergir. El peso es medium y no bold a propósito: el campo cerrado es un control
+   y va en negrita, pero una lista entera en negrita se lee peor. */
 .nf-select__field option {
   background: var(--nf-surface);
   color: var(--nf-text);
+  font-family: var(--nf-font);
+  font-size: var(--nf-select-font-size, 13px);
+  font-weight: var(--fw-medium);
 }
 
 .nf-select__caret {

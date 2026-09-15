@@ -885,9 +885,27 @@ al grepear estaban todos dentro de comentarios que advertían contra él.
 **Es un trinquete, no un muro.** La deuda actual está anotada en `scripts/arch-budgets.json`; el
 check falla solo si una regla **empeora**. Así se adopta con el repo como está, sin big-bang.
 
-- Si lo rompes: **arregla el código**. Subir un presupuesto es hacer trampa y se ve en el diff.
+- Si lo rompes: **arregla el código**. El presupuesto no es donde se esconde un incumplimiento.
 - Si lo mejoras (borras CSS muerto, sacas una plantilla): `npm run arch:fix` baja el presupuesto y
-  lo commiteas. El número solo baja; eso es lo que hace que el repo converja.
+  lo commiteas. **`arch:fix` solo baja**, nunca sube, y sale con código 1 si alguna regla ha
+  empeorado — un `fix` que deja reglas en rojo no puede pasar por bueno en un script ni en CI.
+- **Si el crecimiento es legítimo, se sube con motivo y queda escrito.** Una pantalla nueva trae
+  CSS suyo, y `css-total-size` no es un techo al tamaño de la aplicación:
+
+  ```bash
+  npm run arch:fix -- --subir "pagina de Ajustes nueva"
+  ```
+
+  El motivo es obligatorio y se guarda en `_historial`, dentro del propio `arch-budgets.json`, para
+  que quien revise el PR lo vea pegado al número en vez de tener que buscarlo en un mensaje de
+  commit. **Lo que el script no puede decidir es si el crecimiento está bien** —una pantalla nueva
+  y CSS duplicado sin querer suben igual—, y por eso esa frase la escribe una persona.
+
+  > **Por qué existe esa fricción, en un caso real.** `arch:fix` escribía el valor medido de TODAS
+  > las reglas, así que una que había empeorado se llevaba su techo hacia arriba sin que nadie lo
+  > decidiera. El 2026-09-11 un `arch:fix` lanzado para bajar `inline-template-size` de 15 a 1
+  > subió de paso `css-total-size` de 17.230 a 18.342, absorbiendo 1.112 líneas de CSS que había
+  > metido **otra** tarea. Un trinquete que cede solo es un pasamanos.
 - Añadir una regla nueva a este documento significa añadirla al script. Si no se puede verificar,
   escríbela igual pero sabiendo que es una recomendación, no una regla.
 - La única subida legítima es **ampliar lo que una regla mide**, y se anota aquí. Pasó una vez:

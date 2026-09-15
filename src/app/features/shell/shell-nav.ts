@@ -38,7 +38,7 @@ export const GROUP_NAV: readonly GroupNavItem[] = [
   { path: 'tierlist', label: 'Tierlist', glyph: '⚔' },
   { path: 'estadisticas', label: 'Estadísticas', glyph: '◔' },
   { path: 'historial', label: 'Historial', glyph: '▣' },
-  { path: 'discord', label: 'Discord', glyph: '◍', adminOnly: true },
+  { path: 'ajustes', label: 'Ajustes', glyph: '⚙', adminOnly: true },
 ];
 
 /**
@@ -103,8 +103,9 @@ const ROUTE_TITLES: readonly (readonly [readonly string[], string])[] = [
   [['grupos', ':id', 'ranking'], 'Ranking'],
   [['grupos', ':id', 'tierlist'], 'Tierlist'],
   [['grupos', ':id', 'estadisticas'], 'Estadísticas'],
-  [['grupos', ':id', 'discord'], 'Discord'],
+  [['grupos', ':id', 'sanciones'], 'Sanciones'],
   [['grupos', ':id', 'historial'], 'Historial'],
+  [['grupos', ':id', 'ajustes'], 'Ajustes del grupo'],
 
   [['perfil'], 'Perfil'],
   [['perfil', ':id'], 'Perfil'],
@@ -121,7 +122,9 @@ const ROUTE_TITLES: readonly (readonly [readonly string[], string])[] = [
   [['jugador', ':playerId', 'juntos'], 'Sinergia de dúo'],
   [['jugador', ':playerId', 'juntos', ':matchId'], 'Sinergia en la partida'],
 
-  [['pruebas'], 'Pruebas'],
+  [['grupos', ':id', 'campeon', ':championId'], 'Campeón'],
+  [['campeon', ':championId'], 'Campeón'],
+
   [['ajustes'], 'Ajustes'],
 
   [['admin'], 'Administración'],

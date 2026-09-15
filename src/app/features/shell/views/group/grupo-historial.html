@@ -1,0 +1,227 @@
+<div class="view">
+  @if (group(); as g) {
+    <!-- TARJETAS DE RESUMEN DEL GRUPO -->
+    @if (summaryLoading()) {
+      <div class="m-summary" aria-busy="true">
+        @for (i of skeletonCards; track i) {
+          <div class="m-summary__stat-card" aria-hidden="true">
+            <nf-skeleton width="120px" height="12px" />
+            <nf-skeleton width="90px" height="26px" />
+            <nf-skeleton width="150px" height="12px" />
+          </div>
+        }
+      </div>
+    } @else if (summary(); as s) {
+      @if (s.totalMatches > 0) {
+        <div class="m-summary">
+          <!-- Bloque 1: winrate por lado, sobre las partidas que SÍ tienen lado -->
+          <div class="m-summary__stat-card">
+            <div class="m-summary__title nf-mono">Winrate por lado</div>
+            <div class="m-summary__wr-row m-summary__wr-row--symmetric">
+              <div class="m-summary__side">
+                <span class="m-summary__wr-val" style="color: var(--nf-team-blue);">
+                  {{ blueWinrate() }}%
+                </span>
+                <span class="m-summary__side-badge nf-mono" style="color: var(--nf-team-blue);">
+                  {{ s.blueWins }} Azul
+                </span>
+              </div>
+              <div class="m-summary__side">
+                <span class="m-summary__side-badge nf-mono" style="color: var(--nf-team-red);">
+                  {{ s.redWins }} Rojo
+                </span>
+                <span class="m-summary__wr-val" style="color: var(--nf-team-red);">
+                  {{ redWinrate() }}%
+                </span>
+              </div>
+            </div>
+            <div class="m-summary__progress-bar">
+              <div class="m-summary__progress-win" style="background: var(--nf-team-blue);" [style.width.%]="blueWinrate()"></div>
+              <div class="m-summary__progress-loss" style="background: var(--nf-team-red);" [style.width.%]="redWinrate()"></div>
+            </div>
+            <!--
+              El denominador se dice, no se esconde: sin lado decidido una partida no cuenta
+              para ninguno de los dos bandos, y sin esta línea los dos porcentajes parecen
+              repartirse el total de la tarjeta de al lado.
+            -->
+            <div class="gh-summary__note nf-mono">
+              Sobre {{ s.matchesWithSide }} de {{ s.totalMatches }} con bando decidido
+            </div>
+          </div>
+
+          <!-- Bloque 2: duración media, sobre las partidas subidas -->
+          <div class="m-summary__stat-card">
+            <div class="m-summary__title nf-mono">Duración promedio</div>
+            <div class="m-summary__kda-line">
+              @if (averageDuration(); as d) {
+                <strong>{{ d }}</strong>
+              } @else {
+                <strong>Sin datos</strong>
+              }
+            </div>
+            <div class="m-summary__ratio nf-mono">
+              {{ s.totalMatches }} {{ s.totalMatches === 1 ? 'partida disputada' : 'partidas disputadas' }}
+            </div>
+            <div class="gh-summary__note nf-mono">
+              {{ s.matchesWithStats }} con estadísticas subidas
+            </div>
+          </div>
+
+          <!-- Bloque 3: líder de MVPs -->
+          <div class="m-summary__stat-card">
+            <div class="m-summary__title nf-mono">Líder de MVPs del grupo</div>
+            @if (topMvpName(); as mvp) {
+              <div class="m-summary__kda-line m-summary__kda-line--mvp">
+                <strong>{{ mvp }}</strong>
+              </div>
+              <div class="m-summary__ratio nf-mono">
+                {{ s.topMvpCount }} {{ s.topMvpCount === 1 ? 'distinción MVP' : 'distinciones MVP' }}
+              </div>
+            } @else {
+              <!--
+                topMvpUserId nulo significa que NO HAY ningún MVP todavía porque nadie ha
+                exportado nada. No es un empate a cero, y por eso no se pinta un nombre vacío.
+              -->
+              <div class="m-summary__kda-line m-summary__kda-line--mvp">
+                <strong>Todavía nadie</strong>
+              </div>
+              <div class="m-summary__ratio nf-mono">
+                Hará falta subir alguna partida desde el cliente de LoL
+              </div>
+            }
+          </div>
+        </div>
+
+        <!--
+          Dos avisos que evitan leer un descuadre donde no lo hay: el resumen no sigue a los
+          filtros (su endpoint no los acepta) y no cuenta las partidas anuladas, que sí
+          aparecen en la lista. La lista es el registro de lo que pasó; el resumen, lo que
+          cuenta.
+        -->
+        <div class="gh-summary__scope nf-mono">
+          Estas tres tarjetas resumen el grupo entero, no la lista filtrada, y dejan fuera
+          las partidas anuladas
+        </div>
+      }
+    }
+
+    <app-match-filters
+      mode="group"
+      [contextGroupId]="g.id"
+      [resultCount]="total()"
+    />
+
+    <!-- LISTA DE PARTIDAS DEL GRUPO -->
+    @switch (listStatus()) {
+      @case ('loading') {
+        <div class="mh-list" aria-busy="true">
+          @for (i of skeletonRows; track i) {
+            <div class="m-card m-card--skeleton" aria-hidden="true">
+              <div class="m-card__skeleton-left">
+                <nf-skeleton width="46px" height="46px" radius="6px" />
+                <div class="m-card__skeleton-stack">
+                  <nf-skeleton width="130px" height="16px" />
+                  <nf-skeleton width="90px" height="12px" />
+                </div>
+              </div>
+              <div class="m-card__skeleton-right">
+                <nf-skeleton width="100px" height="18px" />
+                <nf-skeleton width="140px" height="24px" />
+                <nf-skeleton width="80px" height="14px" />
+              </div>
+            </div>
+          }
+        </div>
+      }
+      @case ('error') {
+        <div class="empty-state">
+          <p class="empty-state__text nf-mono">No se pudo cargar el historial</p>
+          <p class="empty-state__hint">
+            La conexión con el servidor falló. Las partidas del grupo siguen ahí; vuelve a
+            intentarlo.
+          </p>
+          <button nfButton variant="primary" size="md" (click)="retry()">Reintentar</button>
+        </div>
+      }
+      @default {
+        @if (matches().length > 0) {
+          <div class="mh-list" #list>
+            @for (m of matches(); track m.id) {
+              <app-group-match-card [match]="m" />
+            }
+          </div>
+
+          <nf-pagination
+            [total]="total()"
+            [pageSize]="pageSize"
+            [page]="ui.page()"
+            (pageChange)="onPageChange($event)"
+          />
+        } @else if (hasFilters()) {
+          <div class="empty-state">
+            <p class="empty-state__text nf-mono">No se encontraron partidas</p>
+            <p class="empty-state__hint">No hay partidas que coincidan con los filtros seleccionados para este grupo.</p>
+            <button nfButton variant="secondary" size="md" (click)="resetFilters()">
+              Limpiar filtros
+            </button>
+          </div>
+        } @else {
+          <div class="empty-state">
+            <p class="empty-state__text nf-mono">Sin partidas todavía</p>
+            <p class="empty-state__hint">Este grupo aún no ha disputado ninguna partida. ¡Crea una sala 5v5 para comenzar la competición!</p>
+            <button nfButton variant="primary" size="md" [routerLink]="['/app', 'grupos', g.id, 'tablon']">
+              Crear sala 5v5
+            </button>
+          </div>
+        }
+      }
+    }
+  } @else if (loading()) {
+    <!--
+      SKELETON MIENTRAS CARGA EL GRUPO
+      Con la forma final —tres tarjetas de resumen y cuatro filas— para que al llegar el
+      dato no salte nada de sitio. Antes aquí solo había un eyebrow suelto dentro de un
+      .view anidado en otro .view: en móvil eso es una pantalla vacía.
+    -->
+    <div aria-busy="true">
+      <div class="m-summary">
+        @for (i of skeletonCards; track i) {
+          <div class="m-summary__stat-card" aria-hidden="true">
+            <nf-skeleton width="120px" height="12px" />
+            <nf-skeleton width="90px" height="26px" />
+            <nf-skeleton width="150px" height="12px" />
+          </div>
+        }
+      </div>
+
+      <div class="mh-list">
+        @for (i of skeletonRows; track i) {
+          <div class="m-card m-card--skeleton" aria-hidden="true">
+            <div class="m-card__skeleton-left">
+              <nf-skeleton width="46px" height="46px" radius="6px" />
+              <div class="m-card__skeleton-stack">
+                <nf-skeleton width="130px" height="16px" />
+                <nf-skeleton width="90px" height="12px" />
+              </div>
+            </div>
+            <div class="m-card__skeleton-right">
+              <nf-skeleton width="100px" height="18px" />
+              <nf-skeleton width="140px" height="24px" />
+              <nf-skeleton width="80px" height="14px" />
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  } @else {
+    <!-- ERROR 404: GRUPO NO ENCONTRADO -->
+    <div class="view__head">
+      <div class="view__eyebrow nf-mono">Error 404</div>
+      <h1 class="view__title">Grupo no encontrado</h1>
+      <p class="view__lead">El grupo que buscas no existe o ya no perteneces a él.</p>
+    </div>
+    <button nfButton variant="secondary" size="md" [routerLink]="['/app', 'grupos']">
+      ← Volver a grupos
+    </button>
+  }
+</div>

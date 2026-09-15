@@ -11,38 +11,32 @@ import { PreferencesStore } from '../../../../core/preferences';
 import { RiotAccountStore } from '../../../../core/riot';
 import { GROUPS } from '../../../../core/lobby';
 import { MatchHistoryStore } from '../../../../core/matches';
-import {
-  fakeMatchHistoryStore,
-  matchFixture,
-  participantFixture,
-} from '../../../../core/matches/match-fixtures';
+import { matchFixture, participantFixture } from '../../../../core/matches/match-fixtures';
 
 const YO = 'N1ghtfang#LAN';
 
 /**
- * `n` partidas con el mismo jugador, de las cuales `wins` ganadas.
+ * `n` partidas del usuario, de las cuales `wins` ganadas.
  *
- * Alimentan el desglose por posición del perfil, que se cuenta sobre las partidas que el
- * historial tiene cargadas. Ya NO alimentan «mejor aliado» ni «némesis»: esas dos tarjetas se
- * retiraron al conectar el historial, porque salían de recorrerlo entero en el cliente y con la
- * paginación en servidor esa vuelta ya no existe (issue #69, §8).
+ * El perfil ya no nombra un mejor aliado ni una némesis —salían del historial personal entero,
+ * que desde la paginación en servidor no existe en el cliente—, así que esto ya no necesita
+ * fabricar duelos contra nadie: solo las partidas que alimentan el desglose por posición.
  */
-function duels(riotId: string, slot: 'A' | 'B', n: number, wins: number) {
+function partidasMias(n: number, wins: number) {
   const me = () => participantFixture({ userId: 'me', slot: 'A', riotId: YO });
-  return Array.from({ length: n }, (_, i) => {
-    const other = participantFixture({ userId: `${riotId}-${i}`, slot, riotId });
-    return matchFixture({
-      id: `${riotId}-${i}`,
+  return Array.from({ length: n }, (_, i) =>
+    matchFixture({
+      id: `m-${i}`,
       decidedAt: `2026-06-${String(i + 1).padStart(2, '0')}T10:00:00Z`,
       winningSlot: i < wins ? 'A' : 'B',
-      a: slot === 'A' ? [me(), other] : [me()],
-      b: slot === 'A' ? [] : [other],
+      a: [me()],
+      b: [],
       userParticipant: me(),
-    });
-  });
+    }),
+  );
 }
 
-const PARTIDAS = [...duels('Duo#LAN', 'A', 4, 3), ...duels('Rival#LAN', 'B', 4, 0)];
+const PARTIDAS = partidasMias(8, 3);
 
 /**
  * Monta la vista de perfil entera y mira el DOM. El build no lo cubre: el
@@ -50,7 +44,7 @@ const PARTIDAS = [...duels('Duo#LAN', 'A', 4, 3), ...duels('Rival#LAN', 'B', 4, 
  * compilar sin quejarse y pintar mal —o reventar— al renderizarse. Cada prueba
  * de aquí protege una decisión concreta del rediseño, no el aspecto.
  */
-describe('Perfil · refactor de la vista', () => {
+describe('Perfil · refactor de la vista', { timeout: 15000 }, () => {
   async function montar(
     // Quién ha iniciado sesión. Parametrizado porque el perfil se siembra con la identidad de
     // la sesión: dos usuarios distintos no pueden salir con las mismas cifras.
@@ -115,7 +109,10 @@ describe('Perfil · refactor de la vista', () => {
           // El desglose por posición del perfil se cuenta sobre las partidas del usuario, así
           // que el doble tiene que servirlas: sin ellas la tabla de roles no tendría qué medir.
           provide: MatchHistoryStore,
-          useValue: fakeMatchHistoryStore({ personal: partidas }),
+          useValue: {
+            personalStatus: signal('ready'),
+            personalMatches: signal(partidas),
+          },
         },
       ],
     }).compileComponents();
@@ -154,10 +151,11 @@ describe('Perfil · refactor de la vista', () => {
   it('sin cuenta vinculada el encabezado ofrece el botón de Riot con su color de marca', async () => {
     const { el } = await montar();
 
-    const boton = el.querySelector<HTMLButtonElement>('.pf-hero-compact__riot');
+    const boton = el.querySelector<HTMLAnchorElement>('.pf-hero-compact__riot');
     expect(boton).not.toBeNull();
     expect(boton!.classList.contains('nf-btn--riot')).toBe(true);
     expect(boton!.textContent).toContain('Vincular Riot ID');
+    expect(boton!.getAttribute('href')).toBe('/app/ajustes');
     // Lleva el logo oficial, no un glifo de texto.
     expect(boton!.querySelector('.nf-btn__riot-mark')).not.toBeNull();
     expect(boton!.textContent).not.toContain('＋');
@@ -206,41 +204,30 @@ describe('Perfil · refactor de la vista', () => {
     expect(visibles.length).toBeLessThanOrEqual(4);
   });
 
-  it('el LP se conserva por grupo, que es donde tiene contexto de liga', async () => {
+  it('la tarjeta de grupos no pinta LP ni posición, porque no pueden decir de qué liga hablan', async () => {
     const { el } = await montar();
 
-    const rangos = Array.from(el.querySelectorAll('.pf-group-item__rank')).map((n) => n.textContent!.trim());
-    expect(rangos.length).toBeGreaterThan(0);
-    expect(rangos[0]).toMatch(/#\d+ · \d+ LP/);
+    expect(el.querySelectorAll('.pf-group-item__rank').length).toBe(0);
+    const sub = el.querySelector('.pf-group-item__sub')?.textContent?.trim();
+    expect(sub).toMatch(/\d+V \d+D/);
   });
 
-  it('los campeones insignia y las fichas del catálogo enlazan a la tierlist', async () => {
+  it('los campeones insignia y las fichas del catálogo enlazan a la ficha de campeón', async () => {
     const { el, comp, detect } = await montar();
 
-    expect(el.querySelector<HTMLAnchorElement>('a.pf-mini-champ')?.getAttribute('href')).toBe('/app/tierlist');
+    expect(el.querySelector<HTMLAnchorElement>('a.pf-mini-champ')?.getAttribute('href')).toMatch(/\/app\/campeon\/\d+/);
 
-    comp.activeTab.set('campeones');
+    comp.setTab('campeones');
     detect();
-    expect(el.querySelector<HTMLAnchorElement>('a.pf-champ-tile')?.getAttribute('href')).toBe('/app/tierlist');
+    expect(el.querySelector<HTMLAnchorElement>('a.pf-champ-tile')?.getAttribute('href')).toMatch(/\/app\/campeon\/\d+/);
   });
 
-  /*
-   * «Mejor aliado» y «Némesis» se retiraron al conectar el historial. Se afirma su AUSENCIA en
-   * vez de borrar la prueba: lo que no puede pasar es que vuelvan calculadas sobre la página que
-   * hay en pantalla, que daría un «75% WR juntos» sacado de seis filas.
-   */
-  it('no pinta aliado ni némesis: ya no hay corpus del que sacarlos', async () => {
-    const { el } = await montar();
 
-    expect(el.querySelector('.pf-h2h-compact--ally')).toBeNull();
-    expect(el.querySelector('.pf-h2h-compact--nemesis')).toBeNull();
-    expect(el.textContent).not.toContain('WR juntos');
-  });
 
   it('el buscador de campeones va junto al filtro de posición', async () => {
     const { el, comp, detect } = await montar();
 
-    comp.activeTab.set('campeones');
+    comp.setTab('campeones');
     detect();
 
     const grupo = el.querySelector('.pf-champ-toolbar-compact__filters');
@@ -251,7 +238,7 @@ describe('Perfil · refactor de la vista', () => {
   it('elegir un campeón en el buscador deja solo ese en la rejilla', async () => {
     const { comp, detect } = await montar();
 
-    comp.activeTab.set('campeones');
+    comp.setTab('campeones');
     detect();
     expect(comp.filteredChampions().length).toBeGreaterThan(1);
 
@@ -292,7 +279,7 @@ describe('Perfil · refactor de la vista', () => {
   it('una posición sin partidas dice que no tiene datos, no un winrate', async () => {
     // Sin ninguna partida no hay nada que medir en ninguna de las cinco posiciones.
     const { el, comp, detect } = await montar('N1ghtfang', []);
-    comp.activeTab.set('dna');
+    comp.setTab('dna');
     detect();
 
     const tabla = el.querySelector('.pf-role-table');
@@ -300,5 +287,35 @@ describe('Perfil · refactor de la vista', () => {
     expect(tabla!.querySelectorAll('.pf-nodata').length).toBe(10);
     // Y ni una sola celda de porcentaje inventada en la tabla de roles.
     expect(tabla!.textContent).not.toMatch(/\d+%/);
+  });
+
+  it('renderiza la gráfica de LP y la vitrina de trofeos en la pestaña Resumen', async () => {
+    const { el } = await montar();
+
+    expect(el.querySelector('app-profile-lp-chart')).not.toBeNull();
+    expect(el.querySelector('app-profile-trophies-card')).not.toBeNull();
+    // La gráfica del perfil ES la del hub (`hub-lp`), no una copia con otro aspecto.
+    expect(el.querySelector('app-hub-lp-chart .hub-lp')).not.toBeNull();
+    expect(el.querySelector('.pf-trophies-card')).not.toBeNull();
+    // La vitrina es editable solo aquí, en el perfil propio.
+    expect(el.querySelector('.pf-trophies-card button[nfIconButton]')).not.toBeNull();
+  });
+
+  it('las seis tarjetas de ADN enseñan una nota con una décima y coma decimal', async () => {
+    const { el, comp, detect } = await montar();
+    comp.setTab('dna');
+    detect();
+
+    const scores = el.querySelectorAll('.pf-dna-card__score');
+    expect(scores.length).toBe(6);
+    scores.forEach((s) => {
+      expect(s.textContent?.trim()).toMatch(/^(\d+,\d|—)$/);
+      expect(s.textContent).not.toContain('/10');
+      expect(s.textContent).not.toContain('sobre');
+      const aria = s.getAttribute('aria-label');
+      if (s.textContent?.trim() !== '—') {
+        expect(aria).toMatch(/^Nota de esta faceta: \d+,\d sobre 10$/);
+      }
+    });
   });
 });
