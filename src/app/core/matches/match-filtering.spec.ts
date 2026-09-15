@@ -2,11 +2,13 @@ import { describe, expect, it } from 'vitest';
 import {
   EMPTY_FILTERS,
   MAX_PAGE_SIZE,
+  PRESET_SLUGS,
   activeFilterCount,
   groupMatchQuery,
   normalizeForSearch,
   personalMatchQuery,
   personalSummaryQuery,
+  presetFromSlug,
   sortParam,
 } from './match-filtering';
 
@@ -125,5 +127,38 @@ describe('normalizeForSearch', () => {
   it('reduce el texto a su esqueleto comparable', () => {
     expect(normalizeForSearch("Kai'Sa")).toBe('kaisa');
     expect(normalizeForSearch('N1ghtfang#LAN')).toBe('n1ghtfanglan');
+  });
+});
+
+/**
+ * El slug es la clave del enlace porque la URL la lee y la comparte gente: `?liga=caos` se
+ * entiende, `?liga=CHAOS` no. La tabla existe porque los dos vocabularios no coinciden —el
+ * preset de «competitivo» se llama `PRECISION`—, así que esto no se puede resolver con un
+ * `toUpperCase()` por mucho que dos de los tres lo parezcan.
+ */
+describe('presetFromSlug', () => {
+  it('traduce los tres slugs de la URL a su preset', () => {
+    expect(presetFromSlug('equilibrado')).toBe('BALANCED');
+    expect(presetFromSlug('caos')).toBe('CHAOS');
+  });
+
+  it('«competitivo» es PRECISION: el slug y el enum no se llaman igual', () => {
+    expect(presetFromSlug('competitivo')).toBe('PRECISION');
+  });
+
+  it('no distingue mayúsculas: la URL la escribe gente', () => {
+    expect(presetFromSlug('Caos')).toBe('CHAOS');
+  });
+
+  /** Un parámetro inventado no puede dejar la lista vacía por un filtro que nadie pidió. */
+  it('un slug desconocido, vacío o ausente no filtra nada', () => {
+    expect(presetFromSlug('pepe')).toBeNull();
+    expect(presetFromSlug('')).toBeNull();
+    expect(presetFromSlug(null)).toBeNull();
+    expect(presetFromSlug(undefined)).toBeNull();
+  });
+
+  it('PRESET_SLUGS cubre los tres presets, sin huecos', () => {
+    expect(Object.values(PRESET_SLUGS).sort()).toEqual(['caos', 'competitivo', 'equilibrado']);
   });
 });

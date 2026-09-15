@@ -1,3 +1,19 @@
-@use 'breakpoints' as *;
+/*
+  Lo propio de la fila del historial cruzado. El bloque `m-card*` sigue en `views.scss` porque lo
+  escriben siete componentes; aquí solo va lo que es de esta tarjeta.
+
+  Esta hoja estuvo un tiempo sin cargarse: al reescribir el componente para el API se cayó su
+  `styleUrl` y nada avisó —el build no falla, `dead-css` da las clases por vivas porque siguen en
+  el markup, y `css-total-size` sigue contando el fichero—. Es la misma trampa que ya costó 1.133
+  líneas en `grupo-ranking`. Desde entonces lo vigila `npm run arch` (regla `orphan-stylesheet`).
+
+  `.m-card__no-stats` vivía aquí y se ha borrado: quien lo usaba era la tarjeta personal, que
+  ahora tiene su propio `.pm-card__no-stats` en su hoja. Una hoja de componente no alcanza la
+  plantilla de otro, así que esa regla no pintó nunca nada.
+*/
+
+/* Nombres de campeón y de jugador: recortan dentro de su columna en vez de ensanchar la fila. */
 .cx-card__champ, .cx-card__who { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.cx-card__relation, .cx-card__relation-tag, .cx-card__relation-lane { white-space: nowrap; } .m-card__no-stats { color: var(--nf-text-dim); font-size: var(--fs-label); text-align: center; }
+
+/* La relación («aliado»/«rival» y su línea) es una etiqueta corta: nunca parte en dos líneas. */
+.cx-card__relation, .cx-card__relation-tag, .cx-card__relation-lane { white-space: nowrap; }
