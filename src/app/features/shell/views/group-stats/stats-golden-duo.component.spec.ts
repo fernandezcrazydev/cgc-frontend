@@ -4,8 +4,8 @@ import { StatsGoldenDuoComponent } from './stats-golden-duo.component';
 import { GoldenDuo } from '../../../../core/group-stats';
 
 const MOCK_DUO: GoldenDuo = {
-  player1: { name: 'EduUC', tag: 'EduUC#EUW', avatar: null, hue: 200 },
-  player2: { name: 'Adri', tag: 'Adri#EUW', avatar: null, hue: 140 },
+  player1: { userId: 'u-1', name: 'EduUC', tag: 'EduUC#EUW', avatar: null, hue: 200 },
+  player2: { userId: 'u-2', name: 'Adri', tag: 'Adri#EUW', avatar: null, hue: 140 },
   winrate: 81,
   games: 16,
   wins: 13,

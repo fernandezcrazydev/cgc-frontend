@@ -1,29 +1,32 @@
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router, convertToParamMap } from '@angular/router';
 import { BehaviorSubject } from 'rxjs';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { GrupoEstadisticas } from './grupo-estadisticas';
 import { Session } from '../../../../core/auth';
 import { GameDataStore } from '../../../../core/game-data';
 import { GroupStore } from '../../../../core/group-store';
 import { GroupBridge, GroupsStore } from '../../../../core/groups';
-import { Member } from '../../../../core/lobby';
+import { GroupStats, GroupStatsStore, StatsScope } from '../../../../core/group-stats';
+import { groupStats } from './stats-fixture';
 
-const ME = 'user-edu';
+const ME = 'u-1';
+const GROUP = 'grp-3';
 
-function member(name: string, overrides: Partial<Member> = {}): Member {
-  return {
-    name,
-    tag: `${name}#EUW`,
-    initials: name.slice(0, 2),
-    role: 'MID',
-    owner: false,
-    hue: 200,
-    ...overrides,
-  };
-}
-
-const ROSTER = [member('EduUC', { userId: ME }), member('Adri'), member('Victor'), member('DaniG')];
+const SCOPES: StatsScope[] = [
+  {
+    preset: 'BALANCED',
+    matches: 10,
+    seasons: [
+      { id: 'liga-1', name: 'Temporada 1', status: 'FINISHED', matches: 6 },
+      { id: 'liga-2', name: 'Temporada 2', status: 'IN_PROGRESS', matches: 4 },
+      // Existe, está abierta y nadie la ha jugado: llega igual y el combo no la ofrece.
+      { id: 'liga-3', name: 'Temporada 3', status: 'NOT_STARTED', matches: 0 },
+    ],
+  },
+  { preset: 'PRECISION', matches: 4, seasons: [] },
+  { preset: 'CHAOS', matches: 0, seasons: [] },
+];
 
 /** Ruta falsa con parámetros vivos, para poder mover `?medalla=` durante la prueba. */
 function routeStub(groupId: string, query: Record<string, string> = {}) {
@@ -41,9 +44,29 @@ function routeStub(groupId: string, query: Record<string, string> = {}) {
   };
 }
 
-function createComponent(groupId: string, query: Record<string, string> = {}) {
-  const { route, setQuery } = routeStub(groupId, query);
+interface Options {
+  query?: Record<string, string>;
+  scopes?: StatsScope[];
+  stats?: GroupStats | null;
+  status?: string;
+  scopesStatus?: string;
+}
+
+function createComponent(options: Options = {}) {
+  const { route, setQuery } = routeStub(GROUP, options.query ?? {});
   const navigate = vi.fn().mockResolvedValue(true);
+  const ensure = vi.fn().mockResolvedValue(undefined);
+
+  const store = {
+    scopes: () => options.scopes ?? SCOPES,
+    scopesStatus: () => options.scopesStatus ?? 'ready',
+    status: () => options.status ?? 'ready',
+    stats: () => (options.stats === undefined ? groupStats() : options.stats),
+    ensureScopes: vi.fn().mockResolvedValue(undefined),
+    ensure,
+    reload: vi.fn().mockResolvedValue(undefined),
+    reloadScopes: vi.fn().mockResolvedValue(undefined),
+  };
 
   TestBed.configureTestingModule({
     providers: [
@@ -56,12 +79,10 @@ function createComponent(groupId: string, query: Record<string, string> = {}) {
       },
       {
         provide: GroupStore,
-        useValue: {
-          byId: (id: string) => ({ id, name: 'Customs Tryhard' }),
-          rosterOf: () => ROSTER,
-        },
+        useValue: { byId: (id: string) => ({ id, name: 'Customs Tryhard' }), rosterOf: () => [] },
       },
       { provide: GroupsStore, useValue: { byId: () => null, ensureLoaded: () => undefined } },
+      { provide: GroupStatsStore, useValue: store },
       {
         provide: GameDataStore,
         useValue: {
@@ -75,68 +96,121 @@ function createComponent(groupId: string, query: Record<string, string> = {}) {
 
   const fixture = TestBed.createComponent(GrupoEstadisticas);
   fixture.detectChanges();
-  return { fixture, component: fixture.componentInstance, navigate, setQuery };
+  return { fixture, component: fixture.componentInstance, navigate, setQuery, store };
 }
 
 describe('GrupoEstadisticas', () => {
   /**
-   * Id de grupo cualquiera: la semilla lo convierte en las mismas modalidades y temporadas cada
-   * vez, que es lo único que estos tests necesitan.
-   *
-   * Aquí hubo una guarda que exigía «una temporada» y «varias» comprobándolo con `hubSeasonsFor`,
-   * la función de la gráfica del hub. Nunca midió lo de esta vista —que usa
-   * `groupModalitiesConfig`, con temporadas POR MODALIDAD— y coincidía solo porque las dos partían
-   * del id del grupo. Al separar de verdad las temporadas por liga se cayó, y no se ha sustituido
-   * por otra guarda porque ningún test de aquí depende de cuántas temporadas haya.
+   * Las tres salen siempre. Un control que apareciera y desapareciera según lo que el grupo fuera
+   * jugando cambiaría de forma bajo el cursor; deshabilitada dice además algo — «esto no lo habéis
+   * jugado nunca».
    */
-  const grupo = 'grp-3';
-
   it('ofrece las tres modalidades y desactiva las no jugadas', () => {
-    const { component, fixture } = createComponent(grupo);
+    const { component, fixture } = createComponent();
 
-    const mods = component.modalityOptions();
-    expect(mods.map((m) => m.value)).toEqual(['COMPETITIVE', 'BALANCED', 'CHAOS']);
+    const mods = component.presetOptions();
+    expect(mods.map((m) => m.value)).toEqual(['BALANCED', 'PRECISION', 'CHAOS']);
+    expect(mods.find((m) => m.value === 'CHAOS')?.disabled).toBe(true);
+    expect(mods.find((m) => m.value === 'BALANCED')?.disabled).toBe(false);
     expect(fixture.nativeElement.querySelector('.gs-controls__modality')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('.gs-controls__season')).not.toBeNull();
-
-    const controls = fixture.nativeElement.querySelector('.gs-controls');
-    expect(controls.firstElementChild.classList.contains('gs-controls__season')).toBe(true);
-    expect(controls.querySelector('.gs-controls__modality')).not.toBeNull();
   });
 
-  it('el selector de temporadas incluye "all" por defecto y solo temporadas jugadas', () => {
-    const { component } = createComponent(grupo);
+  /** La que más ha jugado el grupo, no la primera de la lista: es la que tendrá algo que enseñar. */
+  it('abre en la modalidad que más ha jugado el grupo', () => {
+    const { component } = createComponent();
 
-    expect(component.seasonId()).toBe('all');
-    expect(component.scope()).toBe('historico');
+    expect(component.scope()?.preset).toBe('BALANCED');
+    expect(component.scope()?.leagueId).toBeNull();
+  });
 
+  it('el selector de temporadas incluye "Todas" y solo las que tienen partidas', () => {
+    const { component } = createComponent();
+
+    expect(component.seasonValue()).toBe('all');
     const seasons = component.seasonOptions();
     expect(seasons[0]).toEqual({ value: 'all', label: 'Todas' });
-    expect(seasons.length).toBeGreaterThan(1);
+    expect(seasons.map((s) => s.label)).toEqual(['Todas', 'Temporada 1', 'Temporada 2']);
+  });
+
+  /**
+   * El alcance vive en la URL porque es lo que decide TODAS las cifras de la pantalla: mandar el
+   * enlace de «mira el caos de esta temporada» y que el otro abra otro alcance es la clase de cosa
+   * que nadie nota hasta que discute con dos capturas distintas.
+   */
+  it('la modalidad de la URL manda sobre la de por defecto', () => {
+    const { component } = createComponent({ query: { liga: 'competitivo' } });
+
+    expect(component.scope()?.preset).toBe('PRECISION');
+  });
+
+  it('una temporada de la URL se respeta si existe en esa modalidad', () => {
+    const { component } = createComponent({ query: { temporada: 'liga-2' } });
+
+    expect(component.scope()?.leagueId).toBe('liga-2');
+  });
+
+  /**
+   * Y una que NO es de esa modalidad no se arrastra: desde la V48 son temporadas independientes, y
+   * un id que no existe en la modalidad activa dejaría el panel vacío sin que nada dijera por qué.
+   */
+  it('una temporada que no es de esa modalidad se ignora en vez de vaciar el panel', () => {
+    const { component } = createComponent({ query: { liga: 'competitivo', temporada: 'liga-2' } });
+
+    expect(component.scope()?.preset).toBe('PRECISION');
+    expect(component.scope()?.leagueId).toBeNull();
+  });
+
+  it('cambiar de modalidad suelta la temporada, que es de la otra', () => {
+    const { component, navigate } = createComponent({ query: { temporada: 'liga-2' } });
+
+    component.setPreset('CHAOS');
+
+    expect(navigate).toHaveBeenCalledWith(
+      [],
+      expect.objectContaining({ queryParams: { liga: 'caos', temporada: null } }),
+    );
+  });
+
+  /** Sin alcances todavía no se pide nada: adivinar una modalidad es enseñar un panel que no es. */
+  it('no pide estadísticas hasta saber qué ha jugado el grupo', () => {
+    const { store } = createComponent({ scopes: [], scopesStatus: 'loading' });
+
+    expect(store.ensure).not.toHaveBeenCalled();
+  });
+
+  it('con los alcances cargados pide el activo', () => {
+    const { store } = createComponent();
+
+    expect(store.ensure).toHaveBeenCalledWith(GROUP, { preset: 'BALANCED', leagueId: null });
   });
 
   it('arranca en rendimiento competitivo', () => {
-    const { component } = createComponent(grupo);
+    const { component } = createComponent();
 
     expect(component.tab()).toBe('rendimiento');
     expect(component.openBoard()).toBeNull();
   });
 
   it('llegar con una medalla en la URL abre el Hall of Fame con esa medalla', () => {
-    const { component } = createComponent(grupo, { medalla: 'demolisher' });
+    const { component } = createComponent({ query: { medalla: 'demolisher' } });
 
     expect(component.tab()).toBe('medallas');
     expect(component.openBoard()?.medal.id).toBe('demolisher');
   });
 
+  /**
+   * Incluida `thief`, que existió y se retiró del catálogo al no publicar el cliente de LoL los
+   * objetivos robados. Un enlace viejo con ese id no abre nada, que es lo que tiene que pasar.
+   */
   it('una medalla que no existe no rompe la pantalla', () => {
-    const { component } = createComponent(grupo, { medalla: 'no-existe' });
+    const { component } = createComponent({ query: { medalla: 'thief' } });
 
     expect(component.openBoard()).toBeNull();
   });
 
   it('cerrar el modal borra el parámetro sin apilar historial', () => {
-    const { component, navigate } = createComponent(grupo, { medalla: 'demolisher' });
+    const { component, navigate } = createComponent({ query: { medalla: 'demolisher' } });
 
     component.closeMedal();
 
@@ -147,7 +221,7 @@ describe('GrupoEstadisticas', () => {
   });
 
   it('salir a mano de la pestaña de medallas suelta la medalla abierta', () => {
-    const { component, navigate } = createComponent(grupo, { medalla: 'demolisher' });
+    const { component, navigate } = createComponent({ query: { medalla: 'demolisher' } });
 
     component.setTab('rendimiento');
 
@@ -158,63 +232,53 @@ describe('GrupoEstadisticas', () => {
     );
   });
 
-  it('reconoce al usuario dentro del roster para poder decirle su puesto', () => {
-    const { component } = createComponent(grupo);
+  /**
+   * El usuario se reconoce por `userId` y **no cruzando el censo del grupo**: las filas ya vienen
+   * identificadas, y quien se fue del grupo sigue teniendo su récord en la temporada.
+   */
+  it('reconoce al usuario por su id para poder decirle su puesto', () => {
+    const { component } = createComponent();
 
     const conPuesto = component.medals().filter((b) => b.me !== null);
-    expect(conPuesto).toHaveLength(component.medals().length);
-    expect(component.medals()[0].me?.member.tag).toBe('EduUC#EUW');
+    expect(conPuesto.length).toBeGreaterThan(0);
+    expect(conPuesto[0].me?.person.userId).toBe(ME);
   });
 
-  it('los tres bloques de rendimiento salen de la misma pasada de estadísticas', () => {
-    const { component } = createComponent(grupo);
+  it('todos los bloques salen del mismo agregado', () => {
+    const { component } = createComponent();
 
-    expect(component.players()).toHaveLength(ROSTER.length);
-    expect(component.telemetry()?.objectives).toHaveLength(6);
+    expect(component.players()).toHaveLength(5);
+    expect(component.telemetry()?.objectives).toHaveLength(5);
     expect(component.metagame()).toHaveLength(4);
-    expect(component.records()).toHaveLength(9);
+    expect(component.records()).toHaveLength(2);
+    expect(component.laneImpact()).toHaveLength(5);
   });
 
-  it('renderiza la fila de telemetría con la tarjeta de mapa y el radar de objetivos', () => {
-    const { fixture } = createComponent(grupo);
+  /** El récord vuelve a enlazar a una partida, porque ahora apunta a una que existe. */
+  it('cada récord trae la partida en la que ocurrió', () => {
+    const { component } = createComponent();
 
-    const row = fixture.nativeElement.querySelector('.gs-telemetry-row');
-    expect(row).not.toBeNull();
-    expect(row.querySelector('app-stats-map-telemetry')).not.toBeNull();
-    expect(row.querySelector('app-stats-radar')).not.toBeNull();
-  });
-
-  it('ningún récord promete una partida que no se puede abrir', () => {
-    // Antes esto exigia un `matchId` de la semilla (`seed-001`). La semilla ya no existe y el
-    // record lo sigue calculando el cliente, asi que no hay ninguna partida real a la que
-    // apuntar: `epicRecordsFor` devuelve `matchId: null` y la tarjeta no ofrece el enlace.
-    // Se comprueba eso, que es la decision, y no que el enlace haya desaparecido sin mas.
-    const { component } = createComponent(grupo);
-
-    const records = component.records();
-    expect(records.length).toBeGreaterThan(0);
-    for (const record of records) {
-      expect(record.matchId).toBeNull();
-      expect(record.matchLabel).toBeNull();
+    for (const record of component.records()) {
+      expect(record.matchId).toBeTruthy();
     }
   });
 
-  it('desplegar un jugador viaja en la URL, para poder enlazar a alguien', () => {
-    const { component, navigate } = createComponent(grupo);
+  it('desplegar un jugador viaja en la URL por su id, no por su tag', () => {
+    const { component, navigate } = createComponent();
 
-    component.togglePlayer('Adri#EUW');
+    component.togglePlayer('u-2');
 
     expect(navigate).toHaveBeenCalledWith(
       [],
-      expect.objectContaining({ queryParams: { jugador: 'Adri#EUW' } }),
+      expect.objectContaining({ queryParams: { jugador: 'u-2' } }),
     );
   });
 
   it('volver a pulsar al mismo jugador lo cierra', () => {
-    const { component, navigate } = createComponent(grupo, { jugador: 'Adri#EUW' });
+    const { component, navigate } = createComponent({ query: { jugador: 'u-2' } });
 
-    expect(component.expandedTag()).toBe('Adri#EUW');
-    component.togglePlayer('Adri#EUW');
+    expect(component.expandedUserId()).toBe('u-2');
+    component.togglePlayer('u-2');
 
     expect(navigate).toHaveBeenCalledWith(
       [],
@@ -222,39 +286,59 @@ describe('GrupoEstadisticas', () => {
     );
   });
 
-  it('el metagame incluye los cuatro tableros (picks, bans, mayor winrate y menor winrate)', () => {
-    const { component } = createComponent(grupo);
-    const boards = component.metagame();
-    expect(boards.map((b) => b.id)).toEqual(['picks', 'bans', 'winrate', 'worst-winrate']);
+  it('el metagame incluye los cuatro tableros', () => {
+    const { component } = createComponent();
+
+    expect(component.metagame().map((b) => b.id)).toEqual([
+      'picks',
+      'bans',
+      'winrate',
+      'worst-winrate',
+    ]);
   });
 
-  it('muestra las secciones de impacto de líneas, masacres y guerra de visión del grupo', () => {
-    const { fixture, component } = createComponent(grupo);
-
-    const insightsRow = fixture.nativeElement.querySelector('.gs-insights-row');
-    expect(insightsRow).not.toBeNull();
-    expect(insightsRow.querySelector('app-stats-lane-impact')).not.toBeNull();
-    expect(insightsRow.querySelector('app-stats-multikills')).not.toBeNull();
-    expect(insightsRow.querySelector('app-stats-vision')).not.toBeNull();
+  it('las líneas salen ordenadas por impacto, sin huecos en la numeración', () => {
+    const { component } = createComponent();
 
     const lanes = component.laneImpact();
-    expect(lanes).toHaveLength(5);
-    // Orden estricto descendente por impacto/winrate
     for (let i = 0; i < lanes.length - 1; i++) {
       expect(lanes[i].winrate).toBeGreaterThanOrEqual(lanes[i + 1].winrate);
       expect(lanes[i].impactOrder).toBe(i + 1);
     }
+  });
 
-    const mk = component.multikills();
-    expect(mk).not.toBeNull();
-    expect(mk?.pentas).toBeGreaterThanOrEqual(0);
-    expect(mk?.quadras).toBeGreaterThanOrEqual(0);
-    expect(mk?.triples).toBeGreaterThanOrEqual(0);
+  /**
+   * Vacío con explicación, no error y no 404: el grupo existe y todavía no ha jugado. Son tres
+   * estados distintos y tienen que verse distintos.
+   */
+  it('un grupo sin una sola partida lo dice, en vez de enseñar once bloques vacíos', () => {
+    const { component, fixture } = createComponent({
+      scopes: [
+        { preset: 'BALANCED', matches: 0, seasons: [] },
+        { preset: 'PRECISION', matches: 0, seasons: [] },
+        { preset: 'CHAOS', matches: 0, seasons: [] },
+      ],
+      stats: null,
+    });
 
-    const vision = component.vision();
-    expect(vision).not.toBeNull();
-    expect(vision?.wardsPlaced).toBeGreaterThan(0);
-    expect(vision?.wardsCleared).toBeGreaterThan(0);
-    expect(vision?.visionPerMin).toBeGreaterThan(0);
+    expect(component.nothingPlayed()).toBe(true);
+    expect(fixture.nativeElement.textContent).toContain('Todavía no hay partidas que analizar');
+    expect(fixture.nativeElement.querySelector('app-stats-leaders')).toBeNull();
+  });
+
+  it('un fallo de red se pinta como error con reintento, no como grupo vacío', () => {
+    const { fixture } = createComponent({ status: 'error', stats: null });
+
+    expect(fixture.nativeElement.textContent).toContain('No hemos podido cargar las estadísticas');
+    expect(fixture.nativeElement.querySelector('button')).not.toBeNull();
+  });
+
+  it('reintentar vuelve a pedir los alcances y el alcance activo', () => {
+    const { component, store } = createComponent({ status: 'error', stats: null });
+
+    component.retry();
+
+    expect(store.reloadScopes).toHaveBeenCalledWith(GROUP);
+    expect(store.reload).toHaveBeenCalledWith(GROUP, { preset: 'BALANCED', leagueId: null });
   });
 });

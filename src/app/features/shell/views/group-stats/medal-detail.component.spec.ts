@@ -1,29 +1,18 @@
 import { TestBed } from '@angular/core/testing';
 import { describe, expect, it } from 'vitest';
 import { MedalDetailComponent } from './medal-detail.component';
-import { MedalBoard, medalBoardsFor } from '../../../../core/group-medals';
-import { Member } from '../../../../core/lobby';
+import { MedalBoard, medalBoardsOf, playersOf } from '../../../../core/group-stats';
+import { groupStats, player } from './stats-fixture';
 
-function member(name: string): Member {
-  return {
-    name,
-    tag: `${name}#EUW`,
-    initials: name.slice(0, 2),
-    role: 'MID',
-    owner: false,
-    hue: 120,
-  };
-}
+const ME = 'u-1';
 
-const ROSTER = [member('EduUC'), member('Adri'), member('Victor'), member('DaniG')];
-
-function boardsFor(meTag: string | null): MedalBoard[] {
-  return medalBoardsFor('grp-1', ROSTER, 'temporada', meTag);
+function boardsFor(meUserId: string | null): MedalBoard[] {
+  return medalBoardsOf(playersOf(groupStats()), meUserId);
 }
 
 /** Una medalla que alguien ha ganado de verdad; las de a cero se quedan sin dueño. */
-function claimed(meTag: string | null): MedalBoard {
-  const board = boardsFor(meTag).find((b) => b.leader !== null);
+function claimed(meUserId: string | null): MedalBoard {
+  const board = boardsFor(meUserId).find((b) => b.leader !== null);
   expect(board).toBeDefined();
   return board!;
 }
@@ -38,18 +27,18 @@ function createComponent(board: MedalBoard | null) {
 
 describe('MedalDetailComponent', () => {
   it('encabeza con el líder actual, su cifra y su trofeo dorado', () => {
-    const board = claimed(ROSTER[0].tag);
+    const board = claimed(ME);
     const fixture = createComponent(board);
 
     const nombre = fixture.nativeElement.querySelector('.md__leader-name').textContent.trim();
-    expect(nombre).toBe(board.leader!.member.name);
+    expect(nombre).toBe(board.leader!.person.name);
     const trofeo = fixture.nativeElement.querySelector('.md__leader-trophy');
     expect(trofeo).not.toBeNull();
     expect(trofeo.getAttribute('src')).toBe('/assets/trofeos/Trofeo1.webp');
   });
 
   it('enseña el podio, como mucho de tres con sus trofeos de metagame', () => {
-    const board = claimed(ROSTER[0].tag);
+    const board = claimed(ME);
     const fixture = createComponent(board);
 
     const filas = fixture.nativeElement.querySelectorAll('.md__podium-row');
@@ -64,17 +53,17 @@ describe('MedalDetailComponent', () => {
   });
 
   it('a quien no lidera le dice cuánto le falta para el primer puesto', () => {
-    const board = boardsFor(ROSTER[0].tag).find((b) => b.me && b.me.rank > 1);
+    const board = boardsFor(ME).find((b) => b.me && b.me.rank > 1);
     expect(board).toBeDefined();
 
     const fixture = createComponent(board!);
     const texto = fixture.nativeElement.querySelector('.md__me-gap').textContent;
     expect(texto).toContain('Te faltan');
-    expect(texto).toContain(board!.leader!.member.name);
+    expect(texto).toContain(board!.leader!.person.name);
   });
 
   it('a quien ya lidera no le promete un adelantamiento imposible', () => {
-    const board = boardsFor(ROSTER[0].tag).find((b) => b.me?.rank === 1);
+    const board = boardsFor(ME).find((b) => b.me?.rank === 1);
     expect(board).toBeDefined();
 
     const fixture = createComponent(board!);
@@ -103,13 +92,13 @@ describe('MedalDetailComponent', () => {
 
   it('una medalla que nadie ha ganado no corona a nadie con un cero', () => {
     // Con un roster tan corto es normal que alguna métrica rara se quede a cero.
-    const vacia = boardsFor(ROSTER[0].tag).find((b) => b.leader === null);
+    const vacia = boardsFor(ME).find((b) => b.leader === null);
     if (!vacia) return;
 
     const fixture = createComponent(vacia);
 
-    expect(vacia.podium).toHaveLength(0);
-    expect(vacia.me).toBeNull();
+    expect(vacia!.podium).toHaveLength(0);
+    expect(vacia!.me).toBeNull();
     expect(fixture.nativeElement.querySelector('.md__vacant')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('.md__leader')).toBeNull();
   });

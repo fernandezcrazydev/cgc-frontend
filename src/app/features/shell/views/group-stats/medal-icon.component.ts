@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
-import { MedalIcon } from '../../../../core/group-medals';
+import { MedalIcon } from '../../../../core/group-stats';
 
 /**
  * El dibujo de una medalla del Hall of Fame (§5.5.5).
@@ -57,11 +57,6 @@ import { MedalIcon } from '../../../../core/group-medals';
         @case ('baron') {
           <path d="M5 9.5C5 6 8.1 3.5 12 3.5S19 6 19 9.5c0 3-1.7 4.6-1.7 7.2 0 1.9-1.4 3.8-5.3 3.8s-5.3-1.9-5.3-3.8C6.7 14.1 5 12.5 5 9.5z" />
           <path d="M9.5 9.2h.01M14.5 9.2h.01M9.5 14.5c1.7 1.2 3.3 1.2 5 0" />
-        }
-        @case ('steal') {
-          <path d="M6.5 3.5l4 6.5M17.5 3.5l-4 6.5" />
-          <path d="M7.5 10h9l1.5 6.5c.4 2-1 3.9-3 3.9h-6c-2 0-3.4-1.9-3-3.9z" />
-          <path d="M12 13.5v3.5" />
         }
         @case ('farm') {
           <path d="M12 20.5V11" />

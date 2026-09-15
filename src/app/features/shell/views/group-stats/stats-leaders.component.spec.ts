@@ -4,51 +4,69 @@ import { provideRouter } from '@angular/router';
 import { TestBed } from '@angular/core/testing';
 import { describe, expect, it } from 'vitest';
 import { StatsLeadersComponent } from './stats-leaders.component';
-import { MemberStats, statsFor } from '../../../../core/group-stats';
-import { Member } from '../../../../core/lobby';
+import { PlayerStatsView, playersOf } from '../../../../core/group-stats';
+import { groupStats } from './stats-fixture';
 
-function member(name: string): Member {
-  return {
-    name,
-    tag: `${name}#EUW`,
-    initials: name.slice(0, 2),
-    role: 'MID',
-    owner: false,
-    hue: 40,
-  };
-}
+const PLAYERS: PlayerStatsView[] = playersOf(groupStats());
 
-const ROSTER = [member('EduUC'), member('Adri'), member('Victor'), member('DaniG'), member('Pau')];
-const PLAYERS: MemberStats[] = statsFor('grp-1', ROSTER, 'temporada');
-
-function createComponent(expandedTag: string | null = null, loading = false) {
+function createComponent(expandedUserId: string | null = null, loading = false) {
   TestBed.configureTestingModule({
     providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])],
   });
   const fixture = TestBed.createComponent(StatsLeadersComponent);
   fixture.componentRef.setInput('players', PLAYERS);
-  fixture.componentRef.setInput('expandedTag', expandedTag);
+  fixture.componentRef.setInput('expandedUserId', expandedUserId);
   fixture.componentRef.setInput('loading', loading);
   fixture.detectChanges();
   return { fixture, component: fixture.componentInstance };
 }
 
+/** La misma tabla con los jugadores que le pases: para los bordes que el fixture base no tiene. */
+function withPlayers(players: PlayerStatsView[], expandedUserId: string | null = null) {
+  TestBed.configureTestingModule({
+    providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])],
+  });
+  const fixture = TestBed.createComponent(StatsLeadersComponent);
+  fixture.componentRef.setInput('players', players);
+  fixture.componentRef.setInput('expandedUserId', expandedUserId);
+  fixture.componentRef.setInput('loading', false);
+  fixture.detectChanges();
+  return fixture;
+}
+
 describe('StatsLeadersComponent', () => {
-  it('ordena por la valoración compuesta, que es lo que la tabla promete', () => {
+  it('ordena por el rating del grupo, que es lo que la tabla promete', () => {
     const { component } = createComponent();
 
-    const ratings = component['rows']().map((p) => p.rating);
+    const ratings = component['rows']().map((p) => p.rating ?? 0);
     expect(ratings).toEqual([...ratings].sort((a, b) => b - a));
+  });
+
+  /**
+   * Quien no tiene fila de rating en esta modalidad **no es el peor**: es que no está puntuado. Con
+   * un cero por defecto se colaría entre los últimos como si lo fuera, y nada en la tabla lo
+   * distinguiría de alguien que de verdad esté a cero.
+   */
+  it('quien no tiene rating va al final y no se confunde con el peor', () => {
+    const stats = groupStats();
+    const players = playersOf({
+      ...stats,
+      players: [{ ...stats.players[0], rating: null, ratingRank: null }, ...stats.players.slice(1)],
+    });
+
+    const rows = withPlayers(players).componentInstance['rows']();
+
+    expect(rows[rows.length - 1].rating).toBeNull();
   });
 
   it('pinta una fila por jugador', () => {
     const { fixture } = createComponent();
 
-    expect(fixture.nativeElement.querySelectorAll('.ld-row')).toHaveLength(ROSTER.length);
+    expect(fixture.nativeElement.querySelectorAll('.ld-row')).toHaveLength(PLAYERS.length);
   });
 
   it('solo despliega la fila que le indican', () => {
-    const abierto = PLAYERS[1].member.tag;
+    const abierto = PLAYERS[1].person.userId;
     const { fixture } = createComponent(abierto);
 
     const abiertas = fixture.nativeElement.querySelectorAll('.ld-detail');
@@ -60,15 +78,15 @@ describe('StatsLeadersComponent', () => {
     const { fixture, component } = createComponent();
 
     let pedido: string | null = null;
-    component.toggle.subscribe((tag) => (pedido = tag));
+    component.toggle.subscribe((userId) => (pedido = userId));
     fixture.nativeElement.querySelector('.ld-row__btn').click();
 
-    // El primero de la tabla es el de mayor valoración, no el primero del roster.
-    expect(pedido).toBe(component['rows']()[0].member.tag);
+    // Pide el `userId` y no el Riot ID: es la clave estable, y es lo que la vista guarda en la URL.
+    expect(pedido).toBe(component['rows']()[0].person.userId);
   });
 
   it('la fila desplegada expone su estado a un lector de pantalla', () => {
-    const abierto = PLAYERS[0].member.tag;
+    const abierto = PLAYERS[0].person.userId;
     const { fixture } = createComponent(abierto);
 
     const botones: HTMLElement[] = Array.from(
@@ -156,25 +174,34 @@ describe('StatsLeadersComponent', () => {
     expect(component.sortColumn()).toBe('name');
     expect(component.sortAsc()).toBe(true);
 
-    const names = component['rows']().map((p) => p.member.name);
+    const names = component['rows']().map((p) => p.person.name);
     expect(names).toEqual([...names].sort((a, b) => a.localeCompare(b)));
   });
 
-  /*
-   * Siguen enseñándose, pero ya NO enlazan al cruce: ese dúo y esa némesis los inventa el
-   * cliente y viajan con un Riot ID, mientras que la pantalla del cruce se abre por `userId`.
-   * El enlace aterrizaba en «Jugador no encontrado». Vuelve cuando lo sirva el backend.
+  /**
+   * Vuelven a ser enlaces, y esta vez apuntan a algo. Dejaron de serlo porque el dúo y la némesis
+   * se los inventaba el cliente y viajaban con un Riot ID, mientras que la pantalla del cruce se
+   * abre por `userId`: el enlace aterrizaba en «Jugador no encontrado». Lo que este test protege es
+   * exactamente eso — que el href lleve el id y no el tag.
    */
-  it('muestra el mejor dúo y la némesis, y no los enlaza a una ruta que no existe', () => {
-    const jugador = PLAYERS[0].member.tag;
-    const { fixture } = createComponent(jugador);
+  it('enlaza el mejor dúo y la némesis al cruce, por userId', () => {
+    const { fixture } = createComponent(PLAYERS[0].person.userId);
 
     const duo = fixture.nativeElement.querySelector('.ld-affinity--duo');
     const nemesis = fixture.nativeElement.querySelector('.ld-affinity--nemesis');
 
-    expect(duo).not.toBeNull();
-    expect(nemesis).not.toBeNull();
-    expect(duo.tagName).toBe('DIV');
-    expect(nemesis.tagName).toBe('DIV');
+    expect(duo.tagName).toBe('A');
+    expect(nemesis.tagName).toBe('A');
+    // u-1 gana 5 de 6 con u-2 (su mejor dúo) y pierde 4 de 5 contra u-4 (su némesis).
+    expect(duo.getAttribute('href')).toBe('/app/jugador/u-2/juntos');
+    expect(nemesis.getAttribute('href')).toBe('/app/jugador/u-4/contra');
+  });
+
+  /** Y quien no ha coincidido con nadie no enseña un dúo vacío: enseña que no lo hay. */
+  it('sin nadie con quien haber jugado, lo dice en vez de inventar un dúo', () => {
+    const fixture = withPlayers(playersOf(groupStats({ duos: [] })), 'u-1');
+
+    expect(fixture.nativeElement.querySelector('.ld-affinity--duo')).toBeNull();
+    expect(fixture.nativeElement.querySelectorAll('.ld-affinity--empty')).toHaveLength(2);
   });
 });

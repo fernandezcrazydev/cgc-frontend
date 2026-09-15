@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
 import { NfCombobox, NfSkeleton } from '../../../../ui';
 import { HubLeagueSeries, HubSeason } from '../../../../core/group-hub';
-import { StatModality } from '../../../../core/group-stats';
+import { StatModality } from '../../../../core/group-stats-mock';
 
 /** Un punto de una liga, ya proyectado al espacio del `viewBox`. */
 interface ChartPoint {

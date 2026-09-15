@@ -78,15 +78,18 @@ import { StatsRecordIconComponent } from './stats-record-icon.component';
                 <p class="rec-card__detail">{{ r.detail }}</p>
               </div>
 
-              @if (r.matchId && r.matchLabel) {
-                <a
-                  class="rec-card__link"
-                  [routerLink]="['/app', 'historial', r.matchId]"
-                  [attr.aria-label]="'Ver la ' + r.matchLabel.toLowerCase()"
-                >
-                  Ver {{ r.matchLabel.toLowerCase() }}
-                </a>
-              }
+              <!--
+                El enlace vuelve a existir. Con la maqueta el record se lo inventaba el cliente y no
+                habia ninguna partida a la que apuntar, asi que la tarjeta prometia un boton que no
+                se podia pintar. Ahora el id que trae es el de una fila de verdad.
+              -->
+              <a
+                class="rec-card__link"
+                [routerLink]="['/app', 'historial', r.matchId]"
+                [attr.aria-label]="'Ver la partida de ' + r.title.toLowerCase()"
+              >
+                Ver partida
+              </a>
             </li>
           }
         </ul>

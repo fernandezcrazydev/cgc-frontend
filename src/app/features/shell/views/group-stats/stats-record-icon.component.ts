@@ -31,12 +31,6 @@ import { EpicRecordIcon } from '../../../../core/group-stats';
           <circle cx="12" cy="12.6" r="7.6" />
           <path d="M12 8.6v4.4l2.8 1.8M9.4 3.4h5.2" />
         }
-        @case ('comeback') {
-          <path d="M3 12a9 9 0 0 1 15-6.7L21 8" />
-          <path d="M21 3v5h-5" />
-          <path d="M21 12a9 9 0 0 1-15 6.7L3 16" />
-          <path d="M3 21v-5h5" />
-        }
         @case ('speedrun') {
           <circle cx="12" cy="13" r="8" />
           <path d="M12 9v4l2.5 2.5" />

@@ -24,21 +24,26 @@ import { Session } from '../../../../core/auth';
 import { GroupStore } from '../../../../core/group-store';
 import { GroupBridge, GroupsStore } from '../../../../core/groups';
 import { GameDataStore } from '../../../../core/game-data';
-import { medalBoardsFor, medalById } from '../../../../core/group-medals';
 import {
-  StatModality,
-  StatScope,
-  epicRecordsFor,
-  goldenDuoFor,
-  woodenDuoFor,
-  groupModalitiesConfig,
-  groupVisionFor,
-  laneImpactFor,
-  mapTelemetryFor,
-  metagameFor,
-  modalitySlug,
-  multikillsFor,
-  statsFor,
+  MATCHMAKING_PRESET_INFO,
+  MatchmakingPreset,
+} from '../../../../core/groups/models';
+import { PRESET_SLUGS, presetFromSlug } from '../../../../core/matches/match-filtering';
+import { MatchPreset } from '../../../../core/matches/models';
+import {
+  GroupStatsStore,
+  StatsQuery,
+  defaultScopeOf,
+  duosOf,
+  laneImpactOf,
+  mapTelemetryOf,
+  medalBoardsOf,
+  medalById,
+  metagameOf,
+  multikillsOf,
+  playersOf,
+  recordsOf,
+  visionOf,
 } from '../../../../core/group-stats';
 import { HallOfFameComponent } from './hall-of-fame.component';
 import { MedalDetailComponent } from './medal-detail.component';
@@ -61,9 +66,17 @@ type StatTab = (typeof STAT_TABS)[number];
  * rendimiento competitivo y Hall of Fame.
  *
  * La vista orquesta y navega; cada bloque de la pantalla es un componente propio de
- * esta carpeta con su hoja de estilos. Dos cosas viven en la URL a propósito:
- *   - `?medalla=<id>` abre el detalle de una medalla.
- *   - `?jugador=<tag>` despliega la fila de alguien en la tabla de líderes.
+ * esta carpeta con su hoja de estilos, y todas las derivaciones (medias, porcentajes,
+ * etiquetas) viven en `core/group-stats/stats-view.ts`. Aquí no se calcula nada.
+ *
+ * **Tres cosas viven en la URL a propósito**, para que un enlace lleve a lo que se está mirando:
+ *   - `?liga=<slug>` la modalidad, con el mismo vocabulario que el historial (`competitivo`…).
+ *   - `?temporada=<leagueId>` la temporada, o ausente para el histórico.
+ *   - `?medalla=<id>` abre el detalle de una medalla, y `?jugador=<userId>` despliega una fila.
+ *
+ * El alcance está en la URL y no en una signal suelta porque es lo que decide TODAS las cifras de
+ * la pantalla: mandar el enlace de «mira el caos de esta temporada» y que el otro abra el histórico
+ * de equilibrado es la clase de cosa que nadie nota hasta que discute con capturas distintas.
  */
 @Component({
   selector: 'app-grupo-estadisticas',
@@ -100,23 +113,21 @@ export class GrupoEstadisticas {
   private readonly groupsStore = inject(GroupsStore);
   private readonly gameData = inject(GameDataStore);
   readonly bridge = inject(GroupBridge);
+  readonly store = inject(GroupStatsStore);
 
-  readonly id = toSignal(
-    this.route.paramMap.pipe(map((p) => p.get('id'))),
-    { initialValue: this.route.snapshot.paramMap.get('id') },
-  );
+  readonly id = toSignal(this.route.paramMap.pipe(map((p) => p.get('id'))), {
+    initialValue: this.route.snapshot.paramMap.get('id'),
+  });
 
-  /** Tag del jugador cuya fila está desplegada, sincronizado con `?jugador=`. */
-  private readonly focusedTag = toSignal(
-    this.route.queryParamMap.pipe(map((p) => p.get('jugador'))),
-    { initialValue: this.route.snapshot.queryParamMap.get('jugador') },
-  );
+  private readonly params = toSignal(this.route.queryParamMap, {
+    initialValue: this.route.snapshot.queryParamMap,
+  });
+
+  /** Id del jugador cuya fila está desplegada, sincronizado con `?jugador=`. */
+  private readonly focusedUserId = computed(() => this.params().get('jugador'));
 
   /** Medalla abierta, sincronizada con `?medalla=`. */
-  private readonly focusedMedal = toSignal(
-    this.route.queryParamMap.pipe(map((p) => p.get('medalla'))),
-    { initialValue: this.route.snapshot.queryParamMap.get('medalla') },
-  );
+  private readonly focusedMedal = computed(() => this.params().get('medalla'));
 
   readonly group = computed(() => {
     const id = this.id();
@@ -124,53 +135,73 @@ export class GrupoEstadisticas {
     return this.groupStore.byId(id) ?? this.groupsStore.byId(id) ?? null;
   });
 
-  /* ---- Control temporal y modalidad ---- */
+  /* ---- Alcance: modalidad y temporada ---- */
 
-  readonly modality = signal<StatModality>('COMPETITIVE');
-  readonly seasonId = signal<string>('all');
+  readonly scopes = this.store.scopes;
 
-  readonly modalities = computed(() => {
-    const g = this.group();
-    return g ? groupModalitiesConfig(g.id) : [];
+  /**
+   * El alcance activo. Sale de la URL si la trae, y si no del que más ha jugado el grupo.
+   *
+   * Nulo mientras los alcances siguen en vuelo: pedir estadísticas antes de saber qué modalidades
+   * existen sería adivinar una, y adivinar mal enseña un panel vacío de una modalidad que el grupo
+   * nunca ha tocado.
+   */
+  readonly scope = computed<StatsQuery | null>(() => {
+    const scopes = this.scopes();
+    if (!scopes.length) return null;
+
+    const fromUrl = presetFromSlug(this.params().get('liga'));
+    const preset = fromUrl ?? defaultScopeOf(scopes)?.preset ?? scopes[0].preset;
+
+    // Una temporada de otra modalidad no se arrastra al cambiar de pestaña: no tiene ni una
+    // partida de esta, así que el panel saldría vacío sin que nada dijera por qué.
+    const seasons = scopes.find((s) => s.preset === preset)?.seasons ?? [];
+    const requested = this.params().get('temporada');
+    const leagueId = seasons.some((s) => s.id === requested) ? requested : null;
+
+    return { preset, leagueId };
   });
 
-  readonly modalityOptions = computed<readonly NfSegmentOption[]>(() =>
-    this.modalities().map((m) => ({
-      value: m.modality,
-      label: m.label,
-      disabled: !m.played,
+  readonly activeScope = computed(() => {
+    const preset = this.scope()?.preset;
+    return this.scopes().find((s) => s.preset === preset) ?? null;
+  });
+
+  /**
+   * Las tres modalidades, siempre. La que el grupo no ha jugado se ofrece deshabilitada en vez de
+   * desaparecer: un control que cambia de forma bajo el cursor es peor que uno con una opción
+   * apagada, y además dice algo — «esto no lo habéis jugado nunca».
+   */
+  readonly presetOptions = computed<readonly NfSegmentOption[]>(() =>
+    this.scopes().map((s) => ({
+      value: s.preset,
+      label: MATCHMAKING_PRESET_INFO[s.preset as MatchmakingPreset].label,
+      disabled: s.matches === 0,
     })),
   );
 
-  readonly activeModality = computed(() =>
-    this.modalities().find((m) => m.modality === this.modality()) ?? this.modalities()[0] ?? null,
-  );
-
+  /** Solo las temporadas con partidas: ofrecer una vacía es ofrecer un panel de ceros. */
   readonly seasonOptions = computed<readonly NfComboboxOption[]>(() => {
-    const active = this.activeModality();
-    if (!active || !active.played) {
-      return [{ value: 'all', label: 'Todas' }];
-    }
-
-    const playedSeasons = active.seasons.filter((s) => s.played);
+    const seasons = (this.activeScope()?.seasons ?? []).filter((s) => s.matches > 0);
     return [
       { value: 'all', label: 'Todas' },
-      ...playedSeasons.map((s) => ({ value: s.id, label: s.label })),
+      ...seasons.map((s) => ({ value: s.id, label: s.name })),
     ];
   });
 
-  readonly scope = computed<StatScope>(() =>
-    this.seasonId() === 'all' ? 'historico' : 'temporada',
-  );
+  readonly seasonValue = computed(() => this.scope()?.leagueId ?? 'all');
 
   readonly historyLink = computed(() => {
     const g = this.group();
     return g ? ['/app', 'grupos', g.id, 'historial'] : ['/app', 'historial'];
   });
 
-  readonly historyQueryParams = computed(() => ({
-    liga: modalitySlug(this.modality()),
-  }));
+  readonly historyQueryParams = computed(() => {
+    const scope = this.scope();
+    return scope
+      ? { liga: PRESET_SLUGS[scope.preset], ...(scope.leagueId ? { temporada: scope.leagueId } : {}) }
+      : {};
+  });
 
   /* ---- Pestañas ---- */
 
@@ -185,97 +216,80 @@ export class GrupoEstadisticas {
     computation: (medal, prev) => (medal ? 'medallas' : (prev?.value ?? 'rendimiento')),
   });
 
-  readonly expandedTag = signal<string | null>(this.route.snapshot.queryParamMap.get('jugador'));
+  readonly expandedUserId = signal<string | null>(null);
   readonly hoveredObjectiveId = signal<string | null>(null);
 
   /* ---- Datos ---- */
 
   /**
-   * Nada aparece antes de tiempo: mientras el roster o el catálogo de campeones
-   * siguen en vuelo, cada bloque pinta su hueco en lugar de cifras a medio hacer.
+   * Nada aparece antes de tiempo: mientras el alcance, las cifras o el catálogo de campeones siguen
+   * en vuelo, cada bloque pinta su hueco en lugar de cifras a medio hacer.
    */
   readonly statsLoading = computed(
-    () => this.bridge.status() !== 'ready' || this.gameData.status() === 'loading',
+    () =>
+      this.store.scopesStatus() === 'loading' ||
+      this.store.status() === 'loading' ||
+      this.store.status() === 'idle' ||
+      this.gameData.status() === 'loading',
   );
 
-  /**
-   * Clave de siembra de las estadísticas por grupo, modalidad y temporada.
-   */
-  private readonly statsKey = computed(() => {
-    const g = this.group();
-    if (!g) return '';
-    const active = this.activeModality();
-    if (active && !active.played) return '';
-    const mod = this.modality();
-    const season = this.seasonId();
-    return `${g.id}@${mod}@${season}`;
+  /** `true` cuando el grupo existe y no ha jugado nada: un vacío con explicación, no un error. */
+  readonly nothingPlayed = computed(
+    () => this.store.scopesStatus() === 'ready' && this.scopes().every((s) => s.matches === 0),
+  );
+
+  private readonly stats = this.store.stats;
+
+  readonly players = computed(() => {
+    const s = this.stats();
+    return s ? playersOf(s) : [];
   });
 
-  private readonly roster = computed(() => {
-    const g = this.group();
-    return g ? this.groupStore.rosterOf(g.id) : [];
-  });
-
-  private readonly stats = computed(() => {
-    const key = this.statsKey();
-    return key ? statsFor(key, this.roster(), this.scope()) : [];
-  });
-
-  readonly players = computed(() => this.stats());
   readonly telemetry = computed(() => {
-    const key = this.statsKey();
-    const st = this.stats();
-    return key && st.length ? mapTelemetryFor(key, st, this.scope()) : null;
+    const s = this.stats();
+    return s ? mapTelemetryOf(s) : null;
   });
+
   readonly metagame = computed(() => {
-    const key = this.statsKey();
-    const st = this.stats();
-    return key && st.length ? metagameFor(key, st) : [];
+    const s = this.stats();
+    return s ? metagameOf(s) : [];
   });
-  readonly goldenDuo = computed(() => {
-    const key = this.statsKey();
-    const r = this.roster();
-    const st = this.stats();
-    return key && r.length >= 2 ? goldenDuoFor(key, r, st) : null;
+
+  private readonly duos = computed(() => {
+    const s = this.stats();
+    return s ? duosOf(s) : { golden: null, wooden: null };
   });
-  readonly woodenDuo = computed(() => {
-    const key = this.statsKey();
-    const r = this.roster();
-    const st = this.stats();
-    return key && r.length >= 2 ? woodenDuoFor(key, r, st) : null;
-  });
+
+  readonly goldenDuo = computed(() => this.duos().golden);
+  readonly woodenDuo = computed(() => this.duos().wooden);
+
   readonly multikills = computed(() => {
-    const st = this.stats();
-    return st.length ? multikillsFor(st) : null;
+    const s = this.stats();
+    return s ? multikillsOf(s) : null;
   });
+
   readonly vision = computed(() => {
-    const key = this.statsKey();
-    const st = this.stats();
-    return key && st.length ? groupVisionFor(key, st) : null;
+    const s = this.stats();
+    return s ? visionOf(s) : null;
   });
+
   readonly laneImpact = computed(() => {
-    const key = this.statsKey();
-    return key ? laneImpactFor(key, this.scope()) : [];
+    const s = this.stats();
+    return s ? laneImpactOf(s) : [];
   });
+
   readonly records = computed(() => {
-    const key = this.statsKey();
-    const st = this.stats();
-    return key && st.length ? epicRecordsFor(key, st) : [];
+    const s = this.stats();
+    return s ? recordsOf(s) : [];
   });
 
   /**
-   * El tag del usuario activo DENTRO de este roster, o nulo si no pertenece al grupo.
+   * El id del usuario activo, o nulo. **No se cruza contra el censo del grupo**: las filas ya vienen
+   * identificadas, y quien se fue del grupo sigue teniendo su récord en la temporada.
    */
-  private readonly meTag = computed(() => {
-    const myId = this.session.user()?.userId;
-    if (!myId) return null;
-    return this.roster().find((m) => m.userId === myId)?.tag ?? null;
-  });
+  private readonly meUserId = computed(() => this.session.user()?.userId ?? null);
 
-  readonly medals = computed(() => {
-    const key = this.statsKey();
-    return key ? medalBoardsFor(key, this.roster(), this.scope(), this.meTag()) : [];
-  });
+  readonly medals = computed(() => medalBoardsOf(this.players(), this.meUserId()));
 
   /** La medalla que pide la URL, ya resuelta con su clasificación. */
   readonly openBoard = computed(() => {
@@ -287,38 +301,44 @@ export class GrupoEstadisticas {
   constructor() {
     this.gameData.ensureLoaded();
     this.groupsStore.ensureLoaded();
+
     effect(() => {
       const id = this.id();
-      if (id) void this.bridge.ensure(id);
+      if (!id) return;
+      void this.bridge.ensure(id);
+      void this.store.ensureScopes(id);
     });
+
+    // El alcance activo manda la petición. Cambiar de modalidad o de temporada es cambiar la URL, y
+    // este efecto es lo único que traduce eso en una llamada — así no hay dos caminos por los que
+    // se pueda pedir un alcance y quedar desincronizados.
     effect(() => {
-      const tag = this.focusedTag();
-      this.expandedTag.set(tag);
+      const id = this.id();
+      const scope = this.scope();
+      if (id && scope) void this.store.ensure(id, scope);
     });
+
+    effect(() => this.expandedUserId.set(this.focusedUserId()));
   }
 
   /* ---- Acciones ---- */
 
   retry(): void {
     const id = this.id();
-    if (id) void this.bridge.ensure(id);
+    if (!id) return;
+    void this.store.reloadScopes(id);
+    const scope = this.scope();
+    if (scope) void this.store.reload(id, scope);
   }
 
-  setModality(value: string): void {
-    const mod = value as StatModality;
-    this.modality.set(mod);
-    const active = this.modalities().find((m) => m.modality === mod);
-    if (active) {
-      const isSeasonPlayed =
-        this.seasonId() === 'all' || active.seasons.some((s) => s.id === this.seasonId() && s.played);
-      if (!isSeasonPlayed) {
-        this.seasonId.set('all');
-      }
-    }
+  setPreset(value: string): void {
+    // La temporada se suelta al cambiar de modalidad: son temporadas distintas (V48), y arrastrar
+    // un id que no existe en la nueva dejaría el combo enseñando "Todas" con otro alcance detrás.
+    this.writeParams({ liga: PRESET_SLUGS[value as MatchPreset], temporada: null });
   }
 
   setSeason(value: string): void {
-    this.seasonId.set(value || 'all');
+    this.writeParams({ temporada: value && value !== 'all' ? value : null });
   }
 
   setTab(value: string): void {
@@ -327,9 +347,9 @@ export class GrupoEstadisticas {
     if (tab !== 'medallas' && this.focusedMedal()) this.writeParams({ medalla: null });
   }
 
-  togglePlayer(tag: string): void {
-    const next = this.expandedTag() === tag ? null : tag;
-    this.expandedTag.set(next);
+  togglePlayer(userId: string): void {
+    const next = this.expandedUserId() === userId ? null : userId;
+    this.expandedUserId.set(next);
     this.writeParams({ jugador: next });
   }
 
@@ -342,8 +362,8 @@ export class GrupoEstadisticas {
   }
 
   /**
-   * Escribe los parámetros de interfaz sin apilar entradas en el historial: abrir y
-   * cerrar un modal cuatro veces no debe costar cuatro pulsaciones de «atrás».
+   * Escribe los parámetros de interfaz sin apilar entradas en el historial: abrir y cerrar un modal
+   * cuatro veces no debe costar cuatro pulsaciones de «atrás».
    */
   private writeParams(params: Record<string, string | null>): void {
     void this.router.navigate([], {

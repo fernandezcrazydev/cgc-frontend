@@ -2,7 +2,7 @@ import { Component, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { describe, expect, it } from 'vitest';
 import { HubLeagueSeries, HubLpPoint } from '../../../../core/group-hub';
-import { StatModality } from '../../../../core/group-stats';
+import { StatModality } from '../../../../core/group-stats-mock';
 import { HubLpChartComponent, LeagueSeasonChange } from './hub-lp-chart.component';
 
 /** El eje es «días de temporada»: toda curva arranca en el día 0, su primera partida. */

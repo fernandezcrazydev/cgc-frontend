@@ -15,7 +15,7 @@
 import { EnvironmentInjector, effect, runInInjectionContext, untracked } from '@angular/core';
 import { Observable, of } from 'rxjs';
 import { hash } from '../group-ranking';
-import { banRateFor } from '../group-stats';
+import { banRateFor } from '../group-stats-mock';
 import { REAL_CHAMPION_IDS } from '../lobby';
 import { Lane } from '../matches/models';
 import { ChampionStatsSource } from './champion-stats-api';

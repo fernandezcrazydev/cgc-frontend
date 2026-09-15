@@ -52,16 +52,23 @@ sed -n '3155,3290p' ../Roadmap.md         # y se lee solo el tramo que interesa
 ## Estrategia de migración mock → backend (LA decisión de arquitectura)
 
 **Ya hablan con backend real**: `auth` (OIDC code+PKCE contra nuestro backend; Discord es solo
-el IdP), `groups`, `leagues`, `lobbies`, `matches`, `game-data`, `notifications`, `preferences`,
-`riot`, `sessions`, `settings`, `feedback`, `discord`, `users` y `admin`.
+el IdP), `groups`, `leagues`, `lobbies`, `matches`, `group-stats`, `game-data`, `notifications`,
+`preferences`, `riot`, `sessions`, `settings`, `feedback`, `discord`, `users` y `admin`.
 
 **Sigue siendo mock en memoria**, sembrado con constantes y generadores deterministas
 (`seeded`/`hash`): `core/lobby.ts` y `lobby-extras.ts` (el God-module legacy), `group-store.ts`,
-`group-hub.ts`, `group-stats.ts`, `group-medals.ts`, `group-ranking.ts`, `member-detail.ts`,
+`group-hub.ts`, `group-stats-mock.ts`, `group-ranking.ts`, `member-detail.ts`,
 `player-profile.ts`, `champions` (tiene su `*-api.ts`, pero el store se alimenta del mock hasta
 que exista el endpoint) y `reactions` (que además es local del navegador: no hay tabla ni
 endpoint — pedido en `cgc-backend#95`, con el contrato propuesto).
 Los comentarios `BACKEND NOTE:` marcan cada punto de integración.
+
+`group-stats-mock.ts` es lo que queda del `group-stats.ts` de 900 líneas: nueve exports que siguen
+usando el **ranking del grupo**, el **hub** y la **tier list**, y que tienen los tres su endpoint ya
+escrito. `groupModalitiesConfig` es el peor de ellos —**adivina** qué temporadas ha jugado un grupo
+a partir de un hash de su id, y por eso llega a ofrecer una «Temporada 2024» que nadie jugó—, y su
+sustituto ya existe: `GET /groups/{id}/stats/scopes`. Ese fichero muere entero cuando la última de
+esas tres pantallas deje de importarlo; no se le añade nada.
 
 **El backend será el dueño de TODA la regla de negocio**: matchmaking, cálculo de MMR/elo,
 validaciones de draft, TTL de salas, permisos, resolución de conflictos de importación,
@@ -554,6 +561,73 @@ equipo (un campo almacenado y este cálculo llegaron a decir 37% y 34% del mismo
 la línea» sale del oro del minuto 14 contra el rival de su misma línea, **etiquetado como
 estimación nuestra** allí donde se pinta.
 
+## Las estadísticas del grupo, y la pregunta que estaba mal formulada
+
+`core/group-stats/` (issue de la Fase 5.5) habla con `GET /groups/{id}/stats` y
+`GET /groups/{id}/stats/scopes`. El diseño entero, con lo que se midió y lo que se decidió que no
+existe, está en **`cgc-backend/docs/estadisticas-grupo.md`**. Lo que hay que saber desde este lado:
+
+### En una custom, los dos equipos son el grupo
+
+La maqueta pintaba «vuestro winrate cuando os lleváis el primer dragón: 84%». Esa cifra **no
+significa nada**: juegan diez miembros del grupo, así que el grupo se lleva el dragón en el 100% de
+las partidas y gana el 100%. Tres bloques venían formulados así y los tres cambiaron de pregunta:
+
+- **Objetivos** → «el equipo que se llevó X ganó N de M partidas».
+- **Impacto por líneas** → «cuando mid iba por delante en el min. 14, su equipo ganó N de M». El
+  winrate de una línea es 50% por construcción: toda partida tiene un mid en los dos bandos.
+- **Balance de bandos** → sin cambios; el lado del mapa sí es asimétrico.
+
+Es la clase de error que no se ve mirando la pantalla, porque el número es plausible. **Antes de
+añadir un bloque nuevo a esta pantalla, comprueba que su pregunta se puede contestar con partidas
+en las que los dos equipos son el mismo grupo.**
+
+### Dónde vive cada cosa
+
+| | Qué |
+|---|---|
+| `models.ts` | Espejo de los DTO. Contadores y denominadores; **ni una media ni una etiqueta** |
+| `stats-view.ts` | **El único sitio que divide.** De ahí salen medias, porcentajes y textos en español |
+| `medals.ts` | El catálogo del Hall of Fame. Vive aquí porque sus ids viajan en la URL (`?medalla=`) y sus textos son españoles: un tablero es una **ordenación** de los jugadores que ya llegan |
+| `group-stats-store.ts` | Cachea **por alcance** (grupo + modalidad + temporada) y descarta la respuesta obsoleta |
+
+Ese último punto no es adorno: pulsar tres pestañas seguidas lanza tres peticiones y no tienen por
+qué volver en orden. Escribir la última **en llegar** deja la pantalla enseñando las cifras de la
+modalidad que no está seleccionada, y no hay forma de notarlo — son números plausibles bajo el
+rótulo equivocado.
+
+### El alcance vive en la URL
+
+`?liga=<slug>` y `?temporada=<leagueId>`, con el mismo vocabulario de slugs que el historial (ojo:
+«competitivo» es el preset `PRECISION`). Es lo que decide **todas** las cifras de la pantalla, así
+que mandar un enlace tiene que llevar al otro a lo mismo que estás viendo.
+
+La pantalla abre por la modalidad que el grupo **más ha jugado** (`defaultScopeOf`), no por la
+primera ni por la de por defecto del grupo. La vitrina de trofeos del hub usa ese mismo alcance a
+propósito: al pulsar una medalla de la vitrina se abre exactamente esa del Hall of Fame, y dos
+alcances distintos serían dos líderes distintos para la misma medalla.
+
+### Los dos denominadores de un jugador
+
+`games` son **todas** sus partidas; `gamesWithStats`, las que alguien exportó — y es el denominador
+de todo lo que va de `kills` hacia abajo. Dividir un KDA entre `games` reporta a alguien **peor
+cuanto más de su historial se haya quedado sin subir**. Es la regla de los nulos del historial un
+nivel más arriba, y las dos cifras son creíbles, así que nadie lo detecta mirando.
+
+### Lo que la pantalla dejó de prometer
+
+- **«El ladrón»** (objetivos robados con el Smite) se retiró del catálogo: el volcado del cliente no
+  publica esa cifra en ninguna forma. Quedan **19** medallas, y un enlace viejo con `?medalla=thief`
+  no abre nada, que es lo correcto.
+- **El dragón anciano** se cayó de la telemetría. Quedan **5** objetivos.
+- **«Ángel guardián»** mide solo curación, porque el escudo repartido a aliados no llega, y su texto
+  lo dice.
+- **«La remontada»** no está entre los récords: un déficit de oro solo existe en el timeline.
+
+En cambio **vuelven dos enlaces** que se habían apagado: el mejor dúo y la némesis de cada jugador
+enlazan otra vez al cruce, porque ahora viajan con `userId` y no con un Riot ID; y cada récord
+enlaza a la partida en la que ocurrió, porque ahora apunta a una que existe.
+
 ## Patrón obligatorio: store asíncrono (clon de `Session`)
 
 `core/auth/session.ts` es el molde. Todo store que hable con backend debe tener:
@@ -725,16 +799,20 @@ El detalle completo está en `cgc-backend/docs/contrato-api.md`.
   Lo usan `GET /admin/feedback` y `GET /groups/{id}/members`.
 - **Canal realtime** (WebSocket vs SSE, y su autenticación) para salas/drafts/notificaciones.
 - **Ids estables de jugador/miembro/grupo** y su relación con la identidad Discord de `/me`.
-- **Dragones.** `MatchTeamObjectives` trae `dragonKills` a secas y **nadie ha medido todavía si
-  incluye a los ancianos**: producción está a cero partidas y no hay ni un bloque de equipo real.
-  Los tipos de dragón y el alma no viven en ese bloque en ninguna versión del contrato, sino en
-  los eventos del timeline. Mientras tanto **no se pinta ninguna cifra de dragones**: ni el eje
-  del radar ni el contador de la cabecera de equipo. No es una reserva, es la misma regla de los
-  nulos un nivel más abajo — enseñar `dragonKills` bajo la etiqueta «Dragones» afirma qué cuenta.
-  No se pierde nada esperando: el backend guarda el bloque de equipo y el timeline en crudo, así
-  que el día que se mida se tipa y se rellena hacia atrás, partidas viejas incluidas.
-  Pedido en `cgc-backend#96`, junto con la timeline entera (mapa, wards, minuto de cada
-  «primero»), que es lo que sostenía las franjas que se retiraron del análisis de partida.
+- ~~**Dragones**~~ → **RESUELTO A MEDIAS, y la mitad que queda está escrita.** Se midió contra el
+  timeline de las dos partidas reales del 2026-09-14: el `dragonKills` de cada equipo cuadra
+  **exactamente** con sus eventos `ELITE_MONSTER_KILL` de tipo `DRAGON` (5 y 4), y lo mismo
+  `hordeKills`, `riftHeraldKills` y `baronKills`. Pero **en ninguna de las dos salió un anciano**,
+  así que si los incluiría sigue sin saberse.
+
+  La decisión (owner, 2026-09-15): **se pintan**, con la etiqueta «dragones asegurados por tu
+  equipo», que es cierta lo incluya o no — un anciano también es un dragón. Lo que sigue prohibido
+  es una etiqueta que **afirme cuál de las dos cosas cuenta**, y por eso no hay eje de «dragón
+  anciano» en la telemetría: el bloque de equipo no trae ancianos de ninguna clase.
+
+  Y el objetivo es del EQUIPO, nunca del jugador: el cliente de LoL no publica objetivos por
+  jugador, así que cualquier sitio que lo pinte tiene que decir «su equipo». El detalle está en
+  `cgc-backend/docs/estadisticas-grupo.md` §2 y §5.
 
 Cuando se acuerde uno, documentarlo aquí y borrar la línea de pendientes.
 

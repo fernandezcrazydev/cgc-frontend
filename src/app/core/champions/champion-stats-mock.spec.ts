@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { firstValueFrom } from 'rxjs';
 import { describe, expect, it } from 'vitest';
-import { banRateFor } from '../group-stats';
+import { banRateFor } from '../group-stats-mock';
 import {
   ChampionStatsMockSource,
   mockMatchFixture,
