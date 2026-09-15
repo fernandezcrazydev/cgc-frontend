@@ -6,11 +6,14 @@ import { BehaviorSubject, of } from 'rxjs';
 import { describe, expect, it, beforeEach } from 'vitest';
 import { EnvironmentInjector } from '@angular/core';
 import { Campeon } from './campeon';
-import { MatchHistoryStore } from '../../../../core/matches/match-history-store';
+import { ChampionStatsStore } from '../../../../core/champions/champion-stats-store';
 import { GameDataApi } from '../../../../core/game-data/game-data-api';
 import { GameDataStore } from '../../../../core/game-data';
-import { installChampionStatsMock } from '../../../../core/champions/champion-stats-mock';
-import { matchFixture, participantFixture } from '../../../../core/matches/match-fixtures';
+import {
+  ChampionStatsMockSource,
+  mockMatchFixture,
+  mockParticipantFixture,
+} from '../../../../core/champions/champion-stats-mock';
 import { ChampionDetail, ChampionSummary } from '../../../../core/game-data/models';
 
 const AHRI_SUMMARY: ChampionSummary = {
@@ -38,7 +41,11 @@ const AHRI_DETAIL: ChampionDetail = {
 describe('Campeon Component', () => {
   let fixture: ComponentFixture<Campeon>;
   let component: Campeon;
-  let matchStore: MatchHistoryStore;
+  // La pagina de campeon se pinta desde el suplente, no desde el historial: es el suplente
+  // quien agrega. Se le da un corpus a medida por test, que es el equivalente exacto de lo que
+  // antes se hacia sembrando el store de partidas.
+  let champSource: ChampionStatsMockSource;
+  let champStats: ChampionStatsStore;
   let gameDataStore: GameDataStore;
   let paramMapSubject: BehaviorSubject<any>;
 
@@ -77,14 +84,14 @@ describe('Campeon Component', () => {
       ],
     }).compileComponents();
 
-    const injector = TestBed.inject(EnvironmentInjector);
-    installChampionStatsMock(injector);
+    champStats = TestBed.inject(ChampionStatsStore);
+    champSource = new ChampionStatsMockSource();
+    champSource.useCorpus([]);
+    champStats.useSource(champSource);
 
     gameDataStore = TestBed.inject(GameDataStore);
     await gameDataStore.ensureLoaded();
 
-    matchStore = TestBed.inject(MatchHistoryStore);
-    matchStore.allMatches.set([]);
 
     fixture = TestBed.createComponent(Campeon);
     component = fixture.componentInstance;
@@ -96,12 +103,11 @@ describe('Campeon Component', () => {
   it('con datos, pinta las seis tarjetas', async () => {
     await createTestComponent({ id: 'g1', championId: '103' });
 
-    const pAhri = participantFixture({
+    const pAhri = mockParticipantFixture({
       id: 'p1',
       team: 'blue',
       role: 'MID',
       championId: 103,
-      championName: 'Ahri',
       stats: {
         kills: 8,
         deaths: 2,
@@ -126,15 +132,15 @@ describe('Campeon Component', () => {
       },
     });
 
-    const m1 = matchFixture({
+    const m1 = mockMatchFixture({
       id: 'm1',
-      groupId: 'g1',
       winningTeam: 'blue',
       blue: [pAhri],
       red: [],
     });
 
-    matchStore.allMatches.set([m1]);
+    champSource.useCorpus([m1]);
+    champStats.invalidate();
     await Promise.resolve();
     fixture.detectChanges();
 
@@ -163,7 +169,8 @@ describe('Campeon Component', () => {
   it('con un campeón del catálogo que no aparece en ninguna partida, pinta la cabecera y el bloque Todavía no se ha jugado con …, y no pinta las cinco tarjetas de estadísticas', async () => {
     await createTestComponent({ id: 'g1', championId: '103' });
 
-    matchStore.allMatches.set([]);
+    champSource.useCorpus([]);
+    champStats.invalidate();
     await Promise.resolve();
     fixture.detectChanges();
 
@@ -185,7 +192,8 @@ describe('Campeon Component', () => {
   it('en la ruta sin grupo, el rótulo de ámbito dice Todos tus grupos', async () => {
     await createTestComponent({ championId: '103' });
 
-    matchStore.allMatches.set([]);
+    champSource.useCorpus([]);
+    champStats.invalidate();
     await Promise.resolve();
     fixture.detectChanges();
 
@@ -207,7 +215,8 @@ describe('Campeon Component', () => {
   it('un campeón sin partidas enseña — en el rol de la cabecera en vez de MID', async () => {
     await createTestComponent({ id: 'g1', championId: '103' });
 
-    matchStore.allMatches.set([]);
+    champSource.useCorpus([]);
+    champStats.invalidate();
     await Promise.resolve();
     fixture.detectChanges();
 
@@ -219,12 +228,11 @@ describe('Campeon Component', () => {
   it('en la ruta sin grupo con partidas, los títulos de especialistas y objetos no dicen "del grupo"', async () => {
     await createTestComponent({ championId: '103' });
 
-    const pAhri = participantFixture({
+    const pAhri = mockParticipantFixture({
       id: 'p1',
       team: 'blue',
       role: 'MID',
       championId: 103,
-      championName: 'Ahri',
       stats: {
         kills: 8,
         deaths: 2,
@@ -249,14 +257,15 @@ describe('Campeon Component', () => {
       },
     });
 
-    const m1 = matchFixture({
+    const m1 = mockMatchFixture({
       id: 'm1',
       winningTeam: 'blue',
       blue: [pAhri],
       red: [],
     });
 
-    matchStore.allMatches.set([m1]);
+    champSource.useCorpus([m1]);
+    champStats.invalidate();
     await Promise.resolve();
     fixture.detectChanges();
 

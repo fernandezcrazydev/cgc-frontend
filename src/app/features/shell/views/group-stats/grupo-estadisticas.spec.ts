@@ -184,11 +184,18 @@ describe('GrupoEstadisticas', () => {
     expect(row.querySelector('app-stats-radar')).not.toBeNull();
   });
 
-  it('cada récord enlaza a una partida que existe en el historial', () => {
+  it('ningún récord promete una partida que no se puede abrir', () => {
+    // Antes esto exigia un `matchId` de la semilla (`seed-001`). La semilla ya no existe y el
+    // record lo sigue calculando el cliente, asi que no hay ninguna partida real a la que
+    // apuntar: `epicRecordsFor` devuelve `matchId: null` y la tarjeta no ofrece el enlace.
+    // Se comprueba eso, que es la decision, y no que el enlace haya desaparecido sin mas.
     const { component } = createComponent(grupo);
 
-    for (const record of component.records()) {
-      expect(record.matchId).toMatch(/^seed-\d{3}$/);
+    const records = component.records();
+    expect(records.length).toBeGreaterThan(0);
+    for (const record of records) {
+      expect(record.matchId).toBeNull();
+      expect(record.matchLabel).toBeNull();
     }
   });
 

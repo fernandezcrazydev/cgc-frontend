@@ -4,96 +4,125 @@ import {
   ElementRef,
   computed,
   inject,
-  signal,
   viewChild,
 } from '@angular/core';
 import { NfPagination } from '../../../../ui';
-import { Session } from '../../../../core/auth';
+import { MatchHistoryUiState } from '../match-history/match-history-ui';
 import { CrossViewState } from './cross-view-state';
 import { CrossMatchCardComponent } from './cross-match-card.component';
-import { aggregateMetricRows, CrossMetricRow } from './cross-compare';
 
-interface ChemistryInfo {
-  tier: 'S' | 'A' | 'B';
-  tierLabel: string;
-  title: string;
-  desc: string;
-}
-
+/**
+ * Sinergia: las partidas en las que jugasteis en el mismo equipo.
+ *
+ * `GET /me/matches?with={userId}&relation=ALLY` para la lista y
+ * `GET /me/matches/summary` con los mismos parámetros para el récord.
+ *
+ * ## Lo que se retiró al conectarla
+ *
+ * El panel de «Aporte y Rendimiento Conjunto», los «dúos fetiche» de campeones, la sinergia por
+ * parejas de posiciones, la racha viva y el tier de química. Los cuatro primeros salían de
+ * recorrer el historial entero en memoria, y con la paginación en servidor eso ya no existe. El
+ * tier salía de los otros: un sello «Tier S» calculado sobre la página que hay en pantalla es
+ * una etiqueta con aspecto de veredicto y sin nada detrás.
+ *
+ * Es una superficie analítica propia y se sirve aparte (issue #69, §8). La comparación **de una
+ * partida concreta** sí sigue: está en el desplegable de cada fila y en `/juntos/:matchId`.
+ */
 @Component({
   selector: 'app-synergy',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CrossMatchCardComponent, NfPagination],
-  templateUrl: './synergy.html',
   styleUrl: './synergy.scss',
+  template: `
+    <div class="syn-view">
+      @if (summary(); as agg) {
+        @if (agg.totalMatches === 0) {
+          <div class="empty-state">
+            <p class="empty-state__text nf-mono">Sin partidas juntos</p>
+            <p class="empty-state__hint">
+              Aún no habéis jugado como compañeros en el mismo equipo en ninguna partida.
+            </p>
+          </div>
+        } @else {
+          <section class="syn-balance-card">
+            <div class="syn-balance-card__top">
+              <span class="syn-balance-card__title nf-mono">Química de dúo</span>
+            </div>
+
+            <div class="syn-ring" [style.--wr]="winrate()" [class.syn-ring--lo]="winrate() < 50">
+              <div class="syn-ring__inner">
+                <span class="syn-ring__val nf-mono">{{ winrate() }}%</span>
+                <span class="syn-ring__lbl nf-mono">WR</span>
+              </div>
+            </div>
+
+            <div class="syn-balance-card__record nf-mono">
+              <span class="syn-balance-card__wins">{{ agg.wins }}V</span>
+              <span class="syn-balance-card__sep">-</span>
+              <span class="syn-balance-card__losses">{{ agg.losses }}D</span>
+            </div>
+
+            <div class="syn-balance-card__extra nf-mono">
+              <span class="syn-balance-card__games">
+                {{ agg.totalMatches }}
+                {{ agg.totalMatches === 1 ? 'partida juntos' : 'partidas juntos' }}
+              </span>
+            </div>
+          </section>
+
+          <section class="syn-panel">
+            <span class="syn-panel__title nf-mono">
+              Partidas en el mismo equipo ({{ state.total() }})
+            </span>
+            <div class="mh-list" #list>
+              @for (c of state.page(); track c.id) {
+                <app-cross-match-card
+                  [cross]="c"
+                  [playerId]="state.playerId()"
+                  [returnTo]="returnTo()"
+                />
+              }
+            </div>
+
+            <nf-pagination
+              [total]="state.total()"
+              [pageSize]="state.pageSize"
+              [page]="ui.page()"
+              (pageChange)="onPageChange($event)"
+            />
+          </section>
+        }
+      }
+    </div>
+  `,
 })
 export class Synergy {
   readonly state = inject(CrossViewState);
-  readonly session = inject(Session);
+  readonly ui = inject(MatchHistoryUiState);
 
-  readonly theirName = computed(() => this.state.player()?.name ?? 'Aliado');
+  readonly summary = this.state.summaryAllies;
 
   readonly returnTo = computed(() => `/app/jugador/${this.state.playerId()}/juntos`);
 
-  readonly pageSize = 5;
-  readonly page = signal(1);
-
   private readonly list = viewChild<ElementRef<HTMLElement>>('list');
 
-  readonly pageItems = computed(() => {
-    const start = (this.page() - 1) * this.pageSize;
-    return this.state.allies().slice(start, start + this.pageSize);
+  /** Sobre partidas decididas: una anulada no cuenta ni como victoria ni como derrota. */
+  readonly winrate = computed(() => {
+    const s = this.summary();
+    if (!s) return 0;
+    const decided = s.wins + s.losses;
+    return decided > 0 ? Math.round((s.wins / decided) * 100) : 0;
   });
 
-  readonly metricRows = computed<CrossMetricRow[]>(() =>
-    aggregateMetricRows(this.state.aggregateAllies()),
-  );
-
-  readonly combinedDamage = computed(() => {
-    const agg = this.state.aggregateAllies();
-    return agg.damageShareMe + agg.damageShareThem;
-  });
-
-  readonly combinedVision = computed(() => {
-    const agg = this.state.aggregateAllies();
-    return agg.visionMe + agg.visionThem;
-  });
-
-  onPageChange(page: number): void {
-    this.page.set(page);
-    const list = this.list()?.nativeElement;
-    if (list) {
-      list.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    } else {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
+  constructor() {
+    this.state.setRelation('ally');
   }
 
-  readonly chemistry = computed<ChemistryInfo>(() => {
-    const agg = this.state.aggregateAllies();
-    const wr = agg.winrate;
-    if (wr >= 70 && agg.games >= 2) {
-      return {
-        tier: 'S',
-        tierLabel: 'Tier S',
-        title: 'Química Imparable (Tier S)',
-        desc: 'Una dupla de alto impacto con un porcentaje de victoria sobresaliente cuando jugáis en el mismo bando.',
-      };
-    }
-    if (wr >= 50) {
-      return {
-        tier: 'A',
-        tierLabel: 'Tier A',
-        title: 'Sólida Coordinación (Tier A)',
-        desc: 'Buen entendimiento colectivo y rendimiento positivo compartiendo equipo en vuestras customs.',
-      };
-    }
-    return {
-      tier: 'B',
-      tierLabel: 'Tier B',
-      title: 'En Desarrollo (Tier B)',
-      desc: 'Aún necesitáis ajustar vuestras combinaciones de campeones para maximizar vuestro winrate juntos.',
-    };
-  });
+  onPageChange(page: number): void {
+    this.ui.setPage(page);
+    const list = this.list()?.nativeElement;
+    if (list) list.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    else window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
 }

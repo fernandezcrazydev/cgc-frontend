@@ -174,12 +174,16 @@ export class Shell {
     }
   }
 
-  /** Racha actual del usuario (para el saludo en la barra superior en Inicio). */
+  /**
+   * Racha actual del usuario, para el saludo de la barra superior.
+   *
+   * Se cuenta sobre la página del historial que haya cargada, así que solo aparece donde esa
+   * lista está pedida. Sin partidas cargadas no se pinta: la versión anterior devolvía «3V» fijo
+   * cuando no había nada, y esa racha inventada salía en la barra de todos los usuarios nuevos.
+   */
   readonly userStreak = computed<{ count: number; type: 'W' | 'L'; label: string } | null>(() => {
-    const matches = this.matchHistory.allPersonalMatches();
-    if (!matches.length) {
-      return { count: 3, type: 'W', label: '3V' };
-    }
+    const matches = this.matchHistory.personalMatches();
+    if (!matches.length) return null;
     const sorted = [...matches].sort(
       (a, b) => new Date(b.decidedAt).getTime() - new Date(a.decidedAt).getTime(),
     );
@@ -676,7 +680,7 @@ export class Shell {
     const segments = url.split('?')[0].split('#')[0].split('/').filter(Boolean);
     if (segments[0] !== 'app') return null;
     if (segments[1] === 'historial' && segments[2]) return segments[2];
-    if (segments[1] === 'analisis-avanzado') return segments[2] || 'seed-001';
+    if (segments[1] === 'analisis-avanzado' && segments[2]) return segments[2];
     return null;
   });
 
@@ -685,45 +689,52 @@ export class Shell {
     return this.currentMatchId() !== null || this.pageTitle() === 'Partida';
   });
 
-  /** Partida activa si estamos en detalle de partida */
+  /**
+   * La partida abierta, cuando estamos en su detalle.
+   *
+   * Sale del detalle que ya cargó la vista (`GET /matches/{id}`), y solo si su id es el de la
+   * ruta. Antes caía a «la primera partida que hubiera en memoria», así que la barra superior
+   * rotulaba la cabecera con los datos de OTRA partida mientras la de verdad llegaba.
+   */
   readonly currentMatch = computed<Match | undefined>(() => {
     const id = this.currentMatchId();
     if (!id) return undefined;
-    const found = this.matchHistory.matchById(id);
-    if (found) return found;
-    const all = this.matchHistory.allMatches();
-    return all.length > 0 ? all[0] : undefined;
+    const detail = this.matchHistory.detailMatch();
+    return detail?.id === id ? detail : undefined;
   });
 
-  /** Nombre de la liga de la partida para la cabecera */
-  readonly matchLeagueName = computed<string>(() => {
-    const m = this.currentMatch();
-    return m?.leagueName ?? m?.group?.seasonName ?? this.groups.groups()[0]?.leagueName ?? 'LIGA COMPETITIVA';
-  });
+  /**
+   * Nombre de la liga de la partida, o `null`.
+   *
+   * Los tres rótulos de esta cabecera devuelven `null` mientras no se sepan, y la plantilla los
+   * esconde. Los valores de reserva que tenían —«LIGA COMPETITIVA», «31:24», «38-24 KILLS»— se
+   * leían como datos de la partida abierta y no lo eran de ninguna.
+   */
+  readonly matchLeagueName = computed<string | null>(() => this.currentMatch()?.leagueName ?? null);
 
-  /** Duración de la partida para la cabecera (ej: 31:24) */
-  readonly matchPaceDuration = computed<string>(() => {
-    const m = this.currentMatch();
-    if (!m) return '31:24';
-    const totalSec = m.durationSeconds || 1884;
+  /** Duración de la partida (ej: 31:24). `null` si nadie la subió. */
+  readonly matchPaceDuration = computed<string | null>(() => {
+    const totalSec = this.currentMatch()?.durationSeconds;
+    if (totalSec == null) return null;
     const mins = Math.floor(totalSec / 60);
     const secs = totalSec % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   });
 
-  /** Kills totales de la partida para la cabecera (ej: 38-24 KILLS) */
-  readonly matchPaceKills = computed<string>(() => {
+  /** Bajas totales de la partida (ej: 38-24 KILLS). `null` si nadie la subió. */
+  readonly matchPaceKills = computed<string | null>(() => {
     const m = this.currentMatch();
-    if (!m) return '38-24 KILLS';
-    const blueKills = m.blueTeam?.totalKills ?? 38;
-    const redKills = m.redTeam?.totalKills ?? 24;
-    return `${blueKills}-${redKills} KILLS`;
+    const a = m?.teams[0].totalKills;
+    const b = m?.teams[1].totalKills;
+    if (a == null || b == null) return null;
+    return `${a}-${b} KILLS`;
   });
 
   readonly copiedMatchId = signal(false);
 
   async copyMatchId(): Promise<void> {
-    const id = this.currentMatch()?.id ?? this.currentMatchId() ?? 'seed-001';
+    const id = this.currentMatch()?.id ?? this.currentMatchId();
+    if (!id) return;
     try {
       await navigator.clipboard?.writeText(id);
       this.copiedMatchId.set(true);
@@ -1150,7 +1161,12 @@ export class Shell {
         // pegajoso, e Inicio depende de que siga puesto.
         const routeGroup = groupIdFromUrl(
           url ?? '',
-          (matchId) => this.matchHistory.matchById(matchId)?.groupId ?? null,
+          // El grupo de la partida abierta, si es esa la que está cargada. `null` mientras
+          // viaja: la barra prefiere no marcar grupo a marcar el equivocado.
+          (matchId) => {
+            const detail = this.matchHistory.detailMatch();
+            return detail?.id === matchId ? detail.groupId : null;
+          },
         );
         this.routeGroupId.set(routeGroup);
         // La cabecera dice miembros y rol en TODAS las secciones del grupo, no solo en el hub,

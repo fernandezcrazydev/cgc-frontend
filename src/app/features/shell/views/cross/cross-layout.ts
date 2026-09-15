@@ -72,7 +72,8 @@ import { CrossViewState } from './cross-view-state';
         <div class="empty-state">
           <p class="empty-state__text nf-mono">Jugador no encontrado</p>
           <p class="empty-state__hint">
-            No encontramos a nadie con el tag «{{ state.playerId() }}» en tus grupos.
+            No hemos podido identificar a ese jugador: ni está en el grupo que tienes abierto,
+            ni aparece en ninguna partida vuestra que se haya subido.
           </p>
           <button nfButton variant="primary" size="md" [routerLink]="['/app', 'grupos']">
             Ver mis grupos

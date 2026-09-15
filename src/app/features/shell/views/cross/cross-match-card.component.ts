@@ -4,8 +4,8 @@ import {
   CrossMatch,
   MatchParticipant,
   formatKda,
-  matchHasStats,
   matchOutcomeLabel,
+  participantName,
 } from '../../../../core/matches';
 import { formatDuration } from '../../../../shared/date-format';
 import { NfAvatar, NfLaneIcon, NfSkeleton } from '../../../../ui';
@@ -25,7 +25,6 @@ import { nameOf } from './cross-player';
     NfSkeleton,
     MatchCardShellComponent,
   ],
-  styleUrl: './cross-match-card.component.scss',
   template: `
     <app-match-card-shell
       [match]="cross().match"
@@ -39,51 +38,42 @@ import { nameOf } from './cross-player';
         <span class="m-card__result-label" [class.is-win]="isWin()" [class.is-loss]="isLoss()">
           {{ outcomeLabel() }}
         </span>
-        @if (hasStats()) {
-          <span class="m-card__duration nf-mono">{{ duration() }}</span>
+        @if (duration(); as d) {
+          <span class="m-card__duration nf-mono">{{ d }}</span>
         }
       </div>
 
       <!-- Tu mitad -->
       <div class="cx-card__side cx-card__side--me">
         <div class="m-card__avatar-wrap">
-          @if (hasStats()) {
-            <nf-avatar
-              class="m-card__champ-icon"
-              [loading]="champsLoading()"
-              [src]="icon(cross().me)"
-              [fallback]="cross().me.championName"
-              [tint]="cross().me.championId"
-              [size]="42"
-              shape="square"
-            />
-          } @else {
-            <nf-avatar
-              class="m-card__champ-icon"
-              [src]="cross().me.avatarUrl ?? null"
-              [fallback]="cross().me.riotId"
-              [size]="42"
-              shape="square"
-              [title]="playerTitle(cross().me)"
-            />
-          }
+          <nf-avatar
+            class="m-card__champ-icon"
+            [loading]="champsLoading()"
+            [src]="icon(cross().me)"
+            [fallback]="championName(cross().me)"
+            [tint]="cross().me.championId ?? 0"
+            [size]="42"
+            shape="square"
+          />
           <div class="m-card__role-badge">
             <nf-lane-icon [lane]="cross().me.role" mode="original" />
           </div>
         </div>
         <div class="cx-card__meta">
           <span class="cx-card__who nf-mono">Tú</span>
-          @if (hasStats()) {
-            @if (champsLoading()) {
-              <nf-skeleton width="80px" height="13px" />
-            } @else {
-              <span class="cx-card__champ">{{ championName(cross().me) }}</span>
-            }
+          @if (champsLoading()) {
+            <nf-skeleton width="80px" height="13px" />
+          } @else {
+            <span class="cx-card__champ">{{ championName(cross().me) }}</span>
+          }
+          @if (cross().me.stats.kills != null) {
             <span class="cx-card__kda nf-mono">
               {{ cross().me.stats.kills }}<span class="m-card__sep">/</span
               ><span class="m-deaths">{{ cross().me.stats.deaths }}</span
               ><span class="m-card__sep">/</span>{{ cross().me.stats.assists }}
-              <span class="cx-card__ratio">{{ myKda() }} KDA</span>
+              @if (myKda(); as k) {
+                <span class="cx-card__ratio">{{ k }} KDA</span>
+              }
             </span>
           }
         </div>
@@ -100,50 +90,38 @@ import { nameOf } from './cross-player';
         @if (cross().sameLane) {
           <span class="cx-card__relation-lane nf-mono">Misma línea</span>
         }
-        @if (!hasStats()) {
-          <span class="m-card__no-stats nf-mono">Sin estadísticas · solo se registró el resultado</span>
-        }
       </div>
 
       <!-- Su mitad -->
       <div class="cx-card__side cx-card__side--them">
         <div class="cx-card__meta cx-card__meta--end">
           <span class="cx-card__who nf-mono">{{ theirName() }}</span>
-          @if (hasStats()) {
-            @if (champsLoading()) {
-              <nf-skeleton width="80px" height="13px" />
-            } @else {
-              <span class="cx-card__champ">{{ championName(cross().them) }}</span>
-            }
+          @if (champsLoading()) {
+            <nf-skeleton width="80px" height="13px" />
+          } @else {
+            <span class="cx-card__champ">{{ championName(cross().them) }}</span>
+          }
+          @if (cross().them.stats.kills != null) {
             <span class="cx-card__kda nf-mono">
               {{ cross().them.stats.kills }}<span class="m-card__sep">/</span
               ><span class="m-deaths">{{ cross().them.stats.deaths }}</span
               ><span class="m-card__sep">/</span>{{ cross().them.stats.assists }}
-              <span class="cx-card__ratio">{{ theirKda() }} KDA</span>
+              @if (theirKda(); as k) {
+                <span class="cx-card__ratio">{{ k }} KDA</span>
+              }
             </span>
           }
         </div>
         <div class="m-card__avatar-wrap">
-          @if (hasStats()) {
-            <nf-avatar
-              class="m-card__champ-icon"
-              [loading]="champsLoading()"
-              [src]="icon(cross().them)"
-              [fallback]="cross().them.championName"
-              [tint]="cross().them.championId"
-              [size]="42"
-              shape="square"
-            />
-          } @else {
-            <nf-avatar
-              class="m-card__champ-icon"
-              [src]="cross().them.avatarUrl ?? null"
-              [fallback]="cross().them.riotId"
-              [size]="42"
-              shape="square"
-              [title]="playerTitle(cross().them)"
-            />
-          }
+          <nf-avatar
+            class="m-card__champ-icon"
+            [loading]="champsLoading()"
+            [src]="icon(cross().them)"
+            [fallback]="championName(cross().them)"
+            [tint]="cross().them.championId ?? 0"
+            [size]="42"
+            shape="square"
+          />
           <div class="m-card__role-badge">
             <nf-lane-icon [lane]="cross().them.role" mode="original" />
           </div>
@@ -161,8 +139,6 @@ export class CrossMatchCardComponent {
 
   protected readonly champsLoading = computed(() => this.gameData.status() === 'loading');
 
-  protected readonly hasStats = computed(() => matchHasStats(this.cross().match));
-
   protected readonly isAlly = computed(() => this.cross().relation === 'ally');
   protected readonly isWin = computed(() => this.cross().match.userOutcome === 'win');
   protected readonly isLoss = computed(() => this.cross().match.userOutcome === 'loss');
@@ -178,25 +154,25 @@ export class CrossMatchCardComponent {
     return 'neutral';
   });
 
-  protected readonly duration = computed(() => formatDuration(this.cross().match.durationSeconds));
-  protected readonly theirName = computed(() => nameOf(this.cross().them.riotId));
+  /** `null` sin subida: no hay duración, y «0:00» sería una partida instantánea. */
+  protected readonly duration = computed(() => {
+    const seconds = this.cross().match.durationSeconds;
+    return seconds == null ? null : formatDuration(seconds);
+  });
+
+  protected readonly theirName = computed(() => nameOf(participantName(this.cross().them)));
+
   protected readonly myKda = computed(() => formatKda(this.cross().me.stats));
   protected readonly theirKda = computed(() => formatKda(this.cross().them.stats));
 
   protected icon(p: MatchParticipant): string | null {
+    if (p.championId == null) return null;
     return this.gameData.championById().get(p.championId)?.iconUrl ?? null;
   }
 
+  /** Solo el catálogo sabe el nombre: el asiento trae el id y nada más. */
   protected championName(p: MatchParticipant): string {
-    return this.gameData.championById().get(p.championId)?.name ?? p.championName;
-  }
-
-  protected playerTitle(p: MatchParticipant): string {
-    const you = p.id === this.cross().me.id ? ' · tú' : '';
-    if (!this.hasStats()) {
-      return `${p.riotId} · ${p.role}${you}`;
-    }
-    const name = this.championName(p);
-    return `${p.riotId} · ${name} · ${p.role}${you}`;
+    if (p.championId == null) return 'Campeón sin registrar';
+    return this.gameData.championById().get(p.championId)?.name ?? `Campeón ${p.championId}`;
   }
 }

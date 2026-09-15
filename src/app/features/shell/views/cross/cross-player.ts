@@ -1,6 +1,5 @@
 import { hash } from '../../../../core/group-ranking';
-import { CrossMatch } from '../../../../core/matches';
-import { Member } from '../../../../core/lobby';
+import { CrossMatch, participantName } from '../../../../core/matches';
 
 /**
  * A quién estás mirando en las vistas del cruce, resuelto para poder pintarlo.
@@ -10,58 +9,37 @@ import { Member } from '../../../../core/lobby';
  * los dos casos y ambos acababan enseñando una lista.
  */
 export interface CrossPlayer {
-  /** El identificador de la URL, tal cual viaja hoy (`Nombre#REGION`). */
-  tag: string;
+  /** Su `userId`, que es lo que viaja en la URL y lo que entiende el parámetro `with=`. */
+  userId: string;
   name: string;
   hue: number;
   avatarUrl: string | null;
 }
 
 /**
- * Resuelve al jugador por dos caminos, en este orden:
+ * Sale del asiento del propio cruce: desde el contrato nuevo, cada uno de los diez trae su
+ * nombre de Discord y su avatar **haya subida o no**.
  *
- * 1. El roster de tus grupos, que es donde vive su nombre e identidad visual.
- * 2. Las propias partidas cruzadas: si habéis jugado juntos, su participante ya trae el Riot ID
- *    y la foto, y eso basta para pintar la cabecera aunque ya no comparta grupo contigo.
- *
- * Si ninguno lo encuentra devuelve `null` y la vista pinta su 404.
- *
- * BACKEND NOTE: cuando exista `GET /players/{id}` esto se sustituye por esa lectura, con su
- * propio estado de carga; hoy ambas fuentes ya están en memoria y la resolución es síncrona.
+ * Por eso ya no hace falta un censo, y por eso «no lo encuentro» significa exactamente una cosa:
+ * no habéis coincidido en ninguna partida. Consultar el roster del grupo abierto no servía en
+ * `/me/matches`, donde cada fila es de un grupo distinto y puede que ni sigas siendo miembro.
  */
 export function resolveCrossPlayer(
-  tag: string,
-  roster: readonly Member[],
+  userId: string,
   cross: readonly CrossMatch[],
 ): CrossPlayer | null {
-  const raw = (tag ?? '').trim();
-  if (!raw) return null;
+  const id = (userId ?? '').trim();
+  if (!id) return null;
 
-  // El tag se compara en minúsculas porque el mock lo escribe con mayúsculas inconsistentes; el
-  // id estable NO, porque es un identificador opaco. Compararlo también en minúsculas era un
-  // bug silencioso: la rama del `userId` no podía acertar nunca con un id que llevase mayúsculas.
-  const key = raw.toLowerCase();
-  const member = roster.find((m) => m.tag.toLowerCase() === key || m.userId === raw);
-  if (member) {
-    return {
-      tag: member.tag,
-      name: member.name,
-      hue: member.hue,
-      avatarUrl: member.avatar ?? null,
-    };
-  }
+  const them = cross.find((c) => c.them.userId === id)?.them;
+  if (!them) return null;
 
-  const them = cross[0]?.them;
-  if (them) {
-    return {
-      tag: them.riotId,
-      name: nameOf(them.riotId),
-      hue: hash(them.riotId) % 360,
-      avatarUrl: them.avatarUrl ?? null,
-    };
-  }
-
-  return null;
+  return {
+    userId: id,
+    name: nameOf(participantName(them)),
+    hue: hash(id) % 360,
+    avatarUrl: them.avatarUrl,
+  };
 }
 
 /** `Pix3lQueen#LAN` → `Pix3lQueen`. La región se pinta aparte; en un título sobra. */

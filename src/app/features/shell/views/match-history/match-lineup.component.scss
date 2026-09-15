@@ -1,18 +1,41 @@
-﻿.m-lineup__champ-wrap {
+/*
+  Lo propio de la alineación desplegable. El bloque `m-lineup*` sigue en `views.scss`; aquí solo
+  va lo que es de este componente y de nadie más.
+*/
+
+.m-lineup__champ-wrap {
   position: relative;
   display: inline-flex;
 }
 
-.m-player-row__lvl {
-  position: absolute;
-  bottom: -2px;
-  right: -2px;
+/*
+  El nombre del equipo. Existe porque un equipo puede no tener color: «Equipo A» es su nombre
+  correcto, no un texto de reserva, y sin él las dos mitades del desplegable serían dos listas
+  de cinco sin nada que las distinga.
+*/
+.ml-team__name {
+  color: var(--nf-text-dim);
   font-size: var(--fs-label);
-  font-weight: 700;
-  background: var(--nf-void);
-  border: 1px solid var(--nf-border);
-  border-radius: 3px;
-  padding: 0 2px;
-  color: var(--nf-text);
-  line-height: 1;
+  font-weight: var(--fw-bold);
+}
+
+/* El hueco del campeón cuando nadie subió la partida. Vacío a propósito: ver `ml-no-stats`. */
+.ml-row__no-champ {
+  display: block;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--nf-radius-sm);
+  border: var(--bw-1) dashed var(--nf-border);
+  background: var(--nf-inset);
+}
+
+/*
+  La explicación de por qué faltan las cifras. Va una vez al pie y no en cada una de las diez
+  filas: repetido diez veces sería el mensaje más largo del desplegable.
+*/
+.ml-no-stats {
+  margin: 10px 0 0;
+  color: var(--nf-text-dim);
+  font-size: var(--fs-label);
+  line-height: 1.4;
 }

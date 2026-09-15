@@ -153,11 +153,16 @@ describe('Inicio Component', () => {
     expect(navigateSpy).toHaveBeenCalledWith(['/app', 'grupos', 'grp-1', 'sala', 'room-123']);
   });
 
-  it('retarNemesis navega a la ruta de Versus del rival', () => {
+  /*
+   * `retarNemesis` desapareció con la tarjeta de «Tu Mayor Némesis»: salía de recorrer el
+   * historial entero en el cliente, y con la paginación en servidor esa vuelta ya no existe
+   * (issue #69, §8). `verPerfil` sobrevive, y ahora navega por id estable y no por Riot ID.
+   */
+  it('verPerfil navega al perfil por el id estable del jugador', () => {
     const navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
 
-    component.retarNemesis('daxlup#EUW');
-    expect(navigateSpy).toHaveBeenCalledWith(['/app', 'versus', 'daxlup%23EUW']);
+    component.verPerfil('user-uuid');
+    expect(navigateSpy).toHaveBeenCalledWith(['/app', 'perfil', 'user-uuid']);
   });
 
   it('selectGroup selecciona un grupo directamente y sincroniza el índice', () => {
@@ -217,11 +222,15 @@ describe('Inicio Component', () => {
     expect(component.hoveredPoint()).toBeNull();
   });
 
-  it('verPerfil navega a la ruta de perfil del jugador', () => {
+  /*
+   * El perfil se abre por `userId`, que es el id estable del backend. Antes viajaba el Riot ID
+   * codificado, que ni identifica a nadie de forma estable ni es lo que espera la ruta.
+   */
+  it('verPerfil navega a la ruta de perfil por id estable', () => {
     const navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
 
-    component.verPerfil('Nightstalker#EUW');
-    expect(navigateSpy).toHaveBeenCalledWith(['/app', 'perfil', 'Nightstalker%23EUW']);
+    component.verPerfil('nightstalker-uuid');
+    expect(navigateSpy).toHaveBeenCalledWith(['/app', 'perfil', 'nightstalker-uuid']);
   });
 
   it('calcula lobbyFillPercent adecuadamente', () => {
@@ -231,36 +240,19 @@ describe('Inicio Component', () => {
     expect(component.roomCtaLabel()).toBe('¡Solo faltan 4!');
   });
 
-  it('onHighlightClick gestiona la navegación para cada tipo de highlight', () => {
+  /*
+   * Aquí se probaba `onHighlightClick`, que ya no existe: los «Highlights del Grupo» estaban
+   * escritos a mano —«54.2k dmg (daxlup)», «daxlup vs EduUC (8-7)»— y eran los mismos en todos
+   * los grupos y en todas las semanas. Se retiraron al conectar el historial.
+   */
+  it('verPartida abre la partida del MVP, y no hace nada sin id', () => {
     const navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
 
-    // Damage
-    component.onHighlightClick({
-      id: 'damage',
-      label: 'Mayor daño',
-      value: '54.2k',
-      sublabel: 'Partida',
-      matchId: 'match-123',
-    });
+    component.verPartida('match-123');
     expect(navigateSpy).toHaveBeenCalledWith(['/app', 'historial', 'match-123']);
 
-    // Streak
-    component.onHighlightClick({
-      id: 'streak',
-      label: 'Racha',
-      value: 'W6',
-      sublabel: 'Récord',
-    });
-    expect(navigateSpy).toHaveBeenCalledWith(['/app', 'grupos', 'grp-1', 'ranking']);
-
-    // Duel
-    component.onHighlightClick({
-      id: 'duel',
-      label: 'Duelo',
-      value: 'daxlup vs EduUC',
-      sublabel: '15 duelos',
-      riotId: 'EduUC',
-    });
-    expect(navigateSpy).toHaveBeenCalledWith(['/app', 'versus', 'EduUC']);
+    navigateSpy.mockClear();
+    component.verPartida('');
+    expect(navigateSpy).not.toHaveBeenCalled();
   });
 });

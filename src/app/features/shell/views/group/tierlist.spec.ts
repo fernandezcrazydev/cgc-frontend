@@ -5,10 +5,12 @@ import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/route
 import { of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { Tierlist } from './tierlist';
-import { MatchHistoryStore } from '../../../../core/matches/match-history-store';
-import { matchFixture, participantFixture } from '../../../../core/matches/match-fixtures';
 import { ChampionStatsStore } from '../../../../core/champions';
-import { installChampionStatsMock } from '../../../../core/champions/champion-stats-mock';
+import {
+  ChampionStatsMockSource,
+  mockMatchFixture,
+  mockParticipantFixture,
+} from '../../../../core/champions/champion-stats-mock';
 import { EnvironmentInjector } from '@angular/core';
 import { GameDataApi } from '../../../../core/game-data/game-data-api';
 import { GameDataStore } from '../../../../core/game-data';
@@ -59,7 +61,10 @@ const JINX_SUMMARY: ChampionSummary = {
 describe('Tierlist Component', () => {
   let fixture: ComponentFixture<Tierlist>;
   let component: Tierlist;
-  let matchStore: MatchHistoryStore;
+  // La tier list se pinta desde el suplente de campeones, que es quien agrega. Se le da el
+  // corpus a medida por test, en lugar de sembrar el historial.
+  let champSource: ChampionStatsMockSource;
+  let champStats: ChampionStatsStore;
 
   const mockGameDataApi = {
     manifest: () => of({ version: '16.14.1', updatedAt: '2026-07-26T04:17:03Z' }),
@@ -99,14 +104,14 @@ describe('Tierlist Component', () => {
       ],
     }).compileComponents();
 
-    const injector = TestBed.inject(EnvironmentInjector);
-    installChampionStatsMock(injector);
+    champStats = TestBed.inject(ChampionStatsStore);
+    champSource = new ChampionStatsMockSource();
+    champSource.useCorpus([]);
+    champStats.useSource(champSource);
 
     const gameDataStore = TestBed.inject(GameDataStore);
     await gameDataStore.ensureLoaded();
 
-    matchStore = TestBed.inject(MatchHistoryStore);
-    matchStore.allMatches.set([]); // Inicia vacío por defecto
 
     fixture = TestBed.createComponent(Tierlist);
     component = fixture.componentInstance;
@@ -132,12 +137,11 @@ describe('Tierlist Component', () => {
 
   it('calcula métricas de metagame, winrate, tiers y especialistas con partidas presentes', async () => {
     // Fabricamos 3 partidas en el grupo de prueba
-    const pAhriWin = participantFixture({
+    const pAhriWin = mockParticipantFixture({
       id: 'p1',
       team: 'blue',
       role: 'MID',
       championId: 103,
-      championName: 'Ahri',
       riotId: 'N1ght#LAN',
       discordUsername: 'N1ght',
       stats: {
@@ -158,12 +162,11 @@ describe('Tierlist Component', () => {
       },
     });
 
-    const pSylasLoss = participantFixture({
+    const pSylasLoss = mockParticipantFixture({
       id: 'p2',
       team: 'red',
       role: 'MID',
       championId: 517,
-      championName: 'Sylas',
       riotId: 'Rival#LAN',
       discordUsername: 'Rival',
       stats: {
@@ -184,34 +187,32 @@ describe('Tierlist Component', () => {
       },
     });
 
-    const m1 = matchFixture({
+    const m1 = mockMatchFixture({
       id: 'm1',
-      groupId: GROUP_ID,
       durationSeconds: 1800,
       winningTeam: 'blue',
       blue: [pAhriWin],
       red: [pSylasLoss],
     });
 
-    const m2 = matchFixture({
+    const m2 = mockMatchFixture({
       id: 'm2',
-      groupId: GROUP_ID,
       durationSeconds: 1800,
       winningTeam: 'blue',
       blue: [pAhriWin],
       red: [pSylasLoss],
     });
 
-    const m3 = matchFixture({
+    const m3 = mockMatchFixture({
       id: 'm3',
-      groupId: GROUP_ID,
       durationSeconds: 1800,
       winningTeam: 'blue',
       blue: [pAhriWin],
       red: [pSylasLoss],
     });
 
-    matchStore.allMatches.set([m1, m2, m3]);
+    champSource.useCorpus([m1, m2, m3]);
+    champStats.invalidate();
     await Promise.resolve();
     fixture.detectChanges();
 
@@ -236,29 +237,27 @@ describe('Tierlist Component', () => {
   });
 
   it('filtra por rol / línea correctamente', async () => {
-    const pMid = participantFixture({
+    const pMid = mockParticipantFixture({
       id: 'p1',
       team: 'blue',
       role: 'MID',
       championId: 103,
-      championName: 'Ahri',
     });
-    const pTop = participantFixture({
+    const pTop = mockParticipantFixture({
       id: 'p2',
       team: 'red',
       role: 'TOP',
       championId: 266,
-      championName: 'Aatrox',
     });
 
-    const m = matchFixture({
+    const m = mockMatchFixture({
       id: 'm1',
-      groupId: GROUP_ID,
       blue: [pMid],
       red: [pTop],
     });
 
-    matchStore.allMatches.set([m]);
+    champSource.useCorpus([m]);
+    champStats.invalidate();
     await Promise.resolve();
     fixture.detectChanges();
 
@@ -279,29 +278,27 @@ describe('Tierlist Component', () => {
   });
 
   it('filtra por búsqueda de texto de campeón', async () => {
-    const p1 = participantFixture({
+    const p1 = mockParticipantFixture({
       id: 'p1',
       team: 'blue',
       role: 'MID',
       championId: 103,
-      championName: 'Ahri',
     });
-    const p2 = participantFixture({
+    const p2 = mockParticipantFixture({
       id: 'p2',
       team: 'red',
       role: 'ADC',
       championId: 222,
-      championName: 'Jinx',
     });
 
-    const m = matchFixture({
+    const m = mockMatchFixture({
       id: 'm1',
-      groupId: GROUP_ID,
       blue: [p1],
       red: [p2],
     });
 
-    matchStore.allMatches.set([m]);
+    champSource.useCorpus([m]);
+    champStats.invalidate();
     await Promise.resolve();
     fixture.detectChanges();
 
@@ -317,29 +314,27 @@ describe('Tierlist Component', () => {
   });
 
   it('permite alternar ordenación por columnas (toggleSort)', async () => {
-    const p1 = participantFixture({
+    const p1 = mockParticipantFixture({
       id: 'p1',
       team: 'blue',
       role: 'MID',
       championId: 103,
-      championName: 'Ahri',
     });
-    const p2 = participantFixture({
+    const p2 = mockParticipantFixture({
       id: 'p2',
       team: 'red',
       role: 'ADC',
       championId: 222,
-      championName: 'Jinx',
     });
 
-    const m = matchFixture({
+    const m = mockMatchFixture({
       id: 'm1',
-      groupId: GROUP_ID,
       blue: [p1],
       red: [p2],
     });
 
-    matchStore.allMatches.set([m]);
+    champSource.useCorpus([m]);
+    champStats.invalidate();
     await Promise.resolve();
     fixture.detectChanges();
 

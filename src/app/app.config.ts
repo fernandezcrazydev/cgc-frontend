@@ -65,25 +65,23 @@ export const appConfig: ApplicationConfig = {
     // volver a la app obligaba a pulsar "entrar con Discord" otra vez. Con localStorage
     // la sesión sobrevive al cierre del navegador y se renueva sola con el refresh token.
     { provide: AbstractSecurityStorage, useClass: DefaultLocalStorageService },
-    // ÚNICO punto de carga de la semilla de partidas (`core/matches/match-seed.ts`), que existe
-    // solo porque el backend todavía no tiene módulo `matches`: sin ella el historial, el cruce,
-    // el versus y la sinergia no tienen nada que pintar y no hay rediseño que validar.
+    // Suplente de las FICHAS DE CAMPEON, y ya solo eso. La semilla de partidas que se cargaba
+    // aqui al lado se ha ido: `GET /api/v1/groups/{id}/matches` existe, y el historial lo trae
+    // `MatchesApi`. Las fichas no han corrido la misma suerte — de `champions` el backend solo
+    // sirve el catalogo (`/game-data/champions`), no las estadisticas por grupo— asi que su
+    // suplente sigue siendo lo unico que hay.
     //
     // El guard envuelve la ENTRADA ENTERA del array, no el cuerpo del inicializador: en
-    // producción el proveedor directamente no se registra. El `import()` es dinámico para que
-    // el módulo de la semilla no cuelgue del bundle inicial; verificado tras `ng build`, no
-    // aparece en `dist/` ni como chunk ni como símbolo.
+    // produccion el proveedor directamente no se registra. El `import()` es dinamico para que el
+    // modulo no cuelgue del bundle inicial.
     //
-    // BACKEND NOTE: al existir `GET /api/v1/matches` se borra este bloque entero, sus imports y
-    // el fichero que carga; el store pasará a traer las partidas por HTTP.
+    // BACKEND NOTE: muere con `GET /api/v1/groups/{groupId}/champions` y los otros dos que lista
+    // `champion-stats-api.ts`.
     ...(environment.production
       ? []
       : [
           provideEnvironmentInitializer(() => {
             const injector = inject(EnvironmentInjector);
-            void import('./core/matches/match-seed').then(({ seedMatchHistory }) => {
-              seedMatchHistory(injector);
-            });
             void import('./core/champions/champion-stats-mock').then(({ installChampionStatsMock }) => {
               installChampionStatsMock(injector);
             });

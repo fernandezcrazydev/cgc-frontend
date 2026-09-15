@@ -12,8 +12,19 @@ import { Session } from '../../../../core/auth';
 import { CURRENT_USER, GROUPS } from '../../../../core/lobby';
 import { signal } from '@angular/core';
 
+/** El id estable del jugador que se está mirando: es lo que viaja en la ruta del cruce. */
+const OTRO = 'pix3lqueen-uuid';
+
+/** El Riot ID del mismo jugador, que es lo único que trae el censo mock. */
+const TAG = 'Pix3lQueen#LAN';
+
 describe('PerfilMiembro Component', () => {
-  it('should initialize and compute member profile with H2H when user found', async () => {
+  /*
+   * El censo mock todavía no trae `userId`, así que `buildMemberProfile` también resuelve por
+   * tag. Cuando el roster real lo traiga, este parámetro pasa a ser el id estable como en el
+   * resto de la pantalla; el fallback existe justo para ese intervalo.
+   */
+  it('resuelve el perfil ajeno con lo que traiga el censo', async () => {
     const groupStore = new GroupStore();
     await TestBed.configureTestingModule({
       imports: [PerfilMiembro],
@@ -22,12 +33,8 @@ describe('PerfilMiembro Component', () => {
         {
           provide: ActivatedRoute,
           useValue: {
-            snapshot: {
-              paramMap: { get: () => 'Pix3lQueen#LAN' },
-              queryParamMap: { get: () => null },
-            },
-            paramMap: of({ get: () => 'Pix3lQueen#LAN' }),
-            queryParamMap: of({ get: () => null }),
+            snapshot: { paramMap: { get: () => TAG } },
+            paramMap: of({ get: () => TAG }),
           },
         },
         {
@@ -58,9 +65,6 @@ describe('PerfilMiembro Component', () => {
           provide: Session,
           useValue: {
             displayName: signal('User'),
-            // La tarjeta del cruce pinta tu cara junto a tus victorias: sin esto el doble de
-            // `Session` se queda corto y la plantilla revienta al renderizar.
-            avatarUrl: signal(null),
             status: signal('ready'),
             user: signal({ ...CURRENT_USER, id: 'u1' }),
             activeProfile: signal(null),
@@ -74,26 +78,31 @@ describe('PerfilMiembro Component', () => {
     fixture.detectChanges();
 
     expect(comp).toBeDefined();
-    expect(comp.userId()).toBe('Pix3lQueen#LAN');
+    expect(comp.userId()).toBe(TAG);
     expect(comp.profile()).not.toBeNull();
     expect(comp.profile()?.name).toBe('Pix3lQueen');
   });
 });
 
-import { MatchHistoryStore, buildCrossMatches } from '../../../../core/matches';
-import { matchFixture, participantFixture } from '../../../../core/matches/match-fixtures';
+import { MatchHistoryStore } from '../../../../core/matches';
+import {
+  fakeMatchHistoryStore,
+  matchFixture,
+  participantFixture,
+} from '../../../../core/matches/match-fixtures';
 import { Match, MatchParticipant } from '../../../../core/matches/models';
 
 function yo(): MatchParticipant {
-  return participantFixture({ id: 'me', team: 'blue', riotId: 'Yo#LAN' });
+  return participantFixture({ userId: 'me', slot: 'A', riotId: 'Yo#LAN' });
 }
 
+/** Vuestro cruce: una partida enfrentados y otra juntos. */
 function historial(): Match[] {
-  const contra = participantFixture({ id: 'e1', team: 'red', riotId: 'Pix3lQueen#LAN' });
-  const con = participantFixture({ id: 'e2', team: 'blue', riotId: 'Pix3lQueen#LAN' });
+  const contra = participantFixture({ userId: OTRO, slot: 'B', riotId: 'Pix3lQueen#LAN' });
+  const con = participantFixture({ userId: OTRO, slot: 'A', riotId: 'Pix3lQueen#LAN' });
   return [
-    matchFixture({ id: 'enfrentados', blue: [yo()], red: [contra], userParticipant: yo() }),
-    matchFixture({ id: 'juntos', blue: [yo(), con], red: [], userParticipant: yo() }),
+    matchFixture({ id: 'enfrentados', a: [yo()], b: [contra], userParticipant: yo() }),
+    matchFixture({ id: 'juntos', a: [yo(), con], b: [], userParticipant: yo() }),
   ];
 }
 
@@ -103,10 +112,7 @@ function historial(): Match[] {
  * pintar lo que no toca— al renderizarse: es lo único que lo detecta.
  */
 describe('PerfilMiembro · refactor de la vista', () => {
-  /** `sinCruce` monta la vista de alguien con quien no has coincidido nunca. */
-  async function montar(
-    { sinCruce = false }: { sinCruce?: boolean } = {},
-  ): Promise<{ el: HTMLElement; comp: PerfilMiembro; detect: () => void }> {
+  async function montar(): Promise<{ el: HTMLElement; comp: PerfilMiembro; detect: () => void }> {
     const groupStore = new GroupStore();
     const matches = historial();
     await TestBed.configureTestingModule({
@@ -116,12 +122,8 @@ describe('PerfilMiembro · refactor de la vista', () => {
         {
           provide: ActivatedRoute,
           useValue: {
-            snapshot: {
-              paramMap: { get: () => 'Pix3lQueen#LAN' },
-              queryParamMap: { get: () => null },
-            },
-            paramMap: of({ get: () => 'Pix3lQueen#LAN' }),
-            queryParamMap: of({ get: () => null }),
+            snapshot: { paramMap: { get: () => OTRO } },
+            paramMap: of({ get: () => OTRO }),
           },
         },
         {
@@ -133,21 +135,15 @@ describe('PerfilMiembro · refactor de la vista', () => {
         },
         { provide: GameDataStore, useValue: { status: signal('ready'), championById: signal(new Map()) } },
         {
+          // El cruce es un filtro del historial personal; los récords, su resumen.
           provide: MatchHistoryStore,
-          useValue: {
-            status: signal('ready'),
-            allMatches: signal(matches),
-            allPersonalMatches: signal(matches),
-            crossWith: (playerId: string) => {
-              const all = sinCruce ? [] : buildCrossMatches(matches, playerId);
-              return {
-                all,
-                allies: all.filter((c) => c.relation === 'ally'),
-                enemies: all.filter((c) => c.relation === 'enemy'),
-              };
+          useValue: fakeMatchHistoryStore({
+            personal: matches,
+            summaries: {
+              ally: { totalMatches: 1, wins: 1, losses: 0 },
+              enemy: { totalMatches: 1, wins: 1, losses: 0 },
             },
-            crossPartners: signal([]),
-          },
+          }),
         },
         // El `MatchHistoryStore` real se reproyecta sobre estos dos: sin ellos su `status()`
         // se queda en 'loading' y la vista enseña esqueleto, que es justo lo que debe hacer.
@@ -163,9 +159,6 @@ describe('PerfilMiembro · refactor de la vista', () => {
           provide: Session,
           useValue: {
             displayName: signal('User'),
-            // La tarjeta del cruce pinta tu cara junto a tus victorias: sin esto el doble de
-            // `Session` se queda corto y la plantilla revienta al renderizar.
-            avatarUrl: signal(null),
             status: signal('ready'),
             user: signal({ ...CURRENT_USER, id: 'u1' }),
             activeProfile: signal(null),
@@ -216,147 +209,40 @@ describe('PerfilMiembro · refactor de la vista', () => {
   });
 
   /**
-   * La tarjeta del cruce es una puerta a tres pantallas y cada control lleva a la suya. Antes las
-   * tres llevaban al mismo sitio, así que dos de los tres prometían cosas distintas.
-   *
-   * Las rutas se comprueban **canónicas** (`/app/jugador/:tag/...`) a propósito: las viejas
-   * (`/app/synergy/:tag`, `/app/versus/:tag`, `/app/historial-cruzado/:tag`) siguen existiendo,
-   * pero solo como redirecciones de compatibilidad en `app.routes.ts`, y enlazar a ellas obliga a
-   * navegar dos veces.
+   * Cada ficha abre las medias acumuladas de su lado del cruce y el chip abre la lista de
+   * partidas. Antes las tres llevaban al mismo sitio, así que dos de los tres controles
+   * prometían cosas distintas y hacían lo mismo.
    */
-  it('cada control de la tarjeta del cruce lleva a su pantalla, por la ruta canónica', async () => {
-    const { el } = await montar();
-
-    const sinergia = el.querySelector<HTMLAnchorElement>('a.pf-vs-tile--synergy');
-    expect(sinergia?.getAttribute('href')).toMatch(/^\/app\/jugador\/.+\/juntos$/);
-
-    const caraACara = el.querySelector<HTMLAnchorElement>('a.pf-vs-tile--rivalry');
-    expect(caraACara?.getAttribute('href')).toMatch(/^\/app\/jugador\/.+\/contra$/);
-
-    // El usuario pidió un botón del kit, no un chip con una flecha.
-    const historial = el.querySelector<HTMLAnchorElement>('.pf-vs-card .pf-card__header a');
-    expect(historial?.classList.contains('nf-btn')).toBe(true);
-    expect(historial?.getAttribute('href')).toMatch(/^\/app\/jugador\/[^/]+$/);
-    expect(historial?.textContent?.trim()).toBe('Historial cruzado');
-  });
-
-  it('la tarjeta del cruce resume la relación: reparto, racha y emparejamiento', async () => {
-    const { el } = await montar();
-
-    // La barra reparte las partidas entre las dos relaciones; se lee sin leyenda, y lo que la
-    // hace accesible es su etiqueta, no los colores.
-    const barra = el.querySelector('.pf-vs-split__bar');
-    expect(barra?.getAttribute('aria-label')).toMatch(/\d+ partidas juntos y \d+ enfrentados/);
-    expect(el.querySelector<HTMLElement>('.pf-vs-split__fill')?.style.width).toMatch(/%$/);
-
-    // La racha sale de `CrossAggregate`. Si el cruce sembrado no la trae, la línea no se pinta
-    // —y eso también es correcto—, así que se comprueba su forma, no su presencia.
-    for (const racha of Array.from(el.querySelectorAll('.pf-vs-tile__streak'))) {
-      expect(racha.textContent).toMatch(/racha \d+[VD]/);
-    }
-
-    /* El emparejamiento se pinta con los ICONOS de los dos campeones, no con sus nombres:
-       `myChampionName` es el nombre que trae la partida y crudo salía «Tu Campeón 33 vs su
-       Campeón 64», que no dice nada. El nombre sobrevive solo como texto accesible. */
-    const emparejamientos = Array.from(el.querySelectorAll('.pf-vs-matchup'));
-    expect(emparejamientos.length).toBeGreaterThan(0);
-    for (const linea of emparejamientos) {
-      expect(linea.querySelectorAll('nf-avatar.pf-vs-matchup__champ').length).toBe(2);
-      expect(linea.getAttribute('aria-label')).toMatch(/(más repetido)/);
-      expect(linea.querySelector('.pf-vs-matchup__record')?.textContent).toMatch(
-        /\d+ % · \d+V-\d+D/,
-      );
-      // Ni rastro de la frase con el número del campeón dentro.
-      expect(linea.textContent).not.toMatch(/Tu Campeón/);
-    }
-  });
-
-  /**
-   * Lo pidió el usuario: dos cifras sueltas no se leen como un duelo. Con la cara de cada uno
-   * pegada a sus victorias, y en espejo, sí.
+  /*
+   * Los tres controles llevan al mismo jugador por su `userId`, que es lo que entiende el
+   * parámetro `with=` del endpoint. Antes viajaba su Riot ID, que ni lo acepta el backend ni
+   * identifica a nadie de forma estable.
    */
-  it('el marcador del cara a cara es simétrico: avatares y marcador V · D', async () => {
+  it('las fichas llevan a las medias de su lado y el chip al historial cruzado', async () => {
     const { el } = await montar();
 
-    const duelo = el.querySelector('.pf-vs-tile--rivalry .pf-vs-duel')!;
-    expect(duelo.querySelectorAll('nf-avatar.pf-vs-duel__avatar').length).toBe(2);
+    const synergy = el.querySelector<HTMLAnchorElement>('a.pf-vs-tile--synergy');
+    expect(synergy?.getAttribute('href')).toBe(`/app/jugador/${OTRO}/juntos`);
 
-    const score = el.querySelector('.pf-vs-tile--rivalry .pf-vs-tile__score');
-    expect(score?.textContent).toMatch(/\d+ V\s*·\s*\d+ D/);
+    const versus = el.querySelector<HTMLAnchorElement>('a.pf-vs-tile--rivalry');
+    expect(versus?.getAttribute('href')).toBe(`/app/jugador/${OTRO}/contra`);
+
+    const chipHistorial = el.querySelector<HTMLAnchorElement>('a.pf-meta-chip--action');
+    expect(chipHistorial?.getAttribute('href')).toBe(`/app/jugador/${OTRO}`);
+    expect(chipHistorial?.textContent?.trim()).toBe('Historial cruzado');
   });
 
-  /**
-   * Toda la tarjeta lleva al historial cruzado, no solo el botón. Se resuelve estirando el
-   * `::after` del propio botón sobre la tarjeta, así que sigue habiendo un `<a>` de verdad
-   * —tabulable y con `href`— en vez de un `div` con un `(click)`.
-   */
-  it('la tarjeta entera es pulsable, sin dejar de ser un enlace de verdad', async () => {
-    const { el } = await montar();
-
-    const tarjeta = el.querySelector('.pf-vs-card')!;
-    const estirado = tarjeta.querySelector('a.pf-vs-card__all');
-    expect(estirado).not.toBeNull();
-    expect(estirado?.tagName).toBe('A');
-    expect(estirado?.getAttribute('href')).toMatch(/^\/app\/jugador\/[^/]+$/);
-
-    // Las dos columnas conservan su destino propio: si el enlace estirado las tapara, pulsar en
-    // ellas llevaría al historial en vez de a su pantalla.
-    expect(tarjeta.querySelectorAll('a.pf-vs-tile--interactive').length).toBe(2);
-  });
-
-  /** Sin partidas en común no hay relación que describir: la tarjeta no existe. */
-  it('sin historial cruzado la tarjeta del cruce no se pinta', async () => {
-    const { el } = await montar({ sinCruce: true });
-
-    expect(el.querySelector('.pf-vs-card')).toBeNull();
-  });
-
-  /**
-   * La tabla de medias vivía dentro de esta tarjeta y la hacía dos cosas a la vez. Sus cuatro
-   * filas se pintan enteras en las dos pantallas de destino, así que aquí sobraban.
-   */
-  it('la tarjeta ya no lleva la tabla de medias comparadas', async () => {
-    const { el } = await montar();
-
-    expect(el.querySelector('.pf-compare-compact')).toBeNull();
-  });
-
-  /**
-   * La gráfica es la misma del perfil propio y del hub, y solo habla de los grupos que
-   * compartís: de los ajenos no se enseña clasificación, igual que hace la tarjeta de grupos.
-   */
-  it('pinta la gráfica de LP por liga de los grupos compartidos', async () => {
-    const { el, comp } = await montar();
-
-    expect(comp.sharedGroups().length).toBeGreaterThan(0);
-    expect(el.querySelector('app-profile-lp-chart')).not.toBeNull();
-    expect(el.querySelector('app-hub-lp-chart .hub-lp')).not.toBeNull();
-    // Es el perfil de otro: el título no puede hablar de «tu» evolución.
-    const titulo = el.querySelector('app-profile-lp-chart .hub-card__title')?.textContent ?? '';
-    expect(titulo).toContain('Evolución de LP por liga');
-    expect(titulo).not.toContain('Tu ');
-  });
-
-  /** Encima de la cabecera del jugador no va nada: la pidió limpia el usuario. */
-  it('no hay ningún enlace por encima de la cabecera del jugador', async () => {
-    const { el } = await montar();
-
-    expect(el.querySelector('.view-back')).toBeNull();
-    const primero = el.querySelector('.pf-view > *');
-    expect(primero?.classList.contains('pf-hero-compact')).toBe(true);
-  });
-
-  it('los campeones insignia enlazan a la ficha de campeón', async () => {
+  it('los campeones insignia enlazan a la tierlist', async () => {
     const { el } = await montar();
 
     const champ = el.querySelector<HTMLAnchorElement>('a.pf-mini-champ');
-    expect(champ?.getAttribute('href')).toMatch(/\/app\/campeon\/\d+/);
+    expect(champ?.getAttribute('href')).toBe('/app/tierlist');
   });
 
   it('la pestaña de campeones ofrece buscador con tope de cuatro sugerencias', async () => {
     const { el, comp, detect } = await montar();
 
-    comp.setTab('campeones');
+    comp.activeTab.set('campeones');
     detect();
 
     const buscador = el.querySelector('.pf-champ-search nf-combobox');
@@ -368,7 +254,7 @@ describe('PerfilMiembro · refactor de la vista', () => {
   it('el buscador acota la rejilla a un solo campeón', async () => {
     const { comp, detect } = await montar();
 
-    comp.setTab('campeones');
+    comp.activeTab.set('campeones');
     detect();
     const total = comp.filteredChampions().length;
     expect(total).toBeGreaterThan(1);
@@ -378,176 +264,5 @@ describe('PerfilMiembro · refactor de la vista', () => {
     detect();
 
     expect(comp.filteredChampions().map((c) => c.championId)).toEqual([elegido]);
-  });
-
-  it('muestra el estado privado y oculta métricas si el perfil tiene isPrivate', async () => {
-    await TestBed.configureTestingModule({
-      imports: [PerfilMiembro],
-      providers: [
-        provideRouter([]),
-        {
-          provide: ActivatedRoute,
-          useValue: {
-            snapshot: { paramMap: { get: () => 'Pix3lQueen#LAN' } },
-            paramMap: of({ get: () => 'Pix3lQueen#LAN' }),
-          },
-        },
-        {
-          provide: GroupStore,
-          useValue: {
-            groups: signal(GROUPS),
-            rosterOf: () => [
-              {
-                name: 'Pix3lQueen',
-                tag: 'Pix3lQueen#LAN',
-                initials: 'PQ',
-                role: 'MID',
-                owner: false,
-                hue: 120,
-                isPrivate: true,
-              },
-            ],
-          },
-        },
-        { provide: GameDataStore, useValue: { status: signal('ready'), championById: signal(new Map()) } },
-        { provide: GroupsStore, useValue: { groups: signal([]), status: signal('ready'), ensureLoaded: () => {} } },
-        { provide: RiotAccountStore, useValue: { account: signal(null), status: signal('ready'), ensureLoaded: () => {} } },
-        {
-          provide: Session,
-          useValue: {
-            displayName: signal('User'),
-            // La tarjeta del cruce pinta tu cara junto a tus victorias: sin esto el doble de
-            // `Session` se queda corto y la plantilla revienta al renderizar.
-            avatarUrl: signal(null),
-            status: signal('ready'),
-            user: signal({ ...CURRENT_USER, id: 'u1' }),
-            activeProfile: signal(null),
-          },
-        },
-      ],
-    }).compileComponents();
-
-    const fixture = TestBed.createComponent(PerfilMiembro);
-    fixture.detectChanges();
-    const el = fixture.nativeElement as HTMLElement;
-
-    expect(el.querySelector('.pf-private-state')).not.toBeNull();
-    expect(el.querySelector('.pf-private-title')?.textContent).toContain('Este perfil es privado');
-    expect(el.querySelector('.pf-tabs-bar')).toBeNull();
-  });
-
-  it('el perfil ajeno tiene la tabla de rendimiento por posición con copy en tercera persona', async () => {
-    const groupStore = new GroupStore();
-    await TestBed.configureTestingModule({
-      imports: [PerfilMiembro],
-      providers: [
-        provideRouter([]),
-        {
-          provide: ActivatedRoute,
-          useValue: {
-            snapshot: { paramMap: { get: () => 'Pix3lQueen#LAN' } },
-            paramMap: of({ get: () => 'Pix3lQueen#LAN' }),
-            queryParamMap: of({ get: () => null }),
-          },
-        },
-        {
-          provide: GroupStore,
-          useValue: {
-            groups: signal(GROUPS),
-            rosterOf: (id: string) => groupStore.rosterOf(id),
-          },
-        },
-        { provide: GameDataStore, useValue: { status: signal('ready'), championById: signal(new Map()) } },
-        { provide: GroupsStore, useValue: { groups: signal([]), status: signal('ready'), ensureLoaded: () => {} } },
-        { provide: RiotAccountStore, useValue: { account: signal(null), status: signal('ready'), ensureLoaded: () => {} } },
-        {
-          provide: Session,
-          useValue: {
-            displayName: signal('User'),
-            avatarUrl: signal(null),
-            status: signal('ready'),
-            user: signal({ ...CURRENT_USER, id: 'u1' }),
-            activeProfile: signal(null),
-          },
-        },
-      ],
-    }).compileComponents();
-
-    const fixture = TestBed.createComponent(PerfilMiembro);
-    const comp = fixture.componentInstance;
-    comp.setTab('dna');
-    fixture.detectChanges();
-    const el = fixture.nativeElement as HTMLElement;
-
-    const tabla = el.querySelector('.pf-role-table');
-    expect(tabla).not.toBeNull();
-    const filas = tabla!.querySelectorAll('.pf-role-table__row:not(.pf-role-table__row--head)');
-    expect(filas.length).toBe(5);
-
-    // Verificamos que los tooltips de vacío estén en tercera persona
-    const noDataSpans = tabla!.querySelectorAll('.pf-nodata');
-    noDataSpans.forEach((span) => {
-      const title = span.getAttribute('title') ?? '';
-      expect(title).not.toContain('has jugado');
-      expect(title).not.toContain('tus partidas');
-      if (title.includes('ninguna partida')) {
-        expect(title).toContain('Todavía no ha jugado ninguna partida en esta posición');
-      }
-      if (title.includes('registra quién ganó')) {
-        expect(title).toContain('Ninguna de sus partidas en esta posición registra quién ganó la línea');
-      }
-    });
-  });
-
-  it('las seis tarjetas de ADN en el perfil ajeno enseñan la nota con una décima', async () => {
-    const groupStore = new GroupStore();
-    await TestBed.configureTestingModule({
-      imports: [PerfilMiembro],
-      providers: [
-        provideRouter([]),
-        {
-          provide: ActivatedRoute,
-          useValue: {
-            snapshot: { paramMap: { get: () => 'Pix3lQueen#LAN' } },
-            paramMap: of({ get: () => 'Pix3lQueen#LAN' }),
-            queryParamMap: of({ get: () => null }),
-          },
-        },
-        {
-          provide: GroupStore,
-          useValue: {
-            groups: signal(GROUPS),
-            rosterOf: (id: string) => groupStore.rosterOf(id),
-          },
-        },
-        { provide: GameDataStore, useValue: { status: signal('ready'), championById: signal(new Map()) } },
-        { provide: GroupsStore, useValue: { groups: signal([]), status: signal('ready'), ensureLoaded: () => {} } },
-        { provide: RiotAccountStore, useValue: { account: signal(null), status: signal('ready'), ensureLoaded: () => {} } },
-        {
-          provide: Session,
-          useValue: {
-            displayName: signal('User'),
-            avatarUrl: signal(null),
-            status: signal('ready'),
-            user: signal({ ...CURRENT_USER, id: 'u1' }),
-            activeProfile: signal(null),
-          },
-        },
-      ],
-    }).compileComponents();
-
-    const fixture = TestBed.createComponent(PerfilMiembro);
-    const comp = fixture.componentInstance;
-    comp.setTab('dna');
-    fixture.detectChanges();
-    const el = fixture.nativeElement as HTMLElement;
-
-    const scores = el.querySelectorAll('.pf-dna-card__score');
-    expect(scores.length).toBe(6);
-    scores.forEach((s) => {
-      expect(s.textContent?.trim()).toMatch(/^(\d+,\d|—)$/);
-      expect(s.textContent).not.toContain('/10');
-      expect(s.textContent).not.toContain('sobre');
-    });
   });
 });

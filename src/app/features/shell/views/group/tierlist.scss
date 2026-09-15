@@ -1,18 +1,4 @@
-﻿/* ── Vista Tierlist de Campeones del Grupo ────────────────────────────────────
-   Estilos dedicados para la tabla analítica competitiva de metagame. */
-
-.tierlist-view {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 8px 0 32px;
-}
-
-/* ── Cabecera ──────────────────────────────────────────────────────────────── */
-
-.tierlist-meta-count {
+﻿.tierlist-meta-count {
   display: inline-flex;
   align-items: center;
   gap: 8px;

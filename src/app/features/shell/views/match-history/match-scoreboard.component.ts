@@ -8,31 +8,52 @@ import {
   signal,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { DragonType, Lane, Match, MatchParticipant, TeamSummary } from '../../../../core/matches/models';
+import { Lane, Match, MatchParticipant, TeamSummary } from '../../../../core/matches/models';
 import {
+  LANE_ORDER,
   computeMatchScores,
+  csPerMin,
   damagePerGold,
   damageShare,
   formatKda,
-  itemBg,
   laneLabel,
+  participantName,
+  teamLabel,
+  wonLane,
 } from '../../../../core/matches/match-view';
 import { GameDataStore } from '../../../../core/game-data';
-import { formatCompact, formatNumber } from '../../../../shared/date-format';
-import { ToastService } from '../../../../core/toast';
-import { NfAvatar, NfLaneIcon, NfSegmentOption, NfSegmented } from '../../../../ui';
-import { Viewport } from '../../../../shared/viewport';
 import { ReactionsStore, ReactionTally } from '../../../../core/reactions';
 import { playerReactionsFor } from '../../../../core/group-hub';
+import { ToastService } from '../../../../core/toast';
+import { NfAvatar, NfLaneIcon, NfSegmented, NfSegmentOption } from '../../../../ui';
+import { formatCompact, formatNumber } from '../../../../shared/date-format';
+import { Viewport } from '../../../../shared/viewport';
 
+/**
+ * El marcador de una partida: los diez, el ranking y los duelos de línea.
+ *
+ * ## Los dos equipos se recorren, no se escriben dos veces
+ *
+ * La versión anterior tenía un bloque «azul» y un bloque «rojo» copiados línea por línea, y esa
+ * duplicación deja de sostenerse en cuanto un equipo puede **no tener color**: quién vistió de
+ * azul lo decide la sala y puede no haberse decidido nunca. Lo que siempre existe es el hueco,
+ * A o B, así que el orden y la identidad de los equipos salen de ahí y el color es solo pintura.
+ *
+ * ## Lo que ya no pinta
+ *
+ * Objetos, runas, hechizos y nivel de campeón: el backend no los sirve. Están guardados, pero
+ * con nombres de campo sacados de la documentación del cliente de LoL que nadie ha visto en un
+ * payload medido. Mientras tanto se pintaban con una tabla de reserva por línea que no describía
+ * ninguna partida real: el jungla siempre con Smite azul, el soporte siempre con Protector.
+ *
+ * Y cuando la partida no está subida (`hasStats: false`) las tres pestañas lo dicen en vez de
+ * enseñar ceros. Un `0/0/0` con 0 de daño se lee como una partida real en la que no pasó nada.
+ */
 @Component({
   selector: 'app-match-scoreboard',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  host: {
-    '(document:click)': 'onDocumentClick($event)',
-    '(document:keydown.escape)': 'pickerFor.set(null); peekFor.set(null)',
-  },
+  host: { '(document:click)': 'onDocumentClick($event)' },
   imports: [RouterLink, NfAvatar, NfLaneIcon, NfSegmented],
   styleUrl: './match-scoreboard.component.scss',
   templateUrl: './match-scoreboard.component.html',
@@ -52,8 +73,9 @@ export class MatchScoreboardComponent {
 
   readonly pickerFor = signal<string | null>(null);
   readonly peekFor = signal<string | null>(null);
-  readonly quickEmojis = computed(() => this.reactions.mostUsed(this.match().groupId || 'group'));
+  readonly quickEmojis = computed(() => this.reactions.mostUsed(this.reactionScope()));
 
+  /** Vacío si la partida no está subida: una nota sobre un KDA que nadie exportó es un invento. */
   private readonly playerScores = computed(() => computeMatchScores(this.match()));
 
   constructor() {
@@ -61,10 +83,14 @@ export class MatchScoreboardComponent {
 
     effect(() => {
       const match = this.match();
-      const scope = match.groupId || 'group';
-      for (const team of [match.blueTeam, match.redTeam]) {
+      const scope = this.reactionScope();
+      for (const team of match.teams) {
         for (const p of team.participants) {
-          this.reactions.seed(scope, match.id + ':' + p.id, playerReactionsFor(match.id, p.id));
+          this.reactions.seed(
+            scope,
+            match.id + ':' + p.userId,
+            playerReactionsFor(match.id, p.userId),
+          );
         }
       }
     });
@@ -74,12 +100,24 @@ export class MatchScoreboardComponent {
     this.internalTab.set(tab);
   }
 
+  /**
+   * Bajo qué grupo se reacciona.
+   *
+   * BACKEND NOTE: en el historial personal la fila no dice de qué grupo es —el DTO no trae
+   * `groupId`—, así que las reacciones caen a un ámbito común. Son locales del navegador y no
+   * viajan a ningún sitio (no hay tabla ni endpoint), así que el daño es que se mezclen entre
+   * grupos; se arregla solo cuando la fila traiga su grupo (issue #69).
+   */
+  private reactionScope(): string {
+    return this.match().groupId || 'group';
+  }
+
   private targetOf(p: MatchParticipant): string {
-    return this.match().id + ':' + p.id;
+    return this.match().id + ':' + p.userId;
   }
 
   protected allReactions(p: MatchParticipant): ReactionTally[] {
-    return this.reactions.tally(this.match().groupId || 'group', this.targetOf(p));
+    return this.reactions.tally(this.reactionScope(), this.targetOf(p));
   }
 
   protected topReactions(p: MatchParticipant): ReactionTally[] {
@@ -90,12 +128,12 @@ export class MatchScoreboardComponent {
     event?.stopPropagation();
     this.pickerFor.set(null);
     this.peekFor.set(null);
-    this.reactions.toggle(this.match().groupId || 'group', this.targetOf(p), emoji);
+    this.reactions.toggle(this.reactionScope(), this.targetOf(p), emoji);
   }
 
-  protected toggleReactionPicker(participantId: string, event: Event): void {
+  protected toggleReactionPicker(userId: string, event: Event): void {
     event.stopPropagation();
-    this.pickerFor.update((curr) => (curr === participantId ? null : participantId));
+    this.pickerFor.update((curr) => (curr === userId ? null : userId));
   }
 
   protected clearPeek(): void {
@@ -109,116 +147,12 @@ export class MatchScoreboardComponent {
     this.pickerFor.set(null);
   }
 
-  protected playerRankScore(p: MatchParticipant): string {
-    return this.playerScores().get(p.id)?.score ?? '';
+  protected playerRankScore(p: MatchParticipant): string | null {
+    return this.playerScores().get(p.userId)?.score ?? null;
   }
 
   protected playerRank(p: MatchParticipant): number {
-    return this.playerScores().get(p.id)?.rank ?? 10;
-  }
-
-  protected drakeIcon(type: DragonType): string {
-    const map: Record<DragonType, string> = {
-      infernal: 'https://raw.communitydragon.org/latest/game/assets/ux/minimap/icons/dragon_fire.png',
-      mountain: 'https://raw.communitydragon.org/latest/game/assets/ux/minimap/icons/dragon_earth.png',
-      ocean: 'https://raw.communitydragon.org/latest/game/assets/ux/minimap/icons/dragon_ocean.png',
-      cloud: 'https://raw.communitydragon.org/latest/game/assets/ux/minimap/icons/dragon_cloud.png',
-      hextech: 'https://raw.communitydragon.org/latest/game/assets/ux/minimap/icons/dragon_hextech.png',
-      chemtech: 'https://raw.communitydragon.org/latest/game/assets/ux/minimap/icons/dragon_chemtech.png',
-    };
-    return map[type] ?? map.infernal;
-  }
-
-  protected drakeTitle(type: DragonType): string {
-    const map: Record<DragonType, string> = {
-      infernal: 'Dragón de fuego',
-      mountain: 'Dragón de montaña',
-      ocean: 'Dragón de océano',
-      cloud: 'Dragón de nube',
-      hextech: 'Dragón hextech',
-      chemtech: 'Dragón tecnoquímico',
-    };
-    return map[type] ?? 'Dragón elemental';
-  }
-
-  protected participantSpells(p: MatchParticipant): number[] {
-    if (p.role === 'JUNGLA') {
-      if (p.stats?.smiteVariant === 'blue') return [p.stats.spells?.[0] ?? 4, 1102];
-      if (p.stats?.smiteVariant === 'red') return [p.stats.spells?.[0] ?? 4, 1101];
-      if (p.stats?.smiteVariant === 'green') return [p.stats.spells?.[0] ?? 4, 1103];
-      if (p.stats?.smiteVariant === 'unevolved') return [p.stats.spells?.[0] ?? 4, 11];
-      if (p.stats?.spells && [11, 1101, 1102, 1103].includes(p.stats.spells[1])) {
-        return p.stats.spells;
-      }
-      return [p.stats?.spells?.[0] ?? 4, 1102];
-    }
-    if (p.stats?.spells && p.stats.spells.length >= 2) return p.stats.spells;
-    const second: Record<Lane, number> = {
-      TOP: 12,
-      JUNGLA: 1102,
-      MID: 14,
-      ADC: 7,
-      SUPPORT: 3,
-    };
-    return [4, second[p.role] ?? 14];
-  }
-
-  protected participantPrimaryRune(p: MatchParticipant): number {
-    const fallback: Record<Lane, number> = { TOP: 8437, JUNGLA: 8010, MID: 8112, ADC: 8008, SUPPORT: 8465 };
-    return p.stats?.primaryRuneId ?? fallback[p.role] ?? 8010;
-  }
-
-  protected participantSecondaryRune(p: MatchParticipant): number {
-    const fallback: Record<Lane, number> = { TOP: 8000, JUNGLA: 8300, MID: 8200, ADC: 8300, SUPPORT: 8400 };
-    return p.stats?.secondaryRuneTreeId ?? fallback[p.role] ?? 8300;
-  }
-
-  protected spellIcon(id: number): string | null {
-    if (id === 1102) return 'https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/data/spells/icons2d/1102_smite.png';
-    if (id === 1101) return 'https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/data/spells/icons2d/1101_smite.png';
-    if (id === 1103) return 'https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/data/spells/icons2d/1103_smite.png';
-    if (id === 11) return 'https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/data/spells/icons2d/summoner_smite.png';
-    const names: Record<number, string> = { 4: 'SummonerFlash', 12: 'SummonerTeleport', 11: 'SummonerSmite', 14: 'SummonerDot', 7: 'SummonerHeal', 21: 'SummonerBarrier', 3: 'SummonerExhaust', 6: 'SummonerHaste' };
-    return `https://ddragon.leagueoflegends.com/cdn/14.24.1/img/spell/${names[id] ?? 'SummonerFlash'}.png`;
-  }
-
-  protected spellName(id: number): string {
-    const names: Record<number, string> = { 4: 'Destello', 12: 'Teleportar', 11: 'Smite', 14: 'Ignición', 7: 'Curar', 21: 'Barrera', 3: 'Extenuación', 6: 'Fantasmal' };
-    return names[id] ?? `Hechizo ${id}`;
-  }
-
-  protected runeIcon(id: number | undefined): string | null {
-    if (!id) return null;
-    const icons: Record<number, string> = {
-      8010: 'https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Precision/Conqueror/Conqueror.png',
-      8008: 'https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Precision/LethalTempo/LethalTempoTemp.png',
-      8021: 'https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Precision/FleetFootwork/FleetFootwork.png',
-      8005: 'https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Precision/PressTheAttack/PressTheAttack.png',
-      8112: 'https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Domination/Electrocute/Electrocute.png',
-      8128: 'https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Domination/DarkHarvest/DarkHarvest.png',
-      8214: 'https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Sorcery/SummonAery/SummonAery.png',
-      8229: 'https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Sorcery/ArcaneComet/ArcaneComet.png',
-      8437: 'https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Resolve/GraspOfTheUndying/GraspOfTheUndying.png',
-      8465: 'https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Resolve/Guardian/Guardian.png',
-      8351: 'https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Inspiration/GlacialAugment/GlacialAugment.png',
-      8000: 'https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/7201_Precision.png',
-      8100: 'https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/7200_Domination.png',
-      8200: 'https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/7202_Sorcery.png',
-      8300: 'https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/7203_Whimsy.png',
-      8400: 'https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/7204_Resolve.png',
-    };
-    return icons[id] ?? null;
-  }
-
-  protected runeName(id: number | undefined): string {
-    if (!id) return 'Runa';
-    const names: Record<number, string> = {
-      8010: 'Conquistador', 8008: 'Compás Letal', 8021: 'Pies Veloces', 8005: 'Ataque Intensificado',
-      8112: 'Electrocutar', 8128: 'Cosecha Oscura', 8214: 'Invocar a Aery', 8229: 'Cometa Arcano',
-      8437: 'Garras del Inmortal', 8465: 'Protector', 8351: 'Mejora Glacial',
-      8000: 'Precisión', 8100: 'Dominación', 8200: 'Brujería', 8300: 'Inspiración', 8400: 'Valor',
-    };
-    return names[id] ?? `Runa ${id}`;
+    return this.playerScores().get(p.userId)?.rank ?? 10;
   }
 
   /**
@@ -236,15 +170,29 @@ export class MatchScoreboardComponent {
         },
   );
 
-  readonly allPlayers = computed(() => {
-    return [...this.match().blueTeam.participants, ...this.match().redTeam.participants];
-  });
-
-  readonly maxDamage = computed(() =>
-    Math.max(...this.allPlayers().map((p) => p.stats.totalDamageToChampions), 1),
+  /** Los dos equipos en orden de hueco, cada uno con su alineación ordenada por línea. */
+  readonly teams = computed(() =>
+    this.match().teams.map((t) => ({
+      slot: t.slot,
+      side: t.side,
+      won: t.won,
+      label: teamLabel(t),
+      totalKills: t.totalKills,
+      totalGold: t.totalGold,
+      objectives: t.objectives ?? null,
+      participants: [...t.participants].sort((a, b) => laneIndex(a.role) - laneIndex(b.role)),
+      /** El equipo sin tocar, que es lo que necesitan las derivaciones por equipo. */
+      raw: t,
+    })),
   );
 
-  readonly maxGold = computed(() => Math.max(...this.allPlayers().map((p) => p.stats.gold), 1));
+  readonly allPlayers = computed(() =>
+    this.match().teams.flatMap((t) => t.participants),
+  );
+
+  /** El máximo real de la partida, o `null` si nadie trae daño: entonces no hay barra que pintar. */
+  private readonly maxDamage = computed(() => maxOf(this.allPlayers(), (p) => p.stats.damageToChampions));
+  private readonly maxGold = computed(() => maxOf(this.allPlayers(), (p) => p.stats.gold));
 
   /** Por qué se ordena el ranking. */
   readonly metric = signal<RankMetric>('damage');
@@ -256,7 +204,8 @@ export class MatchScoreboardComponent {
   ];
 
   /**
-   * Los diez ordenados por la métrica activa.
+   * Los diez ordenados por la métrica activa, **y solo los que traen las cifras**: una partida
+   * sin subir da una lista vacía, y la pestaña lo explica en lugar de pintar diez ceros.
    *
    * «Daño por oro» está aquí porque es la única de las tres que no premia automáticamente al
    * tirador: el daño en bruto lo gana casi siempre quien más oro recibe, y esta separa «hizo
@@ -268,12 +217,13 @@ export class MatchScoreboardComponent {
     const maxGold = this.maxGold();
 
     return this.allPlayers()
+      .filter((p) => p.stats.damageToChampions != null || p.stats.gold != null)
       .map((player) => {
         const efficiency = damagePerGold(player.stats);
         return {
           player,
-          damagePct: (player.stats.totalDamageToChampions / maxDamage) * 100,
-          goldPct: (player.stats.gold / maxGold) * 100,
+          damagePct: pct(player.stats.damageToChampions, maxDamage),
+          goldPct: pct(player.stats.gold, maxGold),
           primary: primaryLabel(metric, player, efficiency),
           secondary: secondaryLabel(metric, player, efficiency),
           score: scoreOf(metric, player, efficiency),
@@ -282,48 +232,87 @@ export class MatchScoreboardComponent {
       .sort((a, b) => b.score - a.score);
   });
 
+  /**
+   * Los cinco duelos, con su estimación de quién ganó la línea.
+   *
+   * Vacío si la partida no trae el oro del minuto 14 —porque nadie la subió, o porque terminó
+   * antes de ese minuto—: sin ese dato la pestaña no responde a su propia pregunta.
+   */
   readonly laneMatchups = computed(() => {
     const m = this.match();
-    const roles: MatchParticipant['role'][] = ['TOP', 'JUNGLA', 'MID', 'ADC', 'SUPPORT'];
-    return roles.map((role) => ({
+    const hasGold = m.teams.some((t) => t.participants.some((p) => p.stats.goldAt14 != null));
+    if (!hasGold) return [];
+
+    return LANE_ORDER.map((role) => ({
       role,
-      blue: m.blueTeam.participants.find((p) => p.role === role) ?? m.blueTeam.participants[0],
-      red: m.redTeam.participants.find((p) => p.role === role) ?? m.redTeam.participants[0],
-    }));
+      seats: m.teams
+        .map((t) => t.participants.find((p) => p.role === role))
+        .filter((p): p is MatchParticipant => !!p)
+        .map((player) => ({
+          player,
+          wonLane: wonLane(m, player),
+          goldAt14: player.stats.goldAt14 == null ? null : formatCompact(player.stats.goldAt14),
+        })),
+    })).filter((lane) => lane.seats.length > 0);
   });
 
   setMetric(metric: string): void {
     this.metric.set(metric as RankMetric);
   }
 
-  champion(id: number) {
-    return this.gameData.championById().get(id);
+  championIcon(id: number): string | null {
+    return this.gameData.championById().get(id)?.iconUrl ?? null;
   }
 
+  /** Solo el catálogo sabe el nombre: el asiento trae el id y nada más. */
   championName(id: number): string {
-    return this.champion(id)?.name ?? 'Campeón';
+    return this.gameData.championById().get(id)?.name ?? `Campeón ${id}`;
+  }
+
+  playerName(p: MatchParticipant): string {
+    return participantName(p);
+  }
+
+  isMvp(p: MatchParticipant): boolean {
+    return p.userId === this.match().mvpUserId;
+  }
+
+  isAce(p: MatchParticipant): boolean {
+    return p.userId === this.match().aceUserId;
   }
 
   /**
-   * El reparto de daño se DERIVA de los cinco del equipo, no se lee de
-   * `stats.damageSharePercentage`. Ver `damageShare()`: el campo almacenado y el cálculo
-   * eran el mismo concepto con dos valores distintos.
+   * El reparto de daño se DERIVA de los cinco del equipo, y el backend no lo sirve por eso
+   * mismo: un campo almacenado y este cálculo son el mismo concepto, y al convivir llegaron a
+   * decir 37% en el marcador y 34% dos bloques más abajo.
    */
-  damagePct(p: MatchParticipant, team: TeamSummary): number {
+  damagePct(p: MatchParticipant, team: TeamSummary): number | null {
     return damageShare(p, team);
   }
 
-  laneLabel(lane: MatchParticipant['role']): string {
+  damageBarWidth(damage: number): number {
+    return pct(damage, this.maxDamage());
+  }
+
+  laneLabel(lane: Lane): string {
     return laneLabel(lane);
   }
 
-  /** Por id de participante: la vista no conoce ni compara identidades. */
-  isCurrentUser(participantId: string): boolean {
-    return participantId === this.match().userParticipant?.id;
+  /** Por `userId`, que es la identidad del asiento: la vista no compara nombres a mano. */
+  isCurrentUser(p: MatchParticipant): boolean {
+    return p.userId === this.match().userParticipant?.userId;
   }
 
-  kdaRatio(stats: MatchParticipant['stats']): string {
-    return formatKda(stats);
+  kdaRatio(p: MatchParticipant): string | null {
+    return formatKda(p.stats);
+  }
+
+  /** «213 CS (6,1/m)», o solo los CS si la partida no trae duración con la que dividir. */
+  csLabel(p: MatchParticipant): string | null {
+    const cs = p.stats.cs;
+    if (cs == null) return null;
+    const perMin = csPerMin(p.stats, this.match().durationSeconds);
+    return perMin == null ? `${cs} CS` : `${cs} CS (${perMin}/m)`;
   }
 
   formatGold(gold: number): string {
@@ -332,14 +321,6 @@ export class MatchScoreboardComponent {
 
   formatNumber(value: number): string {
     return formatNumber(value);
-  }
-
-  itemBg(name: string): string {
-    return itemBg(name);
-  }
-
-  plural(count: number, one: string, many: string): string {
-    return `${count} ${count === 1 ? one : many}`;
   }
 
   copyMatchLink(): void {
@@ -360,23 +341,50 @@ interface RankRow {
   score: number;
 }
 
-function scoreOf(metric: RankMetric, p: MatchParticipant, efficiency: number): number {
-  if (metric === 'gold') return p.stats.gold;
-  if (metric === 'efficiency') return efficiency;
-  return p.stats.totalDamageToChampions;
+function laneIndex(lane: Lane): number {
+  const i = LANE_ORDER.indexOf(lane);
+  return i === -1 ? LANE_ORDER.length : i;
+}
+
+/** El máximo de la partida, o `null` si nadie trae esa cifra. */
+function maxOf(
+  players: readonly MatchParticipant[],
+  pick: (p: MatchParticipant) => number | undefined,
+): number | null {
+  const values = players.map(pick).filter((v): v is number => v != null);
+  return values.length === 0 ? null : Math.max(...values, 1);
+}
+
+/** Sin dato o sin máximo la barra mide 0: una barra vacía dice «no hay», una llena mentiría. */
+function pct(value: number | undefined, max: number | null): number {
+  if (value == null || max == null || max === 0) return 0;
+  return (value / max) * 100;
+}
+
+function scoreOf(metric: RankMetric, p: MatchParticipant, efficiency: number | null): number {
+  if (metric === 'gold') return p.stats.gold ?? 0;
+  if (metric === 'efficiency') return efficiency ?? 0;
+  return p.stats.damageToChampions ?? 0;
 }
 
 /** La cifra grande es siempre la que ordena: si no, el orden parece arbitrario. */
-function primaryLabel(metric: RankMetric, p: MatchParticipant, efficiency: number): string {
-  if (metric === 'gold') return `${formatCompact(p.stats.gold)} de oro`;
-  if (metric === 'efficiency') return `${Math.round(efficiency)} por 1.000`;
-  return `${formatCompact(p.stats.totalDamageToChampions)} de daño`;
+function primaryLabel(metric: RankMetric, p: MatchParticipant, efficiency: number | null): string {
+  if (metric === 'gold') return `${amount(p.stats.gold)} de oro`;
+  if (metric === 'efficiency') {
+    return efficiency == null ? 'Sin datos' : `${Math.round(efficiency)} por 1.000`;
+  }
+  return `${amount(p.stats.damageToChampions)} de daño`;
 }
 
-function secondaryLabel(metric: RankMetric, p: MatchParticipant, efficiency: number): string {
-  if (metric === 'gold') return `${formatCompact(p.stats.totalDamageToChampions)} de daño`;
+function secondaryLabel(metric: RankMetric, p: MatchParticipant, efficiency: number | null): string {
+  if (metric === 'gold') return `${amount(p.stats.damageToChampions)} de daño`;
   if (metric === 'efficiency') {
-    return `${formatCompact(p.stats.totalDamageToChampions)} con ${formatCompact(p.stats.gold)}`;
+    return `${amount(p.stats.damageToChampions)} con ${amount(p.stats.gold)}`;
   }
-  return `${formatCompact(p.stats.gold)} de oro`;
+  return `${amount(p.stats.gold)} de oro`;
+}
+
+/** «—» y no «0»: lo que no se midió no es cero. */
+function amount(value: number | undefined): string {
+  return value == null ? '—' : formatCompact(value);
 }

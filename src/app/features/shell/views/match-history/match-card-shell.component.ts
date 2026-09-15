@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input } from '@angular/core';
 import { Match } from '../../../../core/matches/models';
-import { matchHasStats } from '../../../../core/matches/match-view';
+import { presetLabel } from '../../../../core/matches/match-view';
 import { formatMatchDate } from '../../../../shared/date-format';
 import { Viewport } from '../../../../shared/viewport';
 import { MatchHistoryUiState } from './match-history-ui';
@@ -42,7 +42,7 @@ let panelSeq = 0;
       [class.is-loss]="accent() === 'loss'"
       [class.is-neutral]="accent() === 'neutral'"
       [class.is-blue]="accent() === 'blue'"
-      [class.is-expanded]="canExpand() && isExpanded()"
+      [class.is-expanded]="isExpanded()"
       [class.has-focus-pulse]="isFocused()"
       [attr.data-match-id]="match().id"
     >
@@ -107,7 +107,7 @@ let panelSeq = 0;
         </div>
       </div>
 
-      @if (canExpand() && !rowIsControl()) {
+      @if (!rowIsControl()) {
         <button
           type="button"
           class="m-card__toggle"
@@ -135,7 +135,7 @@ let panelSeq = 0;
         </button>
       }
 
-      @if (canExpand() && isExpanded()) {
+      @if (isExpanded()) {
         <div class="m-card__accordion" [id]="panelId" role="region" [attr.aria-label]="panelLabel()">
           <!--
             Ranura con contenido por defecto: quien no proyecte nada obtiene la alineación de
@@ -172,10 +172,8 @@ export class MatchCardShellComponent {
 
   protected readonly panelId = `m-card-panel-${++panelSeq}`;
 
-  protected readonly canExpand = computed(() => matchHasStats(this.match()));
-
   /** Con ratón la fila es el control; con el dedo lo es la franja del pie. */
-  protected readonly rowIsControl = computed(() => this.canExpand() && !this.viewport.isMobile());
+  protected readonly rowIsControl = computed(() => !this.viewport.isMobile());
 
   protected readonly isExpanded = computed(() => this.ui.isExpanded(this.match().id));
   protected readonly isFocused = computed(() => this.ui.focusedId() === this.match().id);
@@ -191,18 +189,31 @@ export class MatchCardShellComponent {
   }
 
   protected readonly dateLabel = computed(() => formatMatchDate(this.match().decidedAt));
+  /**
+   * La liga en la que contó la partida, o el grupo si no contó para ninguna. `null` en el
+   * historial personal mientras el DTO no traiga el grupo: ahí no hay nada que rotular, y la
+   * píldora se queda fuera en vez de decir «Sin grupo».
+   */
   protected readonly leagueName = computed(
-    () => this.match().leagueName ?? this.match().group.seasonName ?? this.match().group.name,
-  );
-  protected readonly modeLabel = computed(
-    () => this.match().modeLabel ?? 'Competitivo · Party',
+    () => this.match().leagueName ?? this.match().group?.name ?? null,
   );
 
-  // El grupo es el único que no lo pinta: ahí la fila es el registro colectivo y los LP son
-  // de quien mira, no de la partida.
-  protected readonly lpDelta = computed(() =>
-    this.variant() === 'group' ? 0 : (this.match().userParticipant?.lpDelta ?? 0),
-  );
+  /** La modalidad con la que se abrió la sala, que es el único vocabulario que existe aquí. */
+  protected readonly modeLabel = computed(() => presetLabel(this.match().preset));
+
+  /**
+   * Los LP que movió la partida en TU clasificación. El historial de grupo no los pinta: ahí la
+   * fila es el registro colectivo y los LP son de quien mira, no de la partida.
+   *
+   * `null` es «no contó para ninguna liga abierta», que no es cero: cero es una partida que sí
+   * contó y no movió nada. Por eso la píldora solo aparece con un valor distinto de cero, y
+   * nunca con un cero fabricado.
+   */
+  protected readonly lpDelta = computed(() => {
+    if (this.variant() === 'group') return null;
+    const lp = this.match().userParticipant?.lpDelta ?? null;
+    return lp === 0 ? null : lp;
+  });
 
   protected readonly toggleLabel = computed(() =>
     this.isExpanded()
@@ -216,11 +227,10 @@ export class MatchCardShellComponent {
 
   /** En móvil la fila no es un control: un toque en su fondo no debe desplegar nada. */
   protected toggleFromRow(): void {
-    if (this.canExpand() && this.rowIsControl()) this.toggle();
+    if (this.rowIsControl()) this.toggle();
   }
 
   protected toggle(): void {
-    if (!this.canExpand()) return;
     this.ui.toggleExpand(this.match().id);
   }
 }
@@ -228,4 +238,3 @@ export class MatchCardShellComponent {
 function capitalize(text: string): string {
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
-

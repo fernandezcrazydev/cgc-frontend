@@ -1,78 +1,83 @@
 import { describe, expect, it } from 'vitest';
-import { aggregateCross, buildCrossMatches } from '../../../../core/matches';
-import { matchFixture, participantFixture } from '../../../../core/matches/match-fixtures';
-import { aggregateMetricRows, crossMetricRows } from './cross-compare';
+import { ParticipantStats, toCrossMatches } from '../../../../core/matches';
+import {
+  bareParticipantFixture,
+  matchFixture,
+  participantFixture,
+  statsFixture,
+} from '../../../../core/matches/match-fixtures';
+import { crossMetricRows } from './cross-compare';
+
+const ME = 'me-uuid';
+const RIVAL = 'rival-uuid';
 
 /** El cruce mínimo: una partida enfrentados, con las cifras que se le pasen a cada uno. */
-function cruce(mias: Record<string, number> = {}, suyas: Record<string, number> = {}) {
-  const me = participantFixture({
-    id: 'me',
-    team: 'blue',
-    riotId: 'Yo#LAN',
-    stats: { ...participantFixture({ id: 'x', team: 'blue' }).stats, ...mias },
-  });
-  const them = participantFixture({
-    id: 'ellos',
-    team: 'red',
-    riotId: 'Rival#LAN',
-    stats: { ...participantFixture({ id: 'y', team: 'red' }).stats, ...suyas },
-  });
-  return buildCrossMatches(
-    [matchFixture({ id: 'p1', blue: [me], red: [them], userParticipant: me })],
-    'Rival#LAN',
-  );
+function cruce(mias: Partial<ParticipantStats> = {}, suyas: Partial<ParticipantStats> = {}) {
+  const me = participantFixture({ userId: ME, slot: 'A', stats: statsFixture(mias) });
+  const them = participantFixture({ userId: RIVAL, slot: 'B', stats: statsFixture(suyas) });
+  return toCrossMatches(
+    [matchFixture({ id: 'p1', a: [me], b: [them], userParticipant: me })],
+    RIVAL,
+  )[0];
 }
 
-describe('aggregateMetricRows', () => {
-  /*
-   * Con los dos valores a cero la barra se reparte 50/50 para que la fila conserve su altura.
-   * Eso se leía como «vais empatados», cuando lo que pasa es que esa métrica no la registra
-   * ninguna partida. La fila lo dice ahora explícitamente.
-   */
-  it('una métrica que ninguna partida registra se marca como sin datos, no como empate', () => {
-    const filas = aggregateMetricRows(aggregateCross([]));
-    const sinDatos = filas.filter((f) => f.noData);
-
-    expect(sinDatos.length).toBeGreaterThan(0);
-    for (const f of sinDatos) {
-      expect(f.minePct).toBe(50);
-      expect(f.winner).toBe('tie');
-    }
-  });
-
-  it('un empate de verdad no se marca como sin datos', () => {
-    const filas = aggregateMetricRows(aggregateCross(cruce()));
-    const cs = filas.find((f) => f.key === 'cs')!;
-
-    expect(cs.winner).toBe('tie');
-    expect(cs.noData).toBe(false);
-  });
-
-  it('con cifras distintas gana quien más tiene y la barra lo refleja', () => {
-    const filas = aggregateMetricRows(aggregateCross(cruce({ csPerMin: 9 }, { csPerMin: 3 })));
-    const cs = filas.find((f) => f.key === 'cs')!;
-
-    expect(cs.winner).toBe('me');
-    expect(cs.noData).toBe(false);
-    expect(cs.minePct).toBe(75);
-    expect(cs.theirsPct).toBe(25);
-  });
-
-  it('las dos mitades de cada barra suman siempre cien', () => {
-    for (const f of aggregateMetricRows(aggregateCross(cruce({ cs: 200 })))) {
-      expect(f.minePct + f.theirsPct).toBe(100);
-    }
-  });
-});
-
 describe('crossMetricRows', () => {
-  it('la comparativa de una partida usa las mismas reglas de sin datos', () => {
-    const filas = crossMetricRows(cruce({ visionScore: 0 }, { visionScore: 0 })[0]);
-    const vision = filas.find((f) => f.key === 'vision');
+  it('reparte la barra según la proporción de cada uno sobre la suma', () => {
+    const fila = crossMetricRows(cruce({ visionScore: 30 }, { visionScore: 10 })).find(
+      (r) => r.key === 'vision',
+    )!;
 
-    if (vision) {
-      expect(vision.noData).toBe(true);
-      expect(vision.winner).toBe('tie');
-    }
+    expect(fila.minePct).toBe(75);
+    expect(fila.theirsPct).toBe(25);
+    expect(fila.winner).toBe('me');
+  });
+
+  /*
+   * El oro del minuto 14 solo se compara cuando lo traen los DOS. Media barra con un lado vacío
+   * se lee como «hizo cero», que no es lo que dice un dato ausente.
+   */
+  it('el oro del minuto 14 solo aparece si lo traen los dos', () => {
+    const soloYo = crossMetricRows(cruce({ goldAt14: 5200 }, {}));
+    expect(soloYo.some((r) => r.key === 'gold14')).toBe(false);
+
+    const ambos = crossMetricRows(cruce({ goldAt14: 5200 }, { goldAt14: 4800 }));
+    expect(ambos.find((r) => r.key === 'gold14')?.winner).toBe('me');
+  });
+
+  /*
+   * La regla del contrato: sin subida no hay cifras, y una fila «—» contra «—» ocupa sitio sin
+   * decir nada. Se descarta en vez de pintarse como un empate al 50 %.
+   */
+  it('una partida sin subir no produce filas de comparación', () => {
+    const me = bareParticipantFixture({ userId: ME, slot: 'A' });
+    const them = bareParticipantFixture({ userId: RIVAL, slot: 'B' });
+    const sinSubida = toCrossMatches(
+      [matchFixture({ id: 'p1', a: [me], b: [them], hasStats: false, userParticipant: me })],
+      RIVAL,
+    )[0];
+
+    expect(crossMetricRows(sinSubida, true)).toEqual([]);
+  });
+
+  /** Un cero SÍ es un dato: cero puntos de visión describe una partida real. */
+  it('un cero se compara; un dato ausente no', () => {
+    const fila = crossMetricRows(cruce({ visionScore: 0 }, { visionScore: 12 })).find(
+      (r) => r.key === 'vision',
+    )!;
+
+    expect(fila.noData).toBe(false);
+    expect(fila.winner).toBe('them');
+    expect(fila.mineText).toBe('0');
+  });
+
+  /** `extended` es lo que separa el desplegable, que se ojea, de la página, que se estudia. */
+  it('la versión extendida añade las métricas que solo tienen sitio en la página', () => {
+    const c = cruce();
+    const cortas = crossMetricRows(c).map((r) => r.key);
+    const largas = crossMetricRows(c, true).map((r) => r.key);
+
+    expect(cortas).not.toContain('tanked');
+    expect(largas).toContain('tanked');
+    expect(largas.length).toBeGreaterThan(cortas.length);
   });
 });

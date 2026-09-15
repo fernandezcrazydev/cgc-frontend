@@ -2,24 +2,26 @@ import { TestBed } from '@angular/core/testing';
 import { firstValueFrom } from 'rxjs';
 import { describe, expect, it } from 'vitest';
 import { banRateFor } from '../group-stats';
-import { matchFixture, participantFixture } from '../matches/match-fixtures';
-import { MatchHistoryStore } from '../matches/match-history-store';
-import { ChampionStatsMockSource, skillOrderFor } from './champion-stats-mock';
+import {
+  ChampionStatsMockSource,
+  mockMatchFixture,
+  mockParticipantFixture,
+  skillOrderFor,
+} from './champion-stats-mock';
 
 describe('ChampionStatsMockSource', () => {
   it('un campeón con 3 partidas y 2 victorias da games: 3, wins: 2, winrate: 67', async () => {
-    const store = new MatchHistoryStore();
-    const source = new ChampionStatsMockSource(store);
+    const source = new ChampionStatsMockSource();
 
-    const pAhri1 = participantFixture({ id: 'p1', team: 'blue', role: 'MID', championId: 103 });
-    const pAhri2 = participantFixture({ id: 'p2', team: 'blue', role: 'MID', championId: 103 });
-    const pAhri3 = participantFixture({ id: 'p3', team: 'red', role: 'MID', championId: 103 });
+    const pAhri1 = mockParticipantFixture({ id: 'p1', team: 'blue', role: 'MID', championId: 103 });
+    const pAhri2 = mockParticipantFixture({ id: 'p2', team: 'blue', role: 'MID', championId: 103 });
+    const pAhri3 = mockParticipantFixture({ id: 'p3', team: 'red', role: 'MID', championId: 103 });
 
-    const m1 = matchFixture({ id: 'm1', winningTeam: 'blue', blue: [pAhri1], red: [] });
-    const m2 = matchFixture({ id: 'm2', winningTeam: 'blue', blue: [pAhri2], red: [] });
-    const m3 = matchFixture({ id: 'm3', winningTeam: 'blue', blue: [], red: [pAhri3] });
+    const m1 = mockMatchFixture({ id: 'm1', winningTeam: 'blue', blue: [pAhri1], red: [] });
+    const m2 = mockMatchFixture({ id: 'm2', winningTeam: 'blue', blue: [pAhri2], red: [] });
+    const m3 = mockMatchFixture({ id: 'm3', winningTeam: 'blue', blue: [], red: [pAhri3] });
 
-    store.allMatches.set([m1, m2, m3]);
+    source.useCorpus([m1, m2, m3]);
 
     const res = await firstValueFrom(source.stats(null, 103));
     expect(res).not.toBeNull();
@@ -29,23 +31,22 @@ describe('ChampionStatsMockSource', () => {
   });
 
   it('las sinergias cuentan a los cuatro compañeros y no al propio campeón', async () => {
-    const store = new MatchHistoryStore();
-    const source = new ChampionStatsMockSource(store);
+    const source = new ChampionStatsMockSource();
 
-    const pAhri = participantFixture({ id: 'p1', team: 'blue', role: 'MID', championId: 103 });
-    const pTop = participantFixture({ id: 'p2', team: 'blue', role: 'TOP', championId: 266 });
-    const pJg = participantFixture({ id: 'p3', team: 'blue', role: 'JUNGLA', championId: 64 });
-    const pAdc = participantFixture({ id: 'p4', team: 'blue', role: 'ADC', championId: 222 });
-    const pSup = participantFixture({ id: 'p5', team: 'blue', role: 'SUPPORT', championId: 89 });
+    const pAhri = mockParticipantFixture({ id: 'p1', team: 'blue', role: 'MID', championId: 103 });
+    const pTop = mockParticipantFixture({ id: 'p2', team: 'blue', role: 'TOP', championId: 266 });
+    const pJg = mockParticipantFixture({ id: 'p3', team: 'blue', role: 'JUNGLA', championId: 64 });
+    const pAdc = mockParticipantFixture({ id: 'p4', team: 'blue', role: 'ADC', championId: 222 });
+    const pSup = mockParticipantFixture({ id: 'p5', team: 'blue', role: 'SUPPORT', championId: 89 });
 
-    const m = matchFixture({
+    const m = mockMatchFixture({
       id: 'm1',
       winningTeam: 'blue',
       blue: [pAhri, pTop, pJg, pAdc, pSup],
       red: [],
     });
 
-    store.allMatches.set([m]);
+    source.useCorpus([m]);
 
     const res = await firstValueFrom(source.stats(null, 103));
     expect(res).not.toBeNull();
@@ -55,21 +56,20 @@ describe('ChampionStatsMockSource', () => {
   });
 
   it('el counter es el rival de la misma posición, no los cinco del otro equipo', async () => {
-    const store = new MatchHistoryStore();
-    const source = new ChampionStatsMockSource(store);
+    const source = new ChampionStatsMockSource();
 
-    const pAhri = participantFixture({ id: 'p1', team: 'blue', role: 'MID', championId: 103 });
-    const pEnemyMid = participantFixture({ id: 'e1', team: 'red', role: 'MID', championId: 238 });
-    const pEnemyTop = participantFixture({ id: 'e2', team: 'red', role: 'TOP', championId: 266 });
+    const pAhri = mockParticipantFixture({ id: 'p1', team: 'blue', role: 'MID', championId: 103 });
+    const pEnemyMid = mockParticipantFixture({ id: 'e1', team: 'red', role: 'MID', championId: 238 });
+    const pEnemyTop = mockParticipantFixture({ id: 'e2', team: 'red', role: 'TOP', championId: 266 });
 
-    const m = matchFixture({
+    const m = mockMatchFixture({
       id: 'm1',
       winningTeam: 'red',
       blue: [pAhri],
       red: [pEnemyMid, pEnemyTop],
     });
 
-    store.allMatches.set([m]);
+    source.useCorpus([m]);
 
     const res = await firstValueFrom(source.stats(null, 103));
     expect(res).not.toBeNull();
@@ -81,10 +81,9 @@ describe('ChampionStatsMockSource', () => {
   });
 
   it('stats() de un campeón que no aparece en ninguna partida resuelve a null', async () => {
-    const store = new MatchHistoryStore();
-    const source = new ChampionStatsMockSource(store);
+    const source = new ChampionStatsMockSource();
 
-    store.allMatches.set([]);
+    source.useCorpus([]);
 
     const res = await firstValueFrom(source.stats(null, 999));
     expect(res).toBeNull();
@@ -101,10 +100,9 @@ describe('ChampionStatsMockSource', () => {
   });
 
   it('con tres partidas que compartan piedra angular y árbol secundario pero difieran en las runas menores, runePage.games es 3', async () => {
-    const store = new MatchHistoryStore();
-    const source = new ChampionStatsMockSource(store);
+    const source = new ChampionStatsMockSource();
 
-    const pAhri1 = participantFixture({
+    const pAhri1 = mockParticipantFixture({
       id: 'p1',
       team: 'blue',
       role: 'MID',
@@ -133,7 +131,7 @@ describe('ChampionStatsMockSource', () => {
       },
     });
 
-    const pAhri2 = participantFixture({
+    const pAhri2 = mockParticipantFixture({
       id: 'p2',
       team: 'blue',
       role: 'MID',
@@ -162,7 +160,7 @@ describe('ChampionStatsMockSource', () => {
       },
     });
 
-    const pAhri3 = participantFixture({
+    const pAhri3 = mockParticipantFixture({
       id: 'p3',
       team: 'red',
       role: 'MID',
@@ -191,11 +189,11 @@ describe('ChampionStatsMockSource', () => {
       },
     });
 
-    const m1 = matchFixture({ id: 'm1', winningTeam: 'blue', blue: [pAhri1], red: [], decidedAt: '2026-09-01T10:00:00Z' });
-    const m2 = matchFixture({ id: 'm2', winningTeam: 'blue', blue: [pAhri2], red: [], decidedAt: '2026-09-02T10:00:00Z' });
-    const m3 = matchFixture({ id: 'm3', winningTeam: 'blue', blue: [], red: [pAhri3], decidedAt: '2026-09-03T10:00:00Z' });
+    const m1 = mockMatchFixture({ id: 'm1', winningTeam: 'blue', blue: [pAhri1], red: [], decidedAt: '2026-09-01T10:00:00Z' });
+    const m2 = mockMatchFixture({ id: 'm2', winningTeam: 'blue', blue: [pAhri2], red: [], decidedAt: '2026-09-02T10:00:00Z' });
+    const m3 = mockMatchFixture({ id: 'm3', winningTeam: 'blue', blue: [], red: [pAhri3], decidedAt: '2026-09-03T10:00:00Z' });
 
-    store.allMatches.set([m1, m2, m3]);
+    source.useCorpus([m1, m2, m3]);
 
     const res = await firstValueFrom(source.stats(null, 103));
     expect(res).not.toBeNull();
@@ -208,20 +206,19 @@ describe('ChampionStatsMockSource', () => {
   });
 
   it('cuenta las dos apariciones cuando el mismo campeón se juega en los dos equipos', async () => {
-    const store = new MatchHistoryStore();
-    const source = new ChampionStatsMockSource(store);
+    const source = new ChampionStatsMockSource();
 
-    const pAhriBlue = participantFixture({ id: 'p1', team: 'blue', role: 'MID', championId: 103 });
-    const pAhriRed = participantFixture({ id: 'p2', team: 'red', role: 'MID', championId: 103 });
+    const pAhriBlue = mockParticipantFixture({ id: 'p1', team: 'blue', role: 'MID', championId: 103 });
+    const pAhriRed = mockParticipantFixture({ id: 'p2', team: 'red', role: 'MID', championId: 103 });
 
-    const m = matchFixture({
+    const m = mockMatchFixture({
       id: 'm1',
       winningTeam: 'blue',
       blue: [pAhriBlue],
       red: [pAhriRed],
     });
 
-    store.allMatches.set([m]);
+    source.useCorpus([m]);
 
     const statsRes = await firstValueFrom(source.stats(null, 103));
     expect(statsRes).not.toBeNull();

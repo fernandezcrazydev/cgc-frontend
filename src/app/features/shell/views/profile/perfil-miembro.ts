@@ -1,6 +1,14 @@
-﻿import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  signal,
+  untracked,
+} from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
 import {
   NfAvatar,
@@ -8,7 +16,6 @@ import {
   NfCombobox,
   NfComboboxOption,
   NfIconButton,
-  NfLaneIcon,
   NfSegmented,
   NfSegmentOption,
   NfSelect,
@@ -18,22 +25,17 @@ import { Session } from '../../../../core/auth';
 import { GroupStore } from '../../../../core/group-store';
 import { GameDataStore } from '../../../../core/game-data';
 import { RoleSample, buildMemberProfile } from '../../../../core/player-profile';
-import { LaneRole } from '../../../../core/preferences';
 import {
-  CrossAggregate,
-  CrossChampionMatchup,
-  CrossStreak,
+  EMPTY_FILTERS,
+  MAX_PAGE_SIZE,
   MatchHistoryStore,
-  aggregateCross,
   itemBg,
+  personalMatchQuery,
+  personalSummaryQuery,
+  toCrossMatches,
 } from '../../../../core/matches';
-import { facetScores, formatFacetScore, facetScoreAriaLabel } from '../../../../core/player-score';
 import { ProfileGroupsCard } from './profile-groups-card.component';
-import { ProfileLpChartComponent } from './profile-lp-chart.component';
 import { ProfileStreakCard } from './profile-streak-card.component';
-import { ProfileTrophiesCardComponent } from './profile-trophies-card.component';
-import { SharedGroups } from './shared-groups';
-import { ROLE_TILES, RoleTile } from './perfil';
 
 /** Las pestañas del perfil ajeno: la lista es a la vez el tipo y el validador del segmentado. */
 const MIEMBRO_TABS = ['resumen', 'dna', 'campeones'] as const;
@@ -49,25 +51,43 @@ type MiembroTab = (typeof MIEMBRO_TABS)[number];
     NfCombobox,
     NfIconButton,
     NfAvatar,
-    NfLaneIcon,
     NfSegmented,
     NfSelect,
     NfSkeleton,
     ProfileStreakCard,
     ProfileGroupsCard,
-    ProfileLpChartComponent,
-    ProfileTrophiesCardComponent,
   ],
-  styleUrls: ['./perfil-miembro.scss', './profile-shared.scss'],
+  styleUrl: './perfil-miembro.scss',
   templateUrl: './perfil-miembro.html',
 })
 export class PerfilMiembro {
   private readonly route = inject(ActivatedRoute);
-  private readonly router = inject(Router);
   private readonly groups = inject(GroupStore);
   private readonly matchHistory = inject(MatchHistoryStore);
-  private readonly shared = inject(SharedGroups);
   protected readonly session = inject(Session);
+
+  constructor() {
+    // Vuestro cruce: `GET /me/matches?with={userId}` con una muestra amplia para el desglose
+    // por posición, más los dos recuentos que sí cubren todas las partidas. Las tres consultas
+    // están deduplicadas en el store, así que volver a entrar en la ficha no repite ninguna.
+    effect(() => {
+      const id = this.userId();
+      if (!id) return;
+      // `untracked` no es decorativo: los métodos del store LEEN sus propias signals de
+      // estado, así que llamarlos dentro del efecto lo suscribiría a lo que él mismo escribe.
+      // Las únicas dependencias del efecto deben ser la consulta y el id.
+      untracked(() => {
+        void this.matchHistory.ensurePersonal(
+          personalMatchQuery(EMPTY_FILTERS, 0, MAX_PAGE_SIZE, { with: id, relation: 'all' }),
+        );
+        for (const relation of ['ally', 'enemy'] as const) {
+          void this.matchHistory.ensurePersonalSummary(
+            personalSummaryQuery(EMPTY_FILTERS, { with: id, relation }),
+          );
+        }
+      });
+    });
+  }
 
   // Sin valor de relleno: un parámetro vacío es un jugador que no existe, y eso lo resuelve el
   // 404 de abajo. Caer a 'Jugador' hacía que la ruta sin id pintase el perfil de alguien.
@@ -83,15 +103,20 @@ export class PerfilMiembro {
    * como «sin datos» en vez de con un porcentaje inventado.
    */
   private readonly roleSamples = computed<RoleSample[]>(() =>
-    this.crossWith().all.map((c) => ({
+    this.cross().map((c) => ({
       role: c.them.role,
-      won: c.them.team === c.match.winningTeam,
-      wonLane: c.them.stats.wonLane,
+      won: c.them.slot === c.match.winningSlot,
+      // `wonLane` ya no viaja: el backend no sirve ese juicio y derivarlo necesita el oro del
+      // minuto 14, que solo llega al abrir cada partida.
+      wonLane: undefined,
     })),
   );
 
-  /** Mientras el historial se reproyecta no se puede afirmar todavía si este jugador existe. */
-  readonly loading = computed(() => this.matchHistory.status() === 'loading');
+  /** Mientras el cruce viaja no se puede afirmar todavía si este jugador existe. */
+  readonly loading = computed(() => {
+    const status = this.matchHistory.personalStatus();
+    return status === 'idle' || status === 'loading';
+  });
 
   readonly profile = computed(() => {
     const targetTag = this.userId();
@@ -103,111 +128,56 @@ export class PerfilMiembro {
       this.roleSamples(),
       // Alguien que ya no comparte grupo contigo pero con quien sí has jugado existe: sus
       // partidas lo prueban. Solo es 404 cuando no aparece por ninguna de las dos vías.
-      this.crossWith().all.length > 0,
+      this.cross().length > 0,
     );
   });
 
   // ── Cara a cara ───────────────────────────────────────────────────
-  // Sale del historial real, no de una semilla propia: es el mismo `crossWith()` que alimenta
-  // el historial cruzado y las dos páginas de medias, así que las cifras de esta ficha y las
-  // de la pantalla que abre no pueden discrepar.
-  private readonly crossWith = computed(() => this.matchHistory.crossWith(this.userId()));
+  // El cruce es un filtro del historial personal: `GET /me/matches?with={userId}`. Los récords
+  // salen de `GET /me/matches/summary` con los mismos parámetros, no de contar la lista: la
+  // lista es una muestra y el resumen sí cuenta todas.
 
-  /** Todas vuestras partidas en común; su longitud decide si la ficha tiene algo que decir. */
-  readonly cross = computed(() => this.crossWith().all);
+  /** Vuestras partidas en común que hay cargadas; decide si la ficha tiene algo que decir. */
+  readonly cross = computed(() =>
+    toCrossMatches(this.matchHistory.personalMatches(), this.userId()),
+  );
 
-  readonly together = computed(() => aggregateCross(this.crossWith().allies));
-  readonly against = computed(() => aggregateCross(this.crossWith().enemies));
+  readonly together = computed(() =>
+    this.matchHistory.personalSummaryFor(
+      personalSummaryQuery(EMPTY_FILTERS, { with: this.userId(), relation: 'ally' }),
+    ),
+  );
 
-  /** Positivo = vas ganando tú el marcador de los duelos directos. */
-  readonly lead = computed(() => this.against().wins - this.against().losses);
+  readonly against = computed(() =>
+    this.matchHistory.personalSummaryFor(
+      personalSummaryQuery(EMPTY_FILTERS, { with: this.userId(), relation: 'enemy' }),
+    ),
+  );
 
-  /**
-   * Cómo se reparten vuestras partidas en común entre las dos relaciones, en porcentaje del
-   * total. Es lo que dice de un vistazo qué clase de relación tenéis: compañeros habituales,
-   * rivales, o de todo.
-   */
-  readonly togetherShare = computed(() => {
-    const total = this.cross().length;
-    return total ? Math.round((this.together().games / total) * 100) : 0;
+  /** Sobre partidas decididas: una anulada no cuenta ni como victoria ni como derrota. */
+  readonly togetherWinrate = computed(() => {
+    const s = this.together();
+    if (!s) return 0;
+    const decided = s.wins + s.losses;
+    return decided > 0 ? Math.round((s.wins / decided) * 100) : 0;
   });
 
-  /**
-   * La racha viva de una relación, en corto: «2V», «3D». `null` cuando no hay racha que contar,
-   * y entonces la línea no se pinta en vez de decir «racha 0».
-   */
-  streakLabel(streak: CrossStreak | null): string | null {
-    if (!streak || streak.count === 0) return null;
-    return streak.count + (streak.type === 'win' ? 'V' : 'D');
-  }
-
-  /**
-   * El emparejamiento de campeones más repetido de una relación, o `null` si no hay ninguno.
-   *
-   * Devuelve el dato y no una frase a propósito: escrito salía «Tu Campeón 33 vs su Campeón 64»,
-   * porque `myChampionName` es el nombre que trae la partida y en el mock los campeones no tienen
-   * nombre propio. Un campeón se reconoce por su icono, no por su número, así que lo pinta la
-   * plantilla con `nf-avatar` igual que el resto de la aplicación.
-   */
-  topMatchup(agg: CrossAggregate): CrossChampionMatchup | null {
-    return agg.topMatchups[0] ?? null;
-  }
-
-  /**
-   * Los grupos de este jugador **que además son tuyos**, que son los únicos de los que se puede
-   * enseñar su clasificación.
-   *
-   * No es una restricción técnica: la tarjeta de grupos que va justo al lado ya oculta el LP de
-   * los grupos ajenos —pinta la etiqueta «Grupo ajeno» en lugar de `#7 · 239 LP`—, así que una
-   * gráfica que sí lo enseñara contradiría a su vecina en la misma pantalla.
-   *
-   * BACKEND NOTE: la regla que se quiere de verdad es la **visibilidad del grupo**, y no existe
-   * todavía; está explicada entera en `SharedGroups`.
-   */
-  readonly sharedGroups = computed(() =>
-    (this.profile()?.groups ?? []).filter((g) => this.shared.has(g.id)),
-  );
-
-  roleLabel(role: string): string {
-    const map: Record<string, string> = {
-      TOP: 'Top',
-      JUNGLA: 'Jungla',
-      MID: 'Mid',
-      ADC: 'ADC',
-      SUPPORT: 'Support',
-    };
-    return map[role] ?? role;
-  }
-
-  matchupWr(m: CrossChampionMatchup): number {
-    return m.games ? Math.round((m.wins / m.games) * 100) : 0;
-  }
+  /** Positivo = vas ganando tú el marcador de los duelos directos. */
+  readonly lead = computed(() => {
+    const a = this.against();
+    return a ? a.wins - a.losses : 0;
+  });
 
   // ── Pestañas de Navegación ────────────────────────────────────────
-  readonly activeTab = signal<MiembroTab>(
-    (() => {
-      const tab = this.route.snapshot?.queryParamMap?.get('tab');
-      return (tab && (MIEMBRO_TABS as readonly string[]).includes(tab) ? tab : 'resumen') as MiembroTab;
-    })(),
-  );
-
+  readonly activeTab = signal<MiembroTab>('resumen');
   readonly tabOptions: readonly NfSegmentOption[] = [
-    { value: 'resumen', label: 'Resumen' },
+    { value: 'resumen', label: 'Resumen y cara a cara' },
     { value: 'dna', label: 'ADN y stats' },
     { value: 'campeones', label: 'Campeones' },
   ];
 
   setTab(val: string): void {
-    if ((MIEMBRO_TABS as readonly string[]).includes(val)) {
-      const tab = val as MiembroTab;
-      this.activeTab.set(tab);
-      void this.router.navigate([], {
-        relativeTo: this.route,
-        queryParams: { tab },
-        queryParamsHandling: 'merge',
-        replaceUrl: true,
-      });
-    }
+    if (MIEMBRO_TABS.includes(val as MiembroTab)) this.activeTab.set(val as MiembroTab);
   }
 
   // ── Top 3 Signature Champions ─────────────────────────────────────
@@ -296,39 +266,5 @@ export class PerfilMiembro {
   grad(hue: number): string {
     return `radial-gradient(circle at 32% 26%, hsl(${hue},90%,64%), hsl(${hue},78%,30%))`;
   }
-
-  // ── Notas de ADN ──────────────────────────────────────────────────
-  readonly scores = computed(() => {
-    const p = this.profile();
-    if (!p) return { lane: null, combat: null, vision: null, survival: null, economy: null, clutch: null };
-    return facetScores(p.dna, { kda: p.kda, pentas: p.pentas }, p.mainRole ?? null);
-  });
-
-  formatScore(score: number | null | undefined): string {
-    return formatFacetScore(score);
-  }
-
-  facetAria(score: number | null | undefined): string | null {
-    return facetScoreAriaLabel(score);
-  }
-
-  // ── Tabla de roles (Pestaña ADN) ──────────────────────────────────
-  protected readonly roleTiles: readonly RoleTile[] = ROLE_TILES;
-
-  roleStatus(role: LaneRole): string {
-    const p = this.profile();
-    if (!p) return 'Inactivo';
-    if (p.mainRole === role) return '★ Principal';
-    if ((p.roleStats[role]?.games ?? 0) > 0) return 'Activo';
-    return 'Inactivo';
-  }
-
-  constructor() {
-    this.route.queryParamMap?.subscribe((q) => {
-      const tab = q.get('tab');
-      if (tab && (MIEMBRO_TABS as readonly string[]).includes(tab)) {
-        this.activeTab.set(tab as MiembroTab);
-      }
-    });
-  }
 }
+

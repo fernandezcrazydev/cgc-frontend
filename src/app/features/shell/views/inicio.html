@@ -242,7 +242,11 @@
         }
       </div>
 
-      <!-- Subgrid 2 Columnas de Rendimiento: MVP de la Noche + Némesis Cara a Cara -->
+      <!--
+        MVP de la última partida del grupo. Aquí al lado iba «Tu Mayor Némesis»: se retiró porque
+        salía de recorrer el historial entero en el cliente, y con la paginación en servidor eso
+        ya no existe (issue #69, §8).
+      -->
       <div class="ini-perf-subgrid">
         <!-- Tarjeta Interactiva: MVP de la Noche (Clic redirige al perfil) -->
         <div
@@ -250,8 +254,8 @@
           role="button"
           tabindex="0"
           aria-label="Ver perfil del MVP"
-          (click)="lastMvp() && verPerfil(lastMvp()!.riotId)"
-          (keydown.enter)="lastMvp() && verPerfil(lastMvp()!.riotId)"
+          (click)="lastMvp() && verPerfil(lastMvp()!.userId)"
+          (keydown.enter)="lastMvp() && verPerfil(lastMvp()!.userId)"
         >
           <div class="ini-card__head">
             <div class="ini-card__title-row">
@@ -274,89 +278,26 @@
                 <div class="ini-mvp-avatar">{{ mvp.initials }}</div>
                 <div class="ini-mvp-info">
                   <div class="ini-mvp-name">{{ mvp.name }}</div>
-                  <div class="ini-mvp-champ nf-mono">{{ mvp.champion }}</div>
+                  <div class="ini-mvp-champ nf-mono">{{ mvp.champion ?? mvp.lane }}</div>
                 </div>
-                <div class="ini-mvp-kda-badge nf-mono">
-                  {{ mvp.kda }}
-                </div>
-              </div>
-
-              <div class="ini-mvp-quote-bubble">
-                <span class="ini-quote-mark">“</span>
-                <span class="ini-quote-text">{{ mvp.quote }}</span>
+                @if (mvp.kda; as kda) {
+                  <div class="ini-mvp-kda-badge nf-mono">{{ kda }}</div>
+                }
               </div>
             } @else {
+              <!--
+                Sin MVP no se pinta uno de reserva. Pasa en dos casos distintos y los dos son
+                reales: el grupo no ha jugado todavía, o su última partida no la subió nadie y
+                por tanto no tiene mejor KDA que nombrar.
+              -->
               <p class="ini-empty-msg">
-                Aún no hay partidas disputadas recientemente en este grupo.
+                Aún no hay ninguna partida subida de la que sacar un MVP.
               </p>
             }
           </div>
         </div>
 
-        <!-- Tarjeta Interactiva: Tu Mayor Némesis (Clic redirige a versus) -->
-        <div
-          class="ini-card ini-interactive-card ini-nemesis-card"
-          role="button"
-          tabindex="0"
-          aria-label="Ver cara a cara contra tu némesis"
-          (click)="nemesisHighlight() && retarNemesis(nemesisHighlight()!.riotId)"
-          (keydown.enter)="nemesisHighlight() && retarNemesis(nemesisHighlight()!.riotId)"
-        >
-          <div class="ini-card__head">
-            <div class="ini-card__title-row">
-              <svg class="ini-icon ini-icon--crimson" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5" />
-                <line x1="13" y1="19" x2="19" y2="13" />
-                <line x1="16" y1="16" x2="20" y2="20" />
-                <line x1="19" y1="21" x2="21" y2="19" />
-                <polyline points="14.5 6.5 18 3 21 3 21 6 17.5 9.5" />
-                <line x1="5" y1="14" x2="9" y2="18" />
-                <line x1="7" y1="17" x2="3" y2="21" />
-                <line x1="3" y1="19" x2="5" y2="21" />
-              </svg>
-              <span class="ini-block-title">Tu Mayor Némesis</span>
-            </div>
-            <div class="ini-card__head-actions">
-              <nf-badge color="danger">Rivalidad</nf-badge>
-            </div>
-          </div>
 
-          <div class="ini-card__body">
-            @if (nemesisHighlight(); as nemesis) {
-              <div class="ini-nemesis-versus">
-                <div class="ini-nemesis-players">
-                  <span class="ini-nemesis-tag nf-mono">Tú ({{ nemesis.myWins }}V)</span>
-                  <span class="ini-nemesis-vs nf-mono">VS</span>
-                  <span class="ini-nemesis-tag nf-mono">{{ nemesis.name }} ({{ nemesis.myLosses }}V)</span>
-                </div>
-
-                <!-- Barra Head-to-Head Visual -->
-                <div class="ini-nemesis-bar">
-                  <div
-                    class="ini-nemesis-bar__win"
-                    [style.width.%]="(nemesis.myWins / (nemesis.myWins + nemesis.myLosses || 1)) * 100"
-                  ></div>
-                  <div
-                    class="ini-nemesis-bar__loss"
-                    [style.width.%]="(nemesis.myLosses / (nemesis.myWins + nemesis.myLosses || 1)) * 100"
-                  ></div>
-                </div>
-
-                <div class="ini-nemesis-stats">
-                  <span class="ini-nemesis-wr nf-mono">{{ nemesis.myWinrate }}% WR en contra</span>
-                </div>
-              </div>
-
-              <div class="ini-nemesis-callout">
-                {{ nemesis.callout }}
-              </div>
-            } @else {
-              <p class="ini-empty-msg">
-                Aún no tienes un rival con suficientes partidas directas.
-              </p>
-            }
-          </div>
-        </div>
       </div>
     </main>
 
@@ -514,37 +455,7 @@
         </div>
       </div>
 
-      <!-- Card C: Highlights Semanales del Grupo (Mini-Tiles Interactivos) -->
-      <div class="ini-card ini-highlights-card">
-        <div class="ini-card__head">
-          <div class="ini-card__title-row">
-            <svg class="ini-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-            </svg>
-            <span class="ini-block-title">Highlights del Grupo</span>
-          </div>
-          <span class="ini-rival-rank-tag nf-mono">Semanal</span>
-        </div>
 
-        <div class="ini-card__body">
-          <div class="ini-highlights-grid">
-            @for (h of highlights(); track h.id) {
-              <div
-                class="ini-highlight-tile ini-interactive-tile"
-                role="button"
-                tabindex="0"
-                [attr.aria-label]="h.label + ': ' + h.value"
-                (click)="onHighlightClick(h)"
-                (keydown.enter)="onHighlightClick(h)"
-              >
-                <span class="ini-highlight-tile__label">{{ h.label }}</span>
-                <span class="ini-highlight-tile__val nf-mono">{{ h.value }}</span>
-                <span class="ini-highlight-tile__sublabel">{{ h.sublabel }}</span>
-              </div>
-            }
-          </div>
-        </div>
-      </div>
     </aside>
   </div>
 </div>

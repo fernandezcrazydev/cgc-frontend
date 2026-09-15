@@ -51,9 +51,15 @@ sed -n '3155,3290p' ../Roadmap.md         # y se lee solo el tramo que interesa
 
 ## Estrategia de migración mock → backend (LA decisión de arquitectura)
 
-**Solo `core/auth/` habla con backend real** (OIDC code+PKCE contra nuestro backend; Discord es
-solo el IdP). Todo lo demás es mock en memoria sembrado con constantes y generadores
-deterministas (`seeded`/`hash`). Los comentarios `BACKEND NOTE:` marcan puntos de integración.
+**Ya hablan con backend real**: `auth` (OIDC code+PKCE contra nuestro backend; Discord es solo
+el IdP), `groups`, `leagues`, `lobbies`, `matches`, `game-data`, `notifications`, `preferences`,
+`riot`, `sessions`, `settings`, `feedback`, `discord`, `users` y `admin`.
+
+**Sigue siendo mock en memoria**, sembrado con constantes y generadores deterministas
+(`seeded`/`hash`): `core/lobby.ts` y `lobby-extras.ts` (el God-module legacy), `group-store.ts`,
+`group-hub.ts`, `group-stats.ts`, `group-medals.ts`, `group-ranking.ts`, `member-detail.ts`,
+`player-profile.ts` y `reactions` (que además es local del navegador: no hay tabla ni endpoint).
+Los comentarios `BACKEND NOTE:` marcan cada punto de integración.
 
 **El backend será el dueño de TODA la regla de negocio**: matchmaking, cálculo de MMR/elo,
 validaciones de draft, TTL de salas, permisos, resolución de conflictos de importación,
@@ -418,6 +424,124 @@ el único camino a `CONFIRMED`; `checkCanFreezeLineup` exige estar confirmada; y
 cancela cualquier `POLLING` sin franja futura**, así que una sala abierta «ahora» la barre el
 cron a la hora. Está anotado en la Fase 6 del `Roadmap.md`.
 
+## El historial de partidas, y las tres reglas que trajo consigo
+
+Es el dominio más grande conectado hasta ahora (issue #69) y dejó tres reglas que no son suyas:
+aplican a cualquier cosa que llegue del backend.
+
+### 1. Lo que no se sabe es `null`, y `null` no es `0`
+
+`hasStats: false` es un estado REAL: el grupo jugó, alguien tecleó el resultado y **nadie exportó
+la partida desde el cliente de LoL**. Contó para el LP y para el rating, así que sale en la lista
+igual —esconderla dejaría una clasificación que el historial no puede explicar—, pero todo lo que
+dependía de esa subida llega nulo: duración, campeón, KDA, `riotId`, totales del equipo, MVP.
+
+Rellenar eso con ceros es la tentación obvia y es exactamente lo que no se puede hacer: un
+`kills: 0` se lee como una partida de verdad en la que un equipo no mató a nadie, y esa mentira
+**no la detecta nadie mirando la pantalla**. Lo mismo con `lpDelta`: `0` es «contó y no movió
+nada», ausente es «no contó para ninguna liga».
+
+En pantalla, un hueco se pinta como hueco (`—`, un recuadro vacío, una píldora que no aparece) y
+se explica una vez, no diez: el aviso va al pie de la fila, no en cada uno de los diez asientos.
+
+### 2. El lado (azul/rojo) puede no existir; el hueco (A/B) siempre
+
+Quién vistió de azul lo decide la sala y **puede no haberse decidido nunca**. Entonces
+`winnerSide` y el `side` de los dos equipos llegan `null`, y la tarjeta dice «Equipo A» / «Equipo
+B» y se pinta en neutro. Derivarlo del orden de entrada a la sala es literalmente el bug de la app
+anterior: produjo un jugador 14-0 «en azul» sin que nadie lo hubiera elegido.
+
+Por eso los dos viajan (`slot` siempre, `side` a veces) y por eso `teams` es un par ordenado por
+hueco en vez de `blueTeam`/`redTeam`. Consecuencia práctica: **el color es pintura, el orden y la
+identidad salen del hueco**. `teamLabel()` de `match-view.ts` es el único sitio que decide cómo se
+nombra un equipo.
+
+Y los objetivos de la grieta **no vienen si no hay lado decidido**: son del equipo 100/200, así
+que colgarlos de A o de B sería inventar. Sin ellos, el bloque entero no se pinta.
+
+### 2.bis Una partida anulada sale en la lista y no cuenta en el resumen
+
+`voided` es una anulación explícita: rebobina el rating y reconstruye el LP como si la partida no
+hubiera existido. Ni victoria ni derrota — su `userOutcome` es `'cancelled'` y se pinta en neutro.
+
+**La fila sale igual**, con su alineación, para que una sala terminada siga teniendo explicación.
+Pero **ningún número de ningún resumen la cuenta**. De ahí la consecuencia que hay que tener
+presente al escribir cualquier contador:
+
+> el `totalElements` de un listado y el `totalMatches` de su resumen **no tienen por qué
+> coincidir**. La lista es el registro de lo que pasó; el resumen, lo que cuenta.
+
+No es un descuadre, pero lo parece, así que las dos pantallas que enseñan las dos cifras juntas lo
+dicen en voz baja (`gh-summary__scope` y la tarjeta de récord del historial personal).
+
+### 3. Con la lista en el servidor, el cliente ya no tiene corpus
+
+Filtrar, ordenar, buscar y paginar los hace el servidor. Lo que hay en el cliente es **una
+página**, y eso mató una familia entera de derivaciones que antes eran correctas: el resumen del
+historial, «mejor aliado», «némesis», las medias comparadas del cruce, las rachas vivas y los
+emparejamientos de campeón repetidos. Todas recorrían el historial completo.
+
+La regla que queda: **cualquier cifra que describa «tu historial» o «el grupo» tiene que venir de
+un endpoint de resumen, no de sumar lo que hay en pantalla.** Sumar seis filas y llamarlo
+«vuestro récord» es peor que no darlo, y no se distingue mirando.
+
+Cuando una superficie de verdad necesita un corpus (la tier list de campeones, el cajón de
+partidas recientes del ranking), se pide una **muestra acotada** —`MatchHistoryStore.groupSample()`,
+una sola página del tamaño máximo— y **la pantalla dice que es una muestra**: «sobre las últimas
+N partidas». Lo que no puede es llamarse «del grupo» a secas.
+
+### Dos tipos de consulta, porque un filtro no significa lo mismo en las dos listas
+
+| | Lista de grupo | Lista personal |
+|---|---|---|
+| `championId` | el campeón de **cualquiera** de los diez | el campeón que jugué **yo** |
+| `outcome` | **no existe** | cómo me fue **a mí** |
+| `winningSide` | qué bando ganó | **no existe** |
+| `lane` | **no existe** | la línea que jugué **yo** |
+| `participation` | todas / mías / de los demás | **no existe** |
+
+`outcome` y `winningSide` no son la misma pregunta, y confundirlas ya costó un bug: el `outcome`
+de la lista de grupo descartaba solo las partidas que habías jugado, así que «Victorias» enseñaba
+tus victorias MÁS todas las partidas ajenas. Por eso `GroupMatchQuery` y `PersonalMatchQuery` son
+tipos distintos: el compilador impide mandar `winningSide` a `/me/matches`.
+
+**El cruce con otro jugador es un filtro, no un endpoint**: `GET /me/matches?with={userId}`, y
+`&relation=ALLY|ENEMY` lo acota. El recuento sale del mismo resumen con los mismos parámetros. La
+relación la decide el servidor leyendo los dos equipos.
+
+### La identidad de un asiento viene en el asiento
+
+Cada uno de los diez trae `riotId`, `discordUsername` y `avatarUrl`, y los dos últimos **llegan
+siempre**, con subida o sin ella. La asimetría es del backend y es deliberada: el `riotId` es el
+del día que se jugó (parte de lo que pasó, no se reescribe) y el nombre de Discord es el de hoy
+(sirve para reconocer a alguien, así que sigue los cambios de nombre). `participantName()` los
+lee en ese orden.
+
+**Ninguna vista resuelve nombres contra el censo del grupo**, y no debe volver a hacerlo: hubo un
+`PlayerDirectory` que las pantallas construían desde `GroupDetailStore.roster()` y se borró al
+llegar estos campos. No servía en `/me/matches` —ahí cada fila es de un grupo distinto y puede que
+ni sigas siendo miembro— y obligaba a enhebrar un input por toda la cadena de componentes.
+
+La excepción es legítima y está sola: el **líder de MVPs** del resumen de grupo llega como un
+`userId` pelado, así que esa pantalla —que ya tiene el censo cargado— lo busca ahí.
+
+Lo mismo con el grupo: la fila trae `groupId` y `groupName` en **las dos** listas, también en la
+del propio grupo donde es redundante. Esa igualdad de forma es lo que permite pintarlas con un
+solo componente.
+
+### Lo que el backend no sirve todavía (y por qué no se rellena)
+
+Objetos, runas, hechizos del listado, nivel de campeón, wards, cualquier cifra de dragones,
+`damageSharePercentage` y `wonLane`. Los primeros están guardados, pero con nombres de campo sacados de la documentación del
+cliente de LoL que **nadie ha visto en un payload medido**. Mientras tanto se pintaban con tablas
+de reserva por línea —el jungla siempre con Smite azul, el soporte siempre con Protector— que no
+describían ninguna partida real. `itemBg()` se queda esperando; el resto se borró.
+
+`damageShare` y `wonLane` sí se derivan aquí, y se dice: el reparto de daño sale de los cinco del
+equipo (un campo almacenado y este cálculo llegaron a decir 37% y 34% del mismo jugador), y «ganó
+la línea» sale del oro del minuto 14 contra el rival de su misma línea, **etiquetado como
+estimación nuestra** allí donde se pinta.
+
 ## Patrón obligatorio: store asíncrono (clon de `Session`)
 
 `core/auth/session.ts` es el molde. Todo store que hable con backend debe tener:
@@ -589,6 +713,14 @@ El detalle completo está en `cgc-backend/docs/contrato-api.md`.
   Lo usan `GET /admin/feedback` y `GET /groups/{id}/members`.
 - **Canal realtime** (WebSocket vs SSE, y su autenticación) para salas/drafts/notificaciones.
 - **Ids estables de jugador/miembro/grupo** y su relación con la identidad Discord de `/me`.
+- **Dragones.** `MatchTeamObjectives` trae `dragonKills` a secas y **nadie ha medido todavía si
+  incluye a los ancianos**: producción está a cero partidas y no hay ni un bloque de equipo real.
+  Los tipos de dragón y el alma no viven en ese bloque en ninguna versión del contrato, sino en
+  los eventos del timeline. Mientras tanto **no se pinta ninguna cifra de dragones**: ni el eje
+  del radar ni el contador de la cabecera de equipo. No es una reserva, es la misma regla de los
+  nulos un nivel más abajo — enseñar `dragonKills` bajo la etiqueta «Dragones» afirma qué cuenta.
+  No se pierde nada esperando: el backend guarda el bloque de equipo y el timeline en crudo, así
+  que el día que se mida se tipa y se rellena hacia atrás, partidas viejas incluidas.
 
 Cuando se acuerde uno, documentarlo aquí y borrar la línea de pendientes.
 
@@ -795,10 +927,13 @@ check falla solo si una regla **empeora**. Así se adopta con el repo como está
   Es placeholder del backend: **no la refactorices**, se adelgazará sola al migrar MMR y
   resultados a endpoints. Sacar **plantilla y CSS**, en cambio, no es refactorizar negocio: es
   gratis, es mecánico y sobrevive a la migración. Hazlo cuando toques una vista que aún no lo
-  tenga (`inline-template-size` va por 17; las mayores que quedan son
-  `match-history/match-scoreboard.component.ts`, `group/grupos.ts` y `profile/perfil-miembro.ts`).
-  Las otras dos que estaban en esta lista —el asistente `grupo-crear-partida.ts` y la sala mock
-  `grupo-sala.ts`— **ya no existen**: ver § "La zona de juego del grupo".
+  tenga (`inline-template-size` va por 14; las mayores que quedan son `group/grupos.ts` y
+  `profile/perfil-miembro.ts`). `match-scoreboard.component.ts` salió de esa lista al conectar el
+  historial: su plantilla vive ahora en su `.html`.
+  Las otras dos que estaban aquí —el asistente `grupo-crear-partida.ts` y la sala mock
+  `grupo-sala.ts`— **ya no existen**: ver § "La zona de juego del grupo". Y `partida-detalle.ts`
+  tampoco: eran 552 líneas + 429 de SCSS que **ninguna ruta abría**, así que se borró en vez de
+  migrarse. Toda vista de `views/` vuelve a tener su ruta.
 - Duplicados pendientes de unificar en `shared/`: resolución de `:id`→grupo (repetida en 8
   vistas), `avatarBg(hue)`, bloque 404.
 - **CSS ad-hoc que duplica primitivas que ya existen**: `.modal*` en 6 vistas pese a `NfModal`,
@@ -815,15 +950,20 @@ check falla solo si una regla **empeora**. Así se adopta con el repo como está
   `provideZonelessChangeDetection` explícito. El objetivo es activarlos — no escribas código
   nuevo que lo impida.
 - `environment.prod.ts` tiene `apiBaseUrl` placeholder (`TODO`).
-- Advertencia de bundle budget en producción: `Initial total 838,94 kB vs 500 kB`. Bajó desde
-  976,88 kB al sacar el CSS del monolito global a los chunks lazy; lo que queda es sobre todo
-  generadores y semillas deterministas del frontend (Fase 0/1), que se borran al migrar a
-  endpoints reales en la Fase 6.
+- Advertencia de bundle budget en producción: `Initial total 852,80 kB vs 500 kB`. Venía de
+  976,88 kB (el CSS del monolito global a los chunks lazy) y subió ~14 kB al conectar el historial:
+  el cliente HTTP, el mapeo y el store entran en el paquete inicial porque el shell los usa. Lo que
+  queda por soltar son los generadores y semillas deterministas que siguen en `core/lobby.ts` y
+  compañía, que se borran al migrar los dominios que aún son mock.
 - **Deuda heredada de la Fase 5.5**, anotada en `scripts/arch-budgets.json` al integrarla y
   pendiente de pagar. No la metió la migración del CSS; venía en el código nuevo:
   - `font-floor` +19 (23 → 42): declaraciones nuevas por debajo de 11px, sobre todo en la barra
     de notificaciones y el buscador del shell. El suelo no es una recomendación (§ "UI kit").
   - `font-size-raw` +71 (390 → 461): `font-size` en px crudos en vez de la escala `--fs-*`.
   - `inline-template-size` +1 (21 → 22).
+
+  Al conectar el historial los tres bajaron solos, por borrado y no por arreglo: `font-floor` 39,
+  `font-size-raw` 308 e `inline-template-size` 14. Lo que quedaba de esas declaraciones en las
+  pantallas que se retiraron se fue con ellas; lo que sigue en pie sigue sin pagarse.
   No se corrigieron aquí a propósito: subir esos textos cambia el aspecto de features recién
   revisadas, y esa es una decisión visual, no mecánica.

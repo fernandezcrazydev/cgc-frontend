@@ -6,39 +6,34 @@ import {
   inject,
   viewChild,
 } from '@angular/core';
-import { ActivatedRoute, RouterLink } from '@angular/router';
-import { filterCrossMatches, sortCrossMatches } from '../../../../core/matches';
-import { Viewport } from '../../../../shared/viewport';
+import { RouterLink } from '@angular/router';
+import { activeFilterCount } from '../../../../core/matches';
 import { NfButton, NfPagination } from '../../../../ui';
 import { CrossMatchCardComponent } from './cross-match-card.component';
 import { CrossViewState } from './cross-view-state';
 import { MatchFiltersComponent } from '../match-history/match-filters.component';
 import { MatchHistoryUiState } from '../match-history/match-history-ui';
 
+/**
+ * El historial cruzado completo: todas las partidas en las que coincidisteis, juntos o
+ * enfrentados.
+ *
+ * Es `GET /me/matches?with={userId}` sin `relation`. Filtrar, ordenar y paginar los hace el
+ * servidor, así que el desplegable de relación del panel de filtros manda el parámetro en vez
+ * de recortar una lista que ya no está en el cliente.
+ */
 @Component({
   selector: 'app-historial-cruzado',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  providers: [MatchHistoryUiState],
-  imports: [
-    RouterLink,
-    NfButton,
-    NfPagination,
-    CrossMatchCardComponent,
-    MatchFiltersComponent,
-  ],
+  imports: [RouterLink, NfButton, NfPagination, CrossMatchCardComponent, MatchFiltersComponent],
   template: `
     <div class="cx-history-view">
-      <app-match-filters
-        mode="cross"
-        [championIds]="championIds()"
-        [resultCount]="filtered().length"
-        [totalCount]="all().length"
-      />
+      <app-match-filters mode="cross" [resultCount]="state.total()" />
 
-      @if (pageItems().length > 0) {
+      @if (state.page().length > 0) {
         <div class="mh-list" #list>
-          @for (c of pageItems(); track c.id) {
+          @for (c of state.page(); track c.id) {
             <app-cross-match-card
               [cross]="c"
               [playerId]="state.playerId()"
@@ -48,12 +43,12 @@ import { MatchHistoryUiState } from '../match-history/match-history-ui';
         </div>
 
         <nf-pagination
-          [total]="filtered().length"
-          [pageSize]="pageSize"
+          [total]="state.total()"
+          [pageSize]="state.pageSize"
           [page]="ui.page()"
           (pageChange)="onPageChange($event)"
         />
-      } @else if (all().length > 0) {
+      } @else if (hasFilters()) {
         <div class="empty-state">
           <p class="empty-state__text nf-mono">No se encontraron partidas</p>
           <p class="empty-state__hint">
@@ -78,50 +73,22 @@ import { MatchHistoryUiState } from '../match-history/match-history-ui';
   `,
 })
 export class HistorialCruzado {
-  private readonly route = inject(ActivatedRoute);
-  private readonly viewport = inject(Viewport);
-
   protected readonly state = inject(CrossViewState);
   protected readonly ui = inject(MatchHistoryUiState);
 
-  protected readonly pageSize = 5;
-
   private readonly list = viewChild<ElementRef<HTMLElement>>('list');
 
-  protected readonly all = this.state.all;
+  protected readonly hasFilters = computed(
+    () => activeFilterCount(this.ui.filters(), 'cross') > 0,
+  );
+
+  protected readonly returnTo = computed(() => `/app/jugador/${this.state.playerId()}`);
 
   constructor() {
-    const modo = this.route.snapshot?.queryParamMap?.get('modo');
-    if (modo === 'versus') {
-      this.ui.update({ relation: 'enemy' });
-    } else if (modo === 'synergy') {
-      this.ui.update({ relation: 'ally' });
-    }
+    // Esta pestaña son TODAS las partidas compartidas; la relación la eligen las otras dos, o
+    // el desplegable del panel de filtros dentro de esta.
+    this.state.setRelation('all');
   }
-
-  protected readonly championIds = computed(() => {
-    const ids = new Set<number>();
-    for (const c of this.all()) {
-      ids.add(c.me.championId);
-      ids.add(c.them.championId);
-    }
-    return Array.from(ids);
-  });
-
-  protected readonly filtered = computed(() => {
-    const filters = this.ui.filters();
-    const subset = filterCrossMatches(this.all(), filters);
-    return sortCrossMatches(subset, filters.sortBy);
-  });
-
-  protected readonly pageItems = computed(() => {
-    const start = (this.ui.page() - 1) * this.pageSize;
-    return this.filtered().slice(start, start + this.pageSize);
-  });
-
-  protected readonly returnTo = computed(() => {
-    return `/app/jugador/${this.state.playerId()}`;
-  });
 
   protected onPageChange(page: number): void {
     this.ui.setPage(page);

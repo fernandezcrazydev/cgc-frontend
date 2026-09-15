@@ -1,7 +1,12 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { Match, MatchParticipant } from '../../../../core/matches/models';
-import { matchHasStats, matchWinnerLabel } from '../../../../core/matches/match-view';
+import { Match, MatchParticipant, TeamSummary } from '../../../../core/matches/models';
+import {
+  matchWinnerLabel,
+  participantName,
+  teamLabel,
+  teamShortLabel,
+} from '../../../../core/matches/match-view';
 import { GameDataStore } from '../../../../core/game-data';
 import { formatCompact, formatDuration } from '../../../../shared/date-format';
 import { NfAvatar } from '../../../../ui';
@@ -12,24 +17,25 @@ import { MatchCardShellComponent } from './match-card-shell.component';
  * **¿quién ganó a quién?** El protagonista es el enfrentamiento 5v5, no el usuario.
  *
  * Dónde aparece el usuario, si jugó: su campeón sale con anillo del color de su bando dentro
- * de la propia tira de diez, y sus cifras en un bloque compacto al final. Antes había una
- * frase —«Jugaste con Lux (8/2/11)»— que repetía el campeón que ya estaba dos bloques más
- * arriba, y que hablaba en segunda persona dentro de un registro colectivo.
+ * de la propia tira de diez, y sus cifras en un bloque compacto al final.
+ *
+ * ## Los dos equipos no siempre tienen color
+ *
+ * Quién vistió de azul lo decide la sala y **puede no haberse decidido nunca**. Cuando no se
+ * decidió, la tarjeta dice «Equipo A» y «Equipo B» y pinta los dos en neutro. No se rellena por
+ * nuestra cuenta: derivar el lado del orden de entrada a la sala es literalmente el bug de la
+ * app anterior, que produjo un jugador 14-0 «en azul» sin que nadie lo hubiera elegido.
  */
 @Component({
   selector: 'app-group-match-card',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterLink, NfAvatar, MatchCardShellComponent],
-  styles: [
-    `
-      .m-card__no-stats { color: var(--nf-text-dim); font-size: var(--fs-label); }
-    `,
-  ],
+  styleUrl: './group-match-card.component.scss',
   template: `
     <app-match-card-shell
       [match]="match()"
-      [accent]="match().winningTeam"
+      [accent]="accent()"
       [returnTo]="returnTo()"
       [reactionScope]="match().groupId"
       variant="group"
@@ -38,139 +44,122 @@ import { MatchCardShellComponent } from './match-card-shell.component';
       <div class="m-card__group-summary">
         <div
           class="m-card__winner-pill nf-mono"
-          [class.is-blue]="match().winningTeam === 'blue'"
-          [class.is-red]="match().winningTeam === 'red'"
+          [class.is-blue]="match().winningSide === 'blue'"
+          [class.is-red]="match().winningSide === 'red'"
         >
           <span class="m-card__side-dot" aria-hidden="true"></span>
           {{ winnerLabel() }}
         </div>
-        @if (hasStats()) {
-          <span class="m-card__duration nf-mono">{{ duration() }}</span>
+        @if (duration(); as d) {
+          <span class="m-card__duration nf-mono">{{ d }}</span>
         }
       </div>
 
       <!-- El enfrentamiento -->
       <div class="m-card__vs-block">
-        <div class="m-card__team-roster m-card__team-roster--blue">
-          <div class="m-card__champ-avatars">
-            @for (p of match().blueTeam.participants; track p.id) {
-              <span class="m-card__slot" [class.is-you]="isCurrentUser(p)">
-                <a
-                  [routerLink]="isCurrentUser(p) ? ['/app', 'perfil'] : ['/app', 'perfil', p.userId]"
-                  (click)="$event.stopPropagation()"
-                >
-                  <nf-avatar
-                    class="m-card__mini-avatar"
-                    [loading]="hasStats() && champsLoading()"
-                    [src]="hasStats() ? championIcon(p.championId) : (p.avatarUrl ?? null)"
-                    [fallback]="hasStats() ? p.championName : p.riotId"
-                    [tint]="hasStats() ? p.championId : 0"
-                    [size]="24"
-                    shape="square"
-                    [title]="playerTitle(p)"
-                  />
-                </a>
-                @if (isCurrentUser(p)) {
-                  <span class="m-card__slot-tag nf-mono">Tú</span>
-                }
-              </span>
+        @for (team of teams(); track team.slot; let first = $first) {
+          @if (!first) {
+            <div class="m-card__score-meta">
+              <span class="m-card__vs-badge nf-mono">VS</span>
+              @if (goldDiff(); as g) {
+                <span class="m-card__gold-diff nf-mono">{{ g }}</span>
+              }
+            </div>
+          }
+
+          <div
+            class="m-card__team-roster"
+            [class.m-card__team-roster--blue]="team.side === 'blue'"
+            [class.m-card__team-roster--red]="team.side === 'red'"
+            [class.m-card__team-roster--reverse]="!first"
+          >
+            <div class="m-card__champ-avatars">
+              @for (p of team.participants; track p.userId) {
+                <span class="m-card__slot" [class.is-you]="isCurrentUser(p)">
+                  <a
+                    [routerLink]="isCurrentUser(p) ? ['/app', 'perfil'] : ['/app', 'perfil', p.userId]"
+                    (click)="$event.stopPropagation()"
+                  >
+                    <nf-avatar
+                      class="m-card__mini-avatar"
+                      [loading]="champsLoading()"
+                      [src]="championIcon(p.championId)"
+                      [fallback]="playerName(p)"
+                      [tint]="p.championId ?? 0"
+                      [size]="24"
+                      shape="square"
+                      [title]="playerTitle(p)"
+                    />
+                  </a>
+                  @if (isCurrentUser(p)) {
+                    <span class="m-card__slot-tag nf-mono">Tú</span>
+                  }
+                </span>
+              }
+            </div>
+            <span class="m-card__team-score nf-mono">
+              {{ team.totalKills ?? '—' }}
+            </span>
+            <!--
+              Sin color decidido, el equipo se nombra por su hueco. Es lo único que siempre
+              existe, y por eso viajan las dos cosas.
+            -->
+            @if (!team.side) {
+              <span class="gm-card__slot-name nf-mono">{{ shortLabel(team) }}</span>
             }
           </div>
-          @if (hasStats()) {
-            <span class="m-card__team-score nf-mono">{{ match().blueTeam.totalKills }}</span>
-          }
-        </div>
-
-        <div class="m-card__score-meta">
-          <span class="m-card__vs-badge nf-mono">VS</span>
-          @if (hasStats()) {
-            <span class="m-card__gold-diff nf-mono">{{ goldDiff() }}</span>
-          }
-        </div>
-
-        <div class="m-card__team-roster m-card__team-roster--red">
-          @if (hasStats()) {
-            <span class="m-card__team-score nf-mono">{{ match().redTeam.totalKills }}</span>
-          }
-          <div class="m-card__champ-avatars">
-            @for (p of match().redTeam.participants; track p.id) {
-              <span class="m-card__slot" [class.is-you]="isCurrentUser(p)">
-                <a
-                  [routerLink]="isCurrentUser(p) ? ['/app', 'perfil'] : ['/app', 'perfil', p.userId]"
-                  (click)="$event.stopPropagation()"
-                >
-                  <nf-avatar
-                    class="m-card__mini-avatar"
-                    [loading]="hasStats() && champsLoading()"
-                    [src]="hasStats() ? championIcon(p.championId) : (p.avatarUrl ?? null)"
-                    [fallback]="hasStats() ? p.championName : p.riotId"
-                    [tint]="hasStats() ? p.championId : 0"
-                    [size]="24"
-                    shape="square"
-                    [title]="playerTitle(p)"
-                  />
-                </a>
-                @if (isCurrentUser(p)) {
-                  <span class="m-card__slot-tag nf-mono">Tú</span>
-                }
-              </span>
-            }
-          </div>
-        </div>
+        }
       </div>
 
       <!-- MVP, balance en la clasificación y tus cifras -->
       <div class="m-card__mvp-block">
-        @if (hasStats()) {
-          @if (mvp(); as best) {
-            <a
-              class="m-card__mvp-chip nf-mono"
-              [routerLink]="isCurrentUser(best) ? ['/app', 'perfil'] : ['/app', 'perfil', best.userId]"
-              (click)="$event.stopPropagation()"
-            >
-              MVP · {{ best.riotId }}
-            </a>
-          }
+        @if (mvp(); as best) {
+          <a
+            class="m-card__mvp-chip nf-mono"
+            [routerLink]="isCurrentUser(best) ? ['/app', 'perfil'] : ['/app', 'perfil', best.userId]"
+            (click)="$event.stopPropagation()"
+          >
+            MVP · {{ playerName(best) }}
+          </a>
+        }
 
-          @if (lpSummary(); as lp) {
-            <span class="m-card__lp-impact nf-mono">Balance LP: {{ lp }}</span>
-          }
+        @if (lpSummary(); as lp) {
+          <span class="m-card__lp-impact nf-mono">Balance LP: {{ lp }}</span>
+        }
 
-          @if (me(); as u) {
-            <div class="m-card__you-stats" [class.is-blue]="u.team === 'blue'" [class.is-red]="u.team === 'red'">
-              <nf-avatar
-                class="m-card__you-champ"
-                [loading]="champsLoading()"
-                [src]="championIcon(u.championId)"
-                [fallback]="u.championName"
-                [tint]="u.championId"
-                [size]="24"
-                shape="square"
-                [title]="championName(u.championId)"
-              />
+        @if (me(); as u) {
+          <div
+            class="m-card__you-stats"
+            [class.is-blue]="u.side === 'blue'"
+            [class.is-red]="u.side === 'red'"
+          >
+            <nf-avatar
+              class="m-card__you-champ"
+              [loading]="champsLoading()"
+              [src]="championIcon(u.championId)"
+              [fallback]="playerName(u)"
+              [tint]="u.championId ?? 0"
+              [size]="24"
+              shape="square"
+              [title]="championName(u.championId)"
+            />
+            @if (u.stats.kills != null) {
               <span class="m-card__you-kda nf-mono">
                 {{ u.stats.kills }}<span class="m-card__you-sep">/</span
                 ><span class="m-deaths">{{ u.stats.deaths }}</span
                 ><span class="m-card__you-sep">/</span>{{ u.stats.assists }}
               </span>
-              @if (u.lpDelta !== 0) {
-                <span class="m-card__you-lp nf-mono" [class.is-gain]="u.lpDelta > 0" [class.is-loss]="u.lpDelta < 0">
-                  {{ u.lpDelta > 0 ? '+' : '' }}{{ u.lpDelta }} LP
-                </span>
-              }
-            </div>
-          } @else {
-            <div class="m-card__you-stats m-card__you-stats--none nf-mono">
-              <span class="m-card__you-none">Sin participación</span>
-            </div>
-          }
-        } @else {
-          <span class="m-card__no-stats nf-mono">Sin estadísticas · solo se registró el resultado</span>
-          @if (me(); as u) {
-            @if (u.lpDelta !== 0) {
-              <span class="m-card__you-lp nf-mono" [class.is-gain]="u.lpDelta > 0" [class.is-loss]="u.lpDelta < 0">{{ u.lpDelta > 0 ? '+' : '' }}{{ u.lpDelta }} LP</span>
             }
-          }
+            @if (u.lpDelta) {
+              <span class="m-card__you-lp nf-mono" [class.is-gain]="u.lpDelta > 0" [class.is-loss]="u.lpDelta < 0">
+                {{ u.lpDelta > 0 ? '+' : '' }}{{ u.lpDelta }} LP
+              </span>
+            }
+          </div>
+        } @else {
+          <div class="m-card__you-stats m-card__you-stats--none nf-mono">
+            <span class="m-card__you-none">Sin participación</span>
+          </div>
         }
       </div>
     </app-match-card-shell>
@@ -183,71 +172,98 @@ export class GroupMatchCardComponent {
 
   protected readonly champsLoading = computed(() => this.gameData.status() === 'loading');
 
-  protected readonly hasStats = computed(() => matchHasStats(this.match()));
-
   protected readonly me = computed(() => this.match().userParticipant);
 
+  /** Los dos equipos en orden de hueco. Con color o sin él, siempre son dos y siempre en A, B. */
+  protected readonly teams = computed(() => this.match().teams);
+
   /** Abrir el detalle desde aquí debe poder volver aquí, no al historial personal. */
-  protected readonly returnTo = computed(() => `grupo:${this.match().groupId}`);
+  protected readonly returnTo = computed(() => `grupo:${this.match().groupId ?? ''}`);
 
-  protected readonly winnerLabel = computed(() => matchWinnerLabel(this.match().winningTeam));
+  /** Sin lado decidido no hay acento de color: el borde se queda neutro, como la tarjeta. */
+  protected readonly accent = computed<'blue' | 'red' | 'neutral'>(
+    () => this.match().winningSide ?? 'neutral',
+  );
 
-  protected readonly duration = computed(() => formatDuration(this.match().durationSeconds));
+  protected readonly winnerLabel = computed(
+    () => matchWinnerLabel(this.match()) ?? 'Sin resultado',
+  );
 
-  protected readonly mvp = computed<MatchParticipant | undefined>(() => {
-    const id = this.match().mvpParticipantId;
-    if (!id) return undefined;
-    const m = this.match();
-    return [...m.blueTeam.participants, ...m.redTeam.participants].find((p) => p.id === id);
+  protected readonly duration = computed(() => {
+    const seconds = this.match().durationSeconds;
+    return seconds == null ? null : formatDuration(seconds);
   });
 
-  protected readonly goldDiff = computed(() => {
+  protected readonly mvp = computed<MatchParticipant | undefined>(() => {
+    const id = this.match().mvpUserId;
+    if (!id) return undefined;
     const m = this.match();
-    const diff = Math.abs(m.blueTeam.totalGold - m.redTeam.totalGold);
-    const leader = m.blueTeam.totalGold >= m.redTeam.totalGold ? 'azul' : 'rojo';
-    return `+${formatCompact(diff)} ${leader}`;
+    return [...m.teams[0].participants, ...m.teams[1].participants].find((p) => p.userId === id);
+  });
+
+  /**
+   * La ventaja de oro, `null` sin subida. El equipo se nombra por su color si lo tiene y por su
+   * hueco si no: «+4,2k azul» o «+4,2k A».
+   */
+  protected readonly goldDiff = computed<string | null>(() => {
+    const [a, b] = this.match().teams;
+    if (a.totalGold == null || b.totalGold == null) return null;
+    const diff = Math.abs(a.totalGold - b.totalGold);
+    const leader = a.totalGold >= b.totalGold ? a : b;
+    return `+${formatCompact(diff)} ${teamShortLabel(leader).toLowerCase()}`;
   });
 
   /**
    * `null` cuando la partida no reparte puntos: se prefiere no pintar el bloque a inventarse
-   * una cifra. La versión anterior tenía un `|| 18` / `|| 15` que fabricaba «+18 / -15 LP»
-   * cuando la media real daba cero, y eso se leía como un dato real.
+   * una cifra. `lpDelta` nulo es «no contó para ninguna liga», que no es cero, así que esos
+   * asientos no entran en la media en vez de tirarla hacia abajo.
    */
   protected readonly lpSummary = computed<string | null>(() => {
     const m = this.match();
-    const winners = m.winningTeam === 'blue' ? m.blueTeam.participants : m.redTeam.participants;
-    const losers = m.winningTeam === 'blue' ? m.redTeam.participants : m.blueTeam.participants;
+    if (!m.winningSlot) return null;
+    const winners = m.teams.find((t) => t.slot === m.winningSlot);
+    const losers = m.teams.find((t) => t.slot !== m.winningSlot);
 
-    const gain = average(winners.map((p) => p.lpDelta));
-    const loss = average(losers.map((p) => p.lpDelta));
+    const gain = average(winners?.participants ?? []);
+    const loss = average(losers?.participants ?? []);
+    if (gain === null || loss === null) return null;
     if (gain === 0 && loss === 0) return null;
 
     return `+${Math.round(gain)} / ${Math.round(loss)} LP`;
   });
 
-  /** Por id de participante, nunca por `riotId`: la vista no compara identidades a mano. */
+  /** Por `userId`, que es la identidad del asiento: la vista no compara nombres a mano. */
   protected isCurrentUser(p: MatchParticipant): boolean {
-    return p.id === this.match().userParticipant?.id;
+    return p.userId === this.match().userParticipant?.userId;
   }
 
-  protected championIcon(championId: number): string | null {
+  protected championIcon(championId: number | null): string | null {
+    if (championId == null) return null;
     return this.gameData.championById().get(championId)?.iconUrl ?? null;
   }
 
-  protected championName(championId: number): string {
-    return this.gameData.championById().get(championId)?.name ?? 'Campeón';
+  protected championName(championId: number | null): string {
+    if (championId == null) return 'Campeón sin registrar';
+    return this.gameData.championById().get(championId)?.name ?? `Campeón ${championId}`;
+  }
+
+  protected playerName(p: MatchParticipant): string {
+    return participantName(p);
+  }
+
+  protected shortLabel(team: TeamSummary): string {
+    return teamLabel(team);
   }
 
   protected playerTitle(p: MatchParticipant): string {
     const you = this.isCurrentUser(p) ? ' · tú' : '';
-    if (!this.hasStats()) {
-      return `${p.riotId} · ${p.role}${you}`;
-    }
-    const name = this.gameData.championById().get(p.championId)?.name ?? p.championName;
-    return `${p.riotId} · ${name} · ${p.role}${you}`;
+    return `${this.playerName(p)} · ${this.championName(p.championId)} · ${p.role}${you}`;
   }
 }
 
-function average(values: number[]): number {
-  return values.length === 0 ? 0 : values.reduce((acc, v) => acc + v, 0) / values.length;
+/** La media de los LP que SÍ contaron; `null` si no contó ninguno. */
+function average(participants: readonly MatchParticipant[]): number | null {
+  const values = participants.map((p) => p.lpDelta).filter((lp): lp is number => lp != null);
+  if (values.length === 0) return null;
+  return values.reduce((acc, v) => acc + v, 0) / values.length;
 }

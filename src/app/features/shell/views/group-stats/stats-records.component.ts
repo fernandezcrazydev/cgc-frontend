@@ -78,13 +78,15 @@ import { StatsRecordIconComponent } from './stats-record-icon.component';
                 <p class="rec-card__detail">{{ r.detail }}</p>
               </div>
 
-              <a
-                class="rec-card__link"
-                [routerLink]="['/app', 'historial', r.matchId]"
-                [attr.aria-label]="'Ver la ' + r.matchLabel.toLowerCase()"
-              >
-                Ver {{ r.matchLabel.toLowerCase() }}
-              </a>
+              @if (r.matchId && r.matchLabel) {
+                <a
+                  class="rec-card__link"
+                  [routerLink]="['/app', 'historial', r.matchId]"
+                  [attr.aria-label]="'Ver la ' + r.matchLabel.toLowerCase()"
+                >
+                  Ver {{ r.matchLabel.toLowerCase() }}
+                </a>
+              }
             </li>
           }
         </ul>

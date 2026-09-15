@@ -74,7 +74,9 @@ import { ReactionsStore } from '../../../../core/reactions';
           <span class="hub-comments__author">
             <nf-avatar [src]="c.avatar ?? null" [fallback]="c.author" [tint]="c.hue" [size]="26" shape="round" />
             <span class="hub-comments__name nf-mono">{{ c.author }}</span>
-            <span class="hub-comments__match nf-mono">{{ c.matchLabel }}</span>
+            @if (c.matchLabel; as label) {
+              <span class="hub-comments__match nf-mono">{{ label }}</span>
+            }
           </span>
         </button>
 
@@ -216,8 +218,9 @@ export class HubCommentsComponent {
     this.picking.set(false);
   }
 
-  /** Abre la partida que se está comentando. */
+  /** Abre la partida que se está comentando, si el comentario dice a cuál se refiere. */
   openMatch(comment: HubComment): void {
+    if (!comment.matchId) return;
     void this.router.navigate(['/app', 'historial', comment.matchId]);
   }
 

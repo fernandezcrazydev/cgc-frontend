@@ -5,92 +5,68 @@ import { of } from 'rxjs';
 import { describe, expect, it } from 'vitest';
 import { Session } from '../../../../core/auth';
 import { GameDataStore } from '../../../../core/game-data';
-import { GroupStore } from '../../../../core/group-store';
-import { GroupsStore } from '../../../../core/groups';
-import { CURRENT_USER, GROUPS } from '../../../../core/lobby';
-import { MatchHistoryStore, buildCrossMatches } from '../../../../core/matches';
-import { matchFixture, participantFixture as participant } from '../../../../core/matches/match-fixtures';
+import { GroupDetailStore, GroupsStore } from '../../../../core/groups';
+import { LeaguesStore } from '../../../../core/leagues';
+import { MatchHistoryStore } from '../../../../core/matches';
+import {
+  fakeMatchHistoryStore,
+  matchFixture,
+  participantFixture as participant,
+} from '../../../../core/matches/match-fixtures';
 import { Match, MatchParticipant } from '../../../../core/matches/models';
 import { Viewport } from '../../../../shared/viewport';
 import { CrossViewState } from './cross-view-state';
+import { MatchHistoryUiState } from '../match-history/match-history-ui';
 import { HistorialCruzado } from './historial-cruzado';
 
-const RIVAL = 'Pix3lQueen#LAN';
+const ME = 'me-uuid';
+const RIVAL = 'rival-uuid';
 
-function match(id: string, blue: MatchParticipant[], red: MatchParticipant[], user: MatchParticipant): Match {
-  return matchFixture({
-    id,
-    groupId: GROUPS[0].id,
-    groupName: GROUPS[0].name,
-    blue,
-    red,
-    userParticipant: user,
-  });
-}
-
-const yo = () => participant({ id: 'me', team: 'blue', riotId: CURRENT_USER.tag });
+const yo = () => participant({ userId: ME, slot: 'A', riotId: 'Yo#LAN' });
 
 /** Una jugada como compañeros y otra como rivales contra el mismo jugador. */
 function historialConCruce(): Match[] {
-  const juntos = match(
-    'm-juntos',
-    [yo(), participant({ id: 'ally', team: 'blue', riotId: RIVAL })],
-    [participant({ id: 'x', team: 'red' })],
-    yo(),
-  );
-  const enfrentados = match(
-    'm-contra',
-    [yo()],
-    [participant({ id: 'foe', team: 'red', riotId: RIVAL })],
-    yo(),
-  );
-  return [juntos, enfrentados];
-}
-
-/** Una partida del usuario en la que el otro jugador no estaba. */
-function historialSinCruce(): Match[] {
   return [
-    match('m-sola', [yo()], [participant({ id: 'x', team: 'red', riotId: 'Otro#LAN' })], yo()),
+    matchFixture({
+      id: 'm-juntos',
+      a: [yo(), participant({ userId: RIVAL, slot: 'A', riotId: 'Rival#LAN' })],
+      b: [participant({ userId: 'x', slot: 'B' })],
+      userParticipant: yo(),
+    }),
+    matchFixture({
+      id: 'm-contra',
+      a: [yo()],
+      b: [participant({ userId: RIVAL, slot: 'B', riotId: 'Rival#LAN' })],
+      userParticipant: yo(),
+    }),
   ];
 }
 
 describe('HistorialCruzado', () => {
-  async function montar(
-    matches: Match[],
-    queryModo: string | null = null,
-    gameDataStatus: 'ready' | 'loading' | 'error' = 'ready',
-  ) {
-    const groupStore = new GroupStore();
-
+  async function montar(matches: Match[], total = matches.length): Promise<HTMLElement> {
     await TestBed.configureTestingModule({
       imports: [HistorialCruzado],
       providers: [
         provideRouter([]),
         CrossViewState,
+        MatchHistoryUiState,
         {
           provide: ActivatedRoute,
           useValue: {
-            snapshot: {
-              paramMap: { get: () => RIVAL },
-              queryParamMap: { get: (k: string) => (k === 'modo' ? queryModo : null) },
-            },
+            snapshot: { paramMap: { get: () => RIVAL }, queryParamMap: { get: () => null } },
             paramMap: of({ get: () => RIVAL }),
-            queryParamMap: of({ get: (k: string) => (k === 'modo' ? queryModo : null) }),
           },
         },
-        {
-          provide: GroupStore,
-          useValue: { groups: signal(GROUPS), rosterOf: (id: string) => groupStore.rosterOf(id) },
-        },
-        { provide: Viewport, useValue: { isMobile: signal(false), isNarrow: signal(false) } },
         {
           provide: GroupsStore,
           useValue: { groups: signal([]), status: signal('ready'), ensureLoaded: () => {} },
         },
+        { provide: GroupDetailStore, useValue: { roster: signal([]) } },
+        { provide: LeaguesStore, useValue: { seasons: signal([]), loadSeasons: () => {} } },
         {
           provide: GameDataStore,
           useValue: {
-            status: signal(gameDataStatus),
+            status: signal('ready'),
             championById: signal(new Map()),
             ensureLoaded: () => {},
             reload: () => {},
@@ -98,70 +74,57 @@ describe('HistorialCruzado', () => {
         },
         {
           provide: MatchHistoryStore,
-          useValue: {
-            status: signal('ready'),
-            allPersonalMatches: signal(matches),
-            playedChampionIdsInPersonal: () => [1],
-            playedChampionIdsInGroup: () => [1],
-            matchesByGroup: () => matches,
-            crossWith: (key: string) => {
-              const all = buildCrossMatches(matches, key);
-              return {
-                all,
-                allies: all.filter((c) => c.relation === 'ally'),
-                enemies: all.filter((c) => c.relation === 'enemy'),
-              };
-            },
-          },
+          useValue: fakeMatchHistoryStore({
+            personal: matches,
+            personalTotal: total,
+            summaries: { all: { totalMatches: total } },
+          }),
         },
         {
           provide: Session,
           useValue: {
-            displayName: signal('User'),
+            displayName: signal('Yo'),
+            avatarUrl: signal(''),
             status: signal('ready'),
-            user: signal({ ...CURRENT_USER, id: 'u1' }),
-            activeProfile: signal(null),
+            user: signal({ userId: ME }),
           },
         },
+        { provide: Viewport, useValue: { isMobile: signal(false) } },
       ],
     }).compileComponents();
 
     const fixture = TestBed.createComponent(HistorialCruzado);
     fixture.detectChanges();
-    return {
-      fixture,
-      el: fixture.nativeElement as HTMLElement,
-      detect: () => fixture.detectChanges(),
-    };
+    return fixture.nativeElement as HTMLElement;
   }
 
   it('pinta la lista de partidas cruzadas con sus tarjetas', async () => {
-    const { el } = await montar(historialConCruce());
+    const el = await montar(historialConCruce());
 
-    expect(el.querySelectorAll('app-cross-match-card').length).toBe(2);
+    expect(el.querySelectorAll('app-cross-match-card')).toHaveLength(2);
+    expect(el.textContent).not.toContain('Todavía no habéis coincidido');
   });
 
+  /*
+   * Sin partidas en común la lista es vacía, y eso ES la respuesta. La versión anterior
+   * devolvía seis partidas cualesquiera del usuario y las presentaba como enfrentamientos.
+   */
   it('sin partidas en común enseña el estado vacío, no partidas prestadas', async () => {
-    const { el } = await montar(historialSinCruce());
+    const el = await montar([], 0);
 
-    expect(el.querySelectorAll('app-cross-match-card').length).toBe(0);
-    expect(el.querySelector('.empty-state__text')?.textContent).toContain(
-      'Todavía no habéis coincidido',
-    );
+    expect(el.querySelectorAll('app-cross-match-card')).toHaveLength(0);
+    expect(el.textContent).toContain('Todavía no habéis coincidido');
   });
 
-  it('el filtro de modo versus deja solo los enfrentamientos', async () => {
-    const { el } = await montar(historialConCruce(), 'versus');
+  /*
+   * El total lo dice el servidor, no la longitud de la página: el paginador tiene que ofrecer
+   * las páginas que existen, no las que caben en lo que hay cargado.
+   */
+  it('el paginador usa el total del servidor, no el tamaño de la página', async () => {
+    const el = await montar(historialConCruce(), 37);
 
-    const cards = el.querySelectorAll('app-cross-match-card');
-    expect(cards.length).toBe(1);
-    expect(el.textContent).toContain('En contra');
-  });
-
-  it('el filtro de modo synergy deja solo las partidas juntos', async () => {
-    const { el } = await montar(historialConCruce(), 'synergy');
-
-    expect(el.querySelectorAll('app-cross-match-card').length).toBe(1);
-    expect(el.textContent).toContain('Juntos');
+    const pager = el.querySelector('nf-pagination');
+    expect(pager).not.toBeNull();
+    expect(el.textContent).toContain('37');
   });
 });

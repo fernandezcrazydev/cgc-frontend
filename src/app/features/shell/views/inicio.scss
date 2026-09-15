@@ -266,13 +266,6 @@
   transform: translateY(-2px);
 }
 
-.ini-nemesis-card:hover,
-.ini-nemesis-card:focus-visible {
-  border-color: rgba(248, 81, 73, 0.6);
-  box-shadow: 0 0 20px rgba(248, 81, 73, 0.22), 0 8px 24px rgba(0, 0, 0, 0.45);
-  transform: translateY(-2px);
-}
-
 .ini-interactive-card:focus-visible {
   outline: 2px solid #58a6ff;
   outline-offset: 2px;
@@ -358,99 +351,7 @@
   white-space: nowrap;
 }
 
-.ini-mvp-quote-bubble {
-  background: #161b22;
-  border-radius: 8px;
-  padding: 8px 10px;
-  border: 1px solid #21262d;
-  font-size: 12px;
-  color: #c9d1d9;
-  display: flex;
-  gap: 4px;
-  font-style: italic;
-  line-height: 1.4;
-}
-
-.ini-quote-mark {
-  color: #e3b341;
-  font-weight: 800;
-  font-size: var(--fs-body);
-  line-height: 1;
-}
-
-.ini-quote-text {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-}
-
 /* Némesis Cara a Cara */
-.ini-nemesis-versus {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.ini-nemesis-players {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: var(--fs-label);
-  color: #c9d1d9;
-}
-
-.ini-nemesis-tag {
-  font-weight: 600;
-}
-
-.ini-nemesis-vs {
-  font-size: 10px;
-  font-weight: 800;
-  color: #f85149;
-  background: rgba(248, 81, 73, 0.15);
-  padding: 2px 6px;
-  border-radius: 4px;
-}
-
-.ini-nemesis-bar {
-  height: 7px;
-  border-radius: 4px;
-  background: #21262d;
-  display: flex;
-  overflow: hidden;
-}
-
-.ini-nemesis-bar__win {
-  background: #58a6ff;
-  transition: width 0.3s ease;
-}
-
-.ini-nemesis-bar__loss {
-  background: #f85149;
-  transition: width 0.3s ease;
-}
-
-.ini-nemesis-stats {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: var(--fs-label);
-}
-
-.ini-nemesis-wr {
-  color: #8b949e;
-}
-
-.ini-nemesis-callout {
-  font-size: var(--fs-label);
-  color: #8b949e;
-  padding: 6px 8px;
-  background: #161b22;
-  border-radius: 6px;
-  border-left: 2px solid #f85149;
-}
 
 /* ── Gráfica PolPredictor (Evolución de LP) ─────────────────────────────────── */
 .ini-pol-card {
@@ -985,72 +886,3 @@
 }
 
 /* ── Highlights Semanales (Sidebar Tiles) ──────────────────────────────────── */
-.ini-highlights-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 8px;
-}
-
-.ini-highlight-tile {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 10px 12px;
-  background: #161b22;
-  border-radius: 8px;
-  border: 1px solid #21262d;
-}
-
-.ini-interactive-tile {
-  cursor: pointer;
-  user-select: none;
-  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
-
-  &:hover,
-  &:focus-visible {
-    background: #1c2438;
-    border-color: rgba(59, 130, 246, 0.6);
-    box-shadow: 0 0 16px rgba(59, 130, 246, 0.22);
-    transform: translateY(-1px);
-
-    .ini-highlight-tile__label {
-      color: #58a6ff;
-    }
-
-    .ini-highlight-tile__val {
-      color: #ffffff;
-    }
-
-    .ini-highlight-tile__sublabel {
-      color: #a5d6ff;
-    }
-  }
-
-  &:focus-visible {
-    outline: 2px solid #58a6ff;
-    outline-offset: 1px;
-  }
-}
-
-.ini-highlight-tile__label {
-  font-size: 10px;
-  color: #8b949e;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  font-weight: 600;
-  transition: color 0.15s ease;
-}
-
-.ini-highlight-tile__val {
-  font-size: 13px;
-  font-weight: 700;
-  color: #f0f6fc;
-  transition: color 0.15s ease;
-}
-
-.ini-highlight-tile__sublabel {
-  font-size: var(--fs-label);
-  color: #6e7681;
-  margin-top: 1px;
-  transition: color 0.15s ease;
-}

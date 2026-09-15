@@ -1,191 +1,185 @@
-import { describe, expect, it, beforeEach } from 'vitest';
-import { provideHttpClient } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { signal } from '@angular/core';
+import { environment } from '../../../environments/environment';
+import { Session } from '../auth';
 import { MatchHistoryStore } from './match-history-store';
-import { Match, MatchParticipant } from './models';
-import { matchHasStats } from './match-view';
-import { matchFixture, participantFixture } from './match-fixtures';
+import { EMPTY_FILTERS, groupMatchQuery, personalMatchQuery, personalSummaryQuery } from './match-filtering';
+
+const ME = 'me-uuid';
+const GROUP = { id: 'g1', name: 'Chiringuito' };
+
+function page(ids: string[], totalElements = ids.length) {
+  return {
+    content: ids.map((id) => ({ id, hasStats: true, winnerSlot: 'A', teams: [] })),
+    page: 0,
+    size: 6,
+    totalElements,
+    totalPages: 1,
+  };
+}
 
 describe('MatchHistoryStore', () => {
   let store: MatchHistoryStore;
+  let http: HttpTestingController;
 
   beforeEach(() => {
-    TestBed.configureTestingModule({ providers: [provideHttpClient()] });
+    TestBed.configureTestingModule({
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: Session, useValue: { user: signal({ userId: ME }) } },
+      ],
+    });
     store = TestBed.inject(MatchHistoryStore);
+    http = TestBed.inject(HttpTestingController);
   });
 
-  const participants = (m: Match): MatchParticipant[] => [
-    ...m.blueTeam.participants,
-    ...m.redTeam.participants,
-  ];
+  afterEach(() => http.verify());
 
-  it('en estado inicial el store tiene 0 partidas y resúmenes limpios', () => {
-    expect(store.allMatches().length).toBe(0);
-    expect(store.allPersonalMatches().length).toBe(0);
+  const query = () => personalMatchQuery(EMPTY_FILTERS, 0, 6);
 
-    const personal = store.personalSummary();
-    expect(personal.totalMatches).toBe(0);
-    expect(personal.wins).toBe(0);
-    expect(personal.losses).toBe(0);
-    expect(personal.winrate).toBe(0);
-
-    const group = store.groupSummary('cualquier-grupo');
-    expect(group.totalMatches).toBe(0);
-    expect(group.blueWinrate).toBe(0);
-    expect(group.avgDurationMinutes).toBe(0);
-    expect(group.topMvpName).toBeNull();
+  it('arranca en idle y sin nada cargado', () => {
+    expect(store.personalStatus()).toBe('idle');
+    expect(store.personalMatches()).toEqual([]);
+    expect(store.personalTotal()).toBe(0);
   });
 
-  it('matchesByGroup devuelve lista vacía si el grupo no tiene partidas', () => {
-    expect(store.matchesByGroup('grupo-1')).toEqual([]);
+  it('pasa por loading y deja la página en ready', async () => {
+    const done = store.ensurePersonal(query());
+    expect(store.personalStatus()).toBe('loading');
+
+    http.expectOne((r) => r.url === `${environment.apiUrl}/me/matches`).flush(page(['a', 'b'], 20));
+    await done;
+
+    expect(store.personalStatus()).toBe('ready');
+    expect(store.personalMatches().map((m) => m.id)).toEqual(['a', 'b']);
+    // El contador sale del total del servidor, no de la longitud de la página.
+    expect(store.personalTotal()).toBe(20);
   });
 
-  it('los filtros de campeón devuelven lista vacía cuando no hay partidas', () => {
-    expect(store.playedChampionIdsInPersonal()).toEqual([]);
-    expect(store.playedChampionIdsInGroup('grupo-1')).toEqual([]);
-    expect(store.championAverages(103)).toBeNull();
+  it('un fallo deja el estado en error y la lista vacía, no a medias', async () => {
+    const done = store.ensurePersonal(query());
+    http
+      .expectOne((r) => r.url === `${environment.apiUrl}/me/matches`)
+      .flush({}, { status: 500, statusText: 'Server Error' });
+    await done;
+
+    expect(store.personalStatus()).toBe('error');
+    expect(store.personalMatches()).toEqual([]);
   });
 
-  it('una partida que no existe no rompe la navegación ni el head to head', () => {
-    expect(store.matchById('no-existe')).toBeUndefined();
-    expect(store.neighboursOf('no-existe')).toEqual({ prev: null, next: null });
+  /** `ensure` es idempotente por consulta: repetir la misma no vuelve a pedir. */
+  it('repetir la misma consulta no dispara una segunda petición', async () => {
+    const first = store.ensurePersonal(query());
+    http.expectOne((r) => r.url === `${environment.apiUrl}/me/matches`).flush(page(['a']));
+    await first;
 
-    const dummyParticipant: MatchParticipant = {
-      id: 'p-1',
-      userId: 'u-1',
-      riotId: 'Test#123',
-      isGuest: false,
-      team: 'red',
-      role: 'MID',
-      championId: 103,
-      championName: 'Ahri',
-      championLevel: 15,
-      wasAutofill: false,
-      lpDelta: 0,
-      stats: {
-        kills: 0, deaths: 0, assists: 0, cs: 0, csPerMin: 0, gold: 0,
-        totalDamageToChampions: 0, damageSharePercentage: 0, damageTaken: 0,
-        visionScore: 0, wardsPlaced: 0, wardsKilled: 0, items: [], spells: [4, 14],
-        goldAt14: 0, csAt14: 0, wonLane: false,
-      },
-    };
-
-    const h2h = store.headToHead(dummyParticipant);
-    expect(h2h.games).toBe(0);
-    expect(h2h.wins).toBe(0);
-    expect(h2h.losses).toBe(0);
+    await store.ensurePersonal(query());
+    http.expectNone((r) => r.url === `${environment.apiUrl}/me/matches`);
   });
 
-  it('calcula correctamente derivaciones cuando se asignan partidas', () => {
-    const fixture: Match = {
-      id: 'test-m1',
-      code: 'TM01',
-      groupId: 'g-1',
-      group: {
-        id: 'g-1',
-        name: 'Grupo 1',
-        tag: 'EUW',
-        initials: 'G1',
-        color1: '#fff',
-        color2: '#000',
-        seasonName: 'Temporada 1',
-      },
-      source: 'import',
-      durationSeconds: 1800,
-      decidedAt: new Date().toISOString(),
-      winningTeam: 'blue',
-      userOutcome: 'win',
-      userParticipant: {
-        id: 'p-blue',
-        userId: 'u-me',
-        riotId: 'Me#EUW',
-        isGuest: false,
-        team: 'blue',
-        role: 'TOP',
-        championId: 24,
-        championName: 'Jax',
-        championLevel: 16,
-        wasAutofill: false,
-        lpDelta: 25,
-        stats: {
-          kills: 5, deaths: 1, assists: 4, cs: 200, csPerMin: 6.6, gold: 12000,
-          totalDamageToChampions: 15000, damageSharePercentage: 25, damageTaken: 18000,
-          visionScore: 20, wardsPlaced: 10, wardsKilled: 4, items: [], spells: [4, 12],
-          goldAt14: 4000, csAt14: 100, wonLane: true,
-        },
-      },
-      blueTeam: {
-        side: 'blue',
-        won: true,
-        totalKills: 15,
-        totalDeaths: 5,
-        totalAssists: 20,
-        totalGold: 50000,
-        totalDamage: 60000,
-        dragons: 2,
-        barons: 1,
-        towers: 7,
-        participants: [],
-      },
-      redTeam: {
-        side: 'red',
-        won: false,
-        totalKills: 5,
-        totalDeaths: 15,
-        totalAssists: 8,
-        totalGold: 40000,
-        totalDamage: 45000,
-        dragons: 1,
-        barons: 0,
-        towers: 2,
-        participants: [],
-      },
-    };
+  it('cambiar de consulta sí vuelve a pedir, y reload fuerza aunque no cambie', async () => {
+    const first = store.ensurePersonal(query());
+    http.expectOne((r) => r.url === `${environment.apiUrl}/me/matches`).flush(page(['a']));
+    await first;
 
-    store.allMatches.set([fixture]);
+    const second = store.ensurePersonal(personalMatchQuery(EMPTY_FILTERS, 1, 6));
+    http.expectOne((r) => r.params.get('page') === '1').flush(page(['b']));
+    await second;
+    expect(store.personalMatches().map((m) => m.id)).toEqual(['b']);
 
-    expect(store.allMatches().length).toBe(1);
-    expect(store.allPersonalMatches().length).toBe(1);
-    expect(store.personalSummary().wins).toBe(1);
-    expect(store.personalSummary().totalMatches).toBe(1);
-    expect(store.personalSummary().winrate).toBe(100);
-    expect(store.matchesByGroup('g-1').length).toBe(1);
-    expect(store.matchesByGroup('otro-grupo').length).toBe(0);
-    expect(store.playedChampionIdsInPersonal()).toEqual([24]);
+    const forced = store.reloadPersonal(personalMatchQuery(EMPTY_FILTERS, 1, 6));
+    http.expectOne((r) => r.params.get('page') === '1').flush(page(['c']));
+    await forced;
+    expect(store.personalMatches().map((m) => m.id)).toEqual(['c']);
   });
 
-  it('groupSummary calcula la duración media solo sobre partidas con datos y totalMatches cuenta todas', () => {
-    const p1 = participantFixture({ id: 'p1', team: 'blue' });
-    const p2 = participantFixture({ id: 'p2', team: 'red' });
-    const mWithStats = matchFixture({
-      id: 'm-stats',
-      groupId: 'g-test',
-      source: 'import',
-      durationSeconds: 1800,
-      blue: [p1],
-      red: [p2],
-    });
-    const mManual = matchFixture({
-      id: 'm-manual',
-      groupId: 'g-test',
-      source: 'manual',
-      durationSeconds: 600,
-      blue: [p1],
-      red: [p2],
-    });
+  /*
+   * Sin esto, teclear en el buscador deja la lista en el resultado de la penúltima letra: la
+   * petición vieja tarda más y escribe encima de la nueva.
+   */
+  it('una respuesta que llega tarde ya no escribe en la lista', async () => {
+    const first = store.ensurePersonal(query());
+    const second = store.ensurePersonal(personalMatchQuery({ ...EMPTY_FILTERS, searchQuery: 'ahri' }, 0, 6));
 
-    store.allMatches.set([mWithStats, mManual]);
+    const requests = http.match((r) => r.url === `${environment.apiUrl}/me/matches`);
+    // `match` devuelve TestRequest, cuya petición está en `.request`.
+    expect(requests).toHaveLength(2);
 
-    const summary = store.groupSummary('g-test');
-    expect(summary.totalMatches).toBe(2);
-    expect(summary.avgDurationMinutes).toBe(30);
+    // La SEGUNDA responde primero, y la primera llega después: la tardía se descarta.
+    requests[1].flush(page(['nueva']));
+    requests[0].flush(page(['vieja']));
+    await Promise.all([first, second]);
+
+    expect(store.personalMatches().map((m) => m.id)).toEqual(['nueva']);
+  });
+
+  /*
+   * La pantalla del cruce enseña tres recuentos a la vez (todas, juntos, enfrentados). Con un
+   * único hueco, las tres pestañas acababan con el número de la última consulta que volvió.
+   */
+  it('guarda un resumen personal por consulta, no uno solo', async () => {
+    const juntos = personalSummaryQuery(EMPTY_FILTERS, { with: 'x', relation: 'ally' });
+    const contra = personalSummaryQuery(EMPTY_FILTERS, { with: 'x', relation: 'enemy' });
+
+    const a = store.ensurePersonalSummary(juntos);
+    const b = store.ensurePersonalSummary(contra);
+    const reqs = http.match((r) => r.url === `${environment.apiUrl}/me/matches/summary`);
+    reqs.find((r) => r.request.params.get('relation') === 'ALLY')!.flush({ totalMatches: 7 });
+    reqs.find((r) => r.request.params.get('relation') === 'ENEMY')!.flush({ totalMatches: 3 });
+    await Promise.all([a, b]);
+
+    expect(store.personalSummaryFor(juntos)?.totalMatches).toBe(7);
+    expect(store.personalSummaryFor(contra)?.totalMatches).toBe(3);
+  });
+
+  it('el 404 del detalle se distingue de un fallo de red', async () => {
+    const notFound = store.ensureDetail('nope');
+    http.expectOne(`${environment.apiUrl}/matches/nope`).flush(
+      { code: 'MATCH_NOT_FOUND' },
+      { status: 404, statusText: 'Not Found' },
+    );
+    await notFound;
+
+    expect(store.detailStatus()).toBe('error');
+    expect(store.detailNotFound()).toBe(true);
+
+    const broken = store.ensureDetail('otra');
+    http.expectOne(`${environment.apiUrl}/matches/otra`).flush({}, { status: 0, statusText: '' });
+    await broken;
+
+    expect(store.detailStatus()).toBe('error');
+    expect(store.detailNotFound()).toBe(false);
+  });
+
+  /** La muestra del grupo va en su propio hueco: abrir la tier list no le pisa la página al historial. */
+  it('la muestra del grupo no pisa la lista del historial de grupo', async () => {
+    const lista = store.ensureGroup(GROUP, groupMatchQuery(EMPTY_FILTERS, 0, 6));
+    http.expectOne((r) => r.params.get('size') === '6').flush(page(['lista']));
+    await lista;
+
+    const muestra = store.ensureGroupSample(GROUP);
+    http.expectOne((r) => r.params.get('size') === '60').flush(page(['muestra'], 200));
+    await muestra;
+
+    expect(store.groupMatches().map((m) => m.id)).toEqual(['lista']);
+    expect(store.groupSample().map((m) => m.id)).toEqual(['muestra']);
+    expect(store.groupSampleTotal()).toBe(200);
+  });
+
+  it('clear no deja rastro del usuario anterior', async () => {
+    const done = store.ensurePersonal(query());
+    http.expectOne((r) => r.url === `${environment.apiUrl}/me/matches`).flush(page(['a']));
+    await done;
+
+    store.clear();
+
+    expect(store.personalStatus()).toBe('idle');
+    expect(store.personalMatches()).toEqual([]);
+    expect(store.personalTotal()).toBe(0);
+    expect(store.detail()).toBeNull();
+    expect(store.groupSummary()).toBeNull();
   });
 });
-
-describe('matchHasStats', () => {
-  it('devuelve false con source: manual y true con import', () => {
-    expect(matchHasStats({ source: 'manual' })).toBe(false);
-    expect(matchHasStats({ source: 'import' })).toBe(true);
-  });
-});
-

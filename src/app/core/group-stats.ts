@@ -17,7 +17,6 @@
  */
 import { Member, REAL_CHAMPION_IDS } from './lobby';
 import { hash, seeded } from './group-ranking';
-import { SEEDED_MATCH_COUNT, seedMatchId } from './seed-matches';
 
 /** Ventana temporal a la que se escala cada widget. */
 export type StatScope = 'temporada' | 'historico';
@@ -816,24 +815,26 @@ export interface EpicRecord {
   value: string;
   /** Quién o qué lo firmó. */
   detail: string;
-  /** Partida de la semilla a la que enlaza la tarjeta. */
-  matchId: string;
-  matchLabel: string;
+  /**
+   * Partida a la que enlazaba la tarjeta. `null` desde que se borró la semilla: el récord lo
+   * sigue inventando el cliente y ya no hay ninguna partida local a la que apuntar, así que el
+   * enlace no se ofrece en vez de prometer una pantalla vacía.
+   */
+  matchId: string | null;
+  matchLabel: string | null;
 }
 
 /**
- * Los récords históricos de máxima dificultad (§5.5.5, bloque 3). A diferencia de la trivia
- * del hub, estos sí llevan `matchId`: la tarjeta promete «ver partida» y tiene que
- * aterrizar en una que exista.
+ * Los récords históricos de máxima dificultad (§5.5.5, bloque 3). Llevaban `matchId` porque la
+ * tarjeta promete «ver partida» y tiene que aterrizar en una que exista; desde que el historial
+ * lo sirve el backend no hay ninguna que prometer, así que el enlace desaparece hasta que estos
+ * récords se calculen también en servidor.
  */
 export function epicRecordsFor(groupId: string, stats: readonly MemberStats[]): EpicRecord[] {
   if (!stats.length) return [];
 
   const rnd = seeded(hash(groupId + ':records'));
-  const matchOf = () => {
-    const n = 1 + Math.floor(rnd() * SEEDED_MATCH_COUNT);
-    return { matchId: seedMatchId(n), matchLabel: 'Partida ' + n };
-  };
+  const matchOf = () => ({ matchId: null, matchLabel: null });
 
   const topDamage = [...stats].sort((a, b) => b.dmgK - a.dmgK)[0];
   const topKills = [...stats].sort((a, b) => b.kills - a.kills)[0];

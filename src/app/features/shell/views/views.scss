@@ -838,34 +838,7 @@
   }
 }
 
-.m-card__items {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 108px;
-  min-height: 48px;
-}
-
-.m-card__items-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 24px);
-  gap: 3px;
-}
-
 /* El icono real va encima; el degradado por hash solo se ve si el objeto no trae `iconUrl`. */
-.m-card__item-slot {
-  width: 24px;
-  height: 24px;
-  border-radius: 4px;
-  border: 1px solid var(--nf-border);
-  background-size: cover;
-
-  &--empty {
-    background: var(--nf-inset);
-    border-style: dashed;
-    opacity: 0.5;
-  }
-}
 
 .m-card__end {
   display: flex;
@@ -1229,34 +1202,6 @@
   }
 }
 
-.m-lineup__team-objs {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.m-lineup__obj,
-.m-lineup__drakes {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-}
-
-.m-lineup__obj-icon,
-.m-lineup__drake-icon {
-  width: 15px;
-  height: 15px;
-  object-fit: contain;
-}
-
-.m-lineup__obj-num {
-  font-size: var(--fs-label);
-  font-weight: var(--fw-bold);
-  color: var(--nf-text-dim);
-  line-height: 1;
-}
-
 .m-lineup__row {
   display: grid;
   grid-template-columns: 14px 58px 125px auto 1fr 56px 174px;
@@ -1318,43 +1263,6 @@
   flex-shrink: 0;
 }
 
-.m-lineup__spells-col,
-.m-lineup__runes-col {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  align-items: center;
-  justify-content: center;
-}
-
-.m-lineup__spell-slot {
-  width: 13px;
-  height: 13px;
-  border-radius: 2px;
-  border: 1px solid var(--nf-border);
-  overflow: hidden;
-  flex-shrink: 0;
-  display: flex;
-}
-
-.m-lineup__rune-slot {
-  width: 13px;
-  height: 13px;
-  border-radius: 50%;
-  background: var(--nf-inset);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  flex-shrink: 0;
-
-  &--secondary {
-    width: 12px;
-    height: 12px;
-    opacity: 0.85;
-  }
-}
-
 .m-lineup__who {
   grid-area: who;
   display: flex;
@@ -1407,7 +1315,6 @@
   background: color-mix(in srgb, var(--nf-primary) 28%, transparent);
   color: var(--nf-primary);
   line-height: 1;
-
 
   &--score {
     background: color-mix(in srgb, var(--nf-surface-2) 80%, transparent);
@@ -1574,29 +1481,6 @@
 .m-lineup__deaths { color: var(--nf-danger); }
 .m-lineup__ratio { font-size: var(--fs-label); color: var(--nf-text-mid); white-space: nowrap; }
 
-.m-lineup__items {
-  grid-area: items;
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  justify-content: flex-start;
-  width: 174px; flex-shrink: 0;
-}
-
-.m-lineup__item-slot {
-  width: 19px;
-  height: 19px;
-  border-radius: 3px;
-  border: 1px solid var(--nf-border);
-  background-size: cover;
-  flex-shrink: 0;
-  display: flex;
-
-  &--trinket { margin-left: 3px; border-radius: 50%; }
-  &--quest { margin-left: 2px; border-radius: 4px; border-color: color-mix(in srgb, var(--nf-warning) 50%, var(--nf-border)); }
-  &--empty { background: var(--nf-inset); border-style: dashed; opacity: 0.35; }
-}
-
 @media (max-width: 768px) {
   .m-lineup__row {
     grid-template-columns: 18px 72px minmax(0, 1fr) auto auto auto;
@@ -1609,10 +1493,6 @@
 
   .m-lineup__ratio {
     display: none;
-  }
-
-  .m-lineup__items {
-    justify-content: flex-start;
   }
 }
 
@@ -1694,7 +1574,6 @@
   .m-card__result { grid-area: result; align-items: flex-end; text-align: right; }
   .m-card__kda { grid-area: kda; }
   .m-card__stats { grid-area: stats; align-items: flex-end; text-align: right; }
-  .m-card__items { grid-area: items; }
   .m-card__end {
     grid-area: end;
     flex-direction: row;
@@ -1712,8 +1591,6 @@
   .m-card__group-link { white-space: normal; }
 
   /* Los objetos (7 u 8 para ADC) se muestran con ancho uniforme sin romper la fila ni alterar la altura */
-  .m-card__items-grid { display: flex; align-items: center; gap: 5px; flex-wrap: nowrap; }
-  .m-card__item-slot { width: 26px; height: 26px; aspect-ratio: 1; flex-shrink: 0; }
 
   /* ---- Fila del historial de grupo ----
      Va DESPUÉS de `.m-card__main` a propósito: las dos tienen la misma especificidad, así
@@ -1751,10 +1628,10 @@
     gap: 10px;
   }
 
-  /* En escritorio el bando azul pinta su marcador a la derecha y el rojo a la izquierda
-     para enfrentarse en el centro. Apilados en móvil, los dos marcadores van a la izquierda
-     para poder compararlos de un vistazo vertical. */
-  .m-card__team-roster--blue .m-card__team-score { order: -1; }
+  /* En escritorio los dos equipos enfrentan sus marcadores en el centro, cada uno por su
+     lado. Apilados en móvil, los dos van a la izquierda para poder compararlos de un vistazo
+     vertical: la regla no mira el bando porque un equipo puede no tener color. */
+  .m-card__team-score { order: -1; }
 
   .m-card__champ-avatars {
     display: grid;
@@ -1837,19 +1714,11 @@
 
 /* ============ PARTIDA DETALLE ============ */
 
-
-.hl__lane { color: var(--nf-text-dim); }
-
-
-
-
-
 @media (max-width: $bp-compact) {
   
 
   
 
-  .md-panel__lead,
   .m-rank-lead {
     display: -webkit-box;
     -webkit-box-orient: vertical;
@@ -1858,44 +1727,11 @@
   }
 
   
-  .md-section .hl {
-    min-height: 0;
-    gap: 8px;
-    padding: 14px;
-  }
-  .md-section .hl__hero { gap: 10px; }
-  .md-section .hl__name { font-size: var(--fs-body-lg); }
-  .md-section .hl__score { margin-top: 0; }
-
-  
 
   
 }
 
 /* ============ RANKING / LEADERBOARD ============ */
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 /* ============ PERFIL V2 (Dashboard Bento Grid & Cero Scroll Inútil) ============ */
 .pf-view {
@@ -2186,12 +2022,6 @@
   }
 }
 
-
-
-
-
-
-
 /* ── Top 3 Campeones Insignia ──────────────────────────────────────── */
 .pf-mini-champs {
   display: flex;
@@ -2286,14 +2116,6 @@
   display: block;
 }
 
-
-
-
-
-
-
-
-
 /* ── Pestaña 2: ADN & Telemetría 5v5 ───────────────────────────────── */
 .pf-tab-content {
   display: flex;
@@ -2348,15 +2170,12 @@
   color: var(--nf-text-mid);
 }
 
-
-
 /* Un hueco sin dato, escrito. Nunca un `—` suelto ni un cero: el usuario lee un cero como
    un resultado real y un guion sin explicación como un fallo de la pantalla. */
 /* El esqueleto del perfil entero, con la misma forma que lo que viene detrás: cabecera con
    avatar, nombre y anillo, la tira de indicadores y el primer bloque de contenido. */
 /* Fila de comparación cuya métrica no la trae ninguna partida: se atenúa para que el 50/50
    no se lea como un empate real. */
-
 
 .pf-boot {
   display: flex;
@@ -2533,12 +2352,6 @@
   border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
-
-
-
-
-
-
 /* ── Acciones de Desglose / Lineup ─────────────────────────────────── */
 .m-lineup__actions {
   display: flex;
@@ -2548,10 +2361,6 @@
   flex-wrap: wrap;
   margin-top: 10px;
 }
-
-
-
-
 
 /* Semáforo de vinculación de Riot: gris = sin cuenta, rojo = escrita sin prueba (DECLARED),
    ámbar = emparejada desde el cliente sin verificar (PAIRED), verde = verificada (VERIFIED). */
@@ -2589,17 +2398,9 @@
 /* Barra de estado de la ventana: aloja el paginador del roster pegado al borde inferior,
    como el status bar de una ventana de escritorio. Solo se pinta si hay más de una página. */
 
-
-
-
-
-
-
-
 /* ── Convocar: elegir horas ──────────────────────────────────────────────────
    El camino rápido son los chips de horas típicas; el selector libre queda
    plegado detrás de un <details> para quien necesite un finde por la tarde. */
-
 
 /* Los dos lados del cruce tienen un color fijo en toda la sección: el tuyo es
    el acento de la app y el suyo el índigo terciario. Se nombran por su papel
@@ -2661,22 +2462,11 @@
 .cx-card__relation-tag--ally { color: var(--nf-secondary); border-color: color-mix(in srgb, var(--nf-secondary) 35%, transparent); background: color-mix(in srgb, var(--nf-secondary) 10%, transparent); }
 .cx-card__relation-lane { font-size: var(--fs-label); color: var(--nf-text-dim); }
 
-
-
 .cx-compare {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
-
-
-
-
-
-
-
-
-
 
 .cx-compare__legend {
   display: flex;
@@ -2752,8 +2542,6 @@
 .cx-metric__fill--me { background: var(--cx-me); }
 .cx-metric__fill--them { background: var(--cx-them); }
 
-
-
 .cx-panel {
   padding: 18px 20px;
   border-radius: var(--nf-radius);
@@ -2815,8 +2603,6 @@
   color: var(--nf-text-dim);
 }
 
-
-
 /* ── Reflujo ──────────────────────────────────────────────────────── */
 /* Por rejillas con nombre, como el resto de `.m-card__main`: las reglas del
    bloque compacto de arriba ya colocan `.m-card__result` y `.m-card__end` en
@@ -2861,11 +2647,4 @@
 /* ── Menú de gestión por fila del ranking (Fase 2, sanciones) ───────────────
    Tres puntos y no botones sueltos: en una tabla de quince filas, repetir acciones
    destructivas a la vista invita al accidente y se come ancho que aquí ya va justo. */
-
-
-
-
-
-
-
 

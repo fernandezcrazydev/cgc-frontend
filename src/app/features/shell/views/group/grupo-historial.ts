@@ -1,20 +1,46 @@
-import { ChangeDetectionStrategy, Component, ElementRef, afterNextRender, computed, effect, inject, viewChild } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  afterNextRender,
+  computed,
+  effect,
+  inject,
+  untracked,
+  viewChild,
+} from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
 import { NfButton, NfPagination, NfSkeleton } from '../../../../ui';
 import { GroupStore } from '../../../../core/group-store';
-import { GroupBridge, GroupsStore } from '../../../../core/groups';
+import { GroupBridge, GroupDetailStore, GroupsStore } from '../../../../core/groups';
+import { LeaguesStore } from '../../../../core/leagues';
 import { MatchHistoryStore } from '../../../../core/matches/match-history-store';
-import { filterGroupMatches, sortMatches } from '../../../../core/matches/match-filtering';
+import { activeFilterCount, groupMatchQuery } from '../../../../core/matches/match-filtering';
 import { GameDataStore } from '../../../../core/game-data';
-import { MODALITY_LABELS, modalityFromSlug } from '../../../../core/group-stats';
+import { formatDurationMinutes } from '../../../../shared/date-format';
 import { Viewport } from '../../../../shared/viewport';
 import { ViewMemoryService } from '../../../../shared/view-memory';
 import { GroupMatchCardComponent } from '../match-history/group-match-card.component';
 import { MatchFiltersComponent } from '../match-history/match-filters.component';
 import { MatchHistoryUiState } from '../match-history/match-history-ui';
 
+/**
+ * El historial de un grupo: `GET /groups/{id}/matches`, más sus tres tarjetas de cabecera
+ * (`/matches/summary`).
+ *
+ * Dos cosas del contrato mandan sobre lo que se pinta arriba, y no son estilo:
+ *
+ * - **Los porcentajes se calculan aquí, con el denominador correcto**, porque el servidor manda
+ *   cuentas y no medias a propósito. `blueWins + redWins` NO es `totalMatches`: una sala sin
+ *   lado decidido no está en ninguno de los dos, así que el winrate por bando se divide entre
+ *   `matchesWithSide`. La duración media va sobre `matchesWithStats`, porque solo una partida
+ *   subida tiene duración.
+ * - **El resumen describe el grupo entero, no la lista filtrada.** El endpoint no acepta
+ *   filtros, y la cabecera lo dice en voz alta para que nadie lea las tarjetas como si
+ *   siguieran a los controles de abajo.
+ */
 @Component({
   selector: 'app-grupo-historial',
   standalone: true,
@@ -30,162 +56,16 @@ import { MatchHistoryUiState } from '../match-history/match-history-ui';
     MatchFiltersComponent,
   ],
   styleUrl: './grupo-historial.scss',
-  template: `
-    <div class="view">
-      @if (group(); as g) {
-        <!-- TARJETAS DE RESUMEN DE LA LIGA -->
-        @if (allGroupMatches().length > 0) {
-          <div class="m-summary">
-            <!-- Bloque 1: Partidas y Lado Ganador -->
-            <div class="m-summary__stat-card">
-              <div class="m-summary__title nf-mono">Winrate por lado</div>
-              <div class="m-summary__wr-row m-summary__wr-row--symmetric">
-                <div class="m-summary__side">
-                  <span class="m-summary__wr-val" style="color: var(--nf-team-blue);">
-                    {{ groupStats().blueWinrate }}%
-                  </span>
-                  <span class="m-summary__side-badge nf-mono" style="color: var(--nf-team-blue);">
-                    {{ groupStats().blueSideWins }} Azul
-                  </span>
-                </div>
-                <div class="m-summary__side">
-                  <span class="m-summary__side-badge nf-mono" style="color: var(--nf-team-red);">
-                    {{ groupStats().redSideWins }} Rojo
-                  </span>
-                  <span class="m-summary__wr-val" style="color: var(--nf-team-red);">
-                    {{ groupStats().redWinrate }}%
-                  </span>
-                </div>
-              </div>
-              <div class="m-summary__progress-bar">
-                <div class="m-summary__progress-win" style="background: var(--nf-team-blue);" [style.width.%]="groupStats().blueWinrate"></div>
-                <div class="m-summary__progress-loss" style="background: var(--nf-team-red);" [style.width.%]="groupStats().redWinrate"></div>
-              </div>
-            </div>
-
-            <!-- Bloque 2: Duración media -->
-            <div class="m-summary__stat-card">
-              <div class="m-summary__title nf-mono">Duración Promedio</div>
-              <div class="m-summary__kda-line">
-                <strong>{{ groupStats().avgDurationMinutes }} min</strong>
-              </div>
-              <div class="m-summary__ratio nf-mono">
-                {{ groupStats().totalMatches }} partidas oficiales disputadas
-              </div>
-            </div>
-
-            <!-- Bloque 3: Jugador más destacado (MVP) -->
-            @if (groupStats().topMvpName; as mvp) {
-              <div class="m-summary__stat-card">
-                <div class="m-summary__title nf-mono">Líder de MVPs del Grupo</div>
-                <div class="m-summary__kda-line m-summary__kda-line--mvp">
-                  <strong>{{ mvp }}</strong>
-                </div>
-                <div class="m-summary__ratio nf-mono">
-                  {{ groupStats().topMvpCount }} distinciones MVP en esta temporada
-                </div>
-              </div>
-            }
-          </div>
-
-          <!-- BARRA DE FILTROS DEL GRUPO (Solo campeones jugados en este grupo) -->
-          <app-match-filters
-            mode="group"
-            [contextGroupId]="g.id"
-            [resultCount]="filteredMatches().length"
-            [totalCount]="allGroupMatches().length"
-          />
-
-          <!-- LISTA DE PARTIDAS DEL GRUPO -->
-          @if (pageItems().length > 0) {
-            <div class="mh-list" #list>
-              @for (m of pageItems(); track m.id) {
-                <app-group-match-card [match]="m" />
-              }
-            </div>
-
-            <nf-pagination
-              [total]="filteredMatches().length"
-              [pageSize]="pageSize"
-              [page]="ui.page()"
-              (pageChange)="onPageChange($event)"
-            />
-          } @else {
-            <div class="empty-state">
-              <p class="empty-state__text nf-mono">No se encontraron partidas</p>
-              <p class="empty-state__hint">No hay partidas que coincidan con los filtros seleccionados para este grupo.</p>
-              <button nfButton variant="secondary" size="md" (click)="resetFilters()">
-                Limpiar filtros
-              </button>
-            </div>
-          }
-        } @else {
-          <!-- EMPTY STATE: SIN PARTIDAS EN ESTE GRUPO -->
-          <div class="empty-state">
-            <p class="empty-state__text nf-mono">Sin partidas todavía</p>
-            <p class="empty-state__hint">Este grupo aún no ha disputado ninguna partida. ¡Crea una sala 5v5 para comenzar la competición!</p>
-            <button nfButton variant="primary" size="md" [routerLink]="['/app', 'grupos', g.id, 'tablon']">
-              Crear sala 5v5
-            </button>
-          </div>
-        }
-      } @else if (loading()) {
-        <!--
-          SKELETON MIENTRAS CARGA EL GRUPO
-          Con la forma final —cabecera, tres tarjetas de resumen y cuatro filas— para que al
-          llegar el dato no salte nada de sitio. Antes aquí solo había un eyebrow suelto
-          dentro de un .view anidado en otro .view: en móvil eso es una pantalla vacía.
-        -->
-        <div aria-busy="true">
-          <div class="m-summary">
-            @for (i of skeletonCards; track i) {
-              <div class="m-summary__stat-card">
-                <nf-skeleton width="120px" height="12px" />
-                <nf-skeleton width="90px" height="26px" />
-                <nf-skeleton width="150px" height="12px" />
-              </div>
-            }
-          </div>
-
-          <div class="mh-list">
-            @for (i of skeletonRows; track i) {
-              <div class="m-card m-card--skeleton">
-                <div class="m-card__skeleton-left">
-                  <nf-skeleton width="46px" height="46px" radius="6px" />
-                  <div class="m-card__skeleton-stack">
-                    <nf-skeleton width="130px" height="16px" />
-                    <nf-skeleton width="90px" height="12px" />
-                  </div>
-                </div>
-                <div class="m-card__skeleton-right">
-                  <nf-skeleton width="100px" height="18px" />
-                  <nf-skeleton width="140px" height="24px" />
-                  <nf-skeleton width="80px" height="14px" />
-                </div>
-              </div>
-            }
-          </div>
-        </div>
-      } @else {
-        <!-- ERROR 404: GRUPO NO ENCONTRADO -->
-        <div class="view__head">
-          <div class="view__eyebrow nf-mono">Error 404</div>
-          <h1 class="view__title">Grupo no encontrado</h1>
-          <p class="view__lead">El grupo que buscas no existe o ya no perteneces a él.</p>
-        </div>
-        <button nfButton variant="secondary" size="md" [routerLink]="['/app', 'grupos']">
-          ← Volver a grupos
-        </button>
-      }
-    </div>
-  `,
+  templateUrl: './grupo-historial.html',
 })
 export class GrupoHistorial {
   private readonly route = inject(ActivatedRoute);
   private readonly groupStore = inject(GroupStore);
   private readonly groupsStore = inject(GroupsStore);
+  private readonly groupDetail = inject(GroupDetailStore);
+  private readonly leagues = inject(LeaguesStore);
   private readonly bridge = inject(GroupBridge);
-  private readonly matchHistoryStore = inject(MatchHistoryStore);
+  private readonly store = inject(MatchHistoryStore);
   protected readonly ui = inject(MatchHistoryUiState);
 
   /** El mismo tamaño de página que el historial personal: son la misma lista con otro filtro. */
@@ -194,9 +74,8 @@ export class GrupoHistorial {
   protected readonly skeletonRows = [1, 2, 3, 4];
   private readonly viewport = inject(Viewport);
   private readonly list = viewChild<ElementRef<HTMLElement>>('list');
-  protected readonly gameData = inject(GameDataStore);
-
-  protected readonly champsLoading = computed(() => this.gameData.status() === 'loading');
+  private readonly gameData = inject(GameDataStore);
+  private readonly viewMemory = inject(ViewMemoryService);
 
   private readonly id = toSignal(
     this.route.paramMap.pipe(map((p) => p.get('id'))),
@@ -211,61 +90,92 @@ export class GrupoHistorial {
     return this.groupStore.byId(id) ?? this.groupsStore.byId(id) ?? null;
   });
 
-  readonly allGroupMatches = computed(() => {
-    const id = this.id();
-    return id ? this.matchHistoryStore.matchesByGroup(id) : [];
+  protected readonly matches = this.store.groupMatches;
+  protected readonly total = this.store.groupTotal;
+  protected readonly summary = this.store.groupSummary;
+
+  protected readonly listStatus = computed(() => {
+    const own = this.store.groupStatus();
+    if (own === 'error') return 'error';
+    const champs = this.gameData.status();
+    if (own === 'idle' || own === 'loading' || champs === 'idle' || champs === 'loading') {
+      return 'loading';
+    }
+    return 'ready';
   });
 
-  readonly filteredMatches = computed(() => {
-    const f = this.ui.filters();
-    return sortMatches(filterGroupMatches(this.allGroupMatches(), f), f.sortBy);
+  protected readonly summaryLoading = computed(() => {
+    const s = this.store.groupSummaryStatus();
+    return s === 'idle' || s === 'loading';
   });
 
-  readonly pageItems = computed(() => {
-    const start = (this.ui.page() - 1) * this.pageSize;
-    return this.filteredMatches().slice(start, start + this.pageSize);
+  protected readonly hasFilters = computed(() => activeFilterCount(this.ui.filters(), 'group') > 0);
+
+  /**
+   * El winrate por bando se divide entre las partidas CON BANDO, no entre todas: una sala sin
+   * lado decidido no está ni en `blueWins` ni en `redWins`, y usar `totalMatches` daría dos
+   * porcentajes que no suman 100 sin decir por qué.
+   */
+  protected readonly blueWinrate = computed(() => {
+    const s = this.summary();
+    return percent(s?.blueWins ?? 0, s?.matchesWithSide ?? 0);
   });
 
-  readonly groupStats = computed(() => {
-    const id = this.id();
-    return id ? this.matchHistoryStore.groupSummary(id) : {
-      totalMatches: 0,
-      blueSideWins: 0,
-      redSideWins: 0,
-      blueWinrate: 0,
-      redWinrate: 0,
-      avgDurationMinutes: 0,
-      topMvpName: null,
-      topMvpCount: 0,
-    };
+  protected readonly redWinrate = computed(() => {
+    const s = this.summary();
+    return percent(s?.redWins ?? 0, s?.matchesWithSide ?? 0);
   });
 
-  private readonly viewMemory = inject(ViewMemoryService);
+  /** `null` cuando no hay ninguna partida subida: no hay duración que promediar, y no es «0 min». */
+  protected readonly averageDuration = computed(() => {
+    const seconds = this.summary()?.averageDurationSeconds;
+    return seconds == null ? null : formatDurationMinutes(seconds);
+  });
+
+  /**
+   * El nombre del líder de MVPs. El resumen manda su `userId` y nada más, así que aquí sí hace
+   * falta el censo del grupo —que esta pantalla ya tiene cargado—. Las filas no lo necesitan:
+   * cada asiento viene con su nombre.
+   */
+  protected readonly topMvpName = computed(() => {
+    const id = this.summary()?.topMvpUserId;
+    if (!id) return null;
+    const member = this.groupDetail.roster().find((m) => m.userId === id);
+    return member ? (member.riotId ?? member.discordUsername ?? null) : null;
+  });
+
+  /** El estado de los controles, traducido a lo que entiende el endpoint. */
+  private readonly query = computed(() =>
+    groupMatchQuery(this.ui.filters(), this.ui.page() - 1, this.pageSize),
+  );
 
   constructor() {
     this.gameData.ensureLoaded();
     this.groupsStore.ensureLoaded();
+
     effect(() => {
       const id = this.id();
-      if (id) {
-        this.bridge.ensure(id);
-        this.ui.setContextKey('/app/grupos/' + id + '/historial');
-        const qp = this.route.snapshot.queryParamMap;
-        const liga = qp.get('liga');
-        const mod = modalityFromSlug(liga);
-        const temporada = qp.get('temporada') ?? qp.get('season');
+      if (!id) return;
+      this.bridge.ensure(id);
+      // Las temporadas alimentan el desplegable de liga del panel de filtros, y el censo
+      // resuelve el nombre de cada asiento. Las dos son idempotentes por grupo.
+      void this.leagues.loadSeasons(id);
+      this.ui.setContextKey('/app/grupos/' + id + '/historial');
+    });
 
-        const patch: Partial<{ gameMode: typeof MODALITY_LABELS[keyof typeof MODALITY_LABELS]; season: string }> = {};
-        if (mod) {
-          patch.gameMode = MODALITY_LABELS[mod];
-        }
-        if (temporada) {
-          patch.season = temporada;
-        }
-        if (Object.keys(patch).length > 0) {
-          this.ui.update(patch);
-        }
-      }
+    effect(() => {
+      const g = this.group();
+      if (!g) return;
+      const query = this.query();
+      // `untracked` no es decorativo: los métodos del store LEEN sus propias signals de
+      // estado, así que llamarlos dentro del efecto lo suscribiría a lo que él mismo escribe.
+      // Las únicas dependencias del efecto deben ser la consulta y el id.
+      untracked(() => void this.store.ensureGroup({ id: g.id, name: g.name }, query));
+    });
+
+    effect(() => {
+      const id = this.id();
+      if (id) untracked(() => void this.store.ensureGroupSummary(id));
     });
 
     afterNextRender(() => {
@@ -294,7 +204,18 @@ export class GrupoHistorial {
     else window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
+  retry(): void {
+    const g = this.group();
+    if (!g) return;
+    void this.store.reloadGroup({ id: g.id, name: g.name }, this.query());
+  }
+
   resetFilters(): void {
     this.ui.reset();
   }
+}
+
+/** Un denominador de cero da 0%, que es la lectura correcta, no `NaN`. */
+function percent(value: number, total: number): number {
+  return total > 0 ? Math.round((value / total) * 100) : 0;
 }

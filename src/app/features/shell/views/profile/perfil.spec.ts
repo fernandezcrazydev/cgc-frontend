@@ -10,37 +10,33 @@ import { NotificationsStore } from '../../../../core/notifications';
 import { PreferencesStore } from '../../../../core/preferences';
 import { RiotAccountStore } from '../../../../core/riot';
 import { GROUPS } from '../../../../core/lobby';
-import { MatchHistoryStore, buildCrossPartners } from '../../../../core/matches';
-import {
-  matchFixture,
-  participantFixture,
-} from '../../../../core/matches/match-fixtures';
+import { MatchHistoryStore } from '../../../../core/matches';
+import { matchFixture, participantFixture } from '../../../../core/matches/match-fixtures';
 
 const YO = 'N1ghtfang#LAN';
 
 /**
- * `n` partidas contra o con el mismo jugador, de las cuales `wins` ganadas. El mejor aliado y
- * la némesis del perfil salen de partidas reales, así que la prueba tiene que darle partidas.
+ * `n` partidas del usuario, de las cuales `wins` ganadas.
+ *
+ * El perfil ya no nombra un mejor aliado ni una némesis —salían del historial personal entero,
+ * que desde la paginación en servidor no existe en el cliente—, así que esto ya no necesita
+ * fabricar duelos contra nadie: solo las partidas que alimentan el desglose por posición.
  */
-function duels(riotId: string, side: 'blue' | 'red', n: number, wins: number) {
-  const me = () => participantFixture({ id: 'me', team: 'blue', riotId: YO });
-  return Array.from({ length: n }, (_, i) => {
-    const other = participantFixture({ id: `${riotId}-${i}`, team: side, riotId });
-    return matchFixture({
-      id: `${riotId}-${i}`,
+function partidasMias(n: number, wins: number) {
+  const me = () => participantFixture({ userId: 'me', slot: 'A', riotId: YO });
+  return Array.from({ length: n }, (_, i) =>
+    matchFixture({
+      id: `m-${i}`,
       decidedAt: `2026-06-${String(i + 1).padStart(2, '0')}T10:00:00Z`,
-      winningTeam: i < wins ? 'blue' : 'red',
-      blue: side === 'blue' ? [me(), other] : [me()],
-      red: side === 'blue' ? [] : [other],
+      winningSlot: i < wins ? 'A' : 'B',
+      a: [me()],
+      b: [],
       userParticipant: me(),
-    });
-  });
+    }),
+  );
 }
 
-/** Un dúo con el que se gana y un rival contra el que se pierde, ambos con muestra suficiente. */
-const PARTIDAS = [...duels('Duo#LAN', 'blue', 4, 3), ...duels('Rival#LAN', 'red', 4, 0)];
-
-const CROSS_PARTNERS = buildCrossPartners(PARTIDAS);
+const PARTIDAS = partidasMias(8, 3);
 
 /**
  * Monta la vista de perfil entera y mira el DOM. El build no lo cubre: el
@@ -114,9 +110,8 @@ describe('Perfil · refactor de la vista', { timeout: 15000 }, () => {
           // que el doble tiene que servirlas: sin ellas la tabla de roles no tendría qué medir.
           provide: MatchHistoryStore,
           useValue: {
-            status: signal('ready'),
-            crossPartners: signal(CROSS_PARTNERS),
-            allPersonalMatches: signal(partidas),
+            personalStatus: signal('ready'),
+            personalMatches: signal(partidas),
           },
         },
       ],
@@ -227,26 +222,7 @@ describe('Perfil · refactor de la vista', { timeout: 15000 }, () => {
     expect(el.querySelector<HTMLAnchorElement>('a.pf-champ-tile')?.getAttribute('href')).toMatch(/\/app\/campeon\/\d+/);
   });
 
-  it('el mejor aliado y la némesis salen de las partidas reales, no de una semilla', async () => {
-    const { el } = await montar();
 
-    const sinergia = el.querySelector<HTMLAnchorElement>('a.pf-vs-tile--synergy');
-    const rivalidad = el.querySelector<HTMLAnchorElement>('a.pf-vs-tile--rivalry');
-
-    // 3 de 4 juntos y 0 de 4 enfrentados: los mismos números que dirá su página.
-    expect(sinergia?.textContent).toContain('75 % WR juntos');
-    expect(rivalidad?.textContent).toContain('0 % WR en duelo');
-  });
-
-  it('la sinergia lleva a /app/synergy y la rivalidad a /app/versus', async () => {
-    const { el } = await montar();
-
-    const sinergia = el.querySelector<HTMLAnchorElement>('a.pf-vs-tile--synergy');
-    const rivalidad = el.querySelector<HTMLAnchorElement>('a.pf-vs-tile--rivalry');
-
-    expect(sinergia?.getAttribute('href')).toContain('/app/synergy/');
-    expect(rivalidad?.getAttribute('href')).toContain('/app/versus/');
-  });
 
   it('el buscador de campeones va junto al filtro de posición', async () => {
     const { el, comp, detect } = await montar();

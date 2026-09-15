@@ -1,21 +1,28 @@
-    <div class="view cx-view">
-      @if (state.loading()) {
-        <div class="cx-boot" aria-busy="true">
-          <nf-skeleton width="180px" height="12px" />
-          <nf-skeleton width="260px" height="28px" />
-          <nf-skeleton width="100%" height="180px" radius="10px" />
-        </div>
-      } @else if (state.status() === 'error') {
-        <div class="view__head">
-          <div class="view__eyebrow nf-mono">Error de carga</div>
-          <h1 class="view__title">No se ha podido cargar</h1>
-          <p class="view__lead">
-            No hemos podido traer esta partida. Puede ser cosa de la conexión.
-          </p>
-        </div>
-        <button nfButton variant="primary" size="md" (click)="state.reload()">Reintentar</button>
-      } @else if (cross(); as c) {
-        <a class="view-back nf-mono" [routerLink]="['/app', 'jugador', state.playerId(), c.relation === 'enemy' ? 'contra' : 'juntos']">
+<div class="view cx-view">
+  @switch (status()) {
+    @case ('loading') {
+      <div class="cx-boot" aria-busy="true">
+        <nf-skeleton width="180px" height="12px" />
+        <nf-skeleton width="260px" height="28px" />
+        <nf-skeleton width="100%" height="180px" radius="10px" />
+      </div>
+    }
+    @case ('error') {
+      <div class="view__head">
+        <div class="view__eyebrow nf-mono">Error de carga</div>
+        <h1 class="view__title">No se ha podido cargar</h1>
+        <p class="view__lead">
+          No hemos podido traer esta partida. Puede ser cosa de la conexión.
+        </p>
+      </div>
+      <button nfButton variant="primary" size="md" (click)="retry()">Reintentar</button>
+    }
+    @default {
+      @if (cross(); as c) {
+        <a
+          class="view-back nf-mono"
+          [routerLink]="['/app', 'jugador', state.playerId(), c.relation === 'enemy' ? 'contra' : 'juntos']"
+        >
           <span class="view-back__arrow" aria-hidden="true">←</span>
           Volver a {{ c.relation === 'enemy' ? 'Cara a cara' : 'Sinergia' }}
         </a>
@@ -24,44 +31,56 @@
           <div class="cx-detail__eyebrow nf-mono">{{ relationLabel() }}</div>
           <h1 class="cx-detail__title">Tú y {{ theirName() }}</h1>
           <p class="cx-detail__meta nf-mono">
-            {{ outcomeLabel() }} · {{ duration() }} · {{ date() }} · {{ c.match.group.name }}
+            @for (part of metaLine(); track part; let last = $last) {
+              <span>{{ part }}</span>
+              @if (!last) {
+                <span aria-hidden="true">·</span>
+              }
+            }
           </p>
         </header>
 
-        <section class="cx-panel">
-          <h2 class="cx-panel__title nf-mono">Comparativa de la partida</h2>
-          <div class="cx-compare cx-compare--flat">
-            <div class="cx-compare__legend nf-mono">
-              <span class="cx-compare__legend-me">Tú · {{ championName(c.me) }}</span>
-              <span class="cx-compare__legend-them">
-                {{ theirName() }} · {{ championName(c.them) }}
-              </span>
-            </div>
-            @for (r of rows(); track r.key) {
-              <div class="cx-metric">
-                <div class="cx-metric__val cx-metric__val--me" [class.is-best]="r.winner === 'me'">
-                  <span class="cx-metric__num nf-mono">{{ r.mineText }}</span>
-                  @if (r.mineSub) {
-                    <span class="cx-metric__sub nf-mono">{{ r.mineSub }}</span>
-                  }
-                </div>
-                <div class="cx-metric__center">
-                  <span class="cx-metric__label nf-mono">{{ r.label }}</span>
-                  <div class="cx-metric__bar" role="presentation">
-                    <span class="cx-metric__fill cx-metric__fill--me" [style.width.%]="r.minePct"></span>
-                    <span class="cx-metric__fill cx-metric__fill--them" [style.width.%]="r.theirsPct"></span>
+        @if (rows().length > 0) {
+          <section class="cx-panel">
+            <h2 class="cx-panel__title nf-mono">Comparativa de la partida</h2>
+            <div class="cx-compare cx-compare--flat">
+              <div class="cx-compare__legend nf-mono">
+                <span class="cx-compare__legend-me">Tú · {{ championName(c.me) }}</span>
+                <span class="cx-compare__legend-them">
+                  {{ theirName() }} · {{ championName(c.them) }}
+                </span>
+              </div>
+              @for (r of rows(); track r.key) {
+                <div class="cx-metric">
+                  <div class="cx-metric__val cx-metric__val--me" [class.is-best]="r.winner === 'me'">
+                    <span class="cx-metric__num nf-mono">{{ r.mineText }}</span>
+                    @if (r.mineSub) {
+                      <span class="cx-metric__sub nf-mono">{{ r.mineSub }}</span>
+                    }
+                  </div>
+                  <div class="cx-metric__center">
+                    <span class="cx-metric__label nf-mono">{{ r.label }}</span>
+                    <div class="cx-metric__bar" role="presentation">
+                      <span class="cx-metric__fill cx-metric__fill--me" [style.width.%]="r.minePct"></span>
+                      <span class="cx-metric__fill cx-metric__fill--them" [style.width.%]="r.theirsPct"></span>
+                    </div>
+                  </div>
+                  <div class="cx-metric__val cx-metric__val--them" [class.is-best]="r.winner === 'them'">
+                    <span class="cx-metric__num nf-mono">{{ r.theirsText }}</span>
+                    @if (r.theirsSub) {
+                      <span class="cx-metric__sub nf-mono">{{ r.theirsSub }}</span>
+                    }
                   </div>
                 </div>
-                <div class="cx-metric__val cx-metric__val--them" [class.is-best]="r.winner === 'them'">
-                  <span class="cx-metric__num nf-mono">{{ r.theirsText }}</span>
-                  @if (r.theirsSub) {
-                    <span class="cx-metric__sub nf-mono">{{ r.theirsSub }}</span>
-                  }
-                </div>
-              </div>
-            }
-          </div>
-        </section>
+              }
+            </div>
+          </section>
+        } @else {
+          <p class="cx-panel__lead">
+            Nadie subió esta partida desde el cliente de LoL, así que no hay cifras que
+            comparar. Lo que sí queda es quién jugó, en qué línea y de qué lado.
+          </p>
+        }
 
         @if (lanePhase(); as lp) {
           <section class="cx-panel">
@@ -109,98 +128,11 @@
           </section>
         }
 
-        <section class="cx-panel">
-          <h2 class="cx-panel__title nf-mono">Cómo acabasteis</h2>
-          <div class="cx-builds">
-            <div class="cx-build">
-              <div class="cx-build__who">
-                <nf-avatar
-                  [loading]="champsLoading()"
-                  [src]="icon(c.me)"
-                  [fallback]="c.me.championName"
-                  [tint]="c.me.championId"
-                  [size]="36"
-                  shape="square"
-                />
-                <div class="cx-build__id">
-                  <span class="cx-build__name">Tú</span>
-                  @if (champsLoading()) {
-                    <nf-skeleton width="80px" height="11px" />
-                  } @else {
-                    <span class="cx-build__champ nf-mono">
-                      {{ championName(c.me) }} · nivel {{ c.me.championLevel }}
-                    </span>
-                  }
-                </div>
-              </div>
-              <div class="cx-build__items">
-                @for (it of c.me.stats.items; track $index) {
-                  @if (it) {
-                    <nf-avatar
-                      class="m-card__item-slot"
-                      [src]="it.iconUrl ?? null"
-                      [fallback]="it.name"
-                      [tint]="0"
-                      [size]="28"
-                      shape="square"
-                      [style.background]="slotBg(it.name)"
-                      [title]="it.name"
-                    />
-                  } @else {
-                    <span class="m-card__item-slot m-card__item-slot--empty"></span>
-                  }
-                }
-              </div>
-            </div>
-
-            <div class="cx-build cx-build--them">
-              <div class="cx-build__who">
-                <nf-avatar
-                  [loading]="champsLoading()"
-                  [src]="icon(c.them)"
-                  [fallback]="c.them.championName"
-                  [tint]="c.them.championId"
-                  [size]="36"
-                  shape="square"
-                />
-                <div class="cx-build__id">
-                  <span class="cx-build__name">{{ theirName() }}</span>
-                  @if (champsLoading()) {
-                    <nf-skeleton width="80px" height="11px" />
-                  } @else {
-                    <span class="cx-build__champ nf-mono">
-                      {{ championName(c.them) }} · nivel {{ c.them.championLevel }}
-                    </span>
-                  }
-                </div>
-              </div>
-              <div class="cx-build__items">
-                @for (it of c.them.stats.items; track $index) {
-                  @if (it) {
-                    <nf-avatar
-                      class="m-card__item-slot"
-                      [src]="it.iconUrl ?? null"
-                      [fallback]="it.name"
-                      [tint]="0"
-                      [size]="28"
-                      shape="square"
-                      [style.background]="slotBg(it.name)"
-                      [title]="it.name"
-                    />
-                  } @else {
-                    <span class="m-card__item-slot m-card__item-slot--empty"></span>
-                  }
-                }
-              </div>
-            </div>
-          </div>
-        </section>
-
         <nav class="cx-detail__nav">
           <a
             class="m-lineup__more nf-mono"
             [routerLink]="['/app', 'historial', c.id]"
-            [queryParams]="{ volver: '/app/historial-cruzado/' + state.playerId() }"
+            [queryParams]="{ volver: '/app/jugador/' + state.playerId() }"
           >
             Ver el análisis 5v5 completo
           </a>
@@ -221,9 +153,11 @@
           nfButton
           variant="secondary"
           size="md"
-          [routerLink]="['/app', 'historial-cruzado', state.playerId()]"
+          [routerLink]="['/app', 'jugador', state.playerId()]"
         >
           Volver al historial cruzado
         </button>
       }
-    </div>
+    }
+  }
+</div>

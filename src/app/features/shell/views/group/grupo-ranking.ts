@@ -42,7 +42,13 @@ import { ServerClock, errorMessage } from '../../../../core/http';
 import { ToastService } from '../../../../core/toast';
 import { MatchHistoryStore } from '../../../../core/matches/match-history-store';
 import { GameDataStore } from '../../../../core/game-data';
-import { Lane, Match, MatchItemSlot, MatchParticipant } from '../../../../core/matches/models';
+import { Lane } from '../../../../core/matches/models';
+import {
+  csPerMin,
+  opposingTeam,
+  participantName,
+  participantsOf,
+} from '../../../../core/matches/match-view';
 import {
   MODALITY_LABELS,
   StatModality,
@@ -65,30 +71,33 @@ import { SanctionDialogComponent } from '../group-sanctions/sanction-dialog.comp
 type SortKey = 'rank' | 'wr';
 type SortDir = 'asc' | 'desc';
 
+/**
+ * Una fila del cajon de partidas recientes.
+ *
+ * Trae lo que sirve `GET /groups/{id}/matches` y ni un campo mas. Se fueron los hechizos, las
+ * runas, la variante de castigo y el inventario: eran del modelo de la semilla local, el
+ * contrato real no los tiene, y pintarlos a base de valores por defecto habria dado una pagina
+ * de runas identicas para todo el mundo con aspecto de dato.
+ */
 export interface DrawerMatchItem {
   id: string;
   isWin: boolean;
   meta: string;
   lane: Lane;
-  champId: number;
+  champId: number | null;
   champName: string;
   champIcon: string | null;
-  spells: number[];
-  smiteVariant?: 'blue' | 'red' | 'green' | 'unevolved';
-  primaryRuneId?: number;
-  secondaryRuneTreeId?: number;
-  foeChampId: number;
+  foeChampId: number | null;
   foeChampName: string;
   foeChampIcon: string | null;
   foeName: string;
   foeTag: string | null;
-  kills: number;
-  deaths: number;
-  assists: number;
-  cs: number;
-  csPerMin: number;
-  items: (MatchItemSlot | null)[];
-  lpDelta: number;
+  kills: number | null;
+  deaths: number | null;
+  assists: number | null;
+  /** «213 CS (6,1/min)», o `null` si la partida no trae CS. */
+  csLabel: string | null;
+  lpDelta: number | null;
 }
 
 const SECOND_SPELL_FALLBACK: Record<Lane, number> = {
@@ -195,128 +204,54 @@ export class GrupoRanking {
   });
 
   /** Devuelve las partidas del grupo en las que participó el jugador seleccionado. */
+  private championName(championId: number | null): string {
+    if (championId == null) return 'Campeón sin registrar';
+    return this.gameData.championById().get(championId)?.name ?? `Campeón ${championId}`;
+  }
+
+  private championIcon(championId: number | null): string | null {
+    if (championId == null) return null;
+    return this.gameData.championById().get(championId)?.iconUrl ?? null;
+  }
+
   matchesOf(playerId: string): DrawerMatchItem[] {
-    const groupId = this.id();
-    if (!groupId) return [];
-    const groupMatches = this.matchHistory.matchesByGroup(groupId);
-    const entry = this.rows().find((r) => r.playerId === playerId);
     const result: DrawerMatchItem[] = [];
 
-    const isMatchForPlayer = (part: MatchParticipant): boolean => {
-      if (part.userId === playerId || part.id === playerId) return true;
-      if (!entry) return false;
-      if (part.userId === entry.playerId) return true;
-      const partRiot = part.riotId.toLowerCase();
-      const entryName = entry.name.toLowerCase();
-      if (partRiot.startsWith(entryName) || partRiot.includes(entryName)) return true;
-      if (entry.tag) {
-        const fullTag = `${entryName}#${entry.tag.toLowerCase()}`;
-        if (partRiot === fullTag) return true;
-      }
-      return false;
-    };
-
-    const matchesPool = groupMatches.length > 0 ? groupMatches : this.matchHistory.allMatches();
-
-    for (const m of matchesPool) {
-      const p = [...m.blueTeam.participants, ...m.redTeam.participants].find(isMatchForPlayer);
+    for (const m of this.matchHistory.groupSample()) {
+      const p = participantsOf(m).find((part) => part.userId === playerId);
       if (!p) continue;
 
-      const opposingTeam = p.team === 'blue' ? m.redTeam : m.blueTeam;
       const foe =
-        opposingTeam.participants.find((opp) => opp.role === p.role) ??
-        opposingTeam.participants[0];
-      const isWin = p.team === m.winningTeam;
-
-      const spells = p.role === 'JUNGLA'
-        ? (p.stats.smiteVariant === 'blue' ? [p.stats.spells?.[0] ?? 4, 1102]
-          : p.stats.smiteVariant === 'red' ? [p.stats.spells?.[0] ?? 4, 1101]
-          : p.stats.smiteVariant === 'green' ? [p.stats.spells?.[0] ?? 4, 1103]
-          : p.stats.smiteVariant === 'unevolved' ? [p.stats.spells?.[0] ?? 4, 11]
-          : (p.stats.spells && [11, 1101, 1102, 1103].includes(p.stats.spells[1]) ? p.stats.spells : [p.stats?.spells?.[0] ?? 4, 1102]))
-        : (p.stats.spells && p.stats.spells.length >= 2 ? p.stats.spells : [4, SECOND_SPELL_FALLBACK[p.role] ?? 14]);
+        opposingTeam(m, p).participants.find((opp) => opp.role === p.role) ??
+        opposingTeam(m, p).participants[0];
+      const isWin = p.slot === m.winningSlot;
+      const cs = p.stats.cs;
+      const perMin = csPerMin(p.stats, m.durationSeconds);
 
       result.push({
         id: m.id,
         isWin,
-        meta: `${formatMatchDate(m.decidedAt)} · ${formatDurationMinutes(m.durationSeconds)}`,
+        meta: [
+          formatMatchDate(m.decidedAt),
+          m.durationSeconds == null ? null : formatDurationMinutes(m.durationSeconds),
+        ]
+          .filter(Boolean)
+          .join(' · '),
         lane: p.role,
         champId: p.championId,
-        champName: this.gameData.championById().get(p.championId)?.name ?? p.championName,
-        champIcon: this.gameData.championById().get(p.championId)?.iconUrl ?? null,
-        spells,
-        smiteVariant: p.stats.smiteVariant,
-        primaryRuneId: p.stats.primaryRuneId ?? RUNES_FALLBACK[p.role]?.primary ?? 8010,
-        secondaryRuneTreeId: p.stats.secondaryRuneTreeId ?? RUNES_FALLBACK[p.role]?.secondary ?? 8300,
-        foeChampId: foe?.championId ?? 0,
-        foeChampName: foe
-          ? (this.gameData.championById().get(foe.championId)?.name ?? foe.championName)
-          : 'Rival',
-        foeChampIcon: foe
-          ? (this.gameData.championById().get(foe.championId)?.iconUrl ?? null)
-          : null,
-        foeName: foe ? (foe.riotId.includes('#') ? foe.riotId.split('#')[0] : foe.riotId) : 'Rival',
-        foeTag: foe ? (foe.riotId.includes('#') ? foe.riotId.split('#')[1] : null) : null,
-        kills: p.stats.kills,
-        deaths: p.stats.deaths,
-        assists: p.stats.assists,
-        cs: p.stats.cs,
-        csPerMin: p.stats.csPerMin,
-        items: p.stats.items ?? [],
-        lpDelta: p.lpDelta !== 0 ? p.lpDelta : isWin ? 26 : -20,
+        champName: this.championName(p.championId),
+        champIcon: this.championIcon(p.championId),
+        foeChampId: foe?.championId ?? null,
+        foeChampName: this.championName(foe?.championId ?? null),
+        foeChampIcon: this.championIcon(foe?.championId ?? null),
+        foeName: foe ? splitRiotId(participantName(foe)).name : 'Rival',
+        foeTag: foe ? splitRiotId(participantName(foe)).tag : null,
+        kills: p.stats.kills ?? null,
+        deaths: p.stats.deaths ?? null,
+        assists: p.stats.assists ?? null,
+        csLabel: cs == null ? null : perMin == null ? `${cs} CS` : `${cs} CS (${perMin}/min)`,
+        lpDelta: p.lpDelta,
       });
-    }
-
-    if (result.length === 0 && entry) {
-      // Respaldo determinista con objetos reales si la liga no tuviera partidas precargadas
-      const lanes: Lane[] = ['MID', 'TOP', 'JUNGLA', 'ADC', 'SUPPORT'];
-      const playerLane = lanes[hash(`${playerId}:lane`) % lanes.length];
-      const champIds = [103, 64, 157, 222, 412, 86, 238, 99, 22, 11];
-      const fallbackItems: (MatchItemSlot | null)[] = [
-        { id: 3078, name: 'Fuerza de la Trinidad', iconUrl: 'https://ddragon.leagueoflegends.com/cdn/14.24.1/img/item/3078.png' },
-        { id: 3053, name: 'Guantelete de Sterak', iconUrl: 'https://ddragon.leagueoflegends.com/cdn/14.24.1/img/item/3053.png' },
-        { id: 3071, name: 'Cuchilla Negra', iconUrl: 'https://ddragon.leagueoflegends.com/cdn/14.24.1/img/item/3071.png' },
-        { id: 3047, name: 'Punteras de Acero', iconUrl: 'https://ddragon.leagueoflegends.com/cdn/14.24.1/img/item/3047.png' },
-        { id: 6333, name: 'Danza de la Muerte', iconUrl: 'https://ddragon.leagueoflegends.com/cdn/14.24.1/img/item/6333.png' },
-        { id: 3026, name: 'Ángel de la Guarda', iconUrl: 'https://ddragon.leagueoflegends.com/cdn/14.24.1/img/item/3026.png' },
-        ...(playerLane === 'ADC' ? [{ id: 3031, name: 'Filo Infinito', iconUrl: 'https://ddragon.leagueoflegends.com/cdn/14.24.1/img/item/3031.png' }] : []),
-        { id: 3340, name: 'Guardián Invisible', iconUrl: 'https://ddragon.leagueoflegends.com/cdn/14.24.1/img/item/3340.png' },
-      ];
-
-      for (let i = 0; i < 5; i++) {
-        const isWin = (hash(`${playerId}:${i}:win`) % 100) < 55;
-        const champId = champIds[(hash(`${playerId}:${i}:c`) + i) % champIds.length];
-        const foeChampId = champIds[(hash(`${playerId}:${i}:fc`) + i + 3) % champIds.length];
-        const k = 3 + (hash(`${playerId}:${i}:k`) % 11);
-        const d = 1 + (hash(`${playerId}:${i}:d`) % 7);
-        const a = 2 + (hash(`${playerId}:${i}:a`) % 14);
-        const cs = 140 + (hash(`${playerId}:${i}:cs`) % 130);
-
-        result.push({
-          id: `fallback-${playerId}-${i}`,
-          isWin,
-          meta: `Hace ${i + 1} d · ${28 + (i * 3)} min`,
-          lane: playerLane,
-          champId,
-          champName: this.gameData.championById().get(champId)?.name ?? `Campeón ${champId}`,
-          champIcon: this.gameData.championById().get(champId)?.iconUrl ?? null,
-          spells: [4, SECOND_SPELL_FALLBACK[playerLane]],
-          primaryRuneId: RUNES_FALLBACK[playerLane].primary,
-          secondaryRuneTreeId: RUNES_FALLBACK[playerLane].secondary,
-          foeChampId,
-          foeChampName: this.gameData.championById().get(foeChampId)?.name ?? `Campeón ${foeChampId}`,
-          foeChampIcon: this.gameData.championById().get(foeChampId)?.iconUrl ?? null,
-          foeName: 'Rival',
-          foeTag: 'EUW',
-          kills: k,
-          deaths: d,
-          assists: a,
-          cs,
-          csPerMin: +(cs / 32).toFixed(1),
-          items: fallbackItems,
-          lpDelta: isWin ? 24 : -19,
-        });
-      }
     }
 
     return result.slice(0, 5);
@@ -1065,4 +1000,9 @@ export class GrupoRanking {
       this.leagues.clear();
     });
   }
+}
+
+function splitRiotId(riotId: string): { name: string; tag: string | null } {
+  const [name, tag] = riotId.split('#');
+  return { name: name || riotId, tag: tag ?? null };
 }

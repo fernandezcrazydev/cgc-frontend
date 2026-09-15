@@ -22,13 +22,8 @@ import { LaneRole, PreferencesStore } from '../../../../core/preferences';
 import { RiotAccountStore } from '../../../../core/riot';
 import { GameDataStore } from '../../../../core/game-data';
 import {
-  CROSS_MIN_SAMPLE,
-  CrossPartner,
   MatchHistoryStore,
-  aggregateCross,
-  bestAllyOf,
   itemBg,
-  nemesisOf,
 } from '../../../../core/matches';
 import { nameOf } from '../cross/cross-player';
 import { hash } from '../../../../core/group-ranking';
@@ -109,14 +104,25 @@ export class Perfil {
   });
 
   /**
-   * El desglose por posición sale de las partidas que el usuario ha jugado de verdad.
+   * El desglose por posición, sobre las partidas que el historial tiene cargadas.
+   *
+   * **Es una muestra, no tu historial entero**, desde que la lista la pagina el servidor. Lo que
+   * sí es completo es lo que sirve `GET /me/matches/summary`, y de ahí salen las cifras grandes
+   * del perfil.
+   *
+   * `wonLane` viaja como `undefined` porque el backend no sirve ese juicio: se derivaba del oro
+   * del minuto 14, que solo llega en el detalle de cada partida. Antes que inventarlo, se declara
+   * ausente — `RoleSample` lo admite justo para esto.
    */
   private readonly roleSamples = computed<RoleSample[]>(() =>
-    this.matchHistory.allPersonalMatches().map((m) => ({
-      role: m.userParticipant!.role,
-      won: m.userOutcome === 'win',
-      wonLane: m.userParticipant!.stats.wonLane,
-    })),
+    this.matchHistory
+      .personalMatches()
+      .filter((m) => !!m.userParticipant)
+      .map((m) => ({
+        role: m.userParticipant!.role,
+        won: m.userOutcome === 'win',
+        wonLane: undefined,
+      })),
   );
 
   readonly profile = computed(() =>
@@ -149,13 +155,18 @@ export class Perfil {
     return map[role] ?? role;
   }
 
-  // ── Rivalidades y sinergias ───────────────────────────────────────
-  protected readonly minSample = CROSS_MIN_SAMPLE;
-
-  private readonly partners = this.matchHistory.crossPartners;
-
-  readonly bestAlly = computed(() => cardFor(bestAllyOf(this.partners()), 'ally'));
-  readonly nemesis = computed(() => cardFor(nemesisOf(this.partners()), 'enemy'));
+  // ── Rivalidades y sinergias: ya no se calculan aqui ────────────────
+  //
+  // Eran `bestAlly` y `nemesis`, sobre el historial personal ENTERO que el cliente tenia en
+  // memoria. Ese historial ya no existe: `GET /me/matches` viene paginado, y el mejor aliado de
+  // una pagina de seis partidas no es el mejor aliado de nadie — es el de las ultimas seis.
+  //
+  // Se quitan en vez de calcularse sobre la muestra, porque una tarjeta que anuncia "tu nemesis"
+  // no admite asteriscos: o es tu nemesis o no lo es. El historial cruzado (`/cruce`) sigue
+  // respondiendo esa pregunta, ahi con paginacion y diciendo sobre cuantas partidas va.
+  //
+  // BACKEND NOTE: vuelven el dia que exista un endpoint que los agregue en servidor, que es el
+  // unico que puede recorrer el historial entero.
 
   // ── Navegación Modular por Pestañas (Punto 7 & 13) ─────────────────
   readonly activeTab = signal<PerfilTab>(
@@ -308,7 +319,7 @@ export class Perfil {
     () =>
       this.session.status() === 'idle' ||
       this.session.status() === 'loading' ||
-      this.matchHistory.status() === 'loading',
+      this.matchHistory.personalStatus() === 'loading',
   );
 
   readonly memberSince = computed(() => {
@@ -329,36 +340,4 @@ export class Perfil {
   opgg(tag: string): string {
     return opggUrl(tag);
   }
-}
-
-/** Lo que necesita pintar una tarjeta de rivalidad o de sinergia. */
-interface CrossCard {
-  tag: string;
-  name: string;
-  hue: number;
-  avatarUrl: string | null;
-  wr: number;
-  wins: number;
-  losses: number;
-}
-
-/**
- * Resume un compañero o rival para su tarjeta.
- */
-function cardFor(partner: CrossPartner | null, side: 'ally' | 'enemy'): CrossCard | null {
-  if (!partner) return null;
-  const list = side === 'ally' ? partner.allies : partner.enemies;
-  if (!list.length) return null;
-  const agg = aggregateCross(list);
-  const them = list[0].them;
-
-  return {
-    tag: them.riotId,
-    name: nameOf(them.riotId),
-    hue: hash(them.riotId) % 360,
-    avatarUrl: them.avatarUrl ?? null,
-    wr: agg.winrate,
-    wins: agg.wins,
-    losses: agg.losses,
-  };
 }
