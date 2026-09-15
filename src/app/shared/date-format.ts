@@ -70,15 +70,22 @@ export function formatRelativeTime(iso: string, now: number = Date.now()): strin
 }
 
 /**
- * Segundos → `'32:14'`. Las partidas de LoL nunca llegan a la hora, así que no hay caso de
- * `h:mm:ss`; si alguna vez lo hicieran, saldría `'61:07'`, que se sigue leyendo bien.
+ * Segundos → `'32m 14s'`. Es el ÚNICO formato de duración de la app, y lleva unidades a
+ * propósito.
+ *
+ * Antes se pintaba `'32:14'`, que es exactamente la forma de una hora del día, y en la fila del
+ * historial las dos cosas caen a un palmo: al lado de «14 sept · 23:22» un «31:01» suelto se lee
+ * como otra hora. Ya pasó —se leyó la hora de juego como duración, y la media del grupo pareció
+ * estar mal— y por eso el formato sin unidades se borró en vez de dejarlo disponible para el
+ * siguiente sitio donde vuelva a caer al lado de una fecha.
+ *
+ * Las partidas de LoL nunca llegan a la hora, así que no hay caso de `h m s`; si alguna llegara,
+ * saldría `'61m 07s'`, que se sigue leyendo bien.
  */
-export function formatDuration(seconds: number): string {
-  if (!Number.isFinite(seconds) || seconds < 0) return '0:00';
+export function formatDurationUnits(seconds: number): string {
+  if (!Number.isFinite(seconds) || seconds < 0) return '0m 00s';
   const total = Math.round(seconds);
-  const minutes = Math.floor(total / 60);
-  const rest = total % 60;
-  return `${minutes}:${String(rest).padStart(2, '0')}`;
+  return `${Math.floor(total / 60)}m ${String(total % 60).padStart(2, '0')}s`;
 }
 
 /** Segundos → `'32 min'`, para cuando el segundo exacto no aporta (duración media, resúmenes). */

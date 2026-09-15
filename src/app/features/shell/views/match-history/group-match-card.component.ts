@@ -8,7 +8,7 @@ import {
   teamShortLabel,
 } from '../../../../core/matches/match-view';
 import { GameDataStore } from '../../../../core/game-data';
-import { formatCompact, formatDuration } from '../../../../shared/date-format';
+import { formatCompact, formatDurationUnits } from '../../../../shared/date-format';
 import { NfAvatar } from '../../../../ui';
 import { MatchCardShellComponent } from './match-card-shell.component';
 
@@ -117,6 +117,7 @@ import { MatchCardShellComponent } from './match-card-shell.component';
           <a
             class="m-card__mvp-chip nf-mono"
             [routerLink]="isCurrentUser(best) ? ['/app', 'perfil'] : ['/app', 'perfil', best.userId]"
+            [title]="'MVP de la partida: ' + playerName(best)"
             (click)="$event.stopPropagation()"
           >
             MVP · {{ playerName(best) }}
@@ -191,7 +192,7 @@ export class GroupMatchCardComponent {
 
   protected readonly duration = computed(() => {
     const seconds = this.match().durationSeconds;
-    return seconds == null ? null : formatDuration(seconds);
+    return seconds == null ? null : formatDurationUnits(seconds);
   });
 
   protected readonly mvp = computed<MatchParticipant | undefined>(() => {

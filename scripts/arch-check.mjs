@@ -213,6 +213,33 @@ const RULES = [
     },
   },
   {
+    id: 'orphan-stylesheet',
+    title: 'Hoja de app/ que ningún styleUrl(s) declara: existe, cuenta en el presupuesto y no se carga',
+    run() {
+      // El fallo silencioso más caro que ha tenido este repo, y ha pasado DOS veces:
+      // `grupo-ranking` partió su hoja en tres y siguió declarando solo la base (1.133 líneas
+      // sin cargar, el podio y el historial del jugador sin estilo), y al reescribir
+      // `cross-match-card` para el API se cayó su `styleUrl` entero.
+      //
+      // No lo ve nadie más: el build no falla, `dead-css` da esas clases por vivas porque
+      // siguen en el markup, y `css-total-size` sigue contando el fichero. O sea que el CSS
+      // se paga y no se pinta.
+      //
+      // `views.scss` es el único exento a propósito: es el monolito global y se declara en
+      // `angular.json`, no en un `styleUrl`.
+      const declared = pick('.ts').map((f) => f.read());
+      const out = [];
+      for (const f of pick('.scss')) {
+        if (!f.path.startsWith('src/app/') || f.path === VIEWS_SCSS) continue;
+        const base = f.path.slice(f.path.lastIndexOf('/') + 1);
+        if (!declared.some((src) => src.includes(`'./${base}'`) || src.includes(`"./${base}"`))) {
+          out.push(hit(f.path, 0, 'ningún componente la declara en styleUrl(s)'));
+        }
+      }
+      return out;
+    },
+  },
+  {
     id: 'css-total-size',
     title: 'CSS total del proyecto (mover del monolito al componente es neutro; borrar, no)',
     unit: 'líneas de CSS',

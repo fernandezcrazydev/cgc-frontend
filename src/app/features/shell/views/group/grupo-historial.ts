@@ -17,7 +17,12 @@ import { GroupStore } from '../../../../core/group-store';
 import { GroupBridge, GroupDetailStore, GroupsStore } from '../../../../core/groups';
 import { LeaguesStore } from '../../../../core/leagues';
 import { MatchHistoryStore } from '../../../../core/matches/match-history-store';
-import { activeFilterCount, groupMatchQuery } from '../../../../core/matches/match-filtering';
+import { MatchPreset } from '../../../../core/matches/models';
+import {
+  activeFilterCount,
+  groupMatchQuery,
+  presetFromSlug,
+} from '../../../../core/matches/match-filtering';
 import { GameDataStore } from '../../../../core/game-data';
 import { formatDurationMinutes } from '../../../../shared/date-format';
 import { Viewport } from '../../../../shared/viewport';
@@ -161,6 +166,7 @@ export class GrupoHistorial {
       // resuelve el nombre de cada asiento. Las dos son idempotentes por grupo.
       void this.leagues.loadSeasons(id);
       this.ui.setContextKey('/app/grupos/' + id + '/historial');
+      untracked(() => this.applyDeepLink());
     });
 
     effect(() => {
@@ -189,6 +195,32 @@ export class GrupoHistorial {
         window.scrollTo({ top: y, behavior: 'instant' });
       }
     });
+  }
+
+  /**
+   * `?liga=caos` y `?temporada=<id>` dejan los filtros puestos al entrar.
+   *
+   * Es lo que permite enlazar aquí desde donde se habla de una liga —el ranking, las
+   * estadísticas del grupo, una sanción— en vez de dejar al usuario repitiendo a mano el filtro
+   * que acaba de elegir en la pantalla anterior.
+   *
+   * Va DESPUÉS de `setContextKey`, y ese orden importa: la clave restaura los filtros guardados
+   * de la visita anterior, y lo que pide la URL tiene que ganarle. Un parámetro que no se
+   * entiende no toca nada, en vez de dejar la lista vacía por un filtro que nadie pidió.
+   *
+   * Se lee del `snapshot` y no de la corriente de params a propósito: es la intención con la que
+   * se ENTRA. Si siguiera la corriente, el primer toque del usuario en el panel de filtros
+   * volvería a imponer lo de la URL.
+   */
+  private applyDeepLink(): void {
+    const qp = this.route.snapshot.queryParamMap;
+    const preset = presetFromSlug(qp.get('liga'));
+    const leagueId = qp.get('temporada') ?? qp.get('season');
+
+    const patch: Partial<{ preset: MatchPreset; leagueId: string }> = {};
+    if (preset) patch.preset = preset;
+    if (leagueId) patch.leagueId = leagueId;
+    if (Object.keys(patch).length > 0) this.ui.update(patch);
   }
 
   /**

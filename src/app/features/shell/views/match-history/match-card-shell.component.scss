@@ -1,0 +1,100 @@
+@use 'breakpoints' as *;
+
+/*
+  Lo propio del armazón de una fila del historial. El bloque `m-card*` sigue en `views.scss`
+  porque lo escriben siete componentes; aquí solo va lo que es de este componente y de nadie más.
+*/
+
+/* ─────────────────────── El acordeón se abre, no aparece ───────────────────────
+  `animate.enter` / `animate.leave` (Angular 20.2+, en `@angular/core`: no hace falta el
+  paquete de animaciones ni un provider) es lo que permite animar también el CIERRE sin dejar
+  la alineación montada: el nodo se crea al desplegar y Angular retrasa su borrado hasta que
+  termina la animación. La alternativa —tener las diez alineaciones de la página en el DOM
+  para poder animarles la altura— es justo lo que este desplegable evita.
+
+  La altura se anima con `grid-template-rows: 0fr → 1fr` y no con `max-height`: cualquier
+  max-height es un número inventado, y o se queda corto con una alineación alta o mete una
+  pausa muerta al final del recorrido.
+*/
+.m-card__accordion {
+  display: grid;
+  grid-template-rows: 1fr;
+}
+
+/* El hijo de la rejilla es quien recorta mientras la fila crece. */
+.m-card__accordion-inner {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.m-card__accordion.is-entering {
+  animation: m-card-accordion 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Cerrar va más rápido que abrir: el contenido ya se ha leído y estorba. */
+.m-card__accordion.is-leaving {
+  animation: m-card-accordion 0.15s cubic-bezier(0.4, 0, 1, 1) reverse;
+}
+
+@keyframes m-card-accordion {
+  from {
+    grid-template-rows: 0fr;
+    opacity: 0;
+  }
+  to {
+    grid-template-rows: 1fr;
+    opacity: 1;
+  }
+}
+
+/*
+  Sin animación el nodo NO se queda colgado: al no encontrar ninguna, `animate.leave` lo borra
+  en el siguiente frame (lo comprueba con `getAnimations()`). Así que aquí se quita entera.
+*/
+@media (prefers-reduced-motion: reduce) {
+  .m-card__accordion.is-entering,
+  .m-card__accordion.is-leaving {
+    animation: none;
+  }
+}
+
+/* ──────────────────── Una fila no se descuadra por un nombre largo ────────────────────
+  Los hijos de una rejilla nacen con `min-width: auto`, así que una liga llamada
+  «Sed exports 14-sep · Liga Equilibrada» no encogía dentro de su columna: se salía de ella y se
+  superponía al bloque del MVP, que hacía lo propio en sentido contrario. `min-width: 0` es lo
+  que deja que el texto recorte dentro de su sitio en vez de invadir el de al lado.
+*/
+.m-card__end,
+.m-card__end-meta,
+.m-card__end-extra {
+  min-width: 0;
+  max-width: 100%;
+}
+
+/*
+  Recorta en vez de desbordar. El nombre completo no se pierde: va en el `title` del elemento,
+  que es lo que ya hace el resto de la fila con los campeones.
+*/
+.m-card__league,
+.m-card__mode,
+.m-card__date {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/*
+  La columna de la derecha de la fila de grupo sube de 130 a 170: es la que lleva el nombre de
+  la liga, y el de una liga de grupo es una frase, no una etiqueta. Los 40px salen de la columna
+  del enfrentamiento, que es elástica.
+
+  La consulta de medios NO es decorativa: una hoja de componente encapsulada pesa
+  `.clase[_ngcontent]`, o sea más que la `.clase` a secas de `views.scss`, así que esta regla
+  le ganaría también dentro del `@media (max-width: $bp-compact)` que apila la fila en móvil y
+  reventaría ese apilado. Se acota al ancho en el que de verdad manda.
+*/
+@media (min-width: $bp-compact + 1) {
+  .m-card__main--group {
+    grid-template-columns: 110px minmax(0, 1fr) 180px 170px;
+  }
+}

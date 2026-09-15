@@ -21,7 +21,7 @@ import {
   teamLabel,
   wonLane,
 } from '../../../../core/matches/match-view';
-import { GameDataStore } from '../../../../core/game-data';
+import { GameDataStore, SummonerSpell } from '../../../../core/game-data';
 import { ReactionsStore, ReactionTally } from '../../../../core/reactions';
 import { playerReactionsFor } from '../../../../core/group-hub';
 import { ToastService } from '../../../../core/toast';
@@ -147,6 +147,25 @@ export class MatchScoreboardComponent {
     this.pickerFor.set(null);
   }
 
+  /**
+   * Los dos hechizos de invocador del asiento, ya resueltos a su icono.
+   *
+   * `null` —y no un par de huecos— si la partida no trae los ids o si el catálogo todavía no ha
+   * cargado: un hechizo de reserva por línea describe una partida que no se jugó, que es
+   * exactamente por lo que se borró la tabla de objetos que había aquí.
+   *
+   * Devuelve el par completo o nada: con un solo hechizo la columna queda descuadrada y no dice
+   * más que sin ella.
+   */
+  protected spells(p: MatchParticipant): SummonerSpell[] | null {
+    const { spell1Id, spell2Id } = p.stats;
+    if (spell1Id == null || spell2Id == null) return null;
+    const byId = this.gameData.summonerSpellById();
+    const first = byId.get(spell1Id);
+    const second = byId.get(spell2Id);
+    return first && second ? [first, second] : null;
+  }
+
   protected playerRankScore(p: MatchParticipant): string | null {
     return this.playerScores().get(p.userId)?.score ?? null;
   }
@@ -190,9 +209,20 @@ export class MatchScoreboardComponent {
     this.match().teams.flatMap((t) => t.participants),
   );
 
-  /** El máximo real de la partida, o `null` si nadie trae daño: entonces no hay barra que pintar. */
-  private readonly maxDamage = computed(() => maxOf(this.allPlayers(), (p) => p.stats.damageToChampions));
+  /** El máximo real de la partida, o `null` si nadie trae la cifra: entonces no hay barra que pintar. */
   private readonly maxGold = computed(() => maxOf(this.allPlayers(), (p) => p.stats.gold));
+  /** El daño máximo, para la barra del marcador, que siempre mide daño pase lo que pase arriba. */
+  private readonly maxDamage = computed(() =>
+    maxOf(this.allPlayers(), (p) => p.stats.damageToChampions),
+  );
+  /**
+   * El máximo de la métrica ACTIVA. La barra ancha mide lo que ordena la lista, no siempre el
+   * daño: con la lista ordenada por visión y las barras dibujando daño, la más larga no era la
+   * primera y el orden parecía roto.
+   */
+  private readonly maxPrimary = computed(() =>
+    maxOf(this.allPlayers(), (p) => primaryValue(this.metric(), p)),
+  );
 
   /** Por qué se ordena el ranking. */
   readonly metric = signal<RankMetric>('damage');
@@ -201,6 +231,9 @@ export class MatchScoreboardComponent {
     { value: 'damage', label: 'Daño' },
     { value: 'gold', label: 'Oro' },
     { value: 'efficiency', label: 'Daño por oro' },
+    { value: 'tanked', label: 'Daño recibido' },
+    { value: 'vision', label: 'Visión' },
+    { value: 'cc', label: 'Control' },
   ];
 
   /**
@@ -213,16 +246,16 @@ export class MatchScoreboardComponent {
    */
   readonly ranking = computed<RankRow[]>(() => {
     const metric = this.metric();
-    const maxDamage = this.maxDamage();
+    const maxPrimary = this.maxPrimary();
     const maxGold = this.maxGold();
 
     return this.allPlayers()
-      .filter((p) => p.stats.damageToChampions != null || p.stats.gold != null)
+      .filter((p) => hasAnyMetric(p))
       .map((player) => {
         const efficiency = damagePerGold(player.stats);
         return {
           player,
-          damagePct: pct(player.stats.damageToChampions, maxDamage),
+          damagePct: pct(primaryValue(metric, player), maxPrimary),
           goldPct: pct(player.stats.gold, maxGold),
           primary: primaryLabel(metric, player, efficiency),
           secondary: secondaryLabel(metric, player, efficiency),
@@ -230,6 +263,19 @@ export class MatchScoreboardComponent {
         };
       })
       .sort((a, b) => b.score - a.score);
+  });
+
+  /** Lo que mide la barra ancha ahora mismo, para que la leyenda no mienta al cambiar de métrica. */
+  readonly metricLegend = computed(() => {
+    const labels: Record<RankMetric, string> = {
+      damage: 'daño a campeones',
+      gold: 'oro obtenido',
+      efficiency: 'daño por cada 1.000 de oro',
+      tanked: 'daño recibido',
+      vision: 'puntuación de visión',
+      cc: 'segundos de control aplicados',
+    };
+    return labels[this.metric()];
   });
 
   /**
@@ -330,7 +376,15 @@ export class MatchScoreboardComponent {
   }
 }
 
-type RankMetric = 'damage' | 'gold' | 'efficiency';
+/**
+ * Por qué se ordena el ranking.
+ *
+ * Las tres últimas existen para que `damageTaken`, `visionScore` y `timeCcingOthers` se vean en
+ * alguna parte: llegan en el DTO desde que el historial es real y no los pintaba nadie. Van aquí
+ * y no como tres columnas más del marcador porque la fila ya tiene ocho y estas tres solo
+ * interesan cuando son la pregunta, no de fondo.
+ */
+type RankMetric = 'damage' | 'gold' | 'efficiency' | 'tanked' | 'vision' | 'cc';
 
 interface RankRow {
   player: MatchParticipant;
@@ -361,9 +415,34 @@ function pct(value: number | undefined, max: number | null): number {
   return (value / max) * 100;
 }
 
+/** ¿Trae este asiento alguna de las cifras que el ranking sabe ordenar? */
+function hasAnyMetric(p: MatchParticipant): boolean {
+  const s = p.stats;
+  return (
+    s.damageToChampions != null ||
+    s.gold != null ||
+    s.damageTaken != null ||
+    s.visionScore != null ||
+    s.timeCcingOthers != null
+  );
+}
+
+/** La cifra que ordena Y que dibuja la barra ancha. `undefined` si este asiento no la trae. */
+function primaryValue(metric: RankMetric, p: MatchParticipant): number | undefined {
+  if (metric === 'gold') return p.stats.gold;
+  if (metric === 'tanked') return p.stats.damageTaken;
+  if (metric === 'vision') return p.stats.visionScore;
+  if (metric === 'cc') return p.stats.timeCcingOthers;
+  if (metric === 'efficiency') return damagePerGold(p.stats) ?? undefined;
+  return p.stats.damageToChampions;
+}
+
 function scoreOf(metric: RankMetric, p: MatchParticipant, efficiency: number | null): number {
   if (metric === 'gold') return p.stats.gold ?? 0;
   if (metric === 'efficiency') return efficiency ?? 0;
+  if (metric === 'tanked') return p.stats.damageTaken ?? 0;
+  if (metric === 'vision') return p.stats.visionScore ?? 0;
+  if (metric === 'cc') return p.stats.timeCcingOthers ?? 0;
   return p.stats.damageToChampions ?? 0;
 }
 
@@ -373,6 +452,11 @@ function primaryLabel(metric: RankMetric, p: MatchParticipant, efficiency: numbe
   if (metric === 'efficiency') {
     return efficiency == null ? 'Sin datos' : `${Math.round(efficiency)} por 1.000`;
   }
+  if (metric === 'tanked') return `${amount(p.stats.damageTaken)} recibido`;
+  if (metric === 'vision') return `${plain(p.stats.visionScore)} de visión`;
+  // El control llega en segundos, y en segundos se lee: «18 s de control» dice cuánto tiempo
+  // estuvo el rival sin poder jugar, que es la pregunta. Un índice normalizado no la responde.
+  if (metric === 'cc') return `${plain(p.stats.timeCcingOthers)} s de control`;
   return `${amount(p.stats.damageToChampions)} de daño`;
 }
 
@@ -381,10 +465,18 @@ function secondaryLabel(metric: RankMetric, p: MatchParticipant, efficiency: num
   if (metric === 'efficiency') {
     return `${amount(p.stats.damageToChampions)} con ${amount(p.stats.gold)}`;
   }
+  if (metric === 'tanked') return `${amount(p.stats.damageToChampions)} infligido`;
+  if (metric === 'vision') return `${amount(p.stats.gold)} de oro`;
+  if (metric === 'cc') return `${amount(p.stats.damageToChampions)} de daño`;
   return `${amount(p.stats.gold)} de oro`;
 }
 
 /** «—» y no «0»: lo que no se midió no es cero. */
 function amount(value: number | undefined): string {
   return value == null ? '—' : formatCompact(value);
+}
+
+/** Igual, para las cifras que no se abrevian: visión y segundos de control son de dos dígitos. */
+function plain(value: number | undefined): string {
+  return value == null ? '—' : String(value);
 }

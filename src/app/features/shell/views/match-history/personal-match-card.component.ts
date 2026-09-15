@@ -7,7 +7,7 @@ import {
   matchOutcomeLabel,
 } from '../../../../core/matches/match-view';
 import { GameDataStore } from '../../../../core/game-data';
-import { formatCompact, formatDuration } from '../../../../shared/date-format';
+import { formatCompact, formatDurationUnits } from '../../../../shared/date-format';
 import { NfAvatar, NfLaneIcon, NfSkeleton } from '../../../../ui';
 import { MatchCardShellComponent } from './match-card-shell.component';
 
@@ -175,7 +175,7 @@ export class PersonalMatchCardComponent {
   /** `null` sin subida: no hay duración, y «0:00» sería una partida instantánea. */
   protected readonly duration = computed(() => {
     const seconds = this.match().durationSeconds;
-    return seconds == null ? null : formatDuration(seconds);
+    return seconds == null ? null : formatDurationUnits(seconds);
   });
 
   protected readonly gold = computed(() => {

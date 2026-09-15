@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   computed,
   effect,
   inject,
@@ -11,12 +12,114 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
 import { MatchHistoryStore } from '../../../../core/matches/match-history-store';
-import { Match, TeamObjectives, TeamSummary } from '../../../../core/matches/models';
-import { presetLabel, teamBySide, teamLabel } from '../../../../core/matches/match-view';
+import {
+  Match,
+  MatchParticipant,
+  TeamObjectives,
+  TeamSummary,
+} from '../../../../core/matches/models';
+import {
+  computeMatchScores,
+  damageShare,
+  laneLabel,
+  participantName,
+  participantShortName,
+  participantsOf,
+  presetLabel,
+  teamBySide,
+  teamLabel,
+} from '../../../../core/matches/match-view';
 import { GameDataStore } from '../../../../core/game-data';
-import { NfButton, NfSkeleton } from '../../../../ui';
+import { NfAvatar, NfButton, NfSkeleton } from '../../../../ui';
 import { MatchScoreboardComponent } from '../match-history/match-scoreboard.component';
-import { formatDuration, formatMatchDate } from '../../../../shared/date-format';
+import {
+  formatCompact,
+  formatDurationUnits,
+  formatMatchDate,
+} from '../../../../shared/date-format';
+
+/** Una mención de honor: quién fue el mejor de la partida en una cifra concreta. */
+export interface HonorRow {
+  id: string;
+  /** El apodo de la mención. Es el gancho: «Muro de hierro» se recuerda, «Daño recibido» no. */
+  title: string;
+  /** Qué mide, en una palabra, debajo de la cifra. */
+  metric: string;
+  /** El color del tubo. Es la única excepción a «nombres de color nunca»: aquí la familia de
+      colores ES la identidad visual de la mención, y no cambia con el tema. */
+  color: string;
+  userId: string;
+  /** El nombre completo, para el `title`: es el que identifica sin ambigüedad. */
+  playerName: string;
+  /** Sin la región, que es lo que cabe en la caja del tubo. */
+  shortName: string;
+  value: string;
+  /** Su cuota sobre los diez, que es lo que llena el tubo. */
+  pct: number;
+}
+
+/** La tarjeta de una distinción (MVP o ACE), con lo que el DTO sabe de ese asiento. */
+export interface DistinctionCard {
+  userId: string;
+  playerName: string;
+  avatarUrl: string | null;
+  role: string;
+  teamLabel: string;
+  championId: number | null;
+  championName: string | null;
+  championIcon: string | null;
+  kda: string | null;
+  score: string | null;
+  damage: string | null;
+  damageShare: number | null;
+}
+
+/** Un puesto del podio de daño. */
+export interface PodiumRow {
+  rank: number;
+  userId: string;
+  playerName: string;
+  championName: string | null;
+  championIcon: string | null;
+  damage: string;
+  pct: number;
+  side: 'blue' | 'red' | null;
+  trophy: string;
+}
+
+/** Un lado del donut de economía. */
+export interface EconomySide {
+  label: string;
+  side: 'blue' | 'red' | null;
+  gold: string;
+  pct: number;
+}
+
+export interface EconomyView {
+  a: EconomySide;
+  b: EconomySide;
+  lead: string;
+}
+
+/** Una diapositiva del reparto por equipos. */
+export interface SplitSlide {
+  id: string;
+  title: string;
+  subtitle: string;
+  aLabel: string;
+  bLabel: string;
+  aScore: number;
+  bScore: number;
+  aPct: number;
+}
+
+/** Quién se llevó un «primero» de la partida. */
+export interface FirstRow {
+  id: string;
+  label: string;
+  teamLabel: string;
+  side: 'blue' | 'red' | null;
+}
 
 /** Una fila del bloque «Dominio de la grieta»: un objetivo y cómo se repartió. */
 export interface ObjectiveRow {
@@ -161,12 +264,13 @@ export function tacticalRadarOf(objectives: readonly ObjectiveRow[]): TacticalRa
   selector: 'app-match-detail',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, NfButton, NfSkeleton, MatchScoreboardComponent],
+  imports: [RouterLink, NfAvatar, NfButton, NfSkeleton, MatchScoreboardComponent],
   templateUrl: './match-detail.html',
   styleUrls: ['./match-detail.scss'],
 })
 export class MatchDetail {
   private readonly route = inject(ActivatedRoute);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly store = inject(MatchHistoryStore);
   private readonly gameData = inject(GameDataStore);
 
@@ -222,7 +326,7 @@ export class MatchDetail {
     const m = this.match();
     if (!m) return [];
     const parts: string[] = [formatMatchDate(m.decidedAt), presetLabel(m.preset)];
-    if (m.durationSeconds != null) parts.push(formatDuration(m.durationSeconds));
+    if (m.durationSeconds != null) parts.push(formatDurationUnits(m.durationSeconds));
     if (m.leagueName) parts.push(m.leagueName);
     const version = this.gameVersion();
     if (version) parts.push(`Parche ${version}`);
@@ -268,11 +372,278 @@ export class MatchDetail {
       .map((t) => ({ label: t.label, side: t.side, champions: t.objectives?.bans ?? [] }))
       .filter((t) => t.champions.length > 0),
   );
+  /**
+   * La tarjeta del MVP y la del ACE: las dos mismas piezas, dos distinciones distintas.
+   *
+   * Esta franja era una maqueta: el MVP se llamaba «Adri_LoL» con Sylas y nota 9,8 en todas las
+   * partidas. Vuelve leyendo `mvpUserId` / `aceUserId`, que los decide el backend y son los
+   * mismos que marcan la fila del marcador — no se recalculan aquí, o la tarjeta y el marcador
+   * dirían cosas distintas.
+   *
+   * `null` si el backend no señaló a nadie, o si ese asiento no trae cifras: la tarjeta entera
+   * no se pinta antes que pintarla con huecos.
+   *
+   * **El nivel de campeón no está**: la insignia que lo enseñaba en la maqueta se cae, porque el
+   * backend no sirve ese campo y un número inventado ahí se lee como medido.
+   */
+  readonly mvpCard = computed<DistinctionCard | null>(() => this.distinction(this.match()?.mvpUserId));
+  readonly aceCard = computed<DistinctionCard | null>(() => this.distinction(this.match()?.aceUserId));
+
+  private distinction(userId: string | null | undefined): DistinctionCard | null {
+    const m = this.match();
+    if (!m || !userId) return null;
+    const team = m.teams.find((t) => t.participants.some((p) => p.userId === userId));
+    const player = team?.participants.find((p) => p.userId === userId);
+    if (!team || !player) return null;
+
+    return {
+      userId,
+      playerName: participantName(player),
+      avatarUrl: player.avatarUrl,
+      role: laneLabel(player.role),
+      teamLabel: teamLabel(team),
+      championId: player.championId,
+      championName: player.championId == null ? null : this.championName(player.championId),
+      championIcon: player.championId == null ? null : this.championIcon(player.championId),
+      kda:
+        player.stats.kills == null
+          ? null
+          : `${player.stats.kills}/${player.stats.deaths}/${player.stats.assists}`,
+      score: this.scores().get(userId)?.score ?? null,
+      damage: player.stats.damageToChampions == null ? null : formatCompact(player.stats.damageToChampions),
+      damageShare: damageShare(player, team),
+    };
+  }
+
+  /** Las notas por jugador, las mismas que pinta la columna «Nota» del marcador. */
+  private readonly scores = computed(() => {
+    const m = this.match();
+    return m ? computeMatchScores(m) : new Map<string, { score: string }>();
+  });
+
+  /**
+   * Las menciones de honor: el mejor de la partida en cada cifra.
+   *
+   * Antes eran cuatro nombres escritos a mano que salían idénticos en todas las partidas. Ahora
+   * salen del dato, y **una mención sin dato no sale**: sin subida no hay ninguna y la franja
+   * desaparece, en vez de enseñar cinco guiones.
+   *
+   * `pct` es la CUOTA sobre los diez, no «lo cerca que está del máximo»: el ganador siempre está
+   * al 100% de sí mismo, y un tubo lleno en todas las menciones no diría nada. Así el tubo
+   * responde «cuánto de la partida acaparó», que sí varía.
+   */
+  readonly honors = computed<HonorRow[]>(() => {
+    const m = this.match();
+    if (!m) return [];
+    const players = participantsOf(m);
+    const minutes = m.durationSeconds ? m.durationSeconds / 60 : null;
+
+    const rows: HonorRow[] = [];
+    const add = (
+      id: string,
+      title: string,
+      metric: string,
+      color: string,
+      pick: (p: MatchParticipant) => number | null | undefined,
+      format: (value: number) => string,
+    ) => {
+      const best = bestBy(players, pick);
+      if (!best) return;
+      const total = players.reduce((acc, p) => acc + (pick(p) ?? 0), 0);
+      rows.push({
+        id,
+        title,
+        metric,
+        color,
+        userId: best.player.userId,
+        playerName: participantName(best.player),
+        shortName: participantShortName(best.player),
+        value: format(best.value),
+        pct: total > 0 ? Math.round((best.value / total) * 100) : 0,
+      });
+    };
+
+    add('damage', 'Cañón de daño', 'daño', 'crimson', (p) => p.stats.damageToChampions, (v) => formatCompact(v));
+    add('tank', 'Muro de hierro', 'mitigado', 'cyan', (p) => p.stats.damageTaken, (v) => formatCompact(v));
+    add('vision', 'Ojo de águila', 'visión', 'emerald', (p) => p.stats.visionScore, (v) => String(v));
+    // El farm se mide por minuto y no en bruto: en bruto lo gana siempre la partida más larga.
+    if (minutes) {
+      add('farm', 'Rey del farm', 'CS/min', 'indigo', (p) => p.stats.cs, (v) =>
+        (v / minutes).toFixed(1).replace('.', ','));
+    }
+    return rows;
+  });
+
+  /**
+   * El podio de daño a campeones: los tres primeros de los diez.
+   *
+   * Los trofeos son los de `assets/trofeos/`, los mismos del ranking del grupo. La maqueta
+   * apuntaba a `/assets/ranking/trophy-gold.png`, que **no existe en el repo**: ese podio se
+   * pintaba con tres imágenes rotas y nadie lo vio.
+   */
+  readonly topDamage = computed<PodiumRow[]>(() => {
+    const m = this.match();
+    if (!m) return [];
+    const rows = participantsOf(m)
+      .filter((p) => p.stats.damageToChampions != null)
+      .sort((a, b) => (b.stats.damageToChampions ?? 0) - (a.stats.damageToChampions ?? 0))
+      .slice(0, 3);
+    const top = rows[0]?.stats.damageToChampions ?? 0;
+
+    return rows.map((player, index) => ({
+      rank: index + 1,
+      userId: player.userId,
+      playerName: participantName(player),
+      championName: player.championId == null ? null : this.championName(player.championId),
+      championIcon: player.championId == null ? null : this.championIcon(player.championId),
+      damage: formatCompact(player.stats.damageToChampions ?? 0),
+      pct: top > 0 ? Math.round(((player.stats.damageToChampions ?? 0) / top) * 100) : 0,
+      side: player.side,
+      trophy: `/assets/trofeos/Trofeo${index + 1}.webp`,
+    }));
+  });
+
+  /** Cuánto duró y a qué ritmo se mató. `null` en cualquiera de las dos si no se sabe. */
+  readonly pace = computed(() => {
+    const m = this.match();
+    if (!m) return null;
+    const [a, b] = m.teams;
+    const kills = a.totalKills != null && b.totalKills != null ? a.totalKills + b.totalKills : null;
+    const minutes = m.durationSeconds ? m.durationSeconds / 60 : null;
+
+    if (m.durationSeconds == null && kills == null) return null;
+    return {
+      duration: m.durationSeconds == null ? null : formatDurationUnits(m.durationSeconds),
+      kills,
+      killsPerMinute: kills != null && minutes ? (kills / minutes).toFixed(1).replace('.', ',') : null,
+    };
+  });
+
+  /** Qué corte de la economía se está mirando: el final de la partida o el minuto 14. */
+  readonly economyPhase = signal<'final' | 'at14'>('final');
+  readonly hoveredEconomySide = signal<'a' | 'b' | null>(null);
+
+  /**
+   * El reparto del oro entre los dos equipos, en el corte activo.
+   *
+   * El del minuto 14 suma los cinco `goldAt14` de cada lado y es **estricto**: si a un asiento le
+   * falta el dato no se calcula y el conmutador de «14 min» no se ofrece. Cuatro contra cinco da
+   * una ventaja inventada, y se lee igual que una medida.
+   *
+   * La ventaja va «a favor de» quien la tenga, no siempre del azul: la maqueta tenía «a favor de
+   * Azul» escrito en el HTML.
+   */
+  readonly economy = computed<EconomyView | null>(() => {
+    const m = this.match();
+    if (!m) return null;
+    const [a, b] = m.teams;
+    const phase = this.economyPhase();
+
+    const values =
+      phase === 'final'
+        ? [a.totalGold, b.totalGold]
+        : [sumOf(a.participants, (p) => p.stats.goldAt14), sumOf(b.participants, (p) => p.stats.goldAt14)];
+    const [goldA, goldB] = values;
+    if (goldA == null || goldB == null) return null;
+
+    const total = goldA + goldB;
+    const diff = Math.abs(goldA - goldB);
+    const leader = goldA >= goldB ? a : b;
+
+    return {
+      a: { label: teamLabel(a), side: a.side, gold: formatCompact(goldA), pct: total > 0 ? Math.round((goldA / total) * 100) : 50 },
+      b: { label: teamLabel(b), side: b.side, gold: formatCompact(goldB), pct: total > 0 ? Math.round((goldB / total) * 100) : 50 },
+      lead: diff === 0 ? 'Empate' : `+${formatCompact(diff)} a favor de ${teamLabel(leader)}`,
+    };
+  });
+
+  /** ¿Se puede ofrecer el corte del minuto 14? Solo si los diez asientos traen su oro. */
+  readonly hasGoldAt14 = computed(() => {
+    const m = this.match();
+    if (!m) return false;
+    return m.teams.every((t) => sumOf(t.participants, (p) => p.stats.goldAt14) != null);
+  });
+
+  /**
+   * El carrusel de reparto por equipos. **Ya no es «guerra de visión»**: los wards y su posición
+   * viven en la timeline de Riot, que no tenemos (`cgc-backend#96`), y aquella tarjeta los pintaba
+   * con cifras escritas a mano.
+   *
+   * Lo que sí llega por asiento son tres cosas que se suman por equipo y responden a la misma
+   * pregunta —quién puso qué—: visión, daño aguantado y control de masas. Una diapositiva que no
+   * tenga sus dos sumas completas no entra.
+   */
+  readonly teamSplits = computed<SplitSlide[]>(() => {
+    const m = this.match();
+    if (!m) return [];
+    const [a, b] = m.teams;
+
+    const SPECS: readonly { id: string; title: string; subtitle: string; pick: (p: MatchParticipant) => number | undefined }[] = [
+      { id: 'vision', title: 'Puntuación de visión', subtitle: 'Wards puestos, arrasados y tiempo de visión concedida', pick: (p) => p.stats.visionScore },
+      { id: 'tanked', title: 'Daño aguantado', subtitle: 'Lo que absorbió cada equipo antes de caer', pick: (p) => p.stats.damageTaken },
+      { id: 'cc', title: 'Control de masas', subtitle: 'Segundos que cada equipo dejó al rival sin poder jugar', pick: (p) => p.stats.timeCcingOthers },
+    ];
+
+    const slides: SplitSlide[] = [];
+    for (const spec of SPECS) {
+      const scoreA = sumOf(a.participants, spec.pick);
+      const scoreB = sumOf(b.participants, spec.pick);
+      if (scoreA == null || scoreB == null) continue;
+      const total = scoreA + scoreB;
+      slides.push({
+        id: spec.id,
+        title: spec.title,
+        subtitle: spec.subtitle,
+        aLabel: teamLabel(a),
+        bLabel: teamLabel(b),
+        aScore: scoreA,
+        bScore: scoreB,
+        aPct: total > 0 ? Math.round((scoreA / total) * 100) : 50,
+      });
+    }
+    return slides;
+  });
+
+  readonly activeSplit = signal(0);
+  readonly splitPaused = signal(false);
+  /** 0-100: lo que lleva recorrido el punto activo. Es el reloj del carrusel, hecho visible. */
+  readonly splitProgress = signal(0);
+  readonly currentSplit = computed(() => this.teamSplits()[this.activeSplit()] ?? null);
+  /**
+   * Quién se llevó cada «primero». Salen de los `first*` de cada equipo, que llegan desde que el
+   * historial es real y no los leía nadie.
+   *
+   * Vacío si la sala no decidió lados: esos campos viajan dentro de `objectives`, y sin lados el
+   * backend no manda objetivos. Un «primero» que ninguno de los dos reclama tampoco sale —pasa
+   * con el primer barón en una partida sin barones—, porque `false` en los dos es «no ocurrió»,
+   * no «lo hizo el otro».
+   */
+  readonly firsts = computed<FirstRow[]>(() => {
+    const m = this.match();
+    if (!m) return [];
+
+    const SPECS: readonly { id: string; label: string; pick: (o: TeamObjectives) => boolean | null }[] = [
+      { id: 'blood', label: 'Primera sangre', pick: (o) => o.firstBlood },
+      { id: 'tower', label: 'Primera torre', pick: (o) => o.firstTower },
+      { id: 'baron', label: 'Primer barón', pick: (o) => o.firstBaron },
+      { id: 'inhibitor', label: 'Primer inhibidor', pick: (o) => o.firstInhibitor },
+    ];
+
+    const rows: FirstRow[] = [];
+    for (const spec of SPECS) {
+      const winner = m.teams.find((t) => t.objectives && spec.pick(t.objectives) === true);
+      if (winner) {
+        rows.push({ id: spec.id, label: spec.label, teamLabel: teamLabel(winner), side: winner.side });
+      }
+    }
+    return rows;
+  });
 
   readonly hoveredObjectiveId = signal<string | null>(null);
 
   constructor() {
     this.gameData.ensureLoaded();
+    this.startSplitCarousel();
 
     effect(() => {
       const id = this.routeId();
@@ -283,8 +654,88 @@ export class MatchDetail {
     });
   }
 
+  /**
+   * El reloj del carrusel: un tic cada 100 ms que llena el punto activo y, al llegar al final,
+   * pasa al siguiente.
+   *
+   * **No gira si el usuario pide movimiento reducido**, y entonces el punto aparece lleno en vez
+   * de a medias: un indicador de progreso congelado a mitad se lee como algo atascado. Tampoco
+   * gira con una sola diapositiva, ni mientras el puntero está encima.
+   */
+  private startSplitCarousel(): void {
+    if (typeof window === 'undefined') return;
+    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+    if (reduced) {
+      this.splitProgress.set(100);
+      return;
+    }
+
+    const TICK_MS = 100;
+    const SLIDE_MS = 6000;
+    const timer = setInterval(() => {
+      if (this.splitPaused() || this.teamSplits().length < 2) return;
+      const next = this.splitProgress() + (TICK_MS / SLIDE_MS) * 100;
+      if (next >= 100) {
+        this.splitProgress.set(0);
+        this.nextSplit();
+      } else {
+        this.splitProgress.set(next);
+      }
+    }, TICK_MS);
+    this.destroyRef.onDestroy(() => clearInterval(timer));
+  }
+
   setHoveredObjective(id: string | null): void {
     this.hoveredObjectiveId.set(id);
+  }
+
+  /**
+   * El arco del donut, en unidades de `stroke-dasharray` sobre una circunferencia de 2π·38.
+   *
+   * Se calcula porque la maqueta lo llevaba escrito a mano (`"136 238"`), así que el donut
+   * enseñaba el mismo 57/43 en todas las partidas.
+   */
+  protected donutArc(pct: number): string {
+    const circumference = 2 * Math.PI * 38;
+    const arc = (circumference * pct) / 100;
+    return `${arc.toFixed(1)} ${circumference.toFixed(1)}`;
+  }
+
+  /** Dónde arranca el segundo arco: justo donde acabó el primero. */
+  protected donutOffset(previousPct: number): string {
+    const circumference = 2 * Math.PI * 38;
+    return (-(circumference * previousPct) / 100).toFixed(1);
+  }
+
+  setEconomyPhase(phase: 'final' | 'at14'): void {
+    this.economyPhase.set(phase);
+  }
+
+  /**
+   * El carrusel gira solo, y por eso se para al pasar por encima: leer una cifra que se va a ir
+   * sola en cinco segundos es peor que no tenerla. Las flechas y los puntos lo mueven a mano.
+   */
+  goSplit(index: number): void {
+    const total = this.teamSplits().length;
+    if (total === 0) return;
+    this.activeSplit.set(((index % total) + total) % total);
+    this.splitProgress.set(0);
+  }
+
+  nextSplit(): void {
+    this.goSplit(this.activeSplit() + 1);
+  }
+
+  prevSplit(): void {
+    this.goSplit(this.activeSplit() - 1);
+  }
+
+  pauseSplits(): void {
+    this.splitPaused.set(true);
+  }
+
+  resumeSplits(): void {
+    this.splitPaused.set(false);
   }
 
   championName(id: number): string {
@@ -304,4 +755,37 @@ export class MatchDetail {
     const id = this.routeId();
     if (id) void this.store.reloadDetail(id);
   }
+}
+
+/** El asiento con el valor más alto de una cifra, o `null` si nadie la trae. */
+function bestBy(
+  players: readonly MatchParticipant[],
+  pick: (p: MatchParticipant) => number | null | undefined,
+): { player: MatchParticipant; value: number } | null {
+  let best: { player: MatchParticipant; value: number } | null = null;
+  for (const player of players) {
+    const value = pick(player);
+    if (value == null) continue;
+    if (!best || value > best.value) best = { player, value };
+  }
+  return best;
+}
+
+/**
+ * La suma de una cifra entre los cinco de un equipo, o `null` si le falta a alguno.
+ *
+ * Es estricto a propósito: sumar cuatro `goldAt14` y compararlos con cinco del otro equipo da
+ * una ventaja inventada, y se leería como medida igual que si estuviera bien.
+ */
+function sumOf(
+  players: readonly MatchParticipant[],
+  pick: (p: MatchParticipant) => number | null | undefined,
+): number | null {
+  let total = 0;
+  for (const player of players) {
+    const value = pick(player);
+    if (value == null) return null;
+    total += value;
+  }
+  return players.length > 0 ? total : null;
 }

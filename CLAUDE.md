@@ -60,7 +60,7 @@ el IdP), `groups`, `leagues`, `lobbies`, `matches`, `game-data`, `notifications`
 `group-hub.ts`, `group-stats.ts`, `group-medals.ts`, `group-ranking.ts`, `member-detail.ts`,
 `player-profile.ts`, `champions` (tiene su `*-api.ts`, pero el store se alimenta del mock hasta
 que exista el endpoint) y `reactions` (que además es local del navegador: no hay tabla ni
-endpoint).
+endpoint — pedido en `cgc-backend#95`, con el contrato propuesto).
 Los comentarios `BACKEND NOTE:` marcan cada punto de integración.
 
 **El backend será el dueño de TODA la regla de negocio**: matchmaking, cálculo de MMR/elo,
@@ -288,16 +288,13 @@ dejas una: no falla el build, no lo ve `dead-css` (sus clases siguen apareciendo
 que las da por vivas) y no lo ve `css-total-size` (el fichero sigue ahí, contando). `grupo-ranking`
 partió su hoja en tres y siguió declarando solo la base: 1.133 líneas —el podio entero y el cajón
 de historial del jugador— llevaban desde entonces sin cargarse, y esas dos zonas de la vista se
-pintaban sin estilo. Para auditarlo, cada hoja de `app/` debe aparecer en algún `styleUrl(s)`:
+pintaban sin estilo. **Y volvió a pasar**: al reescribir `cross-match-card` contra el API se cayó
+su `styleUrl` entero, y esa hoja estuvo semanas cobrándose en el presupuesto sin pintar nada.
 
-```bash
-for f in $(find src/app -name '*.scss'); do
-  grep -rqF "'./$(basename $f)'" --include=*.ts src/app || echo "huérfana: $f"
-done
-```
-
-Hoy solo señala `views.scss`, y es el falso positivo esperado: el monolito es global y se declara
-en `angular.json`, no en un `styleUrl`. Cualquier otra cosa que salga ahí es CSS que no se carga.
+Desde entonces **lo vigila `npm run arch` (regla `orphan-stylesheet`), que entró en cero**: toda
+hoja de `src/app/` tiene que aparecer en algún `styleUrl(s)`. La única exenta es `views.scss`, que
+es global y se declara en `angular.json`. Si añades una hoja y olvidas declararla, el check falla
+en el acto en vez de dentro de dos meses.
 
 ### La duplicación es otro problema, y se arregla con tokens (no con ficheros)
 
@@ -538,11 +535,19 @@ solo componente.
 
 ### Lo que el backend no sirve todavía (y por qué no se rellena)
 
-Objetos, runas, hechizos del listado, nivel de campeón, wards, cualquier cifra de dragones,
-`damageSharePercentage` y `wonLane`. Los primeros están guardados, pero con nombres de campo sacados de la documentación del
+Objetos, runas, nivel de campeón, wards, cualquier cifra de dragones, `damageSharePercentage` y
+`wonLane`. Los primeros están guardados, pero con nombres de campo sacados de la documentación del
 cliente de LoL que **nadie ha visto en un payload medido**. Mientras tanto se pintaban con tablas
 de reserva por línea —el jungla siempre con Smite azul, el soporte siempre con Protector— que no
 describían ninguna partida real. `itemBg()` se queda esperando; el resto se borró.
+
+**Los hechizos de invocador sí llegan** (`spell1Id`/`spell2Id`) y desde 2026-09-15 se pintan en el
+marcador del detalle. Estuvieron un tiempo en el mapeador sin que ninguna vista los usara, que es
+el otro modo de fallar: un campo que llega, se tipa y no se enseña no lo echa de menos nadie.
+La misma revisión sacó a la luz `damageTaken`, `visionScore` y `timeCcingOthers` —ahora son tres
+métricas más del ranking— y los cinco `first*`, que son las pastillas de «primera sangre» y
+compañía. **Si conectas un campo nuevo, comprueba que alguna pantalla lo pinta**: el contrato
+generado dice qué existe, no qué se está usando.
 
 `damageShare` y `wonLane` sí se derivan aquí, y se dice: el reparto de daño sale de los cinco del
 equipo (un campo almacenado y este cálculo llegaron a decir 37% y 34% del mismo jugador), y «ganó
@@ -728,6 +733,8 @@ El detalle completo está en `cgc-backend/docs/contrato-api.md`.
   nulos un nivel más abajo — enseñar `dragonKills` bajo la etiqueta «Dragones» afirma qué cuenta.
   No se pierde nada esperando: el backend guarda el bloque de equipo y el timeline en crudo, así
   que el día que se mida se tipa y se rellena hacia atrás, partidas viejas incluidas.
+  Pedido en `cgc-backend#96`, junto con la timeline entera (mapa, wards, minuto de cada
+  «primero»), que es lo que sostenía las franjas que se retiraron del análisis de partida.
 
 Cuando se acuerde uno, documentarlo aquí y borrar la línea de pendientes.
 
@@ -846,6 +853,7 @@ corre en <1s, y CI lo ejecuta en cada PR (`.github/workflows/ci.yml`). Comprueba
 | `api-url` | `environment.apiUrl` solo en `*-api.ts` (infra de `core/http`, `core/auth` y `app.config.ts` exentas por diseño) |
 | `views-scss-size` | `views.scss` no crece **nunca** |
 | `dead-css` | clases de **cualquier** hoja de `app/` que ningún `.ts`/`.html` referencia |
+| `orphan-stylesheet` | hoja de `app/` que ningún `styleUrl(s)` declara: se paga y no se pinta |
 | `css-total-size` | CSS total del proyecto, hojas **y** `styles: []` inline (mover es neutro; borrar, no) |
 | `inline-template-size` | plantilla inline > 150 líneas |
 | `font-floor` | `font-size` < 11px |

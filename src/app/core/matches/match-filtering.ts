@@ -77,6 +77,32 @@ export interface MatchFilterState {
   sortBy: MatchSortBy;
 }
 
+/**
+ * El trozo de URL de cada modalidad: `/app/grupos/:id/historial?liga=caos`.
+ *
+ * Existe para que se pueda enlazar al historial ya filtrado desde donde se habla de una liga
+ * —el ranking, las estadísticas, una sanción—. La clave del enlace es el SLUG y no el enum
+ * (`CHAOS`), porque la URL la lee y la comparte gente.
+ *
+ * Ojo con `competitivo`: el preset se llama `PRECISION`. Son dos vocabularios distintos —el de
+ * la URL y el del backend— y por eso hay tabla en vez de un `toLowerCase()`.
+ */
+export const PRESET_SLUGS: Record<MatchPreset, string> = {
+  BALANCED: 'equilibrado',
+  PRECISION: 'competitivo',
+  CHAOS: 'caos',
+};
+
+/** `'caos'` → `'CHAOS'`. `null` si el slug no es ninguno: una URL a mano no cambia el filtro. */
+export function presetFromSlug(slug: string | null | undefined): MatchPreset | null {
+  if (!slug) return null;
+  const normalized = slug.toLowerCase();
+  const found = (Object.entries(PRESET_SLUGS) as [MatchPreset, string][]).find(
+    ([, value]) => value === normalized,
+  );
+  return found ? found[0] : null;
+}
+
 export const EMPTY_FILTERS: MatchFilterState = {
   preset: 'all',
   leagueId: 'all',
