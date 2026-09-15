@@ -281,7 +281,8 @@ describe('MatchDetail · menciones de honor', () => {
     const farm = component.honors().find((h) => h.id === 'farm');
 
     expect(farm?.playerName).toBe('Crack#LAN');
-    expect(farm?.value).toBe('10,0 CS/min');
+    expect(farm?.value).toBe('10,0');
+    expect(farm?.metric).toBe('CS/min');
   });
 
   /** Sin duración no hay CS/min que calcular: la mención se cae sola en vez de dividir por cero. */
@@ -316,19 +317,41 @@ describe('MatchDetail · menciones de honor', () => {
 describe('MatchDetail · ritmo y economía', () => {
   it('suma las bajas de los dos equipos y da su ritmo por minuto', async () => {
     const { component } = await montar({ detail: partida({ durationSeconds: 1800 }) });
-    const kills = component.pace().find((s) => s.id === 'kills');
 
     // El fixture da 20 bajas por equipo: 40 en media hora son 1,3 por minuto.
-    expect(kills?.value).toBe('40');
-    expect(kills?.hint).toBe('1,3 por minuto');
+    expect(component.pace()?.kills).toBe(40);
+    expect(component.pace()?.killsPerMinute).toBe('1,3');
+  });
+
+  it('sin estadísticas no hay tarjeta de ritmo', async () => {
+    const detail = matchFixture({
+      id: 'm1',
+      hasStats: false,
+      durationSeconds: null,
+      a: [bareParticipantFixture({ userId: 'a', slot: 'A' })],
+      b: [bareParticipantFixture({ userId: 'b', slot: 'B' })],
+    });
+    const { component } = await montar({ detail });
+
+    expect(component.pace()).toBeNull();
+  });
+
+  it('el donut reparte el oro con la cuota real de cada equipo', async () => {
+    const { component } = await montar({ detail: partida() });
+    const econ = component.economy();
+
+    // El fixture da 50.000 a cada equipo: mitad y mitad, y sin ventaja que anunciar.
+    expect(econ?.a.pct).toBe(50);
+    expect(econ?.b.pct).toBe(50);
+    expect(econ?.lead).toBe('Empate');
   });
 
   /**
-   * La ventaja del minuto 14 se suma de los cinco asientos, y es estricta a propósito: con
-   * cuatro `goldAt14` de un lado y cinco del otro la diferencia estaría inventada, y se leería
-   * igual que si estuviera medida.
+   * El corte del minuto 14 suma los cinco asientos, y es estricto a propósito: con cuatro
+   * `goldAt14` de un lado y cinco del otro la diferencia estaría inventada, y se leería igual
+   * que si estuviera medida. Por eso el conmutador ni se ofrece.
    */
-  it('no calcula la ventaja del minuto 14 si a algún asiento le falta el dato', async () => {
+  it('no ofrece el corte del minuto 14 si a algún asiento le falta el dato', async () => {
     const detail = matchFixture({
       id: 'm1',
       a: [
@@ -342,7 +365,9 @@ describe('MatchDetail · ritmo y economía', () => {
     });
     const { component } = await montar({ detail });
 
-    expect(component.pace().some((s) => s.id === 'gold14')).toBe(false);
+    expect(component.hasGoldAt14()).toBe(false);
+    component.setEconomyPhase('at14');
+    expect(component.economy()).toBeNull();
   });
 
   it('con el dato completo dice cuánta ventaja y de quién', async () => {
@@ -352,26 +377,105 @@ describe('MatchDetail · ritmo y economía', () => {
       b: [participantFixture({ userId: 'b1', slot: 'B', stats: statsFixture({ goldAt14: 4500 }) })],
     });
     const { component } = await montar({ detail });
-    const row = component.pace().find((s) => s.id === 'gold14');
 
-    expect(row?.value).toBe('+1,5k');
-    expect(row?.hint).toBe('Para Equipo azul');
+    expect(component.hasGoldAt14()).toBe(true);
+    component.setEconomyPhase('at14');
+    expect(component.economy()?.lead).toBe('+1,5k a favor de Equipo azul');
   });
 
-  it('sin estadísticas no hay franja de ritmo', async () => {
-    const detail = matchFixture({
-      id: 'm1',
-      hasStats: false,
-      durationSeconds: null,
-      a: [bareParticipantFixture({ userId: 'a', slot: 'A' })],
-      b: [bareParticipantFixture({ userId: 'b', slot: 'B' })],
-    });
-    const { component } = await montar({ detail });
+  /** La maqueta llevaba «136 238» escrito a mano, así que el donut enseñaba 57/43 siempre. */
+  it('el arco del donut sale de la cuota, no de un número fijo', async () => {
+    const { component } = await montar({ detail: partida() });
+    const circunferencia = 2 * Math.PI * 38;
 
-    expect(component.pace()).toEqual([]);
+    expect(component['donutArc'](50)).toBe(
+      `${(circunferencia / 2).toFixed(1)} ${circunferencia.toFixed(1)}`,
+    );
+    expect(component['donutArc'](0)).toBe(`0.0 ${circunferencia.toFixed(1)}`);
   });
 });
 
+describe('MatchDetail · MVP, ACE y podio', () => {
+  function conDistinciones(): Match {
+    const crack = participantFixture({ userId: 'crack', slot: 'A', riotId: 'Crack#LAN' });
+    const otro = participantFixture({ userId: 'otro', slot: 'B', riotId: 'Otro#LAN' });
+    return matchFixture({ id: 'm1', a: [crack], b: [otro], mvpUserId: 'crack' });
+  }
+
+  /** El MVP lo decide el backend y no se recalcula aquí, o la tarjeta y el marcador discreparían. */
+  it('la tarjeta del MVP nombra al que señaló el backend', async () => {
+    const { component } = await montar({ detail: conDistinciones() });
+
+    expect(component.mvpCard()?.playerName).toBe('Crack#LAN');
+    expect(component.mvpCard()?.teamLabel).toBe('Equipo azul');
+  });
+
+  it('sin MVP señalado la tarjeta no se pinta', async () => {
+    const { component } = await montar({ detail: partida({ mvpUserId: null }) });
+
+    expect(component.mvpCard()).toBeNull();
+  });
+
+  it('el podio ordena por daño y reparte los tres trofeos reales', async () => {
+    const detail = matchFixture({
+      id: 'm1',
+      a: [
+        participantFixture({ userId: 'a1', slot: 'A', riotId: 'Uno#LAN', stats: statsFixture({ damageToChampions: 30000 }) }),
+        participantFixture({ userId: 'a2', slot: 'A', riotId: 'Dos#LAN', stats: statsFixture({ damageToChampions: 10000 }) }),
+      ],
+      b: [
+        participantFixture({ userId: 'b1', slot: 'B', riotId: 'Tres#LAN', stats: statsFixture({ damageToChampions: 20000 }) }),
+        participantFixture({ userId: 'b2', slot: 'B', riotId: 'Cuatro#LAN', stats: statsFixture({ damageToChampions: 5000 }) }),
+      ],
+    });
+    const { component } = await montar({ detail });
+    const podio = component.topDamage();
+
+    expect(podio.map((p) => p.playerName)).toEqual(['Uno#LAN', 'Tres#LAN', 'Dos#LAN']);
+    expect(podio.map((p) => p.trophy)).toEqual([
+      '/assets/trofeos/Trofeo1.webp',
+      '/assets/trofeos/Trofeo2.webp',
+      '/assets/trofeos/Trofeo3.webp',
+    ]);
+    // La barra mide contra el primero, no contra el total.
+    expect(podio[1].pct).toBe(67);
+  });
+});
+
+describe('MatchDetail · reparto por equipos', () => {
+  /** Una diapositiva sin sus dos sumas completas no entra: media suma no compara nada. */
+  it('solo entran las diapositivas cuyas dos sumas están completas', async () => {
+    const detail = matchFixture({
+      id: 'm1',
+      a: [participantFixture({ userId: 'a1', slot: 'A', stats: statsFixture({ timeCcingOthers: undefined }) })],
+      b: [participantFixture({ userId: 'b1', slot: 'B', stats: statsFixture({ timeCcingOthers: 30 }) })],
+    });
+    const { component } = await montar({ detail });
+
+    expect(component.teamSplits().map((s) => s.id)).toEqual(['vision', 'tanked']);
+  });
+
+  it('el carrusel da la vuelta por los dos extremos', async () => {
+    const { component } = await montar({ detail: partida() });
+    const total = component.teamSplits().length;
+
+    component.goSplit(total - 1);
+    component.nextSplit();
+    expect(component.activeSplit()).toBe(0);
+
+    component.prevSplit();
+    expect(component.activeSplit()).toBe(total - 1);
+  });
+
+  /** Moverlo a mano reinicia el reloj: si no, la diapositiva recién elegida se iría enseguida. */
+  it('cambiar de diapositiva pone el progreso a cero', async () => {
+    const { component } = await montar({ detail: partida() });
+
+    component.splitProgress.set(80);
+    component.nextSplit();
+    expect(component.splitProgress()).toBe(0);
+  });
+});
 describe('MatchDetail · los primeros objetivos', () => {
   it('cuelga cada primero del equipo que lo reclama', async () => {
     const detail = conObjetivos(

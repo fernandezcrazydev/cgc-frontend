@@ -5,7 +5,7 @@
   "views-scss-size": 2651,
   "dead-css": 0,
   "orphan-stylesheet": 0,
-  "css-total-size": 18998,
+  "css-total-size": 19033,
   "inline-template-size": 0,
   "font-floor": 37,
   "font-size-raw": 285,
@@ -75,6 +75,13 @@
       "de": 18922,
       "a": 18998,
       "motivo": "detalle de partida: menciones de honor, franja de ritmo/economia y primeros objetivos, todo derivado del DTO"
+    },
+    {
+      "fecha": "2026-09-15",
+      "regla": "css-total-size",
+      "de": 18998,
+      "a": 19033,
+      "motivo": "vuelve el tablero de tres pisos del detalle de partida (MVP, ACE, menciones, podio, finanzas, reparto), con el CSS recuperado de antes de la conexion al API"
     }
   ]
 }
