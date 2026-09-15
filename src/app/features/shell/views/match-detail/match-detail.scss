@@ -121,6 +121,108 @@
   }
 }
 
+/* ── Ritmo y economía ── */
+
+.md-pace { display: flex; flex-direction: column; gap: 10px; }
+
+/* Rejilla elástica: con dos cifras no deja un hueco, con cinco no aprieta. */
+.md-pace__stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.md-pace__stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--nf-surface-2);
+  border: var(--bw-1) solid var(--nf-border);
+  min-width: 0;
+}
+
+.md-pace__label { font-size: var(--fs-label); color: var(--nf-text-dim); letter-spacing: 0.04em; }
+.md-pace__value { font-size: var(--fs-h3); font-weight: 800; color: var(--nf-text); }
+.md-pace__hint { font-size: var(--fs-label); color: var(--nf-text-mid); }
+
+.md-pace__firsts { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/*
+  Un «primero» es un par etiqueta→equipo, y por eso se pinta como una sola pastilla partida y no
+  como dos cosas sueltas: «Primera sangre · Equipo Azul» se lee de un tirón.
+*/
+.md-first {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px;
+  border-radius: 12px;
+  background: var(--nf-inset);
+  border: var(--bw-1) solid var(--nf-border);
+  font-size: var(--fs-label);
+}
+
+.md-first__label { color: var(--nf-text-dim); }
+.md-first__team { font-weight: var(--fw-bold); color: var(--nf-text); }
+
+/* Bandos de LoL: son dominio, no tema, y por eso sí se nombran por su color. */
+.md-first--blue { border-color: color-mix(in srgb, var(--nf-team-blue) 45%, transparent); }
+.md-first--blue .md-first__team { color: var(--nf-team-blue); }
+.md-first--red { border-color: color-mix(in srgb, var(--nf-team-red) 45%, transparent); }
+.md-first--red .md-first__team { color: var(--nf-team-red); }
+
+/* ── Menciones de honor ── */
+
+.md-honors { display: flex; flex-direction: column; gap: 8px; }
+
+.md-honors__heading {
+  margin: 0;
+  font-size: var(--fs-label);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--nf-text-dim);
+}
+
+.md-honors__list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 10px;
+}
+
+/* Cada mención es un enlace al perfil de quien la ganó: es de quien habla la tarjeta. */
+.md-honor {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--nf-surface-2);
+  border: var(--bw-1) solid var(--nf-border);
+  border-left: 3px solid var(--nf-warning);
+  text-decoration: none;
+  min-width: 0;
+  transition: border-color 0.14s, background 0.14s;
+
+  &:hover,
+  &:focus-visible {
+    border-color: var(--nf-border-strong);
+    border-left-color: var(--nf-warning);
+    background: var(--nf-surface-3);
+  }
+}
+
+.md-honor__title { font-size: var(--fs-label); font-weight: 800; color: var(--nf-warning); letter-spacing: 0.04em; }
+.md-honor__player { font-size: var(--fs-body); font-weight: var(--fw-bold); color: var(--nf-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.md-honor__value { font-size: var(--fs-label); color: var(--nf-text-mid); }
+/* La explicación en llano: el apodo es el gancho, pero por sí solo no dice qué se midió. */
+.md-honor__metric { font-size: var(--fs-label); color: var(--nf-text-dim); }
+
+@media (prefers-reduced-motion: reduce) {
+  .md-honor { transition: none; }
+}
+
 /* ── Baneos ── */
 
 .md-bans {

@@ -4,7 +4,8 @@
   "api-url": 0,
   "views-scss-size": 2651,
   "dead-css": 0,
-  "css-total-size": 18922,
+  "orphan-stylesheet": 0,
+  "css-total-size": 18998,
   "inline-template-size": 0,
   "font-floor": 37,
   "font-size-raw": 285,
@@ -67,6 +68,13 @@
       "de": 18919,
       "a": 18922,
       "motivo": "hoja nueva del armazon del historial: animacion del acordeon y la marca de baneo del detalle"
+    },
+    {
+      "fecha": "2026-09-15",
+      "regla": "css-total-size",
+      "de": 18922,
+      "a": 18998,
+      "motivo": "detalle de partida: menciones de honor, franja de ritmo/economia y primeros objetivos, todo derivado del DTO"
     }
   ]
 }

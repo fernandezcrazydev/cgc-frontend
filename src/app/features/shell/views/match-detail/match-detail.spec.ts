@@ -10,11 +10,13 @@ import { ToastService } from '../../../../core/toast';
 import { ReactionsStore } from '../../../../core/reactions';
 import { Viewport } from '../../../../shared/viewport';
 import {
+  bareParticipantFixture,
   fakeMatchHistoryStore,
   matchFixture,
   participantFixture,
+  statsFixture,
 } from '../../../../core/matches/match-fixtures';
-import { Match } from '../../../../core/matches/models';
+import { Match, TeamObjectives } from '../../../../core/matches/models';
 import { MatchDetail, ObjectiveRow, tacticalRadarOf } from './match-detail';
 
 const ME = 'me-uuid';
@@ -196,5 +198,207 @@ describe('tacticalRadarOf', () => {
   it('el número de lados sigue al número de objetivos', () => {
     expect(tacticalRadarOf(objetivos.slice(0, 3)).axes).toHaveLength(3);
     expect(tacticalRadarOf(objetivos.slice(0, 5)).axes).toHaveLength(5);
+  });
+});
+
+/** Un bloque de objetivos completo, para las pruebas que necesitan lados decididos. */
+function objetivosDe(over: Partial<TeamObjectives> = {}): TeamObjectives {
+  return {
+    bans: [],
+    barons: 1,
+    dragons: 2,
+    heralds: 1,
+    voidgrubs: 3,
+    towers: 8,
+    inhibitors: 1,
+    firstBlood: false,
+    firstTower: false,
+    firstBaron: false,
+    firstDragon: false,
+    firstInhibitor: false,
+    ...over,
+  };
+}
+
+/** Pega objetivos a los dos equipos de una partida ya construida. */
+function conObjetivos(match: Match, a: TeamObjectives, b: TeamObjectives): Match {
+  return {
+    ...match,
+    teams: [
+      { ...match.teams[0], objectives: a },
+      { ...match.teams[1], objectives: b },
+    ] as Match['teams'],
+  };
+}
+
+/**
+ * Las menciones de honor volvieron calculadas sobre los diez asientos reales. Antes eran cuatro
+ * nombres escritos a mano que salían idénticos en todas las partidas, así que lo que hay que
+ * probar es justo lo contrario: que cada una sale del dato, y que sin dato no sale.
+ */
+describe('MatchDetail · menciones de honor', () => {
+  function conCifras(): Match {
+    const crack = participantFixture({
+      userId: 'crack',
+      slot: 'A',
+      riotId: 'Crack#LAN',
+      stats: statsFixture({
+        damageToChampions: 40000,
+        damageTaken: 5000,
+        visionScore: 10,
+        cs: 300,
+        timeCcingOthers: 3,
+      }),
+    });
+    const tanque = participantFixture({
+      userId: 'tanque',
+      slot: 'B',
+      riotId: 'Tanque#LAN',
+      stats: statsFixture({
+        damageToChampions: 9000,
+        damageTaken: 60000,
+        visionScore: 80,
+        cs: 50,
+        timeCcingOthers: 90,
+      }),
+    });
+    return matchFixture({ id: 'm1', a: [crack], b: [tanque], durationSeconds: 1800 });
+  }
+
+  it('cada mención nombra a quien de verdad tiene el máximo', async () => {
+    const { component } = await montar({ detail: conCifras() });
+    const byId = new Map(component.honors().map((h) => [h.id, h]));
+
+    expect(byId.get('damage')?.playerName).toBe('Crack#LAN');
+    expect(byId.get('tank')?.playerName).toBe('Tanque#LAN');
+    expect(byId.get('vision')?.playerName).toBe('Tanque#LAN');
+    expect(byId.get('cc')?.playerName).toBe('Tanque#LAN');
+  });
+
+  /** El farm se mide por minuto: en bruto lo gana siempre quien jugó la partida más larga. */
+  it('el farm va por minuto, no en bruto', async () => {
+    const { component } = await montar({ detail: conCifras() });
+    const farm = component.honors().find((h) => h.id === 'farm');
+
+    expect(farm?.playerName).toBe('Crack#LAN');
+    expect(farm?.value).toBe('10,0 CS/min');
+  });
+
+  /** Sin duración no hay CS/min que calcular: la mención se cae sola en vez de dividir por cero. */
+  it('sin duración no hay mención de farm, pero las demás siguen', async () => {
+    const detail = matchFixture({
+      id: 'm1',
+      a: [participantFixture({ userId: 'a', slot: 'A' })],
+      b: [participantFixture({ userId: 'b', slot: 'B' })],
+      durationSeconds: null,
+    });
+    const { component } = await montar({ detail });
+
+    expect(component.honors().some((h) => h.id === 'farm')).toBe(false);
+    expect(component.honors().some((h) => h.id === 'damage')).toBe(true);
+  });
+
+  /** Sin subida no hay ninguna cifra: la franja entera desaparece en vez de enseñar guiones. */
+  it('una partida sin estadísticas no tiene menciones', async () => {
+    const detail = matchFixture({
+      id: 'm1',
+      hasStats: false,
+      a: [bareParticipantFixture({ userId: 'a', slot: 'A' })],
+      b: [bareParticipantFixture({ userId: 'b', slot: 'B' })],
+    });
+    const { component, el } = await montar({ detail });
+
+    expect(component.honors()).toEqual([]);
+    expect(el.querySelector('.md-honors')).toBeNull();
+  });
+});
+
+describe('MatchDetail · ritmo y economía', () => {
+  it('suma las bajas de los dos equipos y da su ritmo por minuto', async () => {
+    const { component } = await montar({ detail: partida({ durationSeconds: 1800 }) });
+    const kills = component.pace().find((s) => s.id === 'kills');
+
+    // El fixture da 20 bajas por equipo: 40 en media hora son 1,3 por minuto.
+    expect(kills?.value).toBe('40');
+    expect(kills?.hint).toBe('1,3 por minuto');
+  });
+
+  /**
+   * La ventaja del minuto 14 se suma de los cinco asientos, y es estricta a propósito: con
+   * cuatro `goldAt14` de un lado y cinco del otro la diferencia estaría inventada, y se leería
+   * igual que si estuviera medida.
+   */
+  it('no calcula la ventaja del minuto 14 si a algún asiento le falta el dato', async () => {
+    const detail = matchFixture({
+      id: 'm1',
+      a: [
+        participantFixture({ userId: 'a1', slot: 'A', stats: statsFixture({ goldAt14: 5000 }) }),
+        participantFixture({ userId: 'a2', slot: 'A', stats: statsFixture({ goldAt14: 5000 }) }),
+      ],
+      b: [
+        participantFixture({ userId: 'b1', slot: 'B', stats: statsFixture({ goldAt14: 4000 }) }),
+        participantFixture({ userId: 'b2', slot: 'B', stats: statsFixture() }),
+      ],
+    });
+    const { component } = await montar({ detail });
+
+    expect(component.pace().some((s) => s.id === 'gold14')).toBe(false);
+  });
+
+  it('con el dato completo dice cuánta ventaja y de quién', async () => {
+    const detail = matchFixture({
+      id: 'm1',
+      a: [participantFixture({ userId: 'a1', slot: 'A', stats: statsFixture({ goldAt14: 6000 }) })],
+      b: [participantFixture({ userId: 'b1', slot: 'B', stats: statsFixture({ goldAt14: 4500 }) })],
+    });
+    const { component } = await montar({ detail });
+    const row = component.pace().find((s) => s.id === 'gold14');
+
+    expect(row?.value).toBe('+1,5k');
+    expect(row?.hint).toBe('Para Equipo azul');
+  });
+
+  it('sin estadísticas no hay franja de ritmo', async () => {
+    const detail = matchFixture({
+      id: 'm1',
+      hasStats: false,
+      durationSeconds: null,
+      a: [bareParticipantFixture({ userId: 'a', slot: 'A' })],
+      b: [bareParticipantFixture({ userId: 'b', slot: 'B' })],
+    });
+    const { component } = await montar({ detail });
+
+    expect(component.pace()).toEqual([]);
+  });
+});
+
+describe('MatchDetail · los primeros objetivos', () => {
+  it('cuelga cada primero del equipo que lo reclama', async () => {
+    const detail = conObjetivos(
+      partida(),
+      objetivosDe({ firstBlood: true, firstTower: true }),
+      objetivosDe({ firstBaron: true }),
+    );
+    const { component } = await montar({ detail });
+    const byId = new Map(component.firsts().map((f) => [f.id, f]));
+
+    expect(byId.get('blood')?.teamLabel).toBe('Equipo azul');
+    expect(byId.get('tower')?.teamLabel).toBe('Equipo azul');
+    expect(byId.get('baron')?.teamLabel).toBe('Equipo rojo');
+  });
+
+  /** `false` en los dos es «no ocurrió», no «lo hizo el otro»: una custom sin barones existe. */
+  it('lo que ninguno reclama no sale', async () => {
+    const detail = conObjetivos(partida(), objetivosDe({ firstBlood: true }), objetivosDe());
+    const { component } = await montar({ detail });
+
+    expect(component.firsts().map((f) => f.id)).toEqual(['blood']);
+  });
+
+  /** Los `first*` viajan dentro de `objectives`, y sin lados el backend no manda objetivos. */
+  it('sin lados decididos no hay primeros', async () => {
+    const { component } = await montar({ detail: partida({ sided: false }) });
+
+    expect(component.firsts()).toEqual([]);
   });
 });

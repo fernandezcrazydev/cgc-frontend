@@ -99,6 +99,71 @@
           </p>
         }
 
+        <!-- ======================= RITMO Y ECONOMÍA ======================== -->
+        <!--
+          Cuánto duró, cuánto se mató y quién tuvo el oro. Todo del DTO: la ventaja del minuto 14
+          se suma de los cinco `goldAt14`, que es el mismo dato con el que la pestaña de duelos
+          estima quién ganó su línea. Sin partida subida no hay ninguna cifra y la franja no sale.
+        -->
+        @if (pace().length > 0 || firsts().length > 0) {
+          <section class="md-pace">
+            @if (pace().length > 0) {
+              <div class="md-pace__stats">
+                @for (stat of pace(); track stat.id) {
+                  <div class="md-pace__stat">
+                    <span class="md-pace__label nf-mono">{{ stat.label }}</span>
+                    <span class="md-pace__value nf-mono">{{ stat.value }}</span>
+                    @if (stat.hint; as hint) {
+                      <span class="md-pace__hint nf-mono">{{ hint }}</span>
+                    }
+                  </div>
+                }
+              </div>
+            }
+
+            @if (firsts().length > 0) {
+              <div class="md-pace__firsts">
+                @for (first of firsts(); track first.id) {
+                  <span
+                    class="md-first"
+                    [class.md-first--blue]="first.side === 'blue'"
+                    [class.md-first--red]="first.side === 'red'"
+                  >
+                    <span class="md-first__label nf-mono">{{ first.label }}</span>
+                    <span class="md-first__team nf-mono">{{ first.teamLabel }}</span>
+                  </span>
+                }
+              </div>
+            }
+          </section>
+        }
+
+        <!-- ====================== MENCIONES DE HONOR ======================= -->
+        <!--
+          El mejor de la partida en cada cifra. Una mención sin dato NO sale: sin subida no hay
+          ninguna y la franja desaparece, en vez de enseñar cinco guiones o cinco nombres fijos
+          —que es lo que hacía la maqueta que había aquí—.
+        -->
+        @if (honors().length > 0) {
+          <section class="md-honors">
+            <h2 class="md-honors__heading nf-mono">Menciones de honor</h2>
+            <div class="md-honors__list">
+              @for (honor of honors(); track honor.id) {
+                <a
+                  class="md-honor"
+                  [routerLink]="['/app', 'perfil', honor.userId]"
+                  [title]="honor.metric"
+                >
+                  <span class="md-honor__title nf-mono">{{ honor.title }}</span>
+                  <span class="md-honor__player">{{ honor.playerName }}</span>
+                  <span class="md-honor__value nf-mono">{{ honor.value }}</span>
+                  <span class="md-honor__metric nf-mono">{{ honor.metric }}</span>
+                </a>
+              }
+            </div>
+          </section>
+        }
+
         <!-- ===================== DOMINIO DE LA GRIETA ====================== -->
         @if (objectives().length > 0) {
           <section class="md-rift">

@@ -178,6 +178,28 @@
                     }
                   </div>
 
+                  <!--
+                    Los dos hechizos de invocador, apilados junto al campeón como en cualquier
+                    marcador de LoL. Llegan del backend (`spell1Id`/`spell2Id`) y hasta ahora no
+                    los pintaba nadie. Si la partida no se subió no vienen, y entonces no hay
+                    columna: el hueco no se rellena con iconos de reserva por línea, que es
+                    justo lo que se borró de aquí por describir partidas que no existieron.
+                  -->
+                  @if (spells(p); as pair) {
+                    <div class="ms-row__spells">
+                      @for (spell of pair; track spell.id) {
+                        <img
+                          class="ms-row__spell"
+                          [src]="spell.iconUrl"
+                          [alt]="spell.name"
+                          [title]="spell.name"
+                          width="16"
+                          height="16"
+                        />
+                      }
+                    </div>
+                  }
+
                   <div class="m-player-row__meta">
                     <div class="m-player-row__name-wrap">
                       <a
@@ -406,7 +428,7 @@
         </ol>
 
         <p class="m-rank-legend nf-mono">
-          Barra ancha: daño a campeones, con el color del bando. Barra fina: oro.
+          Barra ancha: {{ metricLegend() }}, con el color del bando. Barra fina: oro.
         </p>
       } @else {
         <p class="ms-no-stats">

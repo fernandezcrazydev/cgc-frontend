@@ -11,12 +11,56 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
 import { MatchHistoryStore } from '../../../../core/matches/match-history-store';
-import { Match, TeamObjectives, TeamSummary } from '../../../../core/matches/models';
-import { presetLabel, teamBySide, teamLabel } from '../../../../core/matches/match-view';
+import {
+  Match,
+  MatchParticipant,
+  TeamObjectives,
+  TeamSummary,
+} from '../../../../core/matches/models';
+import {
+  participantName,
+  participantsOf,
+  presetLabel,
+  teamBySide,
+  teamLabel,
+} from '../../../../core/matches/match-view';
 import { GameDataStore } from '../../../../core/game-data';
 import { NfButton, NfSkeleton } from '../../../../ui';
 import { MatchScoreboardComponent } from '../match-history/match-scoreboard.component';
-import { formatDurationUnits, formatMatchDate } from '../../../../shared/date-format';
+import {
+  formatCompact,
+  formatDurationUnits,
+  formatMatchDate,
+} from '../../../../shared/date-format';
+
+/** Una mención de honor: quién fue el mejor de la partida en una cifra concreta. */
+export interface HonorRow {
+  id: string;
+  /** El apodo de la mención. Es el gancho: «Muro de hierro» se recuerda, «Daño recibido» no. */
+  title: string;
+  /** Qué mide, dicho en llano, porque el apodo por sí solo no lo dice. */
+  metric: string;
+  userId: string;
+  playerName: string;
+  value: string;
+}
+
+/** Una cifra de la franja de ritmo y economía. */
+export interface PaceStat {
+  id: string;
+  label: string;
+  value: string;
+  /** La aclaración de debajo; `null` cuando la cifra se explica sola. */
+  hint: string | null;
+}
+
+/** Quién se llevó un «primero» de la partida. */
+export interface FirstRow {
+  id: string;
+  label: string;
+  teamLabel: string;
+  side: 'blue' | 'red' | null;
+}
 
 /** Una fila del bloque «Dominio de la grieta»: un objetivo y cómo se repartió. */
 export interface ObjectiveRow {
@@ -269,6 +313,142 @@ export class MatchDetail {
       .filter((t) => t.champions.length > 0),
   );
 
+  /**
+   * Las menciones de honor: el mejor de la partida en cada cifra, con su nombre y su número.
+   *
+   * Esta franja existió antes como una maqueta con cuatro nombres inventados («Adri_LoL, 34.2k»)
+   * que salían igual en todas las partidas. Vuelve calculada sobre los diez asientos reales, y
+   * con la regla de siempre: **una mención sin dato no sale**. Si nadie subió la partida no hay
+   * ninguna, y la franja entera desaparece en vez de enseñar cinco guiones.
+   *
+   * No hay empate que resolver: con diez jugadores el máximo exacto de una cifra de cinco dígitos
+   * no se repite, y si se repitiera, quedarse con el primero es tan bueno como cualquier regla.
+   */
+  readonly honors = computed<HonorRow[]>(() => {
+    const m = this.match();
+    if (!m) return [];
+    const players = participantsOf(m);
+    const minutes = m.durationSeconds ? m.durationSeconds / 60 : null;
+
+    const rows: HonorRow[] = [];
+    const add = (
+      id: string,
+      title: string,
+      metric: string,
+      pick: (p: MatchParticipant) => number | null | undefined,
+      format: (value: number) => string,
+    ) => {
+      const best = bestBy(players, pick);
+      if (best) {
+        rows.push({
+          id,
+          title,
+          metric,
+          userId: best.player.userId,
+          playerName: participantName(best.player),
+          value: format(best.value),
+        });
+      }
+    };
+
+    add('damage', 'Cañón de daño', 'Más daño a campeones', (p) => p.stats.damageToChampions, (v) => `${formatCompact(v)} de daño`);
+    add('tank', 'Muro de hierro', 'Más daño aguantado', (p) => p.stats.damageTaken, (v) => `${formatCompact(v)} recibidos`);
+    add('vision', 'Ojo de águila', 'Mejor puntuación de visión', (p) => p.stats.visionScore, (v) => `${v} de visión`);
+    add('cc', 'Cadena de control', 'Más tiempo dejando al rival sin jugar', (p) => p.stats.timeCcingOthers, (v) => `${v} s de control`);
+    // El farm se mide por minuto y no en bruto: en una partida larga gana siempre el mismo, y
+    // lo que distingue a quien farmea bien es el ritmo, no el reloj.
+    if (minutes) {
+      add('farm', 'Rey del farm', 'Más súbditos por minuto', (p) => p.stats.cs, (v) =>
+        `${(v / minutes).toFixed(1).replace('.', ',')} CS/min`);
+    }
+    return rows;
+  });
+
+  /**
+   * Ritmo y economía: cuánto duró, cuánto se mató y quién tuvo el oro.
+   *
+   * Todo sale del DTO. La ventaja al minuto 14 se suma de los cinco `goldAt14` de cada equipo,
+   * que es el mismo dato con el que la pestaña de duelos estima quién ganó su línea; sin él —una
+   * partida que no llegó al 14, o sin subir— esa fila no aparece.
+   */
+  readonly pace = computed<PaceStat[]>(() => {
+    const m = this.match();
+    if (!m) return [];
+    const [a, b] = m.teams;
+    const rows: PaceStat[] = [];
+
+    if (m.durationSeconds != null) {
+      rows.push({ id: 'duration', label: 'Duración', value: formatDurationUnits(m.durationSeconds), hint: null });
+    }
+
+    if (a.totalKills != null && b.totalKills != null) {
+      const kills = a.totalKills + b.totalKills;
+      const perMinute = m.durationSeconds ? (kills / (m.durationSeconds / 60)).toFixed(1).replace('.', ',') : null;
+      rows.push({
+        id: 'kills',
+        label: 'Bajas totales',
+        value: String(kills),
+        hint: perMinute ? `${perMinute} por minuto` : null,
+      });
+    }
+
+    if (a.totalGold != null && b.totalGold != null) {
+      const leader = a.totalGold >= b.totalGold ? a : b;
+      const diff = Math.abs(a.totalGold - b.totalGold);
+      rows.push({
+        id: 'gold',
+        label: 'Oro al final',
+        value: `${formatCompact(a.totalGold)} · ${formatCompact(b.totalGold)}`,
+        // Cero es un dato: un empate exacto al final de una partida se cuenta, no se esconde.
+        hint: diff === 0 ? 'Empate' : `+${formatCompact(diff)} para ${teamLabel(leader)}`,
+      });
+    }
+
+    const gold14 = m.teams.map((t) => sumOf(t.participants, (p) => p.stats.goldAt14));
+    if (gold14[0] != null && gold14[1] != null) {
+      const diff = Math.abs(gold14[0] - gold14[1]);
+      const leader = gold14[0] >= gold14[1] ? a : b;
+      rows.push({
+        id: 'gold14',
+        label: 'Ventaja al minuto 14',
+        value: diff === 0 ? 'Ninguna' : `+${formatCompact(diff)}`,
+        hint: diff === 0 ? 'Salieron empatados de líneas' : `Para ${teamLabel(leader)}`,
+      });
+    }
+
+    return rows;
+  });
+
+  /**
+   * Quién se llevó cada «primero». Salen de los `first*` de cada equipo, que llegan desde que el
+   * historial es real y no los leía nadie.
+   *
+   * Vacío si la sala no decidió lados: esos campos viajan dentro de `objectives`, y sin lados el
+   * backend no manda objetivos. Un «primero» que ninguno de los dos reclama tampoco sale —pasa
+   * con el primer barón en una partida sin barones—, porque `false` en los dos es «no ocurrió»,
+   * no «lo hizo el otro».
+   */
+  readonly firsts = computed<FirstRow[]>(() => {
+    const m = this.match();
+    if (!m) return [];
+
+    const SPECS: readonly { id: string; label: string; pick: (o: TeamObjectives) => boolean | null }[] = [
+      { id: 'blood', label: 'Primera sangre', pick: (o) => o.firstBlood },
+      { id: 'tower', label: 'Primera torre', pick: (o) => o.firstTower },
+      { id: 'baron', label: 'Primer barón', pick: (o) => o.firstBaron },
+      { id: 'inhibitor', label: 'Primer inhibidor', pick: (o) => o.firstInhibitor },
+    ];
+
+    const rows: FirstRow[] = [];
+    for (const spec of SPECS) {
+      const winner = m.teams.find((t) => t.objectives && spec.pick(t.objectives) === true);
+      if (winner) {
+        rows.push({ id: spec.id, label: spec.label, teamLabel: teamLabel(winner), side: winner.side });
+      }
+    }
+    return rows;
+  });
+
   readonly hoveredObjectiveId = signal<string | null>(null);
 
   constructor() {
@@ -304,4 +484,37 @@ export class MatchDetail {
     const id = this.routeId();
     if (id) void this.store.reloadDetail(id);
   }
+}
+
+/** El asiento con el valor más alto de una cifra, o `null` si nadie la trae. */
+function bestBy(
+  players: readonly MatchParticipant[],
+  pick: (p: MatchParticipant) => number | null | undefined,
+): { player: MatchParticipant; value: number } | null {
+  let best: { player: MatchParticipant; value: number } | null = null;
+  for (const player of players) {
+    const value = pick(player);
+    if (value == null) continue;
+    if (!best || value > best.value) best = { player, value };
+  }
+  return best;
+}
+
+/**
+ * La suma de una cifra entre los cinco de un equipo, o `null` si le falta a alguno.
+ *
+ * Es estricto a propósito: sumar cuatro `goldAt14` y compararlos con cinco del otro equipo da
+ * una ventaja inventada, y se leería como medida igual que si estuviera bien.
+ */
+function sumOf(
+  players: readonly MatchParticipant[],
+  pick: (p: MatchParticipant) => number | null | undefined,
+): number | null {
+  let total = 0;
+  for (const player of players) {
+    const value = pick(player);
+    if (value == null) return null;
+    total += value;
+  }
+  return players.length > 0 ? total : null;
 }

@@ -655,3 +655,7 @@
   position: relative;
   display: inline-flex;
 }
+
+/* Los dos hechizos de invocador, apilados junto al campeón como en cualquier marcador de LoL. */
+.ms-row__spells { display: flex; flex-direction: column; gap: 2px; flex: none; }
+.ms-row__spell { width: 16px; height: 16px; border-radius: 3px; display: block; }
