@@ -461,7 +461,6 @@ export class MatchDetail {
     add('damage', 'Cañón de daño', 'daño', 'crimson', (p) => p.stats.damageToChampions, (v) => formatCompact(v));
     add('tank', 'Muro de hierro', 'mitigado', 'cyan', (p) => p.stats.damageTaken, (v) => formatCompact(v));
     add('vision', 'Ojo de águila', 'visión', 'emerald', (p) => p.stats.visionScore, (v) => String(v));
-    add('cc', 'Cadena de control', 'control', 'purple', (p) => p.stats.timeCcingOthers, (v) => `${v} s`);
     // El farm se mide por minuto y no en bruto: en bruto lo gana siempre la partida más larga.
     if (minutes) {
       add('farm', 'Rey del farm', 'CS/min', 'indigo', (p) => p.stats.cs, (v) =>

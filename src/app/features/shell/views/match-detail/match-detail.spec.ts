@@ -272,7 +272,14 @@ describe('MatchDetail · menciones de honor', () => {
     expect(byId.get('damage')?.playerName).toBe('Crack#LAN');
     expect(byId.get('tank')?.playerName).toBe('Tanque#LAN');
     expect(byId.get('vision')?.playerName).toBe('Tanque#LAN');
-    expect(byId.get('cc')?.playerName).toBe('Tanque#LAN');
+  });
+
+  /** El control de masas se retiró de las menciones; sigue vivo en el reparto por equipos. */
+  it('no hay mención de control, aunque el dato llegue', async () => {
+    const { component } = await montar({ detail: conCifras() });
+
+    expect(component.honors().map((h) => h.id)).toEqual(['damage', 'tank', 'vision', 'farm']);
+    expect(component.teamSplits().some((s) => s.id === 'cc')).toBe(true);
   });
 
   /** El farm se mide por minuto: en bruto lo gana siempre quien jugó la partida más larga. */
