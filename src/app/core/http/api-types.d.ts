@@ -1044,6 +1044,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/matches/{matchId}/timeline/positions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["matchTimeline_positions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/matches/{matchId}/timeline/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["matchTimeline_summary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me": {
         parameters: {
             query?: never;
@@ -1453,6 +1485,21 @@ export interface components {
             title: string;
             whatHappened: string;
         });
+        BuildingResponse: {
+            buildingType?: string;
+            killerTeamSlot?: string;
+            /** Format: uuid */
+            killerUserId?: string;
+            laneType?: string;
+            lostByTeamSlot?: string;
+            /** Format: int32 */
+            minute?: number;
+            towerType?: string;
+            /** Format: int32 */
+            x?: number;
+            /** Format: int32 */
+            y?: number;
+        };
         CalibrationResponse: {
             /** Format: double */
             brierScore?: number;
@@ -1612,6 +1659,11 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string;
         };
+        FrameResponse: {
+            /** Format: int32 */
+            minute?: number;
+            positions?: components["schemas"]["PositionResponse"][];
+        };
         GameDataManifestResponse: {
             /** Format: date-time */
             updatedAt?: string;
@@ -1758,6 +1810,20 @@ export interface components {
         InviteRequest: {
             /** Format: uuid */
             inviteeUserId: string;
+        };
+        KillResponse: {
+            assistUserIds?: string[];
+            /** Format: uuid */
+            killerUserId?: string;
+            /** Format: int32 */
+            minute?: number;
+            teamSlot?: string;
+            /** Format: uuid */
+            victimUserId?: string;
+            /** Format: int32 */
+            x?: number;
+            /** Format: int32 */
+            y?: number;
         };
         LaneAffinityReportResponse: {
             players?: components["schemas"]["Player"][];
@@ -1993,6 +2059,19 @@ export interface components {
             slot?: string;
             won?: boolean;
         };
+        MatchTimelinePositionsResponse: {
+            available?: boolean;
+            frames?: components["schemas"]["FrameResponse"][];
+        };
+        MatchTimelineSummaryResponse: {
+            available?: boolean;
+            buildings?: components["schemas"]["BuildingResponse"][];
+            dragons?: components["schemas"]["TeamDragonsResponse"][];
+            /** Format: int32 */
+            frameCount?: number;
+            kills?: components["schemas"]["KillResponse"][];
+            monsters?: components["schemas"]["MonsterResponse"][];
+        };
         MeResponse: {
             avatarUrl?: string;
             /** Format: date-time */
@@ -2000,6 +2079,19 @@ export interface components {
             discordUsername?: string;
             /** Format: uuid */
             userId?: string;
+        };
+        MonsterResponse: {
+            /** Format: uuid */
+            killerUserId?: string;
+            /** Format: int32 */
+            minute?: number;
+            monsterSubType?: string;
+            monsterType?: string;
+            teamSlot?: string;
+            /** Format: int32 */
+            x?: number;
+            /** Format: int32 */
+            y?: number;
         };
         NotificationResponse: {
             /** Format: date-time */
@@ -2193,6 +2285,19 @@ export interface components {
             };
             /** Format: uuid */
             userId?: string;
+        };
+        PositionResponse: {
+            /** Format: int32 */
+            level?: number;
+            teamSlot?: string;
+            /** Format: int32 */
+            totalGold?: number;
+            /** Format: uuid */
+            userId?: string;
+            /** Format: int32 */
+            x?: number;
+            /** Format: int32 */
+            y?: number;
         };
         PostMatchCommentRequest: {
             text: string;
@@ -2481,6 +2586,14 @@ export interface components {
             modes?: string[];
             name?: string;
             slug?: string;
+        };
+        TeamDragonsResponse: {
+            bySubType?: {
+                [key: string]: number;
+            };
+            teamSlot?: string;
+            /** Format: int32 */
+            total?: number;
         };
         TeamRequest: {
             bans?: unknown[];
@@ -4463,6 +4576,50 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    matchTimeline_positions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                matchId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MatchTimelinePositionsResponse"];
+                };
+            };
+        };
+    };
+    matchTimeline_summary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                matchId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MatchTimelineSummaryResponse"];
+                };
             };
         };
     };

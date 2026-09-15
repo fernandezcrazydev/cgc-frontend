@@ -1,0 +1,84 @@
+<section class="mm" [attr.aria-busy]="timeline.positionsStatus() === 'loading' || null">
+  <header class="mm__head">
+    <h2 class="mm__heading nf-mono">Dónde estaba cada uno</h2>
+    @if (timeline.positionsStatus() === 'ready' && frames().length > 0) {
+      <span class="mm__minute nf-mono">Minuto {{ minute() }}</span>
+    }
+  </header>
+
+  @switch (timeline.positionsStatus()) {
+    @case ('loading') {
+      <div class="mm__board" aria-hidden="true">
+        <nf-skeleton width="100%" height="100%" radius="var(--nf-radius)" />
+      </div>
+    }
+
+    @case ('error') {
+      <div class="mm__empty">
+        <p class="mm__empty-text">No hemos podido cargar las posiciones de esta partida.</p>
+        <button nfButton variant="ghost" size="sm" (click)="retry()">Reintentar</button>
+      </div>
+    }
+
+    @default {
+      @if (frames().length === 0) {
+        <!--
+          Nadie exportó la partida, o la exportación es de las reducidas (las hay, sin coordenadas
+          en los frames). Se dice cuál de las dos cosas falta en vez de dejar un hueco.
+        -->
+        <p class="mm__empty-text">
+          Esta partida no tiene posiciones guardadas: nadie la exportó desde el cliente de LoL, o la
+          exportación no traía el recorrido.
+        </p>
+      } @else {
+        <!--
+          La imagen es el mapa y los puntos van encima, en porcentaje. Nada de canvas: son diez
+          puntos, y un `<div>` por punto se puede leer con un lector de pantalla y se puede inspeccionar.
+        -->
+        <div class="mm__board">
+          <img
+            class="mm__map"
+            src="/assets/map/summoners-rift.webp"
+            alt="Mapa de la Grieta del Invocador"
+          />
+          @for (dot of dots(); track dot.userId) {
+            <span
+              class="mm__dot"
+              [class.mm__dot--blue]="dot.side === 'blue'"
+              [class.mm__dot--red]="dot.side === 'red'"
+              [style.left.%]="dot.left"
+              [style.top.%]="dot.top"
+              [title]="dot.name"
+            >
+              <span class="mm__dot-name">{{ dot.name }}</span>
+            </span>
+          }
+        </div>
+
+        <!--
+          El minuto se mueve con un `range` y no con una animación automática: la pregunta que hace
+          la gente es «dónde estaba X en el 12», no «enséñame la partida entera otra vez».
+        -->
+        <label class="mm__scrub">
+          <span class="mm__scrub-label nf-mono">Minuto</span>
+          <input
+            class="mm__slider"
+            type="range"
+            min="0"
+            [max]="lastMinute()"
+            step="1"
+            [value]="minute()"
+            (input)="onMinute($event)"
+            aria-label="Minuto de la partida"
+          />
+          <span class="mm__scrub-value nf-mono">{{ minute() }}' / {{ lastMinute() }}'</span>
+        </label>
+
+        <p class="mm__note">
+          Una foto por minuto, tal y como la guardó el cliente de LoL. No hay wards: su timeline no las
+          trae.
+        </p>
+      }
+    }
+  }
+</section>

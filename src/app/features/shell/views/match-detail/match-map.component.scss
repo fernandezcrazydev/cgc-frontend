@@ -1,0 +1,81 @@
+@use 'breakpoints' as *;
+
+.mm {
+  margin-top: 26px;
+  padding: 20px;
+  border-radius: var(--nf-radius);
+  border: 1px solid var(--nf-border);
+  background: var(--nf-surface);
+}
+
+.mm__head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.mm__heading { font-size: var(--fs-h3); color: var(--nf-text); margin: 0; }
+.mm__minute { font-size: var(--fs-label); color: var(--nf-text-dim); }
+
+/* El tablero es cuadrado porque el mapa lo es: con `aspect-ratio` el porcentaje de cada punto cae
+   donde tiene que caer a cualquier ancho, sin recalcular nada al redimensionar. */
+.mm__board {
+  position: relative;
+  width: 100%;
+  max-width: 460px;
+  margin: 0 auto;
+  aspect-ratio: 1 / 1;
+  border-radius: var(--nf-radius);
+  overflow: hidden;
+  background: var(--nf-inset);
+}
+
+.mm__map { width: 100%; height: 100%; object-fit: cover; display: block; opacity: 0.85; }
+
+/* El punto se centra sobre su coordenada, no cuelga de su esquina: sin el `translate` todos los
+   puntos salen desplazados media bolita hacia abajo y a la derecha. */
+.mm__dot {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  border: 2px solid var(--nf-surface);
+  background: var(--nf-text-dim);
+  transition: left 0.18s ease, top 0.18s ease;
+}
+
+/* Bandos de LoL: son dominio y no tema, y por eso sí se nombran por su color. */
+.mm__dot--blue { background: var(--nf-team-blue); }
+.mm__dot--red { background: var(--nf-team-red); }
+
+/* El nombre solo al pasar por encima: diez etiquetas a la vez tapan el mapa que vienen a explicar.
+   El `title` cubre el caso del táctil y el del lector de pantalla. */
+.mm__dot-name {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 4px);
+  transform: translateX(-50%);
+  padding: 1px 5px;
+  border-radius: var(--nf-radius-sm);
+  background: var(--nf-surface-2);
+  border: 1px solid var(--nf-border);
+  color: var(--nf-text);
+  font-size: var(--fs-label);
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.mm__dot:hover .mm__dot-name,
+.mm__dot:focus-visible .mm__dot-name { opacity: 1; }
+
+.mm__scrub { display: flex; align-items: center; gap: 12px; margin-top: 14px; }
+.mm__scrub-label { font-size: var(--fs-label); color: var(--nf-text-dim); }
+.mm__scrub-value { font-size: var(--fs-label); color: var(--nf-text-dim); min-width: 72px; text-align: right; }
+.mm__slider { flex: 1; accent-color: var(--nf-primary); }
+
+.mm__note { margin: 10px 0 0; font-size: var(--fs-caption); color: var(--nf-text-dim); line-height: 1.45; }
+
+.mm__empty { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
+.mm__empty-text { margin: 0; font-size: var(--fs-caption); color: var(--nf-text-dim); line-height: 1.5; max-width: 62ch; }
+
+@media (max-width: $bp-mobile) {
+  .mm { padding: 16px; }
+  .mm__scrub-value { min-width: 0; }
+}

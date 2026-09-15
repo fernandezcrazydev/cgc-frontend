@@ -5,7 +5,7 @@
   "views-scss-size": 2651,
   "dead-css": 0,
   "orphan-stylesheet": 0,
-  "css-total-size": 19142,
+  "css-total-size": 19224,
   "inline-template-size": 0,
   "font-floor": 37,
   "font-size-raw": 285,
@@ -103,6 +103,13 @@
       "de": 19058,
       "a": 19142,
       "motivo": "hilo de comentarios de una partida y pantalla de perfil privado (cgc-backend#97 y #98): dos componentes nuevos con su hoja"
+    },
+    {
+      "fecha": "2026-09-15",
+      "regla": "css-total-size",
+      "de": 19142,
+      "a": 19224,
+      "motivo": "mapa de presencia de una partida y desglose de dragones (cgc-backend#96): un componente nuevo con su hoja"
     }
   ]
 }

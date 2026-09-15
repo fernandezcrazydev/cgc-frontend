@@ -339,6 +339,45 @@
                       </div>
                     }
                   </div>
+
+                  <!--
+                    El desglose por elemento, que es lo que la cifra sola no dice: cuatro dragones
+                    de fuego y cuatro surtidos no son la misma partida. Solo con timeline, porque
+                    el tipo de cada dragón vive ahí y en ningún otro sitio.
+
+                    Nada sobre el alma: la timeline no trae ningún evento de alma, y deducirla de
+                    «cuatro dragones» sería afirmar una regla del juego que nadie ha medido.
+                  -->
+                  @if (dragonBreakdown().length > 0) {
+                    <div class="c-dragons">
+                      @for (team of dragonBreakdown(); track team.slot) {
+                        <div
+                          class="c-dragons__team"
+                          [class.c-dragons__team--blue]="team.side === 'blue'"
+                          [class.c-dragons__team--red]="team.side === 'red'"
+                        >
+                          <span class="c-dragons__label nf-mono">{{ team.label }}</span>
+                          <div class="c-dragons__list">
+                            @for (element of team.elements; track element.subType) {
+                              <span
+                                class="c-dragons__el"
+                                [title]="element.name + ' ×' + element.count"
+                              >
+                                <img
+                                  class="c-dragons__icon"
+                                  [src]="element.icon"
+                                  [alt]="element.name"
+                                />
+                                @if (element.count > 1) {
+                                  <span class="c-dragons__count nf-mono">×{{ element.count }}</span>
+                                }
+                              </span>
+                            }
+                          </div>
+                        </div>
+                      }
+                    </div>
+                  }
                 </div>
       
                 <!-- Huella táctica: radar hexagonal, con el reparto de cada objetivo -->
@@ -483,9 +522,14 @@
 
                   <!--
                     Los «primeros». En la maqueta este hueco lo ocupaba el campeón de la primera
-                    sangre con su minuto («02:41»), y ni el quién ni el cuándo existen: el bloque
-                    de equipo dice QUÉ bando se llevó cada primero y nada más. Así que se pinta
-                    exactamente eso. El minuto llegará con la timeline (cgc-backend#96).
+                    sangre con su minuto («02:41»), inventados los dos. Con la timeline
+                    (cgc-backend#96) el quién y el cuándo son de verdad, y hay uno más que el
+                    bloque de equipo no podía dar: el primer dragón — su `firstDragon` no llega
+                    nunca, porque el cliente lo escribe con una errata y solo en el bloque crudo.
+
+                    Sin timeline se pinta lo de siempre: la etiqueta y el bando, que es lo que se
+                    puede afirmar. La pastilla se encoge sola porque el minuto y el nombre son
+                    `@if`, no un «—» que se lea como dato.
                   -->
                   @if (firsts().length > 0) {
                     <div class="c-firsts">
@@ -496,7 +540,14 @@
                           [class.c-first--red]="first.side === 'red'"
                         >
                           <span class="c-first__label nf-mono">{{ first.label }}</span>
-                          <span class="c-first__team nf-mono">{{ first.teamLabel }}</span>
+                          @if (first.playerName) {
+                            <span class="c-first__who">{{ first.playerName }}</span>
+                          } @else {
+                            <span class="c-first__team nf-mono">{{ first.teamLabel }}</span>
+                          }
+                          @if (first.minute !== null) {
+                            <span class="c-first__minute nf-mono">{{ first.minute }}'</span>
+                          }
                         </span>
                       }
                     </div>
@@ -724,6 +775,16 @@
 
         <!-- ============================ MARCADOR =========================== -->
         <app-match-scoreboard [match]="m" />
+
+        <!-- ============================== MAPA ============================= -->
+        <!--
+          Solo si esta partida tiene timeline guardada. No se ofrece un bloque que va a decir "no
+          hay nada": el estado vacío de dentro es para la exportación reducida, no para la partida
+          que nadie exportó.
+        -->
+        @if (hasTimeline()) {
+          <app-match-map [matchId]="m.id" [match]="m" />
+        }
 
         <!-- =========================== COMENTARIOS ========================= -->
         <!--
