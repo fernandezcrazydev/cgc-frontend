@@ -23,6 +23,7 @@ import {
   damageShare,
   laneLabel,
   participantName,
+  participantShortName,
   participantsOf,
   presetLabel,
   teamBySide,
@@ -48,7 +49,10 @@ export interface HonorRow {
       colores ES la identidad visual de la mención, y no cambia con el tema. */
   color: string;
   userId: string;
+  /** El nombre completo, para el `title`: es el que identifica sin ambigüedad. */
   playerName: string;
+  /** Sin la región, que es lo que cabe en la caja del tubo. */
+  shortName: string;
   value: string;
   /** Su cuota sobre los diez, que es lo que llena el tubo. */
   pct: number;
@@ -453,6 +457,7 @@ export class MatchDetail {
         color,
         userId: best.player.userId,
         playerName: participantName(best.player),
+        shortName: participantShortName(best.player),
         value: format(best.value),
         pct: total > 0 ? Math.round((best.value / total) * 100) : 0,
       });

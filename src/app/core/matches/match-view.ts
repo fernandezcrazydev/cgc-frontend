@@ -159,6 +159,21 @@ export function participantName(p: MatchParticipant): string {
   return p.riotId ?? p.discordUsername ?? 'Sin identificar';
 }
 
+/**
+ * Como `participantName`, pero sin la región del Riot ID: `'CrazyDragon#EUW'` → `'CrazyDragon'`.
+ *
+ * Para los sitios donde el nombre comparte una caja estrecha con una cifra —las menciones de
+ * honor, el podio— y la etiqueta se come el ancho sin distinguir a nadie: dentro de un grupo
+ * todos suelen jugar en la misma región, así que el `#EUW` es ruido repetido.
+ *
+ * **Solo para pintar**, nunca para comparar: dos personas pueden tener el mismo nombre con
+ * distinta etiqueta. Quien necesite el nombre completo lo pide con `participantName` y lo pone
+ * en el `title`.
+ */
+export function participantShortName(p: MatchParticipant): string {
+  return participantName(p).split('#')[0];
+}
+
 /** Lo mínimo para calcular un KDA: sirve igual con un participante o con sumas acumuladas. */
 export type KdaLike = Pick<ParticipantStats, 'kills' | 'deaths' | 'assists'>;
 
