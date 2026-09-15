@@ -1,82 +1,91 @@
 /**
- * Filtrado y ordenación del historial, como funciones puras.
+ * Los filtros del historial, y su traducción a los query params de cada endpoint.
  *
- * Vive aquí y no dentro del store por dos motivos. Uno, el estado de los filtros es estado de
- * UI y ya no puede vivir en un store de `core/` (ver `MatchHistoryUiState`): lo que sí es
- * reutilizable es *cómo* se filtra. Y dos, así las dos vistas comparten de verdad la misma
- * ordenación — antes el historial de grupo ignoraba `sortBy` por completo, y nadie lo notaba
- * porque el control ni siquiera estaba pintado.
+ * **Filtrar y ordenar ya no se hace aquí.** Lo hace el servidor, que es el único que tiene la
+ * colección entera: `filterPersonalMatches`, `filterGroupMatches`, `sortMatches`,
+ * `filterCrossMatches` y `sortCrossMatches` se borraron al conectar el historial. Lo que queda
+ * es el estado de los controles y cómo se escribe en la URL.
  *
- * BACKEND NOTE: cuando exista `GET /matches`, este filtrado se manda como query params y el
- * servidor devuelve la página ya filtrada y ordenada (regla del proyecto: listas paginadas y
- * filtradas en servidor). `MatchFilterState` es justo la forma de esos parámetros, así que
- * sobrevive; las tres funciones de abajo se borran.
+ * ## Por qué hay DOS tipos de consulta y no uno
+ *
+ * Un mismo filtro no significa lo mismo en las dos listas, así que mandar el mismo objeto a los
+ * dos endpoints sería mandar la pregunta equivocada:
+ *
+ * | | Lista de grupo | Lista personal |
+ * |---|---|---|
+ * | `championId` | el campeón de **cualquiera** de los diez | el campeón que jugué **yo** |
+ * | `outcome` | **no existe** | cómo me fue **a mí** |
+ * | `winningSide` | qué bando ganó | **no existe** |
+ * | `lane` | **no existe** | la línea que jugué **yo** |
+ * | `participation` | todas / mías / de los demás | **no existe** (todas son mías) |
+ *
+ * `outcome` y `winningSide` **no son la misma pregunta**, y confundirlas ya costó un bug: el
+ * `outcome` de la lista de grupo descartaba solo las partidas que habías jugado, así que
+ * «Victorias» enseñaba tus victorias MÁS todas las partidas ajenas, sin decirlo.
+ *
+ * `GroupMatchQuery` y `PersonalMatchQuery` son los dos tipos partidos, y son los que aceptan
+ * `MatchesApi.groupMatches()` y `MatchesApi.myMatches()`: el compilador impide mandar
+ * `winningSide` a `/me/matches`. `MatchFilterState` sigue siendo uno solo porque describe el
+ * PANEL DE CONTROLES, que es una sola pieza de interfaz con dos modos; quien decide qué viaja
+ * son las dos funciones de traducción del final, nunca la vista.
+ *
+ * **No hay filtro de posición en la lista de grupo**, y no por omisión: medido contra los diez
+ * participantes no descarta nada nunca, porque un 5v5 completo siempre cubre las cinco. El
+ * control llegó a estar pintado ahí, con su chip de «filtro puesto», sin cambiar jamás un
+ * resultado.
+ *
+ * **No hay `gameMode` ni `lobbyType`.** Lo que existe es `preset`, la modalidad con la que se
+ * abrió la sala. «Room»/«Party» no tiene equivalente en el backend: ese concepto no existe.
  */
-import { CrossMatch, CrossRelation } from './cross-history';
-import { Lane, Match, MatchGameMode, MatchLobbyType } from './models';
+import { Lane, MatchPreset } from './models';
 
 export type MatchSortBy = 'date-desc' | 'date-asc' | 'duration-desc' | 'kills-desc';
 
 /** Todas las del grupo, solo las que jugaste, o solo las que jugaron los demás. */
 export type MatchParticipation = 'all' | 'mine' | 'others';
 
+/** En una partida cruzada: si fuisteis compañeros o rivales. Lo decide el servidor. */
+export type CrossRelation = 'ally' | 'enemy';
+
 /**
- * Estado de los filtros. Algunos campos solo aplican a una de las dos vistas, y está bien
- * que sea así: son dos preguntas distintas sobre los mismos datos.
+ * Estado de los controles de filtrado. Algunos campos solo aplican a uno de los modos, y está
+ * bien que sea así: son preguntas distintas sobre los mismos datos, y el panel es el mismo
+ * componente. Lo que NO puede pasar es que un campo del modo equivocado llegue a viajar; de
+ * eso se encargan `groupMatchQuery()` y `personalMatchQuery()`.
  */
 export interface MatchFilterState {
-  /** Solo en la vista personal: acotar a una liga. En la de grupo el contexto ya lo fija. */
-  groupId: string | 'all';
-  /**
-   * Solo en la vista personal: la posición que jugaste TÚ. En la de grupo no existe filtro de
-   * posición, y no por omisión: medido contra los diez participantes no descarta nada, porque
-   * un 5v5 completo siempre cubre las cinco posiciones. El control estuvo pintado ahí, con su
-   * chip de «filtro puesto» y todo, sin cambiar jamás un solo resultado.
-   */
-  role: Lane | 'all';
+  /** La modalidad con la que se abrió la sala. Sustituye a los antiguos `gameMode`/`lobbyType`. */
+  preset: MatchPreset | 'all';
+  /** Acota a una liga. Sustituye a los antiguos `groupId` y `season`: el endpoint filtra por liga. */
+  leagueId: string | 'all';
   championId: number | 'all';
-  /** Solo en la vista personal: cómo TE fue. */
+  /** Personal y cruzado: cómo TE fue. */
   outcome: 'all' | 'win' | 'loss';
-  /**
-   * Solo en la vista de grupo: qué bando ganó. Sustituye al `outcome` que se usaba aquí, y
-   * que mentía: descartaba únicamente las partidas que habías jugado, así que «Victorias»
-   * enseñaba tus victorias MÁS todas las partidas ajenas, sin decirlo.
-   */
+  /** Personal y cruzado: la posición que jugaste TÚ. */
+  lane: Lane | 'all';
+  /** Solo grupo: qué bando ganó. No es `outcome`, y por eso son dos campos. */
   winningSide: 'all' | 'blue' | 'red';
   /**
-   * Solo en la vista de grupo: qué papel tuviste. `others` no es lo contrario trivial de
-   * `mine` —sirve para repasar lo que ha jugado el resto del grupo— y por eso son tres
-   * estados y no un interruptor.
+   * Solo grupo: qué papel tuviste. `others` no es lo contrario trivial de `mine` —sirve para
+   * repasar lo que ha jugado el resto del grupo— y por eso son tres estados y no un interruptor.
    */
   participation: MatchParticipation;
-  /**
-   * Solo en la vista cruzada: si en esa partida fuisteis compañeros o rivales. Es la pregunta
-   * propia de esa pantalla —«¿cómo nos ha ido juntos, y cómo enfrentados?»— y por eso no se
-   * mezcla con `outcome`, que sigue diciendo cómo TE fue.
-   */
+  /** Solo cruzado: «¿cómo nos ha ido juntos, y cómo enfrentados?». */
   relation: CrossRelation | 'all';
-  /** Temporada / nombre de la liga asociada */
-  season: string | 'all';
-  /** Modalidad (Competitivo / Casual) */
-  gameMode: MatchGameMode | 'all';
-  /** Tipo de sala (Room / Party) */
-  lobbyType: MatchLobbyType | 'all';
-  /** Búsqueda libre por jugador, campeón o grupo. */
+  /** Búsqueda libre por jugador o campeón; la resuelve el servidor. */
   searchQuery: string;
   sortBy: MatchSortBy;
 }
 
 export const EMPTY_FILTERS: MatchFilterState = {
-  groupId: 'all',
-  role: 'all',
+  preset: 'all',
+  leagueId: 'all',
   championId: 'all',
   outcome: 'all',
+  lane: 'all',
   winningSide: 'all',
   participation: 'all',
   relation: 'all',
-  season: 'all',
-  gameMode: 'all',
-  lobbyType: 'all',
   searchQuery: '',
   sortBy: 'date-desc',
 };
@@ -90,98 +99,135 @@ export const SORT_OPTIONS: readonly { value: MatchSortBy; label: string }[] = [
 ];
 
 /**
- * Historial personal: todo se mide contra TU participación. Filtrar por MID significa las
- * partidas en las que jugaste MID, no aquellas en las que alguien jugó MID.
+ * El `sort` que entiende el servidor: `campo,dir` con `playedAt`, `duration` o `kills`.
+ * **Cualquier otra cosa es un 400 `UNSORTABLE_MATCH_FIELD`**, no un silencio que devuelva otro
+ * orden — que es exactamente por lo que esta traducción vive en un solo sitio y es total sobre
+ * `MatchSortBy`: añadir una opción al desplegable obliga a decidir su campo aquí.
  */
-export function filterPersonalMatches(list: readonly Match[], f: MatchFilterState): Match[] {
-  return list.filter((m) => {
-    if (f.groupId !== 'all' && m.groupId !== f.groupId) return false;
-    if (f.outcome !== 'all' && m.userOutcome !== f.outcome) return false;
-    if (f.role !== 'all' && m.userParticipant?.role !== f.role) return false;
-    if (f.championId !== 'all' && m.userParticipant?.championId !== f.championId) return false;
-    if (f.season !== 'all' && (m.leagueName ?? m.group.seasonName ?? m.group.name) !== f.season) return false;
-    if (f.gameMode !== 'all' && (m.gameMode ?? (m.modeLabel?.includes('Casual') ? 'Casual' : 'Competitivo')) !== f.gameMode) return false;
-    if (f.lobbyType !== 'all' && (m.lobbyType ?? (m.modeLabel?.includes('Party') ? 'Party' : 'Room')) !== f.lobbyType) return false;
-    return matchesQuery(m, f.searchQuery);
-  });
+const SORT_PARAM: Record<MatchSortBy, string> = {
+  'date-desc': 'playedAt,desc',
+  'date-asc': 'playedAt,asc',
+  'duration-desc': 'duration,desc',
+  'kills-desc': 'kills,desc',
+};
+
+export function sortParam(sortBy: MatchSortBy): string {
+  return SORT_PARAM[sortBy] ?? SORT_PARAM['date-desc'];
 }
 
 /**
- * Historial de grupo: es el registro colectivo, así que el campeón se mide contra los diez
- * participantes, no contra ti. Para acotarlo por tu papel está `participation`, que lo dice.
+ * Tope duro del servidor para `size`. Pedir más no devuelve más: se recorta, y la vista se
+ * quedaría creyendo que ha pintado una página entera.
  */
-export function filterGroupMatches(list: readonly Match[], f: MatchFilterState): Match[] {
-  return list.filter((m) => {
-    if (f.participation === 'mine' && !m.userParticipant) return false;
-    if (f.participation === 'others' && m.userParticipant) return false;
-    if (f.winningSide !== 'all' && m.winningTeam !== f.winningSide) return false;
+export const MAX_PAGE_SIZE = 60;
 
-    // `role` no se mira aquí a propósito: contra los diez participantes es siempre cierto.
-    // El campeón sí discrimina —no todas las partidas tienen Ahri— y por eso se queda.
-    if (f.championId !== 'all' && !participantsOf(m).some((p) => p.championId === f.championId)) {
-      return false;
-    }
-    if (f.season !== 'all' && (m.leagueName ?? m.group.seasonName ?? m.group.name) !== f.season) return false;
-    if (f.gameMode !== 'all' && (m.gameMode ?? (m.modeLabel?.includes('Casual') ? 'Casual' : 'Competitivo')) !== f.gameMode) return false;
-    if (f.lobbyType !== 'all' && (m.lobbyType ?? (m.modeLabel?.includes('Party') ? 'Party' : 'Room')) !== f.lobbyType) return false;
-    return matchesQuery(m, f.searchQuery);
-  });
+/** Lo que viaja a `GET /groups/{id}/matches`. `page` es 0-based. */
+export interface GroupMatchQuery {
+  page: number;
+  size: number;
+  sort: string;
+  preset?: MatchPreset;
+  leagueId?: string;
+  championId?: number;
+  winningSide?: 'BLUE' | 'RED';
+  participation?: 'ALL' | 'MINE' | 'OTHERS';
+  q?: string;
 }
 
-/**
- * Historial cruzado: como el personal —todo se mide contra TU participación— más la relación,
- * que es la dimensión que solo existe cuando hay otro jugador enfrente.
- *
- * `role` mira tu posición y no la suya a propósito: filtrar por MID contesta «cuando yo jugaba
- * MID», que es la pregunta que se hace desde tu propio historial. Para el duelo de línea real
- * está `sameLane`, que ya viene resuelto en cada `CrossMatch`.
- */
-export function filterCrossMatches(
-  list: readonly CrossMatch[],
+/** Lo que viaja a `GET /me/matches` y a `GET /me/matches/summary`. */
+export interface PersonalMatchQuery {
+  page: number;
+  size: number;
+  sort: string;
+  preset?: MatchPreset;
+  leagueId?: string;
+  championId?: number;
+  outcome?: 'WIN' | 'LOSS';
+  lane?: Lane;
+  /**
+   * El cruce **es un filtro, no un endpoint**: son las partidas en las que coincidisteis.
+   * Con `relation` encima, en las que fuisteis compañeros o rivales. La relación la decide el
+   * servidor leyendo los dos equipos; nunca se adivina.
+   */
+  with?: string;
+  relation?: 'ALLY' | 'ENEMY';
+  q?: string;
+}
+
+/** Los mismos parámetros del listado personal, sin paginación: `GET /me/matches/summary`. */
+export type PersonalSummaryQuery = Omit<PersonalMatchQuery, 'page' | 'size' | 'sort'>;
+
+/** Estado de controles → query del historial de grupo. Lo que no aplica aquí, no viaja. */
+export function groupMatchQuery(
   f: MatchFilterState,
-): CrossMatch[] {
-  return list.filter((c) => {
-    if (f.relation !== 'all' && c.relation !== f.relation) return false;
-    if (f.groupId !== 'all' && c.match.groupId !== f.groupId) return false;
-    if (f.outcome !== 'all' && c.match.userOutcome !== f.outcome) return false;
-    if (f.role !== 'all' && c.me.role !== f.role) return false;
-    if (f.championId !== 'all' && c.me.championId !== f.championId) return false;
-    if (f.season !== 'all' && (c.match.leagueName ?? c.match.group.seasonName ?? c.match.group.name) !== f.season) return false;
-    if (f.gameMode !== 'all' && (c.match.gameMode ?? (c.match.modeLabel?.includes('Casual') ? 'Casual' : 'Competitivo')) !== f.gameMode) return false;
-    if (f.lobbyType !== 'all' && (c.match.lobbyType ?? (c.match.modeLabel?.includes('Party') ? 'Party' : 'Room')) !== f.lobbyType) return false;
-    return matchesQuery(c.match, f.searchQuery);
-  });
+  page: number,
+  size: number,
+): GroupMatchQuery {
+  return {
+    page,
+    size: Math.min(size, MAX_PAGE_SIZE),
+    sort: sortParam(f.sortBy),
+    ...(f.preset !== 'all' && { preset: f.preset }),
+    ...(f.leagueId !== 'all' && { leagueId: f.leagueId }),
+    ...(f.championId !== 'all' && { championId: f.championId }),
+    ...(f.winningSide !== 'all' && { winningSide: upper(f.winningSide) }),
+    ...(f.participation !== 'all' && { participation: upper(f.participation) }),
+    ...(f.searchQuery.trim() && { q: f.searchQuery.trim() }),
+  };
 }
 
 /**
- * Ordena partidas cruzadas con el mismo criterio que la lista normal, reutilizando
- * `sortMatches` sobre la partida que cada una envuelve: si el control de orden dice lo mismo
- * en las dos pantallas, tiene que ordenar igual.
+ * Estado de controles → query del historial personal. `with`/`relation` no salen del panel:
+ * los fija la pantalla del cruce, que es la única que sabe con quién se está comparando.
  */
-export function sortCrossMatches(
-  list: readonly CrossMatch[],
-  sortBy: MatchSortBy,
-): CrossMatch[] {
-  const byId = new Map(list.map((c) => [c.id, c]));
-  return sortMatches(
-    list.map((c) => c.match),
-    sortBy,
-  ).map((m) => byId.get(m.id)!);
+export function personalMatchQuery(
+  f: MatchFilterState,
+  page: number,
+  size: number,
+  cross?: { with: string; relation?: CrossRelation | 'all' },
+): PersonalMatchQuery {
+  return {
+    page,
+    size: Math.min(size, MAX_PAGE_SIZE),
+    sort: sortParam(f.sortBy),
+    ...personalSummaryQuery(f, cross),
+  };
 }
 
-/** Devuelve una copia ordenada: `sort` muta, y estas listas vienen de un `computed`. */
-export function sortMatches(list: readonly Match[], sortBy: MatchSortBy): Match[] {
-  const sorted = [...list];
-  switch (sortBy) {
-    case 'date-asc':
-      return sorted.sort((a, b) => time(a) - time(b));
-    case 'duration-desc':
-      return sorted.sort((a, b) => b.durationSeconds - a.durationSeconds);
-    case 'kills-desc':
-      return sorted.sort((a, b) => totalKills(b) - totalKills(a));
-    default:
-      return sorted.sort((a, b) => time(b) - time(a));
+/** La misma traducción sin paginación, para el resumen (que acepta los mismos filtros). */
+export function personalSummaryQuery(
+  f: MatchFilterState,
+  cross?: { with: string; relation?: CrossRelation | 'all' },
+): PersonalSummaryQuery {
+  const relation = cross?.relation ?? f.relation;
+  return {
+    ...(f.preset !== 'all' && { preset: f.preset }),
+    ...(f.leagueId !== 'all' && { leagueId: f.leagueId }),
+    ...(f.championId !== 'all' && { championId: f.championId }),
+    ...(f.outcome !== 'all' && { outcome: f.outcome === 'win' ? ('WIN' as const) : ('LOSS' as const) }),
+    ...(f.lane !== 'all' && { lane: f.lane }),
+    ...(cross && { with: cross.with }),
+    ...(cross && relation !== 'all' && { relation: relation === 'ally' ? ('ALLY' as const) : ('ENEMY' as const) }),
+    ...(f.searchQuery.trim() && { q: f.searchQuery.trim() }),
+  };
+}
+
+/** Cuántos controles hay puestos: es el número del chip de «filtros activos». */
+export function activeFilterCount(f: MatchFilterState, mode: 'personal' | 'group' | 'cross'): number {
+  let count = 0;
+  if (f.preset !== 'all') count++;
+  if (f.leagueId !== 'all') count++;
+  if (f.championId !== 'all') count++;
+  if (f.searchQuery.trim()) count++;
+  if (mode === 'group') {
+    if (f.winningSide !== 'all') count++;
+    if (f.participation !== 'all') count++;
+  } else {
+    if (f.outcome !== 'all') count++;
+    if (f.lane !== 'all') count++;
+    if (mode === 'cross' && f.relation !== 'all') count++;
   }
+  return count;
 }
 
 /**
@@ -189,37 +235,16 @@ export function sortMatches(list: readonly Match[], sortBy: MatchSortBy): Match[
  * letra o dígito. Así «Kai'Sa» y «kaisa» son la misma cadena, y también «N1ghtfang#LAN» y
  * «n1ghtfanglan».
  *
- * Vive aquí y se exporta porque el autocompletado del buscador la necesita **exactamente igual**:
- * mientras cada lado normalizaba a su manera (aquí un `toLowerCase()` a secas, allí esto), el
- * desplegable te ofrecía «Kai'Sa» al teclear «kaisa» y pulsar Enter sin elegirla daba cero
- * resultados. Un buscador que sugiere lo que luego no encuentra es peor que uno que no sugiere.
+ * Sobrevive a la migración porque el autocompletado del buscador es de cliente: compara lo que
+ * tecleas contra el catálogo de campeones que ya está cargado, antes de mandar nada. Mientras
+ * cada lado normalizaba a su manera, el desplegable te ofrecía «Kai'Sa» al teclear «kaisa» y
+ * pulsar Enter sin elegirla daba cero resultados. Un buscador que sugiere lo que luego no
+ * encuentra es peor que uno que no sugiere.
  */
 export function normalizeForSearch(text: string): string {
   return text.normalize('NFD').toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
-/**
- * La búsqueda libre mira jugador, campeón y grupo a la vez, y por eso el placeholder los
- * nombra los tres: un buscador que no dice sobre qué busca obliga a probar.
- */
-function matchesQuery(m: Match, rawQuery: string): boolean {
-  const q = normalizeForSearch(rawQuery);
-  if (!q) return true;
-  if (normalizeForSearch(m.group.name).includes(q)) return true;
-  return participantsOf(m).some(
-    (p) =>
-      normalizeForSearch(p.riotId).includes(q) || normalizeForSearch(p.championName).includes(q),
-  );
-}
-
-function participantsOf(m: Match) {
-  return [...m.blueTeam.participants, ...m.redTeam.participants];
-}
-
-function totalKills(m: Match): number {
-  return m.blueTeam.totalKills + m.redTeam.totalKills;
-}
-
-function time(m: Match): number {
-  return new Date(m.decidedAt).getTime();
+function upper<T extends string>(value: T): Uppercase<T> {
+  return value.toUpperCase() as Uppercase<T>;
 }

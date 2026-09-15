@@ -9,13 +9,13 @@ import { Viewport } from '../../../../shared/viewport';
 import { MatchCardShellComponent } from './match-card-shell.component';
 import { MatchHistoryUiState } from './match-history-ui';
 
-const yo = participantFixture({ id: 'me', team: 'blue', riotId: 'N1ghtfang#LAN' });
-const otro = participantFixture({ id: 'foe', team: 'red', riotId: 'Pix3lQueen#LAN' });
+const yo = participantFixture({ userId: 'me', slot: 'A', riotId: 'N1ghtfang#LAN' });
+const otro = participantFixture({ userId: 'foe', slot: 'B', riotId: 'Pix3lQueen#LAN' });
 
 const MATCH: Match = matchFixture({
   id: 'm1',
-  blue: [yo],
-  red: [otro],
+  a: [yo],
+  b: [otro],
   userParticipant: yo,
 });
 

@@ -1,202 +1,200 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
-import { MatchDetail } from './match-detail';
+import { signal } from '@angular/core';
+import { TestBed } from '@angular/core/testing';
+import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
+import { of } from 'rxjs';
+import { describe, expect, it } from 'vitest';
+import { GameDataStore } from '../../../../core/game-data';
+import { GroupDetailStore } from '../../../../core/groups';
+import { MatchHistoryStore } from '../../../../core/matches';
+import { ToastService } from '../../../../core/toast';
+import { ReactionsStore } from '../../../../core/reactions';
+import { Viewport } from '../../../../shared/viewport';
+import {
+  fakeMatchHistoryStore,
+  matchFixture,
+  participantFixture,
+} from '../../../../core/matches/match-fixtures';
+import { Match } from '../../../../core/matches/models';
+import { MatchDetail, ObjectiveRow, tacticalRadarOf } from './match-detail';
 
-describe('MatchDetail', () => {
-  let fixture: ComponentFixture<MatchDetail>;
-  let component: MatchDetail;
+const ME = 'me-uuid';
 
-  beforeEach(async () => {
-    await TestBed.configureTestingModule({
-      imports: [MatchDetail],
-      providers: [provideRouter([])],
-    }).compileComponents();
+function partida(over: Partial<Parameters<typeof matchFixture>[0]> = {}): Match {
+  const yo = participantFixture({ userId: ME, slot: 'A', riotId: 'Yo#LAN' });
+  return matchFixture({
+    id: 'm1',
+    a: [yo],
+    b: [participantFixture({ userId: 'rival', slot: 'B' })],
+    userParticipant: yo,
+    ...over,
+  });
+}
 
-    fixture = TestBed.createComponent(MatchDetail);
-    component = fixture.componentInstance;
-    fixture.detectChanges();
+async function montar(opciones: {
+  detail?: Match | null;
+  detailStatus?: 'loading' | 'ready' | 'error';
+  notFound?: boolean;
+} = {}) {
+  TestBed.resetTestingModule();
+  await TestBed.configureTestingModule({
+    imports: [MatchDetail],
+    providers: [
+      provideRouter([]),
+      {
+        provide: ActivatedRoute,
+        useValue: {
+          paramMap: of(convertToParamMap({ id: 'm1' })),
+          queryParamMap: of(convertToParamMap({})),
+          snapshot: {
+            paramMap: convertToParamMap({ id: 'm1' }),
+            queryParamMap: convertToParamMap({}),
+          },
+        },
+      },
+      {
+        provide: GameDataStore,
+        useValue: {
+          status: signal('ready'),
+          championById: signal(new Map()),
+          ensureLoaded: () => {},
+        },
+      },
+      { provide: GroupDetailStore, useValue: { roster: signal([]) } },
+      {
+        provide: MatchHistoryStore,
+        useValue: fakeMatchHistoryStore({
+          detail: opciones.detail ?? null,
+          detailStatus: opciones.detailStatus ?? (opciones.detail ? 'ready' : 'loading'),
+          detailNotFound: opciones.notFound ?? false,
+        }),
+      },
+      { provide: ToastService, useValue: { info: () => {}, error: () => {} } },
+      {
+        provide: ReactionsStore,
+        useValue: { mostUsed: () => [], tally: () => [], mine: () => null, toggle: () => {}, seed: () => {} },
+      },
+      { provide: Viewport, useValue: { isMobile: signal(false) } },
+    ],
+  }).compileComponents();
+
+  const fixture = TestBed.createComponent(MatchDetail);
+  fixture.detectChanges();
+  return { fixture, component: fixture.componentInstance, el: fixture.nativeElement as HTMLElement };
+}
+
+/**
+ * Los cuatro estados que el proyecto exige distinguir. El 404 tiene pantalla propia porque un
+ * fallo de conexión no puede pintarse como una partida inexistente, que era el bug clásico del
+ * `@if (dato) … @else { 404 }`.
+ */
+describe('MatchDetail · los cuatro estados', () => {
+  it('mientras viaja el detalle enseña esqueleto, no un 404', async () => {
+    const { el } = await montar({ detail: null, detailStatus: 'loading' });
+
+    expect(el.querySelector('nf-skeleton')).not.toBeNull();
+    expect(el.textContent).not.toContain('Partida no encontrada');
   });
 
-  it('debe crearse correctamente', () => {
-    expect(component).toBeTruthy();
+  it('un 404 del backend dice que la partida no existe', async () => {
+    const { el } = await montar({ detail: null, detailStatus: 'error', notFound: true });
+
+    expect(el.textContent).toContain('Partida no encontrada');
+    expect(el.textContent).not.toContain('Reintentar');
   });
 
-  it('inicializa con la pestaña de scoreboard activa', () => {
-    expect(component.activeMainTab()).toBe('scoreboard');
+  it('un fallo de red ofrece reintentar y no habla de partidas inexistentes', async () => {
+    const { el } = await montar({ detail: null, detailStatus: 'error', notFound: false });
+
+    expect(el.textContent).toContain('No se pudo cargar la partida');
+    expect(el.textContent).toContain('Reintentar');
+    expect(el.textContent).not.toContain('Partida no encontrada');
   });
 
-  it('el slider de visión tiene 3 diapositivas', () => {
-    expect(component.visionSlides.length).toBe(3);
-    expect(component.visionSlides[0].id).toBe('placed');
-    expect(component.visionSlides[1].id).toBe('killed');
-    expect(component.visionSlides[2].id).toBe('pinks');
+  it('con la partida cargada pinta el marcador', async () => {
+    const { el } = await montar({ detail: partida() });
+
+    expect(el.querySelector('app-match-scoreboard')).not.toBeNull();
+    expect(el.textContent).not.toContain('Partida no encontrada');
+  });
+});
+
+describe('MatchDetail · lo que el contrato obliga a no pintar', () => {
+  /*
+   * Los objetivos son del equipo 100/200: sin saber cuál era azul, colgarlos de A o de B sería
+   * inventar. El backend manda `teams` vacío y aquí el bloque entero desaparece.
+   */
+  it('sin lados decididos no pinta la grieta ni el radar', async () => {
+    const { component, el } = await montar({ detail: partida({ sided: false }) });
+
+    expect(component.objectives()).toEqual([]);
+    expect(el.querySelector('.c-radar-svg')).toBeNull();
   });
 
-  it('permite avanzar y retroceder en el slider de visión', () => {
-    component.nextVision();
-    expect(component.activeVisionIndex()).toBe(1);
-    component.prevVision();
-    expect(component.activeVisionIndex()).toBe(0);
+  it('una partida sin subir lo dice, en vez de pintar ceros', async () => {
+    const { el } = await montar({ detail: partida({ hasStats: false }) });
+
+    expect(el.textContent).toContain('Nadie subió esta partida');
   });
 
-  it('la huella táctica es un hexágono con un vértice por objetivo de la grieta', () => {
-    expect(component.objectives.map((o) => o.id)).toContain('elder');
-    expect(component.tacticalRadar.axes).toHaveLength(component.objectives.length);
-    expect(component.tacticalRadar.axes).toHaveLength(6);
+  /** Una anulada no se pinta como derrota: se apaga entera y se explica. */
+  it('una partida anulada se marca como tal', async () => {
+    const { el } = await montar({ detail: partida({ voided: true }) });
 
-    // Seis vértices por polígono: las tres mallas y las dos huellas de equipo.
-    const vertices = (points: string) => points.trim().split(/\s+/).length;
-    for (const ring of component.tacticalRadar.rings) {
-      expect(vertices(ring)).toBe(6);
+    expect(el.textContent).toContain('Partida anulada');
+  });
+});
+
+/**
+ * La geometría de la huella táctica. El radio de cada vértice es el REPARTO de ese objetivo
+ * entre los dos equipos, no su cifra bruta: las torres se cuentan por ocho y el barón por uno,
+ * así que sin normalizar el polígono solo dibujaría cuál es el objetivo más numeroso.
+ */
+describe('tacticalRadarOf', () => {
+  const objetivos: ObjectiveRow[] = [
+    { id: 'dragons', name: 'Dragones', icon: '', blueScore: 4, redScore: 1 },
+    { id: 'grubs', name: 'Larvas', icon: '', blueScore: 6, redScore: 0 },
+    { id: 'herald', name: 'Heraldo', icon: '', blueScore: 1, redScore: 0 },
+    { id: 'baron', name: 'Barón', icon: '', blueScore: 1, redScore: 0 },
+    { id: 'inhibitors', name: 'Inhibidores', icon: '', blueScore: 2, redScore: 0 },
+    { id: 'towers', name: 'Torres', icon: '', blueScore: 8, redScore: 2 },
+  ];
+
+  it('tiene un vértice por objetivo y una malla por anillo', () => {
+    const radar = tacticalRadarOf(objetivos);
+
+    expect(radar.axes).toHaveLength(6);
+    expect(radar.rings).toHaveLength(3);
+    expect(radar.bluePoints.split(' ')).toHaveLength(6);
+    expect(radar.redPoints.split(' ')).toHaveLength(6);
+  });
+
+  it('el radio es el reparto del objetivo, no su cifra bruta', () => {
+    const radar = tacticalRadarOf(objetivos);
+    // Torres 8-2 y barones 1-0: el barón es un reparto MÁS favorable pese a ser una cifra menor.
+    const barones = radar.axes.find((a) => a.id === 'baron')!;
+    const torres = radar.axes.find((a) => a.id === 'towers')!;
+
+    const distancia = (x: number, y: number) => Math.hypot(x - 120, y - 118);
+    expect(distancia(barones.blueX, barones.blueY)).toBeGreaterThan(
+      distancia(torres.blueX, torres.blueY),
+    );
+  });
+
+  /** Un bando que no se llevó nada no puede caer en el centro: el polígono sería un punto. */
+  it('un bando sin nada conserva un radio mínimo', () => {
+    const radar = tacticalRadarOf([
+      { id: 'x', name: 'X', icon: '', blueScore: 5, redScore: 0 },
+      { id: 'y', name: 'Y', icon: '', blueScore: 5, redScore: 0 },
+      { id: 'z', name: 'Z', icon: '', blueScore: 5, redScore: 0 },
+    ]);
+
+    for (const a of radar.axes) {
+      expect(Math.hypot(a.redX - 120, a.redY - 118)).toBeGreaterThan(0);
     }
-    expect(vertices(component.tacticalRadar.bluePoints)).toBe(6);
-    expect(vertices(component.tacticalRadar.redPoints)).toBe(6);
   });
 
-  it('el radio de cada vértice es el reparto del objetivo, no su cifra bruta', () => {
-    const axisOf = (id: string) => component.tacticalRadar.axes.find((a) => a.id === id)!;
-    const radius = (x: number, y: number) => Math.hypot(x - 120, y - 118);
-
-    // Las torres van 8-2 y el barón 1-0: sin normalizar, las torres dominarían el dibujo.
-    const towers = axisOf('towers');
-    const baron = axisOf('baron');
-    expect(radius(baron.blueX, baron.blueY)).toBeGreaterThan(radius(towers.blueX, towers.blueY));
-
-    // Y en cada eje el bando que se lo llevó queda por fuera del que no.
-    for (const o of component.objectives) {
-      if (o.blueScore === o.redScore) continue;
-      const a = axisOf(o.id);
-      const blue = radius(a.blueX, a.blueY);
-      const red = radius(a.redX, a.redY);
-      expect(o.blueScore > o.redScore ? blue > red : red > blue).toBe(true);
-    }
-  });
-
-  it('sincroniza el hover entre radar y grieta', () => {
-    component.setHoveredObjective('baron');
-    expect(component.hoveredObjectiveId()).toBe('baron');
-    component.setHoveredObjective(null);
-    expect(component.hoveredObjectiveId()).toBeNull();
-  });
-
-  it('el podio de daño a campeones contiene los 3 primeros puestos', () => {
-    expect(component.topDamagePodium.length).toBe(3);
-    expect(component.topDamagePodium[0].rank).toBe(1);
-    expect(component.topDamagePodium[0].player).toBe('Adri_LoL');
-  });
-
-  it('permite publicar comentarios inmutables respetando el límite', () => {
-    const initialCount = component.comments().length;
-    component.newCommentText.set('¡Partida inolvidable en la final!');
-    component.postComment();
-    expect(component.comments().length).toBe(initialCount + 1);
-    expect(component.comments()[0].text).toBe('¡Partida inolvidable en la final!');
-    expect(component.newCommentText()).toBe('');
-  });
-
-  it('permite alternar reacciones emoji en los comentarios', () => {
-    const commentId = component.comments()[0].id;
-    component.toggleCommentReaction(commentId, '🔥');
-    const comment = component.comments().find((c) => c.id === commentId);
-    expect(comment).toBeDefined();
-  });
-
-  it('calcula las opciones de pestañas según la participación del usuario', () => {
-    const opts = component.mainTabOptions();
-    expect(opts.some((o) => o.value === 'heatmap')).toBe(true);
-    if (component.userParticipated()) {
-      expect(opts.some((o) => o.value === 'performance')).toBe(true);
-    } else {
-      expect(opts.some((o) => o.value === 'performance')).toBe(false);
-    }
-  });
-
-  it('el mapa de calor táctico genera puntos y pines deterministas para el jugador activo', () => {
-    const data = component.heatmapData();
-    expect(data.points.length).toBeGreaterThan(0);
-    expect(data.pins.length).toBeGreaterThan(0);
-    expect(data.pathD).toBeTruthy();
-  });
-
-  it('permite conmutar la fase del mapa de calor y el jugador activo', () => {
-    component.setHeatmapPhase('early');
-    expect(component.heatmapPhase()).toBe('early');
-    expect(component.filteredHeatPoints().every((p) => p.phase === 'early')).toBe(true);
-
-    const all = component.allParticipants();
-    if (all.length > 1) {
-      component.setHeatmapPlayer(all[1].id);
-      expect(component.selectedHeatmapPlayerId()).toBe(all[1].id);
-      expect(component.activeHeatmapPlayer()?.id).toBe(all[1].id);
-    }
-  });
-
-  it('identifica correctamente si la partida tiene telemetría de scraper o registro manual', () => {
-    const isManual = component.match()?.source === 'manual';
-    expect(component.hasDetailedStats()).toBe(!isManual);
-  });
-
-  it('permite alternar entre los modos de presencia térmica y control de visión', () => {
-    expect(component.mapAnalysisMode()).toBe('presence');
-    component.setAnalysisMode('vision');
-    expect(component.mapAnalysisMode()).toBe('vision');
-    component.setAnalysisMode('presence');
-    expect(component.mapAnalysisMode()).toBe('presence');
-  });
-
-  it('calcula el desglose zonal del jugador activo según su rol', () => {
-    const breakdown = component.playerZoneBreakdown();
-    expect(breakdown).toBeDefined();
-    expect(breakdown.mainLane.minutes).toBeGreaterThan(0);
-    expect(breakdown.objectives.minutes).toBeGreaterThan(0);
-    expect(breakdown.diagnosisBadge).toBeTruthy();
-    expect(breakdown.diagnosisText).toBeTruthy();
-  });
-
-  it('filtra los centinelas de visión por equipo y tipo', () => {
-    component.setVisionTeam('blue');
-    expect(component.visionTeam()).toBe('blue');
-    const blueWards = component.filteredVisionWards();
-    expect(blueWards.every((w) => w.team === 'blue')).toBe(true);
-
-    component.togglePinkWards();
-    expect(component.showPinkWards()).toBe(false);
-    const onlyYellow = component.filteredVisionWards();
-    expect(onlyYellow.every((w) => w.type === 'yellow')).toBe(true);
-
-    component.togglePinkWards();
-    expect(component.showPinkWards()).toBe(true);
-
-    component.toggleYellowWards();
-    expect(component.showYellowWards()).toBe(false);
-    const onlyPink = component.filteredVisionWards();
-    expect(onlyPink.every((w) => w.type === 'pink')).toBe(true);
-
-    component.toggleYellowWards();
-    component.setVisionTeam('both');
-    expect(component.filteredVisionWards().length).toBe(component.allVisionWards.length);
-  });
-
-  it('calcula las métricas de control territorial de visión de ambos bandos', () => {
-    component.setVisionTeam('blue');
-    const blueMetrics = component.visionMetrics();
-    expect(blueMetrics).toBeDefined();
-    expect(blueMetrics.riverControl).toBeGreaterThan(0);
-    expect(blueMetrics.dragonControl).toBeGreaterThan(0);
-    expect(blueMetrics.mvpName).toBe('Sam_Sup');
-    expect(blueMetrics.mvpScore).toBe(68);
-
-    component.setVisionTeam('red');
-    const redMetrics = component.visionMetrics();
-    expect(redMetrics.riverControl).toBe(44);
-    expect(redMetrics.mvpName).toBe('Lulu_King');
-  });
-
-  it('permite fijar e inspeccionar el centinela hovered', () => {
-    const sampleWard = component.allVisionWards[0];
-    component.setHoveredWard(sampleWard);
-    expect(component.hoveredWard()).toEqual(sampleWard);
-    component.setHoveredWard(null);
-    expect(component.hoveredWard()).toBeNull();
+  it('el número de lados sigue al número de objetivos', () => {
+    expect(tacticalRadarOf(objetivos.slice(0, 3)).axes).toHaveLength(3);
+    expect(tacticalRadarOf(objetivos.slice(0, 5)).axes).toHaveLength(5);
   });
 });

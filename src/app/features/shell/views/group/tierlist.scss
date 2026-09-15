@@ -12,6 +12,12 @@
 
 /* ── Cabecera ──────────────────────────────────────────────────────────────── */
 
+/* El tamaño de la muestra, en voz baja: la tier list se calcula sobre las últimas partidas
+   del grupo, no sobre su historial entero, y eso tiene que poder leerse. */
+.tierlist-meta-count__scope {
+  color: var(--nf-text-dim);
+}
+
 .tierlist-meta-count {
   display: inline-flex;
   align-items: center;

@@ -8,16 +8,28 @@ import { Tierlist } from './tierlist';
 import { MatchHistoryStore } from '../../../../core/matches/match-history-store';
 import { GameDataStore } from '../../../../core/game-data';
 import { GroupsStore } from '../../../../core/groups';
-import { matchFixture, participantFixture } from '../../../../core/matches/match-fixtures';
+import {
+  fakeMatchHistoryStore,
+  matchFixture,
+  participantFixture,
+  statsFixture,
+} from '../../../../core/matches/match-fixtures';
+import { Match } from '../../../../core/matches/models';
+import { signal } from '@angular/core';
 
 const GROUP_ID = 'test-group-id';
 
+/**
+ * La tier list se calcula sobre la MUESTRA del grupo —las últimas partidas, hasta el tope del
+ * servidor—, no sobre su historial entero: con la paginación en servidor esa vuelta ya no existe
+ * en el cliente. Por eso el doble del store rellena `groupSample` y no una lista global.
+ */
 describe('Tierlist Component', () => {
   let fixture: ComponentFixture<Tierlist>;
   let component: Tierlist;
-  let matchStore: MatchHistoryStore;
 
-  beforeEach(async () => {
+  async function montar(sample: Match[], totalEnGrupo = sample.length) {
+    TestBed.resetTestingModule();
     await TestBed.configureTestingModule({
       imports: [Tierlist],
       providers: [
@@ -34,15 +46,46 @@ describe('Tierlist Component', () => {
             },
           },
         },
+        {
+          // El nombre del campeón sale del catálogo y solo de ahí: el asiento del backend trae
+          // el id y nada más. Sin este doble, las filas se llamarían «Campeón 103».
+          provide: GameDataStore,
+          useValue: {
+            status: signal('ready'),
+            championById: signal(
+              new Map([
+                [103, { id: 103, name: 'Ahri', title: '', iconUrl: null, tags: [] }],
+                [517, { id: 517, name: 'Sylas', title: '', iconUrl: null, tags: [] }],
+                [266, { id: 266, name: 'Aatrox', title: '', iconUrl: null, tags: [] }],
+                [222, { id: 222, name: 'Jinx', title: '', iconUrl: null, tags: [] }],
+              ]),
+            ),
+            ensureLoaded: () => {},
+          },
+        },
+        {
+          provide: GroupsStore,
+          useValue: {
+            groups: signal([{ id: GROUP_ID, name: 'Grupo de prueba' }]),
+            byId: (id: string) =>
+              id === GROUP_ID ? { id: GROUP_ID, name: 'Grupo de prueba' } : null,
+            ensureLoaded: () => {},
+          },
+        },
+        {
+          provide: MatchHistoryStore,
+          useValue: fakeMatchHistoryStore({ groupSample: sample, groupSampleTotal: totalEnGrupo }),
+        },
       ],
     }).compileComponents();
-
-    matchStore = TestBed.inject(MatchHistoryStore);
-    matchStore.allMatches.set([]); // Inicia vacío por defecto
 
     fixture = TestBed.createComponent(Tierlist);
     component = fixture.componentInstance;
     fixture.detectChanges();
+  }
+
+  beforeEach(async () => {
+    await montar([]);
   });
 
   it('se crea correctamente', () => {
@@ -59,89 +102,54 @@ describe('Tierlist Component', () => {
     expect(compiled.textContent).toContain('Sin partidas registradas todavía');
   });
 
-  it('calcula métricas de metagame, winrate, tiers y especialistas con partidas presentes', () => {
+  it('calcula métricas de metagame, winrate, tiers y especialistas con partidas presentes', async () => {
     // Fabricamos 3 partidas en el grupo de prueba
     const pAhriWin = participantFixture({
-      id: 'p1',
-      team: 'blue',
+      userId: 'u-night',
+      slot: 'A',
       role: 'MID',
       championId: 103,
-      championName: 'Ahri',
       riotId: 'N1ght#LAN',
-      discordUsername: 'N1ght',
-      stats: {
-        kills: 8,
-        deaths: 2,
-        assists: 6,
-        cs: 180,
-        csPerMin: 6,
-        gold: 12000,
-        totalDamageToChampions: 24000,
-        damageSharePercentage: 30,
-        damageTaken: 8000,
-        visionScore: 20,
-        wardsPlaced: 10,
-        wardsKilled: 2,
-        items: [],
-        spells: [4, 14],
-      },
+      stats: statsFixture({ kills: 8, deaths: 2, assists: 6, cs: 180, gold: 12000 }),
     });
 
     const pSylasLoss = participantFixture({
-      id: 'p2',
-      team: 'red',
+      userId: 'u-rival',
+      slot: 'B',
       role: 'MID',
       championId: 517,
-      championName: 'Sylas',
       riotId: 'Rival#LAN',
-      discordUsername: 'Rival',
-      stats: {
-        kills: 2,
-        deaths: 6,
-        assists: 2,
-        cs: 140,
-        csPerMin: 4.5,
-        gold: 8000,
-        totalDamageToChampions: 12000,
-        damageSharePercentage: 20,
-        damageTaken: 18000,
-        visionScore: 10,
-        wardsPlaced: 5,
-        wardsKilled: 1,
-        items: [],
-        spells: [4, 12],
-      },
+      stats: statsFixture({ kills: 2, deaths: 6, assists: 2, cs: 140, gold: 8000 }),
     });
 
     const m1 = matchFixture({
       id: 'm1',
       groupId: GROUP_ID,
       durationSeconds: 1800,
-      winningTeam: 'blue',
-      blue: [pAhriWin],
-      red: [pSylasLoss],
+      winningSlot: 'A',
+      a: [pAhriWin],
+      b: [pSylasLoss],
     });
 
     const m2 = matchFixture({
       id: 'm2',
       groupId: GROUP_ID,
       durationSeconds: 1800,
-      winningTeam: 'blue',
-      blue: [pAhriWin],
-      red: [pSylasLoss],
+      winningSlot: 'A',
+      a: [pAhriWin],
+      b: [pSylasLoss],
     });
 
     const m3 = matchFixture({
       id: 'm3',
       groupId: GROUP_ID,
       durationSeconds: 1800,
-      winningTeam: 'blue',
-      blue: [pAhriWin],
-      red: [pSylasLoss],
+      winningSlot: 'A',
+      a: [pAhriWin],
+      b: [pSylasLoss],
     });
 
-    matchStore.allMatches.set([m1, m2, m3]);
-    fixture.detectChanges();
+    await montar([m1, m2, m3]);
 
     expect(component.totalMatches()).toBe(3);
     const rows = component.allRows();
@@ -153,9 +161,9 @@ describe('Tierlist Component', () => {
     expect(ahriRow!.wins).toBe(3);
     expect(ahriRow!.winrate).toBe(100);
     expect(ahriRow!.tier).toBe('S+'); // >= 62% WR y >= 3 partidas
-    expect(ahriRow!.specialist?.name).toBe('N1ght');
+    expect(ahriRow!.specialist?.name).toBe('N1ght#LAN');
     expect(ahriRow!.players.length).toBe(1);
-    expect(ahriRow!.players[0].name).toBe('N1ght');
+    expect(ahriRow!.players[0].name).toBe('N1ght#LAN');
     expect(ahriRow!.players[0].wins).toBe(3);
 
     const sylasRow = rows.find((r) => r.championId === 517);
@@ -173,31 +181,11 @@ describe('Tierlist Component', () => {
     expect(component.expandedChampId()).toBeNull();
   });
 
-  it('filtra por rol / línea correctamente', () => {
-    const pMid = participantFixture({
-      id: 'p1',
-      team: 'blue',
-      role: 'MID',
-      championId: 103,
-      championName: 'Ahri',
-    });
-    const pTop = participantFixture({
-      id: 'p2',
-      team: 'red',
-      role: 'TOP',
-      championId: 266,
-      championName: 'Aatrox',
-    });
+  it('filtra por rol / línea correctamente', async () => {
+    const pMid = participantFixture({ userId: 'u1', slot: 'A', role: 'MID', championId: 103 });
+    const pTop = participantFixture({ userId: 'u2', slot: 'B', role: 'TOP', championId: 266 });
 
-    const m = matchFixture({
-      id: 'm1',
-      groupId: GROUP_ID,
-      blue: [pMid],
-      red: [pTop],
-    });
-
-    matchStore.allMatches.set([m]);
-    fixture.detectChanges();
+    await montar([matchFixture({ id: 'm1', groupId: GROUP_ID, a: [pMid], b: [pTop] })]);
 
     expect(component.filteredRows().length).toBe(2);
 
@@ -215,31 +203,11 @@ describe('Tierlist Component', () => {
     expect(component.filteredRows().length).toBe(2);
   });
 
-  it('filtra por búsqueda de texto de campeón', () => {
-    const p1 = participantFixture({
-      id: 'p1',
-      team: 'blue',
-      role: 'MID',
-      championId: 103,
-      championName: 'Ahri',
-    });
-    const p2 = participantFixture({
-      id: 'p2',
-      team: 'red',
-      role: 'ADC',
-      championId: 222,
-      championName: 'Jinx',
-    });
+  it('filtra por búsqueda de texto de campeón', async () => {
+    const p1 = participantFixture({ userId: 'u1', slot: 'A', role: 'MID', championId: 103 });
+    const p2 = participantFixture({ userId: 'u2', slot: 'B', role: 'ADC', championId: 222 });
 
-    const m = matchFixture({
-      id: 'm1',
-      groupId: GROUP_ID,
-      blue: [p1],
-      red: [p2],
-    });
-
-    matchStore.allMatches.set([m]);
-    fixture.detectChanges();
+    await montar([matchFixture({ id: 'm1', groupId: GROUP_ID, a: [p1], b: [p2] })]);
 
     component.searchQuery.set('jin');
     fixture.detectChanges();
@@ -256,31 +224,11 @@ describe('Tierlist Component', () => {
     expect(component.filteredRows().length).toBe(2);
   });
 
-  it('permite alternar ordenación por columnas (toggleSort)', () => {
-    const p1 = participantFixture({
-      id: 'p1',
-      team: 'blue',
-      role: 'MID',
-      championId: 103,
-      championName: 'Ahri',
-    });
-    const p2 = participantFixture({
-      id: 'p2',
-      team: 'red',
-      role: 'ADC',
-      championId: 222,
-      championName: 'Jinx',
-    });
+  it('permite alternar ordenación por columnas (toggleSort)', async () => {
+    const p1 = participantFixture({ userId: 'u1', slot: 'A', role: 'MID', championId: 103 });
+    const p2 = participantFixture({ userId: 'u2', slot: 'B', role: 'ADC', championId: 222 });
 
-    const m = matchFixture({
-      id: 'm1',
-      groupId: GROUP_ID,
-      blue: [p1],
-      red: [p2],
-    });
-
-    matchStore.allMatches.set([m]);
-    fixture.detectChanges();
+    await montar([matchFixture({ id: 'm1', groupId: GROUP_ID, a: [p1], b: [p2] })]);
 
     // Orden inicial por winrate desc
     expect(component.sortColumn()).toBe('winrate');

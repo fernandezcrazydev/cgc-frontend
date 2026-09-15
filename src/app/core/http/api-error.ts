@@ -179,11 +179,18 @@ const MESSAGES_BY_CODE: Record<ApiErrorCode, string> = {
   LOBBY_SLOT_NOT_FOUND: 'Esa hora ya no está disponible. Puede que se haya cerrado otra.',
   MATCH_ALREADY_RECORDED:
     'Esta partida ya tiene resultado guardado. Si el que hay es el equivocado, corrígelo en vez de volver a guardarlo.',
+  MATCH_DID_NOT_FINISH:
+    'Esa partida no llegó a terminar, así que no hay nada que subir de ella.',
+  // Cubre a la vez «no existe» y «es de un grupo del que no eres», y es a proposito: un 403
+  // confirmaria que el id existe. El texto tiene que valer para los dos casos sin insinuar cual.
+  MATCH_NOT_FOUND: 'Esa partida no existe, o no es de ninguno de tus grupos.',
   NOTHING_TO_CORRECT:
     'Esta partida no tiene un resultado que corregir, o el que tiene ya dice justo eso.',
   NOTHING_TO_RESET: 'Esta modalidad todavía no tiene ratings, así que no hay nada que resetear.',
   NOTIFICATION_NOT_FOUND: 'Esa notificación ya no existe.',
   NOT_A_PARTICIPANT: 'No apareces en esa partida, así que no puedes subirla.',
+  NO_ROOM_FOR_UPLOAD:
+    'No hay ninguna sala a la que corresponda esa partida, así que no se puede asociar.',
   NO_SOFT_RESET_TO_UNDO: 'Esta modalidad no tiene ningún reseteo que deshacer.',
   OWNER_CANNOT_LEAVE:
     'Eres el propietario del grupo. Antes de salir, pásaselo a otra persona o bórralo.',
@@ -236,6 +243,8 @@ const MESSAGES_BY_CODE: Record<ApiErrorCode, string> = {
     'Con las reglas puestas no hay ningún reparto posible para esta gente. Suele pasar cuando alguien se baja después de haberlas escrito: quita una regla y vuelve a generar los equipos.',
   UNSORTABLE_AUDIT_FIELD: 'El registro de seguridad solo se puede ordenar por fecha.',
   UNSORTABLE_FEEDBACK_FIELD: 'Los reportes no se pueden ordenar por ese campo.',
+  UNSORTABLE_MATCH_FIELD:
+    'El historial solo se puede ordenar por fecha, duración o bajas.',
   VALIDATION_FAILED: 'Hay datos que no son válidos. Revisa el formulario.',
   VERIFICATION_CHALLENGE_NOT_FOUND:
     'Esa verificación ya no vale: o no existe o ha caducado. Vuelve a empezar desde la aplicación.',

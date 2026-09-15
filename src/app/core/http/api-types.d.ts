@@ -676,6 +676,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/groups/{groupId}/matches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["matchHistory_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/groups/{groupId}/matches/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["matchHistory_summary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/groups/{groupId}/matchmaking/calibration": {
         parameters: {
             query?: never;
@@ -964,6 +996,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/matches/{matchId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["matchHistory_detail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me": {
         parameters: {
             query?: never;
@@ -1004,6 +1052,38 @@ export interface paths {
             cookie?: never;
         };
         get: operations["invitation_myInvitations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/matches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["matchHistory_mine"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/matches/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["matchHistory_mySummary"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1526,6 +1606,24 @@ export interface components {
             linkedAt?: string;
             linkedByName?: string;
         };
+        GroupHistorySummaryResponse: {
+            /** Format: int32 */
+            averageDurationSeconds?: number;
+            /** Format: int64 */
+            blueWins?: number;
+            /** Format: int64 */
+            matchesWithSide?: number;
+            /** Format: int64 */
+            matchesWithStats?: number;
+            /** Format: int64 */
+            redWins?: number;
+            /** Format: int32 */
+            topMvpCount?: number;
+            /** Format: uuid */
+            topMvpUserId?: string;
+            /** Format: int64 */
+            totalMatches?: number;
+        };
         GroupInvitationResponse: {
             avatarUrl?: string;
             /** Format: date-time */
@@ -1535,6 +1633,31 @@ export interface components {
             id?: string;
             /** Format: uuid */
             inviteeUserId?: string;
+        };
+        GroupMatchResponse: {
+            /** Format: uuid */
+            aceUserId?: string;
+            /** Format: int32 */
+            durationSeconds?: number;
+            /** Format: uuid */
+            groupId?: string;
+            groupName?: string;
+            hasStats?: boolean;
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            leagueId?: string;
+            leagueName?: string;
+            /** Format: uuid */
+            mvpUserId?: string;
+            /** Format: date-time */
+            playedAt?: string;
+            /** @enum {string} */
+            preset?: "BALANCED" | "PRECISION" | "CHAOS";
+            teams?: components["schemas"]["MatchTeamResponse"][];
+            voided?: boolean;
+            winnerSide?: string;
+            winnerSlot?: string;
         };
         GroupMemberResponse: {
             avatarUrl?: string;
@@ -1761,6 +1884,72 @@ export interface components {
             /** Format: date-time */
             startsAt?: string;
         };
+        MatchDetailResponse: {
+            gameVersion?: string;
+            stats?: {
+                [key: string]: components["schemas"]["SeatDetailResponse"];
+            };
+            summary?: components["schemas"]["GroupMatchResponse"];
+            teams?: components["schemas"]["MatchTeamObjectivesResponse"][];
+        };
+        MatchSeatResponse: {
+            /** Format: int32 */
+            assists?: number;
+            avatarUrl?: string;
+            /** Format: int32 */
+            championId?: number;
+            /** Format: int32 */
+            deaths?: number;
+            discordUsername?: string;
+            /** Format: int32 */
+            goldEarned?: number;
+            /** Format: int32 */
+            kills?: number;
+            /** @enum {string} */
+            lane?: "TOP" | "JUNGLA" | "MID" | "ADC" | "SUPPORT";
+            /** Format: int32 */
+            lpDelta?: number;
+            /** Format: int32 */
+            rankAfter?: number;
+            /** Format: int32 */
+            rankBefore?: number;
+            riotId?: string;
+            teamSlot?: string;
+            /** Format: uuid */
+            userId?: string;
+            wasAutofill?: boolean;
+        };
+        MatchTeamObjectivesResponse: {
+            bans?: number[];
+            /** Format: int32 */
+            baronKills?: number;
+            /** Format: int32 */
+            dragonKills?: number;
+            firstBaron?: boolean;
+            firstBlood?: boolean;
+            firstDragon?: boolean;
+            firstInhibitor?: boolean;
+            firstTower?: boolean;
+            /** Format: int32 */
+            heraldKills?: number;
+            /** Format: int32 */
+            hordeKills?: number;
+            /** Format: int32 */
+            inhibitorKills?: number;
+            teamSlot?: string;
+            /** Format: int32 */
+            towerKills?: number;
+        };
+        MatchTeamResponse: {
+            /** Format: int32 */
+            goldEarned?: number;
+            /** Format: int32 */
+            kills?: number;
+            participants?: components["schemas"]["MatchSeatResponse"][];
+            side?: string;
+            slot?: string;
+            won?: boolean;
+        };
         MeResponse: {
             avatarUrl?: string;
             /** Format: date-time */
@@ -1793,6 +1982,17 @@ export interface components {
         };
         PageResponseGameItemResponse: {
             content?: components["schemas"]["GameItemResponse"][];
+            /** Format: int32 */
+            page?: number;
+            /** Format: int32 */
+            size?: number;
+            /** Format: int64 */
+            totalElements?: number;
+            /** Format: int32 */
+            totalPages?: number;
+        };
+        PageResponseGroupMatchResponse: {
+            content?: components["schemas"]["GroupMatchResponse"][];
             /** Format: int32 */
             page?: number;
             /** Format: int32 */
@@ -1881,10 +2081,16 @@ export interface components {
             goldEarned: number;
             /** Format: int32 */
             kills: number;
+            lane?: string;
             /** Format: int32 */
             participantId: number;
             puuid: string;
             riotId: string;
+            role?: string;
+            /** Format: int32 */
+            spell1Id?: number;
+            /** Format: int32 */
+            spell2Id?: number;
             stats: {
                 [key: string]: unknown;
             };
@@ -1902,6 +2108,30 @@ export interface components {
             id?: number;
             name?: string;
             style?: boolean;
+        };
+        PersonalHistorySummaryResponse: {
+            /** Format: int64 */
+            assists?: number;
+            /** Format: int64 */
+            deaths?: number;
+            /** Format: int64 */
+            kills?: number;
+            /** Format: int64 */
+            losses?: number;
+            /** Format: int64 */
+            matchesWithStats?: number;
+            /** Format: int64 */
+            mostPlayedChampionCount?: number;
+            /** Format: int32 */
+            mostPlayedChampionId?: number;
+            /** @enum {string} */
+            mostPlayedLane?: "TOP" | "JUNGLA" | "MID" | "ADC" | "SUPPORT";
+            /** Format: int64 */
+            mostPlayedLaneCount?: number;
+            /** Format: int64 */
+            totalMatches?: number;
+            /** Format: int64 */
+            wins?: number;
         };
         Player: {
             affinity?: {
@@ -2112,6 +2342,28 @@ export interface components {
             /** Format: date-time */
             until?: string;
         };
+        SeatDetailResponse: {
+            clientLane?: string;
+            clientRole?: string;
+            /** Format: int32 */
+            cs?: number;
+            /** Format: int32 */
+            csAt14?: number;
+            /** Format: int32 */
+            damageTaken?: number;
+            /** Format: int32 */
+            damageToChampions?: number;
+            /** Format: int32 */
+            goldAt14?: number;
+            /** Format: int32 */
+            spell1Id?: number;
+            /** Format: int32 */
+            spell2Id?: number;
+            /** Format: int32 */
+            timeCcingOthers?: number;
+            /** Format: int32 */
+            visionScore?: number;
+        };
         SecurityAuditClientResponse: {
             clientIp?: string;
             country?: string;
@@ -2184,6 +2436,34 @@ export interface components {
             name?: string;
             slug?: string;
         };
+        TeamRequest: {
+            bans?: unknown[];
+            /** Format: int32 */
+            baronKills?: number;
+            /** Format: int32 */
+            dragonKills?: number;
+            firstBaron?: boolean;
+            firstBlood?: boolean;
+            firstDragon?: boolean;
+            firstInhibitor?: boolean;
+            firstTower?: boolean;
+            /** Format: int32 */
+            heraldKills?: number;
+            /** Format: int32 */
+            hordeKills?: number;
+            /** Format: int32 */
+            inhibitorKills?: number;
+            raw: {
+                [key: string]: unknown;
+            };
+            /** Format: int32 */
+            riftHeraldKills?: number;
+            /** Format: int32 */
+            teamId: number;
+            /** Format: int32 */
+            towerKills?: number;
+            win: unknown;
+        };
         TeamSlotResponse: {
             lane?: string;
             /** Format: uuid */
@@ -2212,6 +2492,7 @@ export interface components {
             discordNotifications: boolean;
         };
         UploadMatchRequest: {
+            endOfGameResult?: string;
             /** Format: int64 */
             gameCreation: number;
             /** Format: int32 */
@@ -2219,9 +2500,15 @@ export interface components {
             /** Format: int64 */
             gameId: number;
             gameMode: string;
+            gameType?: string;
+            gameVersion?: string;
+            /** Format: int32 */
+            mapId?: number;
             participants: components["schemas"]["ParticipantRequest"][];
+            platformId?: string;
             /** Format: int32 */
             queueId: number;
+            teams?: components["schemas"]["TeamRequest"][];
             timeline?: {
                 [key: string]: unknown;
             };
@@ -2231,12 +2518,13 @@ export interface components {
             alreadyStored?: boolean;
             /** Format: int32 */
             attributed?: number;
+            complete?: boolean;
             disagreesWithRecordedResult?: boolean;
-            linked?: boolean;
             /** Format: uuid */
             lobbyId?: string;
             /** Format: uuid */
             matchId?: string;
+            missing?: string[];
             resultRecorded?: boolean;
             /** Format: uuid */
             uploadId?: string;
@@ -3438,6 +3726,60 @@ export interface operations {
             };
         };
     };
+    matchHistory_list: {
+        parameters: {
+            query?: {
+                preset?: "BALANCED" | "PRECISION" | "CHAOS";
+                leagueId?: string;
+                championId?: number;
+                winningSide?: "BLUE" | "RED";
+                participation?: "ALL" | "MINE" | "OTHERS";
+                q?: string;
+                page?: number;
+                size?: number;
+                sort?: string;
+            };
+            header?: never;
+            path: {
+                groupId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PageResponseGroupMatchResponse"];
+                };
+            };
+        };
+    };
+    matchHistory_summary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                groupId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GroupHistorySummaryResponse"];
+                };
+            };
+        };
+    };
     calibration_calibration: {
         parameters: {
             query?: {
@@ -3983,6 +4325,28 @@ export interface operations {
             };
         };
     };
+    matchHistory_detail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                matchId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MatchDetailResponse"];
+                };
+            };
+        };
+    };
     me_me: {
         parameters: {
             query?: never;
@@ -4039,6 +4403,67 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["InvitationResponse"][];
+                };
+            };
+        };
+    };
+    matchHistory_mine: {
+        parameters: {
+            query?: {
+                preset?: "BALANCED" | "PRECISION" | "CHAOS";
+                leagueId?: string;
+                championId?: number;
+                outcome?: "WIN" | "LOSS";
+                lane?: "TOP" | "JUNGLA" | "MID" | "ADC" | "SUPPORT";
+                with?: string;
+                relation?: "ALLY" | "ENEMY";
+                q?: string;
+                page?: number;
+                size?: number;
+                sort?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PageResponseGroupMatchResponse"];
+                };
+            };
+        };
+    };
+    matchHistory_mySummary: {
+        parameters: {
+            query?: {
+                preset?: "BALANCED" | "PRECISION" | "CHAOS";
+                leagueId?: string;
+                championId?: number;
+                outcome?: "WIN" | "LOSS";
+                lane?: "TOP" | "JUNGLA" | "MID" | "ADC" | "SUPPORT";
+                with?: string;
+                relation?: "ALLY" | "ENEMY";
+                q?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PersonalHistorySummaryResponse"];
                 };
             };
         };

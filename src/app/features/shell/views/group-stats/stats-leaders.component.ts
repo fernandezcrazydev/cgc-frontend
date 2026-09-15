@@ -1,5 +1,4 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
 import { NfAvatar, NfSkeleton } from '../../../../ui';
 import { GameDataStore } from '../../../../core/game-data';
 import { MemberStats, playerTiles } from '../../../../core/group-stats';
@@ -29,7 +28,7 @@ const LEADER_COLUMNS = [
   selector: 'app-stats-leaders',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, NfAvatar, NfSkeleton, StatsTileIconComponent],
+  imports: [NfAvatar, NfSkeleton, StatsTileIconComponent],
   templateUrl: './stats-leaders.component.html',
   styleUrls: ['./stats-card.scss', './stats-leaders.component.scss'],
 })

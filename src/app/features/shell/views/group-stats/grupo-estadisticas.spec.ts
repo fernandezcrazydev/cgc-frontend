@@ -184,11 +184,17 @@ describe('GrupoEstadisticas', () => {
     expect(row.querySelector('app-stats-radar')).not.toBeNull();
   });
 
-  it('cada récord enlaza a una partida que existe en el historial', () => {
+  /*
+   * Los récords los sigue inventando el cliente y ya no hay semilla a la que apuntar, así que
+   * `matchId` es null y la tarjeta no ofrece «ver partida». Prometer una pantalla que no existe
+   * es peor que no prometer nada; vuelve cuando estos récords los calcule el servidor.
+   */
+  it('los récords no prometen una partida que ya no existe', () => {
     const { component } = createComponent(unaTemporada);
 
     for (const record of component.records()) {
-      expect(record.matchId).toMatch(/^seed-\d{3}$/);
+      expect(record.matchId).toBeNull();
+      expect(record.matchLabel).toBeNull();
     }
   });
 

@@ -1,0 +1,27 @@
+/*
+  Lo propio de la fila del historial de grupo: cómo se enfrentan los dos equipos y qué se pinta
+  cuando NO tienen color.
+
+  El bloque `m-card*` sigue en `views.scss` porque lo escriben siete componentes. Aquí solo va
+  lo que es de esta tarjeta y de nadie más.
+*/
+
+/*
+  Los dos equipos enfrentan sus marcadores en el centro: el primero pinta avatares y luego su
+  marcador, el segundo al revés. Antes eso se decidía por el bando (azul a un lado, rojo al
+  otro), y esa regla se rompe en cuanto la sala no elige colores: el orden es del HUECO, que
+  siempre existe.
+*/
+.m-card__team-roster--reverse {
+  flex-direction: row-reverse;
+}
+
+/*
+  El nombre del equipo cuando no hay color que lo nombre. Pequeño y en el extremo: en una
+  partida con lados decididos no aparece, porque ahí el color ya dice cuál es cuál.
+*/
+.gm-card__slot-name {
+  color: var(--nf-text-dim);
+  font-size: var(--fs-label);
+  font-weight: var(--fw-bold);
+}

@@ -1,0 +1,43 @@
+/*
+  Lo que se pinta cuando la partida no está subida.
+
+  La regla de §5 del contrato del historial: lo que dependía de la exportación llega nulo, nunca
+  cero, y en pantalla se dice como hueco. Estas clases son ese hueco —un rectángulo vacío donde
+  iría el campeón, un aviso donde iría el marcador—, y existen para que nadie caiga en la
+  tentación de rellenarlos con un `0` o con una silueta genérica que parezca un dato.
+*/
+
+.pm-card__no-champ {
+  display: block;
+  width: 46px;
+  height: 46px;
+  border-radius: var(--nf-radius-sm);
+  border: var(--bw-1) dashed var(--nf-border);
+  background: var(--nf-inset);
+}
+
+.pm-card__unknown {
+  color: var(--nf-text-dim);
+  font-style: italic;
+}
+
+.pm-card__no-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.pm-card__no-stats-title {
+  color: var(--nf-text-dim);
+  font-size: var(--fs-label);
+  font-weight: var(--fw-bold);
+  text-transform: none;
+}
+
+.pm-card__no-stats-hint {
+  color: var(--nf-text-dim);
+  font-size: var(--fs-label);
+  line-height: 1.35;
+}

@@ -430,15 +430,13 @@
             <span class="shell__breadcrumb-section nf-mono">
               {{ pageTitle() }}
             </span>
-            @if (isMatchDetailPage()) {
+            @if (isMatchDetailPage() && matchLeagueName(); as league) {
               <span class="shell__breadcrumb-sep" aria-hidden="true">
                 <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
                   <path d="M6 3.5 10.5 8 6 12.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
                 </svg>
               </span>
-              <span class="shell__breadcrumb-league nf-mono">
-                {{ matchLeagueName() }}
-              </span>
+              <span class="shell__breadcrumb-league nf-mono">{{ league }}</span>
             }
           }
         </nav>
@@ -449,7 +447,7 @@
               type="button"
               class="shell__copy-match-btn"
               (click)="copyMatchId()"
-              [attr.title]="'Copiar ID de partida: ' + (currentMatch()?.id ?? currentMatchId() ?? 'seed-001')"
+              [attr.title]="'Copiar ID de partida: ' + (currentMatch()?.id ?? currentMatchId())"
               aria-label="Copiar ID de partida"
             >
               @if (copiedMatchId()) {
@@ -463,8 +461,14 @@
                 </svg>
               }
             </button>
-            <span class="shell__match-id-text nf-mono" (click)="copyMatchId()" role="button" tabindex="0" (keydown.enter)="copyMatchId()" [attr.title]="'Copiar ID: ' + (currentMatch()?.id ?? currentMatchId() ?? 'seed-001')">ID de partida</span>
-            <span class="shell__match-pill nf-mono">{{ matchPaceDuration() }} · {{ matchPaceKills() }}</span>
+            <span class="shell__match-id-text nf-mono" (click)="copyMatchId()" role="button" tabindex="0" (keydown.enter)="copyMatchId()" [attr.title]="'Copiar ID: ' + (currentMatch()?.id ?? currentMatchId())">ID de partida</span>
+            <!-- Sin subida no hay ni duración ni marcador: la píldora no se pinta en vez de
+                 enseñar los de otra partida cualquiera. -->
+            @if (matchPaceDuration(); as pace) {
+              <span class="shell__match-pill nf-mono">
+                {{ pace }}@if (matchPaceKills(); as kills) { · {{ kills }} }
+              </span>
+            }
           </div>
         } @else {
           <!-- Ficha del grupo y su gestión. Vivían en una tarjeta al principio del hub que repetía

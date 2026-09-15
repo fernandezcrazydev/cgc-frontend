@@ -156,11 +156,9 @@
 
 /* Anchos fijos: si se encogen con su contenido, la barra baila cada vez que cambia lo elegido. */
 
-.m-field--season { width: 190px; }
-.m-field--mode { width: 140px; }
-.m-field--lobby { width: 120px; }
+.m-field--preset { width: 160px; }
+.m-field--league { width: 190px; }
 .m-field--champion { width: 210px; }
-.m-field--group { width: 190px; }
 .m-field--sort { width: 170px; }
 
 .m-role-pills {
@@ -207,11 +205,9 @@
 }
 
 @media (max-width: $bp-compact) {
-  .m-field--season,
-  .m-field--mode,
-  .m-field--lobby,
+  .m-field--preset,
+  .m-field--league,
   .m-field--champion,
-  .m-field--group,
   .m-field--sort {
     width: 100%;
   }

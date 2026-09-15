@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input } from '@angular/core';
 import { Match } from '../../../../core/matches/models';
+import { presetLabel } from '../../../../core/matches/match-view';
 import { formatMatchDate } from '../../../../shared/date-format';
 import { Viewport } from '../../../../shared/viewport';
 import { MatchHistoryUiState } from './match-history-ui';
@@ -188,18 +189,31 @@ export class MatchCardShellComponent {
   }
 
   protected readonly dateLabel = computed(() => formatMatchDate(this.match().decidedAt));
+  /**
+   * La liga en la que contó la partida, o el grupo si no contó para ninguna. `null` en el
+   * historial personal mientras el DTO no traiga el grupo: ahí no hay nada que rotular, y la
+   * píldora se queda fuera en vez de decir «Sin grupo».
+   */
   protected readonly leagueName = computed(
-    () => this.match().leagueName ?? this.match().group.seasonName ?? this.match().group.name,
-  );
-  protected readonly modeLabel = computed(
-    () => this.match().modeLabel ?? 'Competitivo · Party',
+    () => this.match().leagueName ?? this.match().group?.name ?? null,
   );
 
-  // El grupo es el único que no lo pinta: ahí la fila es el registro colectivo y los LP son
-  // de quien mira, no de la partida.
-  protected readonly lpDelta = computed(() =>
-    this.variant() === 'group' ? 0 : (this.match().userParticipant?.lpDelta ?? 0),
-  );
+  /** La modalidad con la que se abrió la sala, que es el único vocabulario que existe aquí. */
+  protected readonly modeLabel = computed(() => presetLabel(this.match().preset));
+
+  /**
+   * Los LP que movió la partida en TU clasificación. El historial de grupo no los pinta: ahí la
+   * fila es el registro colectivo y los LP son de quien mira, no de la partida.
+   *
+   * `null` es «no contó para ninguna liga abierta», que no es cero: cero es una partida que sí
+   * contó y no movió nada. Por eso la píldora solo aparece con un valor distinto de cero, y
+   * nunca con un cero fabricado.
+   */
+  protected readonly lpDelta = computed(() => {
+    if (this.variant() === 'group') return null;
+    const lp = this.match().userParticipant?.lpDelta ?? null;
+    return lp === 0 ? null : lp;
+  });
 
   protected readonly toggleLabel = computed(() =>
     this.isExpanded()

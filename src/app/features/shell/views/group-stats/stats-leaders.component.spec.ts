@@ -160,18 +160,21 @@ describe('StatsLeadersComponent', () => {
     expect(names).toEqual([...names].sort((a, b) => a.localeCompare(b)));
   });
 
-  it('muestra las tarjetas pulsables de mejor dúo y némesis en el desglose', () => {
+  /*
+   * Siguen enseñándose, pero ya NO enlazan al cruce: ese dúo y esa némesis los inventa el
+   * cliente y viajan con un Riot ID, mientras que la pantalla del cruce se abre por `userId`.
+   * El enlace aterrizaba en «Jugador no encontrado». Vuelve cuando lo sirva el backend.
+   */
+  it('muestra el mejor dúo y la némesis, y no los enlaza a una ruta que no existe', () => {
     const jugador = PLAYERS[0].member.tag;
     const { fixture } = createComponent(jugador);
 
-    const duoLink = fixture.nativeElement.querySelector('.ld-affinity--duo');
-    const nemesisLink = fixture.nativeElement.querySelector('.ld-affinity--nemesis');
+    const duo = fixture.nativeElement.querySelector('.ld-affinity--duo');
+    const nemesis = fixture.nativeElement.querySelector('.ld-affinity--nemesis');
 
-    expect(duoLink).not.toBeNull();
-    expect(nemesisLink).not.toBeNull();
-    expect(duoLink.getAttribute('href')).toContain('/app/jugador/');
-    expect(duoLink.getAttribute('href')).toContain('/juntos');
-    expect(nemesisLink.getAttribute('href')).toContain('/app/jugador/');
-    expect(nemesisLink.getAttribute('href')).toContain('/contra');
+    expect(duo).not.toBeNull();
+    expect(nemesis).not.toBeNull();
+    expect(duo.tagName).toBe('DIV');
+    expect(nemesis.tagName).toBe('DIV');
   });
 });

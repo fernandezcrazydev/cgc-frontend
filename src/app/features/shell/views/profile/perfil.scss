@@ -55,90 +55,11 @@
 
 /* ── Rivalidades & Sinergias (Cara a Cara Compacto) ────────────────── */
 
-.pf-h2h-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
 /* La cabecera de la ficha lleva ahora el botón que abre la vista dedicada, así
    que la parte derecha deja de ser un dato suelto y pasa a ser dato + acción. */
 
-.pf-h2h-compact {
-  padding: 10px 14px;
-  border-radius: 8px;
-  border: 1px solid var(--nf-border);
-  background: var(--nf-surface);
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  color: inherit;
-  text-decoration: none;
-  cursor: pointer;
-  transition: transform 0.14s ease, border-color 0.14s ease, background 0.14s ease;
-}
-
-.pf-h2h-compact:hover {
-  transform: translateY(-1px);
-  border-color: var(--nf-border-strong);
-  background: var(--nf-surface-2);
-}
-
-.pf-h2h-compact--ally {
-  border-left: 3px solid var(--nf-secondary);
-}
-
-.pf-h2h-compact--nemesis {
-  border-left: 3px solid var(--nf-primary);
-}
-
-.pf-h2h-compact__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: var(--fs-label);
-  font-weight: 700;
-  color: var(--nf-text-mid);
-}
-
-.pf-h2h-compact__body {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.pf-h2h-compact__info {
-  flex: 1;
-  min-width: 0;
-}
-
 /* El avatar lo pinta ahora `nf-avatar`, que se mide sola con `--nf-avatar-size`: aquí solo
    queda impedir que la caja se encoja dentro del flex. */
-
-.pf-h2h-compact__avatar {
-  flex: none;
-}
-
-.pf-h2h-compact__name {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--nf-text);
-}
-
-.pf-h2h-compact__sub {
-  font-size: var(--fs-label);
-  color: var(--nf-text-dim);
-}
-
-.pf-h2h-empty {
-  margin: 0;
-  padding: 12px 14px;
-  border-radius: 8px;
-  border: 1px dashed var(--nf-border-strong);
-  font-size: 12px;
-  line-height: 1.5;
-  color: var(--nf-text-dim);
-}
 
 /* Tabla de Rendimiento por Rol */
 

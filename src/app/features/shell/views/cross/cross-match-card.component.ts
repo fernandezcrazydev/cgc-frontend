@@ -5,6 +5,7 @@ import {
   MatchParticipant,
   formatKda,
   matchOutcomeLabel,
+  participantName,
 } from '../../../../core/matches';
 import { formatDuration } from '../../../../shared/date-format';
 import { NfAvatar, NfLaneIcon, NfSkeleton } from '../../../../ui';
@@ -37,7 +38,9 @@ import { nameOf } from './cross-player';
         <span class="m-card__result-label" [class.is-win]="isWin()" [class.is-loss]="isLoss()">
           {{ outcomeLabel() }}
         </span>
-        <span class="m-card__duration nf-mono">{{ duration() }}</span>
+        @if (duration(); as d) {
+          <span class="m-card__duration nf-mono">{{ d }}</span>
+        }
       </div>
 
       <!-- Tu mitad -->
@@ -47,8 +50,8 @@ import { nameOf } from './cross-player';
             class="m-card__champ-icon"
             [loading]="champsLoading()"
             [src]="icon(cross().me)"
-            [fallback]="cross().me.championName"
-            [tint]="cross().me.championId"
+            [fallback]="championName(cross().me)"
+            [tint]="cross().me.championId ?? 0"
             [size]="42"
             shape="square"
           />
@@ -63,12 +66,16 @@ import { nameOf } from './cross-player';
           } @else {
             <span class="cx-card__champ">{{ championName(cross().me) }}</span>
           }
-          <span class="cx-card__kda nf-mono">
-            {{ cross().me.stats.kills }}<span class="m-card__sep">/</span
-            ><span class="m-deaths">{{ cross().me.stats.deaths }}</span
-            ><span class="m-card__sep">/</span>{{ cross().me.stats.assists }}
-            <span class="cx-card__ratio">{{ myKda() }} KDA</span>
-          </span>
+          @if (cross().me.stats.kills != null) {
+            <span class="cx-card__kda nf-mono">
+              {{ cross().me.stats.kills }}<span class="m-card__sep">/</span
+              ><span class="m-deaths">{{ cross().me.stats.deaths }}</span
+              ><span class="m-card__sep">/</span>{{ cross().me.stats.assists }}
+              @if (myKda(); as k) {
+                <span class="cx-card__ratio">{{ k }} KDA</span>
+              }
+            </span>
+          }
         </div>
       </div>
 
@@ -94,20 +101,24 @@ import { nameOf } from './cross-player';
           } @else {
             <span class="cx-card__champ">{{ championName(cross().them) }}</span>
           }
-          <span class="cx-card__kda nf-mono">
-            {{ cross().them.stats.kills }}<span class="m-card__sep">/</span
-            ><span class="m-deaths">{{ cross().them.stats.deaths }}</span
-            ><span class="m-card__sep">/</span>{{ cross().them.stats.assists }}
-            <span class="cx-card__ratio">{{ theirKda() }} KDA</span>
-          </span>
+          @if (cross().them.stats.kills != null) {
+            <span class="cx-card__kda nf-mono">
+              {{ cross().them.stats.kills }}<span class="m-card__sep">/</span
+              ><span class="m-deaths">{{ cross().them.stats.deaths }}</span
+              ><span class="m-card__sep">/</span>{{ cross().them.stats.assists }}
+              @if (theirKda(); as k) {
+                <span class="cx-card__ratio">{{ k }} KDA</span>
+              }
+            </span>
+          }
         </div>
         <div class="m-card__avatar-wrap">
           <nf-avatar
             class="m-card__champ-icon"
             [loading]="champsLoading()"
             [src]="icon(cross().them)"
-            [fallback]="cross().them.championName"
-            [tint]="cross().them.championId"
+            [fallback]="championName(cross().them)"
+            [tint]="cross().them.championId ?? 0"
             [size]="42"
             shape="square"
           />
@@ -143,16 +154,25 @@ export class CrossMatchCardComponent {
     return 'neutral';
   });
 
-  protected readonly duration = computed(() => formatDuration(this.cross().match.durationSeconds));
-  protected readonly theirName = computed(() => nameOf(this.cross().them.riotId));
+  /** `null` sin subida: no hay duración, y «0:00» sería una partida instantánea. */
+  protected readonly duration = computed(() => {
+    const seconds = this.cross().match.durationSeconds;
+    return seconds == null ? null : formatDuration(seconds);
+  });
+
+  protected readonly theirName = computed(() => nameOf(participantName(this.cross().them)));
+
   protected readonly myKda = computed(() => formatKda(this.cross().me.stats));
   protected readonly theirKda = computed(() => formatKda(this.cross().them.stats));
 
   protected icon(p: MatchParticipant): string | null {
+    if (p.championId == null) return null;
     return this.gameData.championById().get(p.championId)?.iconUrl ?? null;
   }
 
+  /** Solo el catálogo sabe el nombre: el asiento trae el id y nada más. */
   protected championName(p: MatchParticipant): string {
-    return this.gameData.championById().get(p.championId)?.name ?? p.championName;
+    if (p.championId == null) return 'Campeón sin registrar';
+    return this.gameData.championById().get(p.championId)?.name ?? `Campeón ${p.championId}`;
   }
 }

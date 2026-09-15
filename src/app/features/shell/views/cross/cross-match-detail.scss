@@ -56,55 +56,6 @@
   color: var(--nf-text-dim);
 }
 
-.cx-builds {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 12px;
-}
-
-.cx-build {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 12px 14px;
-  border-radius: var(--nf-radius-sm);
-  border: 1px solid var(--nf-border);
-  border-top: 2px solid var(--cx-me);
-  background: var(--nf-surface-2);
-}
-
-.cx-build--them { border-top-color: var(--cx-them); }
-
-.cx-build__who {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.cx-build__id {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.cx-build__name {
-  font-size: 13px;
-  font-weight: var(--fw-bold);
-  color: var(--nf-text);
-}
-
-.cx-build__champ {
-  font-size: var(--fs-label);
-  color: var(--nf-text-dim);
-}
-
-.cx-build__items {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-
 .cx-detail__nav {
   display: flex;
   flex-wrap: wrap;

@@ -24,17 +24,7 @@ import { PairingCode, RIOT_REGIONS, RiotAccount, RiotAccountStore, RiotRegion } 
 import { errorMessage } from '../../../../core/http';
 import { ToastService } from '../../../../core/toast';
 import { GameDataStore } from '../../../../core/game-data';
-import {
-  CROSS_MIN_SAMPLE,
-  CrossPartner,
-  MatchHistoryStore,
-  aggregateCross,
-  bestAllyOf,
-  itemBg,
-  nemesisOf,
-} from '../../../../core/matches';
-import { nameOf } from '../cross/cross-player';
-import { hash } from '../../../../core/group-ranking';
+import { MatchHistoryStore, itemBg } from '../../../../core/matches';
 import { wireConnectModalOnRiotEvent } from './perfil-connect-modal';
 import { ProfileGroupsCard } from './profile-groups-card.component';
 import { ProfileStreakCard } from './profile-streak-card.component';
@@ -112,16 +102,24 @@ export class Perfil {
   private readonly matchHistory = inject(MatchHistoryStore);
 
   /**
-   * El desglose por posición sale de las partidas que el usuario ha jugado de verdad, no de una
-   * semilla aparte: es la misma fuente que ya alimentan la sinergia y la némesis de más abajo,
-   * así que la tabla de roles y el historial no pueden contar cosas distintas.
+   * El desglose por posición, sobre las partidas que el historial tiene cargadas.
+   *
+   * **Es una muestra, no tu historial entero**, desde que la lista la pagina el servidor. Lo que
+   * sí es completo es lo que sirve `GET /me/matches/summary`: posición más jugada y su recuento,
+   * y de ahí salen las cifras grandes del perfil.
+   *
+   * `wonLane` ya no viaja: el backend no sirve ese juicio. Se deriva del oro del minuto 14, que
+   * solo llega en el detalle de cada partida, así que aquí no hay con qué.
    */
   private readonly roleSamples = computed<RoleSample[]>(() =>
-    this.matchHistory.allPersonalMatches().map((m) => ({
-      role: m.userParticipant!.role,
-      won: m.userOutcome === 'win',
-      wonLane: m.userParticipant!.stats.wonLane,
-    })),
+    this.matchHistory
+      .personalMatches()
+      .filter((m) => !!m.userParticipant)
+      .map((m) => ({
+        role: m.userParticipant!.role,
+        won: m.userOutcome === 'win',
+        wonLane: undefined,
+      })),
   );
 
   readonly profile = computed(() =>
@@ -132,17 +130,6 @@ export class Perfil {
       this.roleSamples(),
     ),
   );
-
-  // ── Rivalidades y sinergias ───────────────────────────────────────
-  // Salen de las partidas del historial, no de una semilla por pareja. Antes eran dos fuentes
-  // distintas para el mismo hecho: la tarjeta anunciaba un winrate y la página que abría —que
-  // ya lee las partidas reales— enseñaba otro.
-  protected readonly minSample = CROSS_MIN_SAMPLE;
-
-  private readonly partners = this.matchHistory.crossPartners;
-
-  readonly bestAlly = computed(() => cardFor(bestAllyOf(this.partners()), 'ally'));
-  readonly nemesis = computed(() => cardFor(nemesisOf(this.partners()), 'enemy'));
 
   // ── Navegación Modular por Pestañas ───────────────────────────────
   readonly activeTab = signal<PerfilTab>('resumen');
@@ -355,7 +342,7 @@ export class Perfil {
     () =>
       this.session.status() === 'idle' ||
       this.session.status() === 'loading' ||
-      this.matchHistory.status() === 'loading',
+      this.matchHistory.personalStatus() === 'loading',
   );
 
   readonly memberSince = computed(() => {
@@ -524,35 +511,3 @@ export class Perfil {
   }
 }
 
-/** Lo que necesita pintar una tarjeta de rivalidad o de sinergia. */
-interface CrossCard {
-  tag: string;
-  name: string;
-  hue: number;
-  avatarUrl: string | null;
-  wr: number;
-  wins: number;
-  losses: number;
-}
-
-/**
- * Resume un compañero o rival para su tarjeta. El `tag` es el mismo que viaja en la ruta del
- * cruce, así que la tarjeta y la página que abre hablan del mismo jugador y de las mismas
- * partidas.
- */
-function cardFor(partner: CrossPartner | null, side: 'ally' | 'enemy'): CrossCard | null {
-  if (!partner) return null;
-  const list = side === 'ally' ? partner.allies : partner.enemies;
-  const agg = aggregateCross(list);
-  const them = list[0].them;
-
-  return {
-    tag: them.riotId,
-    name: nameOf(them.riotId),
-    hue: hash(them.riotId) % 360,
-    avatarUrl: them.avatarUrl ?? null,
-    wr: agg.winrate,
-    wins: agg.wins,
-    losses: agg.losses,
-  };
-}

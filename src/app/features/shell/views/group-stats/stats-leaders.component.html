@@ -92,11 +92,13 @@
                 </div>
 
                 <div class="ld-affinities">
-                  <a
-                    class="ld-affinity ld-affinity--duo"
-                    [routerLink]="['/app', 'jugador', p.bestDuo.tag, 'juntos']"
-                    [title]="'Ver sinergia de dúo con ' + p.bestDuo.name"
-                  >
+                  <!--
+                    Ya no enlazan al cruce. Ese dúo y esa némesis los sigue inventando el cliente
+                    (`core/group-stats.ts`) y viajan con un Riot ID, mientras que la pantalla del
+                    cruce se abre por `userId`: el enlace aterrizaba en «Jugador no encontrado».
+                    Vuelven a ser enlaces cuando estas cifras las sirva el backend (issue #69, §8).
+                  -->
+                  <div class="ld-affinity ld-affinity--duo">
                     <div class="ld-affinity__badge">
                       <span class="ld-affinity__icon" aria-hidden="true">🤝</span>
                       <span class="ld-affinity__label">Mejor Dúo</span>
@@ -118,14 +120,9 @@
                       <span class="ld-affinity__wr nf-mono">{{ p.bestDuo.winrate }}%</span>
                       <span class="ld-affinity__metric-label">victorias</span>
                     </div>
-                    <span class="ld-affinity__arrow" aria-hidden="true">→</span>
-                  </a>
+                  </div>
 
-                  <a
-                    class="ld-affinity ld-affinity--nemesis"
-                    [routerLink]="['/app', 'jugador', p.nemesis.tag, 'contra']"
-                    [title]="'Ver cara a cara contra ' + p.nemesis.name"
-                  >
+                  <div class="ld-affinity ld-affinity--nemesis">
                     <div class="ld-affinity__badge">
                       <span class="ld-affinity__icon" aria-hidden="true">⚔️</span>
                       <span class="ld-affinity__label">Némesis</span>
@@ -147,8 +144,7 @@
                       <span class="ld-affinity__wr ld-affinity__wr--nemesis nf-mono">{{ p.nemesis.winrate }}%</span>
                       <span class="ld-affinity__metric-label">victorias</span>
                     </div>
-                    <span class="ld-affinity__arrow" aria-hidden="true">→</span>
-                  </a>
+                  </div>
                 </div>
 
                 <ul class="ld-tiles">

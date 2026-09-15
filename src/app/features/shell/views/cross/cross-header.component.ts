@@ -17,7 +17,7 @@ export type CrossActiveTab = 'contra' | 'juntos' | 'historial';
       <div class="cx-card-hero">
         <!-- Topbar integrada con breadcrumbs y contexto -->
         <div class="cx-topbar">
-          <a class="cx-topbar__back nf-mono" [routerLink]="['/app', 'perfil', p.tag]">
+          <a class="cx-topbar__back nf-mono" [routerLink]="['/app', 'perfil', p.userId]">
             <span class="cx-topbar__arrow" aria-hidden="true">←</span>
             Volver al perfil de {{ p.name }}
           </a>
@@ -56,9 +56,11 @@ export type CrossActiveTab = 'contra' | 'juntos' | 'historial';
           <!-- VS Badge Central -->
           <div class="cx-vs-badge">
             <span class="cx-vs-badge__emblem nf-mono">VS</span>
-            <span class="cx-vs-badge__count nf-mono">
-              {{ totalMatches() }} {{ totalMatches() === 1 ? 'partida' : 'partidas' }}
-            </span>
+            @if (totalMatches(); as total) {
+              <span class="cx-vs-badge__count nf-mono">
+                {{ total }} {{ total === 1 ? 'partida' : 'partidas' }}
+              </span>
+            }
           </div>
 
           <!-- Luchador 2: Rival -->
@@ -66,16 +68,15 @@ export type CrossActiveTab = 'contra' | 'juntos' | 'historial';
             <div class="cx-fighter__info cx-fighter__info--them">
               <a
                 class="cx-fighter__summoner"
-                [routerLink]="['/app', 'perfil', p.tag]"
+                [routerLink]="['/app', 'perfil', p.userId]"
                 title="Ver perfil de {{ p.name }}"
               >
                 {{ theirSummonerName() }}
               </a>
-              <span class="cx-fighter__discord nf-mono">{{ theirDiscordName() }}</span>
             </div>
             <a
               class="cx-fighter__avatar-link"
-              [routerLink]="['/app', 'perfil', p.tag]"
+              [routerLink]="['/app', 'perfil', p.userId]"
               title="Ver perfil de {{ p.name }}"
             >
               <nf-avatar
@@ -101,8 +102,10 @@ export type CrossActiveTab = 'contra' | 'juntos' | 'historial';
           [attr.aria-selected]="activeTab() === 'contra'"
           (click)="tabChange.emit('contra')"
         >
-          <span>Cara a Cara</span>
-          <span class="cx-nav-tab__count">({{ enemyAgg().games }})</span>
+          <span>Cara a cara</span>
+          @if (enemyMatches(); as n) {
+            <span class="cx-nav-tab__count">({{ n }})</span>
+          }
         </button>
         <button
           type="button"
@@ -113,7 +116,9 @@ export type CrossActiveTab = 'contra' | 'juntos' | 'historial';
           (click)="tabChange.emit('juntos')"
         >
           <span>Sinergia</span>
-          <span class="cx-nav-tab__count">({{ allyAgg().games }})</span>
+          @if (allyMatches(); as n) {
+            <span class="cx-nav-tab__count">({{ n }})</span>
+          }
         </button>
         <button
           type="button"
@@ -123,8 +128,10 @@ export type CrossActiveTab = 'contra' | 'juntos' | 'historial';
           [attr.aria-selected]="activeTab() === 'historial'"
           (click)="tabChange.emit('historial')"
         >
-          <span>Historial Completo</span>
-          <span class="cx-nav-tab__count">({{ totalMatches() }})</span>
+          <span>Historial completo</span>
+          @if (totalMatches(); as n) {
+            <span class="cx-nav-tab__count">({{ n }})</span>
+          }
         </button>
       </nav>
     }
@@ -139,17 +146,22 @@ export class CrossHeaderComponent {
   readonly session = inject(Session);
   private readonly riot = inject(RiotAccountStore);
 
-  readonly totalMatches = computed(() => this.state.all().length);
-  readonly enemyAgg = computed(() => this.state.aggregateEnemies());
-  readonly allyAgg = computed(() => this.state.aggregateAllies());
+  /**
+   * Los tres contadores de las pestañas salen de `GET /me/matches/summary` con la relación de
+   * cada una, no de contar la lista: la lista es una página, y contarla daría «5» en cualquier
+   * cruce de más de cinco partidas.
+   *
+   * `null` mientras ese resumen viaja; la pestaña se pinta sin número en vez de con un cero,
+   * que se leería como «no habéis coincidido nunca».
+   */
+  readonly totalMatches = computed(() => this.state.summaryAll()?.totalMatches ?? null);
+  readonly enemyMatches = computed(() => this.state.summaryEnemies()?.totalMatches ?? null);
+  readonly allyMatches = computed(() => this.state.summaryAllies()?.totalMatches ?? null);
 
   readonly mySummonerName = computed(
     () => this.riot.account()?.riotId || this.session.displayName() || 'Invocador',
   );
   readonly myDiscordName = computed(() => this.session.displayName() || 'Discord');
 
-  readonly theirSummonerName = computed(
-    () => this.state.player()?.tag || this.state.player()?.name || 'Rival',
-  );
-  readonly theirDiscordName = computed(() => this.state.player()?.name || 'Discord');
+  readonly theirSummonerName = computed(() => this.state.player()?.name || 'Rival');
 }

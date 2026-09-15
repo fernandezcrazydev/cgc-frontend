@@ -1,0 +1,11 @@
+/*
+  El denominador de cada tarjeta, dicho en voz baja pero dicho.
+
+  El récord se divide entre todas las partidas y el KDA solo entre las subidas. Son dos totales
+  distintos en dos tarjetas contiguas, así que la que no usa el obvio lo declara.
+*/
+.ms-card__note {
+  margin-top: 6px;
+  color: var(--nf-text-dim);
+  font-size: var(--fs-label);
+}

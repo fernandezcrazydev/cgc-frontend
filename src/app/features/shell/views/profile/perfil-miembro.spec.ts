@@ -12,8 +12,19 @@ import { Session } from '../../../../core/auth';
 import { CURRENT_USER, GROUPS } from '../../../../core/lobby';
 import { signal } from '@angular/core';
 
+/** El id estable del jugador que se está mirando: es lo que viaja en la ruta del cruce. */
+const OTRO = 'pix3lqueen-uuid';
+
+/** El Riot ID del mismo jugador, que es lo único que trae el censo mock. */
+const TAG = 'Pix3lQueen#LAN';
+
 describe('PerfilMiembro Component', () => {
-  it('should initialize and compute member profile with H2H when user found', async () => {
+  /*
+   * El censo mock todavía no trae `userId`, así que `buildMemberProfile` también resuelve por
+   * tag. Cuando el roster real lo traiga, este parámetro pasa a ser el id estable como en el
+   * resto de la pantalla; el fallback existe justo para ese intervalo.
+   */
+  it('resuelve el perfil ajeno con lo que traiga el censo', async () => {
     const groupStore = new GroupStore();
     await TestBed.configureTestingModule({
       imports: [PerfilMiembro],
@@ -22,8 +33,8 @@ describe('PerfilMiembro Component', () => {
         {
           provide: ActivatedRoute,
           useValue: {
-            snapshot: { paramMap: { get: () => 'Pix3lQueen#LAN' } },
-            paramMap: of({ get: () => 'Pix3lQueen#LAN' }),
+            snapshot: { paramMap: { get: () => TAG } },
+            paramMap: of({ get: () => TAG }),
           },
         },
         {
@@ -67,26 +78,31 @@ describe('PerfilMiembro Component', () => {
     fixture.detectChanges();
 
     expect(comp).toBeDefined();
-    expect(comp.userId()).toBe('Pix3lQueen#LAN');
+    expect(comp.userId()).toBe(TAG);
     expect(comp.profile()).not.toBeNull();
     expect(comp.profile()?.name).toBe('Pix3lQueen');
   });
 });
 
-import { MatchHistoryStore, buildCrossMatches } from '../../../../core/matches';
-import { matchFixture, participantFixture } from '../../../../core/matches/match-fixtures';
+import { MatchHistoryStore } from '../../../../core/matches';
+import {
+  fakeMatchHistoryStore,
+  matchFixture,
+  participantFixture,
+} from '../../../../core/matches/match-fixtures';
 import { Match, MatchParticipant } from '../../../../core/matches/models';
 
 function yo(): MatchParticipant {
-  return participantFixture({ id: 'me', team: 'blue', riotId: 'Yo#LAN' });
+  return participantFixture({ userId: 'me', slot: 'A', riotId: 'Yo#LAN' });
 }
 
+/** Vuestro cruce: una partida enfrentados y otra juntos. */
 function historial(): Match[] {
-  const contra = participantFixture({ id: 'e1', team: 'red', riotId: 'Pix3lQueen#LAN' });
-  const con = participantFixture({ id: 'e2', team: 'blue', riotId: 'Pix3lQueen#LAN' });
+  const contra = participantFixture({ userId: OTRO, slot: 'B', riotId: 'Pix3lQueen#LAN' });
+  const con = participantFixture({ userId: OTRO, slot: 'A', riotId: 'Pix3lQueen#LAN' });
   return [
-    matchFixture({ id: 'enfrentados', blue: [yo()], red: [contra], userParticipant: yo() }),
-    matchFixture({ id: 'juntos', blue: [yo(), con], red: [], userParticipant: yo() }),
+    matchFixture({ id: 'enfrentados', a: [yo()], b: [contra], userParticipant: yo() }),
+    matchFixture({ id: 'juntos', a: [yo(), con], b: [], userParticipant: yo() }),
   ];
 }
 
@@ -106,8 +122,8 @@ describe('PerfilMiembro · refactor de la vista', () => {
         {
           provide: ActivatedRoute,
           useValue: {
-            snapshot: { paramMap: { get: () => 'Pix3lQueen#LAN' } },
-            paramMap: of({ get: () => 'Pix3lQueen#LAN' }),
+            snapshot: { paramMap: { get: () => OTRO } },
+            paramMap: of({ get: () => OTRO }),
           },
         },
         {
@@ -119,21 +135,15 @@ describe('PerfilMiembro · refactor de la vista', () => {
         },
         { provide: GameDataStore, useValue: { status: signal('ready'), championById: signal(new Map()) } },
         {
+          // El cruce es un filtro del historial personal; los récords, su resumen.
           provide: MatchHistoryStore,
-          useValue: {
-            status: signal('ready'),
-            allMatches: signal(matches),
-            allPersonalMatches: signal(matches),
-            crossWith: (playerId: string) => {
-              const all = buildCrossMatches(matches, playerId);
-              return {
-                all,
-                allies: all.filter((c) => c.relation === 'ally'),
-                enemies: all.filter((c) => c.relation === 'enemy'),
-              };
+          useValue: fakeMatchHistoryStore({
+            personal: matches,
+            summaries: {
+              ally: { totalMatches: 1, wins: 1, losses: 0 },
+              enemy: { totalMatches: 1, wins: 1, losses: 0 },
             },
-            crossPartners: signal([]),
-          },
+          }),
         },
         // El `MatchHistoryStore` real se reproyecta sobre estos dos: sin ellos su `status()`
         // se queda en 'loading' y la vista enseña esqueleto, que es justo lo que debe hacer.
@@ -203,17 +213,22 @@ describe('PerfilMiembro · refactor de la vista', () => {
    * partidas. Antes las tres llevaban al mismo sitio, así que dos de los tres controles
    * prometían cosas distintas y hacían lo mismo.
    */
+  /*
+   * Los tres controles llevan al mismo jugador por su `userId`, que es lo que entiende el
+   * parámetro `with=` del endpoint. Antes viajaba su Riot ID, que ni lo acepta el backend ni
+   * identifica a nadie de forma estable.
+   */
   it('las fichas llevan a las medias de su lado y el chip al historial cruzado', async () => {
     const { el } = await montar();
 
     const synergy = el.querySelector<HTMLAnchorElement>('a.pf-vs-tile--synergy');
-    expect(synergy?.getAttribute('href')).toContain('/app/synergy/');
+    expect(synergy?.getAttribute('href')).toBe(`/app/jugador/${OTRO}/juntos`);
 
     const versus = el.querySelector<HTMLAnchorElement>('a.pf-vs-tile--rivalry');
-    expect(versus?.getAttribute('href')).toContain('/app/versus/');
+    expect(versus?.getAttribute('href')).toBe(`/app/jugador/${OTRO}/contra`);
 
     const chipHistorial = el.querySelector<HTMLAnchorElement>('a.pf-meta-chip--action');
-    expect(chipHistorial?.getAttribute('href')).toContain('/app/historial-cruzado/');
+    expect(chipHistorial?.getAttribute('href')).toBe(`/app/jugador/${OTRO}`);
     expect(chipHistorial?.textContent?.trim()).toBe('Historial cruzado');
   });
 

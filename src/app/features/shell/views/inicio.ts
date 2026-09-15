@@ -12,7 +12,13 @@ import { Router } from '@angular/router';
 import { NfBadge, NfButton, NfSkeleton } from '../../../ui';
 import { Session } from '../../../core/auth';
 import { GroupsStore, GroupView } from '../../../core/groups';
-import { Match, MatchHistoryStore, MatchParticipant, nemesisOf } from '../../../core/matches';
+import { GameDataStore } from '../../../core/game-data';
+import {
+  MatchHistoryStore,
+  MatchParticipant,
+  participantName,
+  participantsOf,
+} from '../../../core/matches';
 import { LeaguesStore } from '../../../core/leagues';
 import { LobbiesStore } from '../../../core/lobbies';
 import { hash } from '../../../core/group-ranking';
@@ -45,33 +51,21 @@ interface SlotView {
   riotId?: string;
 }
 
+/**
+ * El MVP de la última partida del grupo.
+ *
+ * Lo decide el BACKEND y viaja en la fila (`mvpUserId`): no se recalcula aquí, o esta tarjeta y
+ * el historial acabarían nombrando a dos personas distintas. `null` cuando no hay partidas, o
+ * cuando la última no se subió y por tanto no tiene MVP.
+ */
 interface MvpHighlight {
+  userId: string;
   name: string;
   initials: string;
-  champion: string;
-  kda: string;
-  quote: string;
-  riotId: string;
-}
-
-interface NemesisHighlight {
-  name: string;
-  initials: string;
-  record: string;
-  callout: string;
-  riotId: string;
-  myWins: number;
-  myLosses: number;
-  myWinrate: number;
-}
-
-export interface GroupHighlightItem {
-  id: 'damage' | 'streak' | 'duel';
-  label: string;
-  value: string;
-  sublabel: string;
-  matchId?: string;
-  riotId?: string;
+  champion: string | null;
+  kda: string | null;
+  lane: string;
+  matchId: string;
 }
 
 export interface LpChartPoint {
@@ -149,10 +143,6 @@ const MATCH_TIMESTAMPS = [
   '1 sep 2026, 16:15 (CEST)',
 ];
 
-function matchParticipants(m: Match): MatchParticipant[] {
-  return [...m.blueTeam.participants, ...m.redTeam.participants];
-}
-
 function cleanRiotName(riotId: string | null | undefined, fallback: string): string {
   if (!riotId) return fallback;
   return riotId.split('#')[0] || riotId;
@@ -189,6 +179,7 @@ export class Inicio {
   readonly leaguesStore = inject(LeaguesStore);
   private readonly lobbies = inject(LobbiesStore);
   private readonly matchHistoryStore = inject(MatchHistoryStore);
+  private readonly gameData = inject(GameDataStore);
   private readonly router = inject(Router);
 
   /** El usuario autenticado (identidad real). */
@@ -235,6 +226,10 @@ export class Inicio {
       if (g) {
         untracked(() => {
           this.leaguesStore.ensureLoaded(g.id);
+          this.gameData.ensureLoaded();
+          // La tarjeta de MVP necesita la última partida del grupo, y el store ya trae una
+          // muestra para las superficies que no son una lista. Idempotente por grupo.
+          void this.matchHistoryStore.ensureGroupSample({ id: g.id, name: g.name });
         });
       }
     });
@@ -656,117 +651,50 @@ export class Inicio {
     return Math.min(100, Math.round((room.seats.length / room.capacity) * 100));
   });
 
-  /** MVP de la última custom del grupo o global. */
+  /**
+   * El MVP de la última partida del grupo activo.
+   *
+   * Sale de `GET /groups/{id}/matches`: el servidor decide quién es y lo manda en la fila. Antes
+   * esta tarjeta además le ponía una frase de una lista de cuatro citas elegida con el código
+   * del primer carácter del id —«Remontada heroica en el minuto 28 con robo de dragón anciano»—
+   * que se leía como una crónica de esa partida y describía a cualquier otra igual de bien.
+   */
   readonly lastMvp = computed<MvpHighlight | null>(() => {
-    const g = this.activeGroup();
-    const groupMatches = g ? this.matchHistoryStore.matchesByGroup(g.id) : [];
-    const allMatches = groupMatches.length ? groupMatches : this.matchHistoryStore.allPersonalMatches();
-    if (!allMatches.length) return null;
+    const match = this.matchHistoryStore.groupSample()[0];
+    if (!match?.mvpUserId) return null;
 
-    const m = allMatches[0];
-    const participants = matchParticipants(m);
-    const mvp = participants.find((p) => p.id === m.mvpParticipantId) ?? participants[0];
+    const mvp = participantsOf(match).find((p) => p.userId === match.mvpUserId);
     if (!mvp) return null;
 
-    const rawName = cleanRiotName(mvp.riotId, 'MVP');
-    const kills = mvp.stats.kills;
-    const deaths = mvp.stats.deaths;
-    const assists = mvp.stats.assists;
-
-    const quotes = [
-      'Remontada heroica en el minuto 28 con robo de dragón anciano.',
-      'Control total del mapa y dominio indiscutible en fase de líneas.',
-      'Impacto decisivo en peleas grupales asegurando la victoria.',
-      'Actuación impecable liderando el daño total de la partida.',
-    ];
-    const quote = quotes[Math.abs(m.id.charCodeAt(0) ?? 0) % quotes.length];
-
+    const name = cleanRiotName(participantName(mvp), 'MVP');
     return {
-      name: rawName,
-      initials: rawName.substring(0, 2).toUpperCase(),
-      champion: mvp.championName || 'Akali',
-      kda: `${kills}/${deaths}/${assists} KDA (${mvp.role})`,
-      quote,
-      riotId: mvp.riotId || rawName,
+      userId: mvp.userId,
+      name,
+      initials: name.substring(0, 2).toUpperCase(),
+      champion: this.championNameOf(mvp),
+      kda: kdaTextOf(mvp),
+      lane: mvp.role,
+      matchId: match.id,
     };
   });
 
-  /** Highlights y récords semanales del grupo con acción interactiva. */
-  readonly highlights = computed<GroupHighlightItem[]>(() => {
-    const g = this.activeGroup();
-    const groupMatches = g ? this.matchHistoryStore.matchesByGroup(g.id) : [];
-    const allMatches = groupMatches.length ? groupMatches : this.matchHistoryStore.allPersonalMatches();
-    const firstMatch = allMatches[0];
+  /** Solo el catálogo sabe el nombre del campeón: el asiento trae el id y nada más. */
+  private championNameOf(p: MatchParticipant): string | null {
+    if (p.championId == null) return null;
+    return this.gameData.championById().get(p.championId)?.name ?? `Campeón ${p.championId}`;
+  }
 
-    // Buscar la mayor racha activa en la clasificación del grupo
-    const rows = this.leaguesStore.rows();
-    const topStreakRow = rows.length
-      ? [...rows].filter((r) => r.streakType === 'WIN').sort((a, b) => b.streakCount - a.streakCount)[0]
-      : null;
-
-    const streakPlayer = topStreakRow ? cleanRiotName(topStreakRow.riotId, 'daxlup') : 'daxlup';
-    const streakWins = topStreakRow ? topStreakRow.streakCount : 6;
-
-    return [
-      {
-        id: 'damage',
-        label: 'Mayor daño registrado',
-        value: allMatches.length > 0 ? '54.2k dmg (daxlup)' : '52.1k dmg (daxlup)',
-        sublabel: 'Partida récord de la semana',
-        matchId: firstMatch?.id || 'match-1',
-      },
-      {
-        id: 'streak',
-        label: 'Racha récord del grupo',
-        value: `${streakPlayer} · W${streakWins} victorias`,
-        sublabel: 'Mejor racha activa',
-      },
-      {
-        id: 'duel',
-        label: 'Duelo más disputado',
-        value: 'daxlup vs EduUC (8-7)',
-        sublabel: '15 enfrentamientos directos',
-        riotId: 'EduUC',
-      },
-    ];
-  });
-
-  /** Mayor Némesis del usuario para aumentar el pique competitivo. */
-  readonly nemesisHighlight = computed<NemesisHighlight | null>(() => {
-    const partners = this.matchHistoryStore.crossPartners();
-    const nemesis = nemesisOf(partners);
-
-    if (nemesis && nemesis.enemies.length > 0) {
-      const name = cleanRiotName(nemesis.riotId, 'Rival');
-      const total = nemesis.enemies.length;
-      const wins = nemesis.enemies.filter((m) => m.match.userOutcome === 'win').length;
-      const losses = total - wins;
-      const wr = Math.round((wins / total) * 100);
-
-      return {
-        name,
-        initials: name.substring(0, 2).toUpperCase(),
-        record: `${wins}V - ${losses}D (${wr}% WR)`,
-        callout: `Tu mayor rival en customs. Te ha ganado ${losses} de ${total} enfrentamientos.`,
-        riotId: nemesis.riotId,
-        myWins: wins,
-        myLosses: losses,
-        myWinrate: wr,
-      };
-    }
-
-    // Fallback de demostración si aún no hay historial cruzado
-    return {
-      name: 'daxlup',
-      initials: 'DA',
-      record: '4V - 2D (67% WR)',
-      callout: 'Tu mayor rival en customs. Tienes 4 victorias y 2 derrotas frente a él.',
-      riotId: 'daxlup#EUW',
-      myWins: 4,
-      myLosses: 2,
-      myWinrate: 67,
-    };
-  });
+  /**
+   * BACKEND NOTE: aquí vivían «Tu Mayor Némesis» y los «Highlights del Grupo». Los dos se
+   * retiraron al conectar el historial, y no por falta de sitio:
+   *
+   * - La némesis salía de recorrer el historial entero en el cliente. Con la paginación en
+   *   servidor eso ya no existe, y sacarla de la última página sería nombrar rival a quien
+   *   aparezca en seis partidas. Es una superficie analítica propia y se sirve aparte
+   *   (issue #69, §8).
+   * - Los highlights estaban escritos a mano: «54.2k dmg (daxlup)» y «daxlup vs EduUC (8-7)»
+   *   eran literales, los mismos en todos los grupos y en todas las semanas.
+   */
 
   /** Lleva al Tablón del grupo activo, que es donde se convoca. */
   crearPartida(): void {
@@ -781,35 +709,21 @@ export class Inicio {
     this.router.navigate(['/app', 'grupos', g.id, 'sala', salaId]);
   }
 
-  /** Navega al perfil de un jugador (MVP, etc.). */
-  verPerfil(riotId: string): void {
-    if (!riotId) return;
-    this.router.navigate(['/app', 'perfil', encodeURIComponent(riotId)]);
+  /** Navega al perfil de un jugador, por su id estable. */
+  verPerfil(userId: string): void {
+    if (!userId) return;
+    this.router.navigate(['/app', 'perfil', userId]);
   }
 
-  /** Navega al cara a cara / versus contra el Némesis. */
-  retarNemesis(riotId: string): void {
-    this.router.navigate(['/app', 'versus', encodeURIComponent(riotId)]);
+  /** Abre la partida en la que se decidió ese MVP. */
+  verPartida(matchId: string): void {
+    if (!matchId) return;
+    this.router.navigate(['/app', 'historial', matchId]);
   }
+}
 
-  /** Navega según el highlight pulsado. */
-  onHighlightClick(item: GroupHighlightItem): void {
-    const g = this.activeGroup();
-    if (item.id === 'damage') {
-      if (item.matchId) {
-        this.router.navigate(['/app', 'historial', item.matchId]);
-      } else {
-        this.router.navigate(['/app', 'historial']);
-      }
-    } else if (item.id === 'streak') {
-      if (g) {
-        this.router.navigate(['/app', 'grupos', g.id, 'ranking']);
-      } else {
-        this.router.navigate(['/app', 'grupos']);
-      }
-    } else if (item.id === 'duel') {
-      const target = item.riotId || 'EduUC';
-      this.router.navigate(['/app', 'versus', encodeURIComponent(target)]);
-    }
-  }
+/** «12/3/8», o `null` si nadie subió la partida: un 0/0/0 se leería como una partida real. */
+function kdaTextOf(p: MatchParticipant): string | null {
+  if (p.stats.kills == null) return null;
+  return `${p.stats.kills}/${p.stats.deaths}/${p.stats.assists}`;
 }

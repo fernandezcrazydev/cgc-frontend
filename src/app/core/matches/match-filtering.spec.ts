@@ -1,270 +1,129 @@
 import { describe, expect, it } from 'vitest';
-import { buildCrossMatches } from './cross-history';
 import {
   EMPTY_FILTERS,
-  MatchFilterState,
-  filterCrossMatches,
-  filterGroupMatches,
-  filterPersonalMatches,
-  sortCrossMatches,
-  sortMatches,
+  MAX_PAGE_SIZE,
+  activeFilterCount,
+  groupMatchQuery,
+  normalizeForSearch,
+  personalMatchQuery,
+  personalSummaryQuery,
+  sortParam,
 } from './match-filtering';
-import { Match, MatchParticipant, TeamSide, TeamSummary } from './models';
 
-/**
- * Partidas mínimas construidas a mano: estas funciones son permanentes (sobreviven al
- * backend como forma de los query params), así que sus tests no deben depender de la semilla,
- * que es desechable.
- */
-function participant(over: Partial<MatchParticipant> & { id: string; team: TeamSide }): MatchParticipant {
-  return {
-    userId: null,
-    riotId: 'Jugador#LAN',
-    isGuest: false,
-    role: 'MID',
-    championId: 1,
-    championName: 'Campeón',
-    championLevel: 18,
-    wasAutofill: false,
-    lpDelta: 0,
-    stats: {
-      kills: 1,
-      deaths: 1,
-      assists: 1,
-      cs: 100,
-      csPerMin: 5,
-      gold: 10000,
-      totalDamageToChampions: 10000,
-      damageSharePercentage: 20,
-      damageTaken: 10000,
-      visionScore: 10,
-      wardsPlaced: 5,
-      wardsKilled: 1,
-      items: [],
-      spells: [4, 12],
-    },
-    ...over,
-  };
-}
-
-function team(side: TeamSide, won: boolean, participants: MatchParticipant[]): TeamSummary {
-  return {
-    side,
-    won,
-    totalKills: 10,
-    totalDeaths: 10,
-    totalAssists: 20,
-    totalGold: 50000,
-    totalDamage: 50000,
-    dragons: 1,
-    barons: 0,
-    towers: 5,
-    participants,
-  };
-}
-
-function match(over: {
-  id: string;
-  groupId?: string;
-  decidedAt?: string;
-  durationSeconds?: number;
-  winningTeam?: TeamSide;
-  blue: MatchParticipant[];
-  red: MatchParticipant[];
-  userParticipant?: MatchParticipant;
-}): Match {
-  const winningTeam = over.winningTeam ?? 'blue';
-  const user = over.userParticipant;
-  return {
-    id: over.id,
-    groupId: over.groupId ?? 'g1',
-    group: {
-      id: over.groupId ?? 'g1',
-      name: 'LAN Challenger',
-      tag: 'LAN',
-      initials: 'LC',
-      color1: '#000',
-      color2: '#111',
-    },
-    source: 'manual',
-    durationSeconds: over.durationSeconds ?? 1800,
-    decidedAt: over.decidedAt ?? '2026-06-23T21:00:00Z',
-    winningTeam,
-    blueTeam: team('blue', winningTeam === 'blue', over.blue),
-    redTeam: team('red', winningTeam === 'red', over.red),
-    userParticipant: user,
-    userOutcome: user ? (user.team === winningTeam ? 'win' : 'loss') : undefined,
-  };
-}
-
-const withFilters = (over: Partial<MatchFilterState>): MatchFilterState => ({
-  ...EMPTY_FILTERS,
-  ...over,
-});
-
-const me = participant({ id: 'me', team: 'blue', riotId: 'N1ghtfang#LAN', role: 'MID', championId: 103 });
-const rival = participant({ id: 'rival', team: 'red', riotId: 'Pyro#LAN', role: 'TOP', championId: 86 });
-
-const played = match({ id: 'm1', blue: [me], red: [rival], userParticipant: me });
-const notPlayed = match({
-  id: 'm2',
-  winningTeam: 'red',
-  blue: [participant({ id: 'x', team: 'blue', role: 'ADC', championId: 222 })],
-  red: [participant({ id: 'y', team: 'red' })],
-});
-
-describe('filterPersonalMatches', () => {
-  it('mide rol y campeón contra TU participante, no contra los diez', () => {
-    // El rival jugó TOP con Garen; filtrar por eso no debe devolver la partida.
-    expect(filterPersonalMatches([played], withFilters({ role: 'TOP' }))).toEqual([]);
-    expect(filterPersonalMatches([played], withFilters({ championId: 86 }))).toEqual([]);
-
-    expect(filterPersonalMatches([played], withFilters({ role: 'MID' }))).toEqual([played]);
-    expect(filterPersonalMatches([played], withFilters({ championId: 103 }))).toEqual([played]);
-  });
-
-  it('filtra por grupo y por resultado', () => {
-    expect(filterPersonalMatches([played], withFilters({ groupId: 'otro' }))).toEqual([]);
-    expect(filterPersonalMatches([played], withFilters({ outcome: 'win' }))).toEqual([played]);
-    expect(filterPersonalMatches([played], withFilters({ outcome: 'loss' }))).toEqual([]);
-  });
-
-  it('la búsqueda libre mira jugador, campeón y grupo', () => {
-    expect(filterPersonalMatches([played], withFilters({ searchQuery: 'pyro' }))).toEqual([played]);
-    expect(filterPersonalMatches([played], withFilters({ searchQuery: 'challenger' }))).toEqual([played]);
-    expect(filterPersonalMatches([played], withFilters({ searchQuery: 'nada' }))).toEqual([]);
+describe('sortParam', () => {
+  /*
+   * El servidor solo admite `playedAt`, `duration` y `kills`, y cualquier otra cosa es un
+   * `400 UNSORTABLE_MATCH_FIELD` — no un silencio que devuelva otro orden. Por eso la
+   * traducción vive en un solo sitio y es total sobre `MatchSortBy`.
+   */
+  it('traduce cada opción del desplegable a un campo de la lista blanca', () => {
+    expect(sortParam('date-desc')).toBe('playedAt,desc');
+    expect(sortParam('date-asc')).toBe('playedAt,asc');
+    expect(sortParam('duration-desc')).toBe('duration,desc');
+    expect(sortParam('kills-desc')).toBe('kills,desc');
   });
 });
 
-describe('filterGroupMatches', () => {
-  it('mide el campeón contra los diez participantes, no contra ti', () => {
-    // Aquí sí: es el registro colectivo. El rival jugó Garen (86) y la partida cuenta.
-    expect(filterGroupMatches([played], withFilters({ championId: 86 }))).toEqual([played]);
-    expect(filterGroupMatches([played], withFilters({ championId: 222 }))).toEqual([]);
-  });
-
-  it('ignora el filtro de posición: contra los diez no descarta nada', () => {
-    // Un 5v5 completo cubre siempre las cinco posiciones, así que medir `role` contra los diez
-    // participantes devuelve la lista entera para cualquier valor. Por eso la vista de grupo ya
-    // no pinta ese control: estuvo ahí, con su chip de «filtro puesto», sin efecto ninguno.
-    const list = [played, notPlayed];
-    for (const role of ['TOP', 'JUNGLA', 'MID', 'ADC', 'SUPPORT'] as const) {
-      expect(filterGroupMatches(list, withFilters({ role }))).toEqual(list);
-    }
-  });
-
-  it('filtra por bando ganador en vez de por tu resultado', () => {
-    const list = [played, notPlayed];
-    expect(filterGroupMatches(list, withFilters({ winningSide: 'blue' }))).toEqual([played]);
-    expect(filterGroupMatches(list, withFilters({ winningSide: 'red' }))).toEqual([notPlayed]);
-  });
-
-  it('el filtro de participación separa las tuyas de las del resto del grupo', () => {
-    // El bug que se corrigió en su día: el filtro de resultado dejaba pasar SIEMPRE las
-    // partidas ajenas, así que «victorias» enseñaba tus victorias más todo lo demás.
-    const list = [played, notPlayed];
-
-    expect(filterGroupMatches(list, withFilters({ participation: 'all' }))).toHaveLength(2);
-    expect(filterGroupMatches(list, withFilters({ participation: 'mine' }))).toEqual([played]);
-    expect(filterGroupMatches(list, withFilters({ participation: 'others' }))).toEqual([notPlayed]);
-  });
-
-  it('«otras» y «mis partidas» son complementarios: ninguna se cuela en las dos', () => {
-    const list = [played, notPlayed];
-    const mine = filterGroupMatches(list, withFilters({ participation: 'mine' }));
-    const others = filterGroupMatches(list, withFilters({ participation: 'others' }));
-
-    expect(mine.length + others.length).toBe(list.length);
-    expect(mine.some((m) => others.includes(m))).toBe(false);
-  });
-});
-
-describe('sortMatches', () => {
-  const older = match({ id: 'old', decidedAt: '2026-06-01T10:00:00Z', durationSeconds: 3000, blue: [], red: [] });
-  const newer = match({ id: 'new', decidedAt: '2026-06-20T10:00:00Z', durationSeconds: 900, blue: [], red: [] });
-
-  it('ordena por fecha en los dos sentidos', () => {
-    expect(sortMatches([older, newer], 'date-desc').map((m) => m.id)).toEqual(['new', 'old']);
-    expect(sortMatches([older, newer], 'date-asc').map((m) => m.id)).toEqual(['old', 'new']);
-  });
-
-  it('ordena por duración', () => {
-    expect(sortMatches([newer, older], 'duration-desc').map((m) => m.id)).toEqual(['old', 'new']);
-  });
-
-  it('no muta la lista que recibe', () => {
-    const list = [older, newer];
-    sortMatches(list, 'date-desc');
-    expect(list.map((m) => m.id)).toEqual(['old', 'new']);
-  });
-});
-
-describe('filterCrossMatches', () => {
-  const yo = participant({ id: 'me', team: 'blue', riotId: 'N1ghtfang#LAN', role: 'MID', championId: 103 });
-  const RIVAL = 'Pix3lQueen#LAN';
-
-  const juntos = match({
-    id: 'juntos',
-    decidedAt: '2026-06-02T10:00:00Z',
-    blue: [yo, participant({ id: 'a', team: 'blue', riotId: RIVAL })],
-    red: [participant({ id: 'x', team: 'red' })],
-    userParticipant: yo,
-  });
-  const contra = match({
-    id: 'contra',
-    decidedAt: '2026-06-01T10:00:00Z',
-    winningTeam: 'red',
-    blue: [yo],
-    red: [participant({ id: 'b', team: 'red', riotId: RIVAL })],
-    userParticipant: yo,
-  });
-
-  const cross = buildCrossMatches([juntos, contra], RIVAL);
-
-  it('la relación es la dimensión propia del cruce y filtra por ella', () => {
-    expect(filterCrossMatches(cross, withFilters({ relation: 'ally' })).map((c) => c.id)).toEqual([
-      'juntos',
-    ]);
-    expect(filterCrossMatches(cross, withFilters({ relation: 'enemy' })).map((c) => c.id)).toEqual([
-      'contra',
-    ]);
-  });
-
-  it('la relación y el resultado son preguntas distintas y se combinan', () => {
-    // Juntos la ganaste; enfrentados la perdiste. Pedir «juntos y derrota» no da nada.
-    expect(filterCrossMatches(cross, withFilters({ relation: 'ally', outcome: 'loss' }))).toEqual([]);
-    expect(
-      filterCrossMatches(cross, withFilters({ relation: 'ally', outcome: 'win' })).map((c) => c.id),
-    ).toEqual(['juntos']);
-  });
-
-  it('la posición se mide contra TU participante, igual que en el historial personal', () => {
-    expect(filterCrossMatches(cross, withFilters({ role: 'MID' })).length).toBe(2);
-    expect(filterCrossMatches(cross, withFilters({ role: 'TOP' }))).toEqual([]);
-  });
-});
-
-describe('sortCrossMatches', () => {
-  it('ordena igual que la lista normal, sobre la partida que cada cruce envuelve', () => {
-    const yo = participant({ id: 'me', team: 'blue', riotId: 'N1ghtfang#LAN' });
-    const rival = (id: string) => participant({ id, team: 'red', riotId: 'Pix3lQueen#LAN' });
-    const viejo = match({
-      id: 'viejo',
-      decidedAt: '2026-01-01T10:00:00Z',
-      blue: [yo],
-      red: [rival('r1')],
-      userParticipant: yo,
+describe('groupMatchQuery', () => {
+  it('no manda lo que está sin poner', () => {
+    expect(groupMatchQuery(EMPTY_FILTERS, 0, 6)).toEqual({
+      page: 0,
+      size: 6,
+      sort: 'playedAt,desc',
     });
-    const nuevo = match({
-      id: 'nuevo',
-      decidedAt: '2026-06-01T10:00:00Z',
-      blue: [yo],
-      red: [rival('r2')],
-      userParticipant: yo,
-    });
-    const cross = buildCrossMatches([viejo, nuevo], 'Pix3lQueen#LAN');
+  });
 
-    expect(sortCrossMatches(cross, 'date-asc').map((c) => c.id)).toEqual(['viejo', 'nuevo']);
-    expect(sortCrossMatches(cross, 'date-desc').map((c) => c.id)).toEqual(['nuevo', 'viejo']);
+  /*
+   * La distinción que motiva que haya dos tipos de consulta: `outcome` dice cómo TE fue y
+   * `winningSide` qué bando ganó. No son la misma pregunta, y confundirlas costó un bug real
+   * —«Victorias» enseñaba tus victorias MÁS todas las partidas ajenas—.
+   */
+  it('no lleva outcome ni lane, que son de la lista personal', () => {
+    const q = groupMatchQuery(
+      { ...EMPTY_FILTERS, outcome: 'win', lane: 'MID', winningSide: 'red' },
+      0,
+      6,
+    );
+
+    expect(q).not.toHaveProperty('outcome');
+    expect(q).not.toHaveProperty('lane');
+    expect(q.winningSide).toBe('RED');
+  });
+
+  /** Pedir más del tope no devuelve más: se recorta, y la vista se creería con página completa. */
+  it('recorta el tamaño de página al tope del servidor', () => {
+    expect(groupMatchQuery(EMPTY_FILTERS, 0, 500).size).toBe(MAX_PAGE_SIZE);
+  });
+
+  it('la búsqueda libre viaja recortada, y en blanco no viaja', () => {
+    expect(groupMatchQuery({ ...EMPTY_FILTERS, searchQuery: '  ahri ' }, 0, 6).q).toBe('ahri');
+    expect(groupMatchQuery({ ...EMPTY_FILTERS, searchQuery: '   ' }, 0, 6)).not.toHaveProperty('q');
+  });
+});
+
+describe('personalMatchQuery', () => {
+  it('no lleva winningSide ni participation, que son de la lista de grupo', () => {
+    const q = personalMatchQuery(
+      { ...EMPTY_FILTERS, winningSide: 'blue', participation: 'others', outcome: 'loss' },
+      0,
+      6,
+    );
+
+    expect(q).not.toHaveProperty('winningSide');
+    expect(q).not.toHaveProperty('participation');
+    expect(q.outcome).toBe('LOSS');
+  });
+
+  it('el cruce añade with y, si la hay, la relación', () => {
+    const conRelacion = personalMatchQuery(EMPTY_FILTERS, 0, 5, {
+      with: 'rival',
+      relation: 'ally',
+    });
+    expect(conRelacion.with).toBe('rival');
+    expect(conRelacion.relation).toBe('ALLY');
+
+    const sinRelacion = personalMatchQuery(EMPTY_FILTERS, 0, 5, { with: 'rival', relation: 'all' });
+    expect(sinRelacion.with).toBe('rival');
+    expect(sinRelacion).not.toHaveProperty('relation');
+  });
+
+  /** El resumen acepta los mismos filtros que el listado: es lo que da el recuento del cruce. */
+  it('el resumen lleva los mismos filtros, sin paginación', () => {
+    const q = personalSummaryQuery({ ...EMPTY_FILTERS, lane: 'ADC' }, { with: 'x' });
+    expect(q.lane).toBe('ADC');
+    expect(q.with).toBe('x');
+    expect(q).not.toHaveProperty('page');
+    expect(q).not.toHaveProperty('sort');
+  });
+});
+
+describe('activeFilterCount', () => {
+  it('cuenta solo los controles que existen en ese modo', () => {
+    const f = {
+      ...EMPTY_FILTERS,
+      championId: 103,
+      winningSide: 'blue' as const,
+      outcome: 'win' as const,
+      lane: 'MID' as const,
+    };
+
+    // En grupo no hay resultado ni posición: campeón + bando ganador.
+    expect(activeFilterCount(f, 'group')).toBe(2);
+    // En personal no hay bando ganador: campeón + resultado + posición.
+    expect(activeFilterCount(f, 'personal')).toBe(3);
+    // El cruzado añade la relación cuando está puesta.
+    expect(activeFilterCount({ ...f, relation: 'ally' }, 'cross')).toBe(4);
+  });
+
+  it('sin filtros puestos cuenta cero', () => {
+    expect(activeFilterCount(EMPTY_FILTERS, 'group')).toBe(0);
+    expect(activeFilterCount(EMPTY_FILTERS, 'personal')).toBe(0);
+  });
+});
+
+describe('normalizeForSearch', () => {
+  it('reduce el texto a su esqueleto comparable', () => {
+    expect(normalizeForSearch("Kai'Sa")).toBe('kaisa');
+    expect(normalizeForSearch('N1ghtfang#LAN')).toBe('n1ghtfanglan');
   });
 });

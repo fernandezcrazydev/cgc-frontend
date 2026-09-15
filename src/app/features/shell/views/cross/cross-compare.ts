@@ -1,18 +1,21 @@
-import {
-  CrossAggregate,
-  CrossMatch,
-  contributionOf,
-  damageShare,
-  kdaRatio,
-} from '../../../../core/matches';
+import { CrossMatch, contributionOf, damageShare, kdaRatio } from '../../../../core/matches';
 import { formatCompact, formatNumber } from '../../../../shared/date-format';
 
 /**
- * Una métrica enfrentada entre los dos jugadores, ya lista para pintar.
+ * Una métrica enfrentada entre los dos jugadores **dentro de una misma partida**, ya lista para
+ * pintar.
  *
  * Las dos mitades de la barra son la proporción de cada uno sobre la suma, no un porcentaje
  * absoluto: lo que se lee de un vistazo es quién sacó más, y cuánto más. En todas las métricas
  * de esta lista más es mejor, así que el ganador es siempre el valor mayor.
+ *
+ * ## Por qué ya no hay una versión «de medias»
+ *
+ * `aggregateMetricRows` comparaba vuestras medias a lo largo de todo el cruce. Se calculaba
+ * sobre el historial entero, que era posible cuando el cliente lo tenía en memoria; con la
+ * paginación en servidor solo hay una página, y promediarla y llamarlo «de media le sacas 320»
+ * sería una cifra inventada con aspecto de medida. Es una superficie analítica propia y se
+ * sirve aparte (issue #69, §8).
  */
 export interface CrossMetricRow {
   key: string;
@@ -26,9 +29,8 @@ export interface CrossMetricRow {
   theirsPct: number;
   winner: 'me' | 'them' | 'tie';
   /**
-   * Los dos a cero. No es un empate: es que esa métrica no la trae ninguna de las partidas del
-   * conjunto. La barra se pinta igual para que la fila conserve su altura, pero el consumidor
-   * necesita poder decir que ahí no se ha medido nada.
+   * Ninguno de los dos trae esa métrica. No es un empate: es que nadie la midió. La barra se
+   * pinta igual para que la fila conserve su altura, pero el consumidor necesita poder decirlo.
    */
   noData: boolean;
 }
@@ -40,33 +42,31 @@ export interface CrossMetricRow {
  * lista se ojea y la página se estudia: si el desplegable enseñara las diez, la lista sería una
  * pared de datos y la página no tendría razón de existir — es la misma regla que ya sigue la
  * alineación del historial normal.
+ *
+ * **Una fila cuyos dos lados están ausentes no se pinta.** Sin subida, eso son casi todas, y
+ * una lista de «—» contra «—» ocupa el sitio sin decir nada.
  */
 export function crossMetricRows(c: CrossMatch, extended = false): CrossMetricRow[] {
   const mine = c.me.stats;
   const theirs = c.them.stats;
+  const duration = c.match.durationSeconds;
 
   const rows: CrossMetricRow[] = [
     row('kda', 'K/D/A', kdaRatio(mine), kdaRatio(theirs), {
-      mineText: `${mine.kills}/${mine.deaths}/${mine.assists}`,
-      theirsText: `${theirs.kills}/${theirs.deaths}/${theirs.assists}`,
-      mineSub: `${kdaRatio(mine).toFixed(2)} KDA`,
-      theirsSub: `${kdaRatio(theirs).toFixed(2)} KDA`,
+      mineText: kdaText(mine),
+      theirsText: kdaText(theirs),
+      mineSub: ratioText(kdaRatio(mine)),
+      theirsSub: ratioText(kdaRatio(theirs)),
     }),
-    row(
-      'damage',
-      'Daño a campeones',
-      mine.totalDamageToChampions,
-      theirs.totalDamageToChampions,
-      {
-        mineText: formatCompact(mine.totalDamageToChampions),
-        theirsText: formatCompact(theirs.totalDamageToChampions),
-        mineSub: `${damageShare(c.me, c.myTeam)} % de su equipo`,
-        theirsSub: `${damageShare(c.them, c.theirTeam)} % de su equipo`,
-      },
-    ),
-    row('cs', 'CS por minuto', mine.csPerMin, theirs.csPerMin, {
-      mineText: mine.csPerMin.toFixed(1),
-      theirsText: theirs.csPerMin.toFixed(1),
+    row('damage', 'Daño a campeones', mine.damageToChampions, theirs.damageToChampions, {
+      mineText: amount(mine.damageToChampions),
+      theirsText: amount(theirs.damageToChampions),
+      mineSub: shareText(damageShare(c.me, c.myTeam)),
+      theirsSub: shareText(damageShare(c.them, c.theirTeam)),
+    }),
+    row('cs', 'CS por minuto', perMin(mine.cs, duration), perMin(theirs.cs, duration), {
+      mineText: decimalText(perMin(mine.cs, duration)),
+      theirsText: decimalText(perMin(theirs.cs, duration)),
     }),
   ];
 
@@ -83,63 +83,40 @@ export function crossMetricRows(c: CrossMatch, extended = false): CrossMetricRow
 
   rows.push(
     row('vision', 'Puntos de visión', mine.visionScore, theirs.visionScore, {
-      mineText: String(mine.visionScore),
-      theirsText: String(theirs.visionScore),
+      mineText: plainText(mine.visionScore),
+      theirsText: plainText(theirs.visionScore),
     }),
   );
 
-  if (!extended) return rows;
+  if (extended) {
+    const myShare = contributionOf(c.me, c.myTeam);
+    const theirShare = contributionOf(c.them, c.theirTeam);
 
-  const myShare = contributionOf(c.me, c.myTeam);
-  const theirShare = contributionOf(c.them, c.theirTeam);
+    rows.push(
+      row(
+        'kp',
+        'Participación en bajas',
+        myShare.killParticipation,
+        theirShare.killParticipation,
+        {
+          mineText: shareText(myShare.killParticipation) ?? '—',
+          theirsText: shareText(theirShare.killParticipation) ?? '—',
+        },
+      ),
+      row('gold', 'Oro total', mine.gold, theirs.gold, {
+        mineText: amount(mine.gold),
+        theirsText: amount(theirs.gold),
+        mineSub: shareText(myShare.gold),
+        theirsSub: shareText(theirShare.gold),
+      }),
+      row('tanked', 'Daño recibido', mine.damageTaken, theirs.damageTaken, {
+        mineText: amount(mine.damageTaken),
+        theirsText: amount(theirs.damageTaken),
+      }),
+    );
+  }
 
-  rows.push(
-    row('kp', 'Participación en bajas', myShare.killParticipation, theirShare.killParticipation, {
-      mineText: `${myShare.killParticipation} %`,
-      theirsText: `${theirShare.killParticipation} %`,
-    }),
-    row('gold', 'Oro total', mine.gold, theirs.gold, {
-      mineText: formatCompact(mine.gold),
-      theirsText: formatCompact(theirs.gold),
-      mineSub: `${myShare.gold} % de su equipo`,
-      theirsSub: `${theirShare.gold} % de su equipo`,
-    }),
-    row('tanked', 'Daño recibido', mine.damageTaken, theirs.damageTaken, {
-      mineText: formatCompact(mine.damageTaken),
-      theirsText: formatCompact(theirs.damageTaken),
-    }),
-  );
-
-  return rows;
-}
-
-/**
- * Las mismas métricas, pero promediadas sobre un conjunto de partidas: es lo que convierte
- * «esa vez le sacaste 700 de oro» en «de media le sacas 320». Se pinta con las mismas filas
- * y las mismas barras que la comparativa de una partida a propósito — es el mismo gesto de
- * lectura en las dos pantallas.
- */
-export function aggregateMetricRows(a: CrossAggregate): CrossMetricRow[] {
-  return [
-    // No es la media de los KDA de cada partida, sino el KDA del conjunto: suma de bajas y
-    // asistencias entre suma de muertes. Llamarlo «medio» decía otra cosa.
-    row('kda', 'KDA acumulado', a.kdaMe, a.kdaThem, {
-      mineText: a.kdaMe.toFixed(2),
-      theirsText: a.kdaThem.toFixed(2),
-    }),
-    row('damage', 'Cuota de daño en su equipo', a.damageShareMe, a.damageShareThem, {
-      mineText: `${a.damageShareMe} %`,
-      theirsText: `${a.damageShareThem} %`,
-    }),
-    row('cs', 'CS por minuto', a.csPerMinMe, a.csPerMinThem, {
-      mineText: a.csPerMinMe.toFixed(1),
-      theirsText: a.csPerMinThem.toFixed(1),
-    }),
-    row('vision', 'Puntos de visión', a.visionMe, a.visionThem, {
-      mineText: String(a.visionMe),
-      theirsText: String(a.visionThem),
-    }),
-  ];
+  return rows.filter((r) => !r.noData);
 }
 
 interface RowText {
@@ -149,19 +126,22 @@ interface RowText {
   theirsSub?: string;
 }
 
+/**
+ * `null`/`undefined` en cualquiera de los dos lados marca la fila como «sin datos». Un cero SÍ
+ * es un dato —cero puntos de visión es una partida real— y por eso se distinguen.
+ */
 function row(
   key: string,
   label: string,
-  mine: number,
-  theirs: number,
+  mine: number | null | undefined,
+  theirs: number | null | undefined,
   text: RowText,
 ): CrossMetricRow {
-  const total = mine + theirs;
-  // Sin datos (los dos a cero) la barra se reparte a medias en vez de desaparecer: así la fila
-  // conserva su altura y la lista no da un salto cuando llega una partida sin ese dato. Pero se
-  // marca como `noData`: un 50/50 se lee como «empatáis», y no es eso lo que dice el dato.
-  const noData = total === 0;
-  const minePct = noData ? 50 : Math.round((mine / total) * 100);
+  const noData = mine == null && theirs == null;
+  const a = mine ?? 0;
+  const b = theirs ?? 0;
+  const total = a + b;
+  const minePct = total === 0 ? 50 : Math.round((a / total) * 100);
 
   return {
     key,
@@ -169,7 +149,39 @@ function row(
     ...text,
     minePct,
     theirsPct: 100 - minePct,
-    winner: noData || mine === theirs ? 'tie' : mine > theirs ? 'me' : 'them',
+    winner: noData || a === b ? 'tie' : a > b ? 'me' : 'them',
     noData,
   };
+}
+
+function kdaText(stats: { kills?: number; deaths?: number; assists?: number }): string {
+  if (stats.kills == null) return '—';
+  return `${stats.kills}/${stats.deaths}/${stats.assists}`;
+}
+
+function ratioText(ratio: number | null): string | undefined {
+  return ratio === null ? undefined : `${ratio.toFixed(2)} KDA`;
+}
+
+function shareText(share: number | null): string | undefined {
+  return share === null ? undefined : `${share} % de su equipo`;
+}
+
+/** «—» y no «0»: lo que no se midió no es cero. */
+function amount(value: number | undefined): string {
+  return value == null ? '—' : formatCompact(value);
+}
+
+function plainText(value: number | undefined): string {
+  return value == null ? '—' : String(value);
+}
+
+function decimalText(value: number | null): string {
+  return value === null ? '—' : value.toFixed(1);
+}
+
+/** CS por minuto, derivado: el DTO trae los CS y la duración, no el ratio. */
+function perMin(cs: number | undefined, durationSeconds: number | null): number | null {
+  if (cs == null || !durationSeconds) return null;
+  return +((cs / durationSeconds) * 60).toFixed(1);
 }

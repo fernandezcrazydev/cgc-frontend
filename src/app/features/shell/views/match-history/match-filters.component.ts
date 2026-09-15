@@ -1,17 +1,16 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
-import { CrossRelation } from '../../../../core/matches/cross-history';
-import { MatchHistoryStore } from '../../../../core/matches/match-history-store';
 import {
+  CrossRelation,
   MatchParticipation,
   MatchSortBy,
   SORT_OPTIONS,
   normalizeForSearch,
 } from '../../../../core/matches/match-filtering';
-import { laneLabel } from '../../../../core/matches/match-view';
 import { GameDataStore } from '../../../../core/game-data';
-import { GroupsStore } from '../../../../core/groups';
-import { Lane, Match, MatchGameMode, MatchLobbyType } from '../../../../core/matches/models';
+import { MATCHMAKING_PRESETS, MATCHMAKING_PRESET_INFO } from '../../../../core/groups';
+import { LeaguesStore } from '../../../../core/leagues';
+import { Lane, MatchPreset } from '../../../../core/matches/models';
 import {
   NfAvatar,
   NfButton,
@@ -25,9 +24,15 @@ import {
 import { Viewport } from '../../../../shared/viewport';
 import { MatchHistoryUiState } from './match-history-ui';
 
+/**
+ * Una sugerencia del buscador. **Solo de campeones**, y no por recorte: el catálogo está
+ * cargado en el cliente, así que se puede enumerar; los jugadores y los grupos que aparecen en
+ * tu historial no, porque la lista vive en el servidor. El texto libre sigue buscando los tres
+ * —lo resuelve el parámetro `q`—, lo que no se puede es sugerirlos antes de preguntar.
+ */
 interface SearchSuggestion {
   key: string;
-  type: 'champion' | 'player' | 'group';
+  type: 'champion';
   label: string;
   sub: string;
   iconUrl?: string | null;
@@ -64,7 +69,7 @@ interface SearchSuggestion {
             type="search"
             class="m-filters__search"
             autocomplete="off"
-            [placeholder]="searchPlaceholder()"
+            placeholder="Buscar jugador o campeón…"
             aria-label="Buscar en el historial"
             [value]="filters().searchQuery"
             (focus)="onSearchFocus()"
@@ -157,18 +162,18 @@ interface SearchSuggestion {
 
       @if (measuresMe()) {
         <div class="m-field">
-          <span class="m-field__label nf-mono" id="mf-role">Posición</span>
-          <div class="m-role-pills" role="radiogroup" aria-labelledby="mf-role">
-            @for (r of roleOptions; track r.value) {
+          <span class="m-field__label nf-mono" id="mf-lane">Posición</span>
+          <div class="m-role-pills" role="radiogroup" aria-labelledby="mf-lane">
+            @for (r of laneOptions; track r.value) {
               <button
                 type="button"
                 role="radio"
                 class="m-role-pill"
-                [class.is-active]="filters().role === r.value"
-                [attr.aria-checked]="filters().role === r.value"
+                [class.is-active]="filters().lane === r.value"
+                [attr.aria-checked]="filters().lane === r.value"
                 [attr.aria-label]="r.label"
-                [attr.tabindex]="filters().role === r.value ? 0 : -1"
-                (click)="setRole(r.value)"
+                [attr.tabindex]="filters().lane === r.value ? 0 : -1"
+                (click)="setLane(r.value)"
               >
                 @if (r.lane; as lane) {
                   <nf-lane-icon [lane]="lane" mode="tinted" />
@@ -211,41 +216,41 @@ interface SearchSuggestion {
         </div>
       }
 
-      <div class="m-field m-field--season">
-        <span class="m-field__label nf-mono">Temporada</span>
-        <nf-combobox
-          [options]="seasonOptions()"
-          [value]="filters().season"
-          (valueChange)="setSeason($event)"
-          [clearable]="false"
-          placeholder="Todas"
-          ariaLabel="Filtrar por temporada"
-        />
-      </div>
-
-      <div class="m-field m-field--mode">
+      <!--
+        La modalidad con la que se abrió la sala. Sustituye a los antiguos «Modalidad» y «Sala»:
+        «Room»/«Party» no existe en el backend, y el control estuvo ofreciendo un filtro por un
+        concepto que no es de nadie.
+      -->
+      <div class="m-field m-field--preset">
         <span class="m-field__label nf-mono">Modalidad</span>
         <nf-combobox
-          [options]="modeOptions"
-          [value]="filters().gameMode"
-          (valueChange)="setGameMode($event)"
+          [options]="presetOptions"
+          [value]="filters().preset"
+          (valueChange)="setPreset($event)"
           [clearable]="false"
           placeholder="Todas"
           ariaLabel="Filtrar por modalidad"
         />
       </div>
 
-      <div class="m-field m-field--lobby">
-        <span class="m-field__label nf-mono">Sala</span>
-        <nf-combobox
-          [options]="lobbyTypeOptions"
-          [value]="filters().lobbyType"
-          (valueChange)="setLobbyType($event)"
-          [clearable]="false"
-          placeholder="Todas"
-          ariaLabel="Filtrar por tipo de sala"
-        />
-      </div>
+      <!--
+        La temporada, solo donde se puede saber cuáles hay: las ligas se piden por grupo
+        (GET /groups/:id/leagues), así que en el historial personal —que cruza grupos— no hay
+        lista que ofrecer. Un desplegable vacío sería peor que ninguno.
+      -->
+      @if (leagueOptions().length > 1) {
+        <div class="m-field m-field--league">
+          <span class="m-field__label nf-mono">Temporada</span>
+          <nf-combobox
+            [options]="leagueOptions()"
+            [value]="filters().leagueId"
+            (valueChange)="setLeague($event)"
+            [clearable]="false"
+            placeholder="Todas"
+            ariaLabel="Filtrar por temporada"
+          />
+        </div>
+      }
 
       <div class="m-field m-field--champion">
         <span class="m-field__label nf-mono">Campeón</span>
@@ -258,20 +263,6 @@ interface SearchSuggestion {
           emptyText="Ningún campeón jugado coincide"
         />
       </div>
-
-      @if (showGroupFilter()) {
-        <div class="m-field m-field--group">
-          <span class="m-field__label nf-mono">Grupo</span>
-          <nf-combobox
-            [options]="groupComboboxOptions()"
-            [value]="filters().groupId"
-            (valueChange)="setGroup($event)"
-            [clearable]="false"
-            placeholder="Todos los grupos"
-            ariaLabel="Filtrar por grupo"
-          />
-        </div>
-      }
 
       <div class="m-field m-field--sort">
         <span class="m-field__label nf-mono">Orden</span>
@@ -298,14 +289,18 @@ export class MatchFiltersComponent {
   readonly championIds = input<readonly number[] | null>(null);
   /** El grupo del contexto en la vista de grupo; acota la lista de campeones ofrecidos. */
   readonly contextGroupId = input<string | null>(null);
-  /** Cuántas partidas quedan tras filtrar y cuántas hay en total, para el contador. */
+  /** Cuántas partidas quedan tras filtrar, para el contador. */
   readonly resultCount = input.required<number>();
-  readonly totalCount = input.required<number>();
+  /**
+   * Cuántas hay sin filtrar, si la vista lo sabe. Con la paginación en servidor casi nunca lo
+   * sabe —lo que vuelve es el total YA filtrado—, así que por defecto el contador dice cuántas
+   * hay y no «18 de 47». Inventar ese 47 sumando páginas sería peor que no darlo.
+   */
+  readonly totalCount = input<number | null>(null);
 
   private readonly ui = inject(MatchHistoryUiState);
-  private readonly store = inject(MatchHistoryStore);
   private readonly gameData = inject(GameDataStore);
-  private readonly groupsStore = inject(GroupsStore);
+  private readonly leagues = inject(LeaguesStore);
   private readonly viewport = inject(Viewport);
 
   readonly filters = this.ui.filters;
@@ -317,8 +312,6 @@ export class MatchFiltersComponent {
    * ocho condiciones sueltas.
    */
   protected readonly measuresMe = computed(() => this.mode() !== 'group');
-
-  protected readonly showGroupFilter = computed(() => this.mode() === 'personal');
 
   protected readonly isCross = computed(() => this.mode() === 'cross');
 
@@ -338,7 +331,7 @@ export class MatchFiltersComponent {
     return `Ver ${shown} ${shown === 1 ? 'partida' : 'partidas'}`;
   });
 
-  protected readonly roleOptions: { value: Lane | 'all'; label: string; lane: Lane | null }[] = [
+  protected readonly laneOptions: { value: Lane | 'all'; label: string; lane: Lane | null }[] = [
     { value: 'all', label: 'Todas', lane: null },
     { value: 'TOP', label: 'Filtrar por TOP', lane: 'TOP' },
     { value: 'JUNGLA', label: 'Filtrar por jungla', lane: 'JUNGLA' },
@@ -381,75 +374,56 @@ export class MatchFiltersComponent {
     label: o.label,
   }));
 
-  protected readonly modeOptions: readonly NfComboboxOption[] = [
+  /**
+   * Las tres modalidades del backend, con la traducción que ya decide `core/groups`: es la
+   * misma que lee el usuario al crear el grupo, y una segunda aquí las llamaría distinto en dos
+   * pantallas contiguas.
+   */
+  protected readonly presetOptions: readonly NfComboboxOption[] = [
     { value: 'all', label: 'Todas' },
-    { value: 'Competitivo', label: 'Competitivo' },
-    { value: 'Casual', label: 'Casual' },
-  ];
-
-  protected readonly lobbyTypeOptions: readonly NfComboboxOption[] = [
-    { value: 'all', label: 'Todas' },
-    { value: 'Room', label: 'Room' },
-    { value: 'Party', label: 'Party' },
+    ...MATCHMAKING_PRESETS.map((p) => ({ value: p, label: MATCHMAKING_PRESET_INFO[p].label })),
   ];
 
   /**
-   * Las ligas del usuario, del backend (`GroupsStore`), no del mock legacy de `core/lobby`. Es
-   * la misma lista que pinta la barra lateral: si el desplegable ofreciese otros nombres, elegir
-   * uno vaciaría la lista sin explicar por qué.
+   * Las temporadas del grupo del contexto. Salen de `LeaguesStore`, que es la misma lista que
+   * pinta la clasificación: si el desplegable ofreciese otros nombres, elegir uno vaciaría la
+   * lista sin explicar por qué. Sin grupo de contexto no hay lista, y el control no se pinta.
    */
-  protected readonly groupComboboxOptions = computed<NfComboboxOption[]>(() => [
-    { value: 'all', label: 'Todos los grupos' },
-    ...this.groupsStore.groups().map((g) => ({ value: g.id, label: g.name })),
-  ]);
-
-  private readonly availableSeasons = computed<string[]>(() => {
-    const ctxId = this.contextGroupId();
-    const filterGroupId = this.filters().groupId;
-    let matches: readonly Match[];
-    if (ctxId) {
-      matches = this.store.matchesByGroup(ctxId);
-    } else if (filterGroupId !== 'all') {
-      matches = this.store.matchesByGroup(filterGroupId);
-    } else {
-      matches = this.measuresMe() ? this.store.allPersonalMatches() : this.store.allMatches();
-    }
-    const set = new Set<string>();
-    for (const m of matches) {
-      const s = m.leagueName ?? m.group.seasonName;
-      if (s) set.add(s);
-    }
-    return Array.from(set).sort((a, b) => a.localeCompare(b, 'es'));
+  protected readonly leagueOptions = computed<NfComboboxOption[]>(() => {
+    if (!this.contextGroupId()) return [];
+    return [
+      { value: 'all', label: 'Todas' },
+      ...this.leagues.seasons().map((l) => ({ value: l.id, label: l.name })),
+    ];
   });
 
-  protected readonly seasonOptions = computed<NfComboboxOption[]>(() => [
-    { value: 'all', label: 'Todas' },
-    ...this.availableSeasons().map((s) => ({ value: s, label: s })),
-  ]);
-
-  /** «18 de 47 partidas» — antes no había forma de saber cuánto había recortado el filtro. */
+  /** «18 partidas», o «18 de 47» donde se conozca el total sin filtrar. */
   protected readonly resultCountLabel = computed(() => {
     const total = this.totalCount();
     const shown = this.resultCount();
-    const noun = total === 1 ? 'partida' : 'partidas';
-    return shown === total ? `${total} ${noun}` : `${shown} de ${total} ${noun}`;
+    const noun = shown === 1 ? 'partida' : 'partidas';
+    if (total === null || shown === total) return `${shown} ${noun}`;
+    return `${shown} de ${total} ${noun}`;
   });
 
-  /** Solo los campeones que se han jugado de verdad en el contexto activo. */
+  /**
+   * Los campeones que puede ofrecer el desplegable.
+   *
+   * Salen del CATÁLOGO, no de las partidas. Antes se ofrecían solo los jugados de verdad, que
+   * era mejor, pero eso lo sabía el store cuando tenía el historial entero en memoria: con la
+   * paginación en servidor solo hay seis filas en el cliente, y acotar el desplegable a los
+   * campeones de esas seis dejaría fuera precisamente los que hay que ir a buscar.
+   *
+   * `championIds` sigue existiendo para la vista que SÍ sabe cuáles tienen sentido.
+   */
   private readonly champions = computed(() => {
     const champMap = this.gameData.championById();
-    const ctxId = this.contextGroupId();
-    const filterGroupId = this.filters().groupId;
-
-    let playedIds: readonly number[];
     const given = this.championIds();
-    if (given) playedIds = given;
-    else if (ctxId) playedIds = this.store.playedChampionIdsInGroup(ctxId);
-    else if (filterGroupId !== 'all') playedIds = this.store.playedChampionIdsInGroup(filterGroupId);
-    else playedIds = this.store.playedChampionIdsInPersonal();
+    const entries = given
+      ? given.map((id) => ({ id, champion: champMap.get(id) }))
+      : [...champMap.entries()].map(([id, champion]) => ({ id, champion }));
 
-    return playedIds
-      .map((id) => ({ id, champion: champMap.get(id) }))
+    return entries
       .map(({ id, champion }) => ({
         id,
         name: champion?.name ?? `Campeón ${id}`,
@@ -476,31 +450,12 @@ export class MatchFiltersComponent {
   protected readonly searchOpen = signal(false);
   protected readonly searchActiveIndex = signal(0);
 
-  protected readonly searchPlaceholder = computed(() =>
-    this.measuresMe() ? 'Buscar jugador, campeón o grupo…' : 'Buscar jugador o campeón…',
-  );
-
-  private readonly playerRiotIds = computed(() => {
-    const ctxId = this.contextGroupId();
-    const matches = ctxId
-      ? this.store.matchesByGroup(ctxId)
-      : this.store.allPersonalMatches();
-    const set = new Set<string>();
-    for (const m of matches) {
-      for (const p of [...m.blueTeam.participants, ...m.redTeam.participants]) {
-        if (p.riotId) set.add(p.riotId);
-      }
-    }
-    return Array.from(set).sort((a, b) => a.localeCompare(b, 'es'));
-  });
-
   protected readonly searchSuggestions = computed<SearchSuggestion[]>(() => {
     const raw = this.filters().searchQuery.trim();
     const q = normalize(raw);
     if (!q) return [];
 
     const results: SearchSuggestion[] = [];
-    const isPersonal = this.measuresMe();
 
     // 1. Campeones
     for (const c of this.champions()) {
@@ -515,38 +470,6 @@ export class MatchFiltersComponent {
           tint: c.id,
           priority: n.startsWith(q) ? 1 : 2,
         });
-      }
-    }
-
-    // 2. Jugadores
-    for (const riotId of this.playerRiotIds()) {
-      const n = normalize(riotId);
-      if (n.startsWith(q) || n.includes(q)) {
-        results.push({
-          key: `player-${riotId}`,
-          type: 'player',
-          label: riotId,
-          sub: 'Jugador',
-          tag: initialsOf(riotId),
-          priority: n.startsWith(q) ? 1 : 2,
-        });
-      }
-    }
-
-    // 3. Grupos (solo en personal)
-    if (this.showGroupFilter()) {
-      for (const g of this.groupsStore.groups()) {
-        const n = normalize(g.name);
-        if (n.startsWith(q) || n.includes(q)) {
-          results.push({
-            key: `group-${g.id}`,
-            type: 'group',
-            label: g.name,
-            sub: 'Grupo',
-            tag: g.initials,
-            priority: n.startsWith(q) ? 1 : 2,
-          });
-        }
       }
     }
 
@@ -608,8 +531,8 @@ export class MatchFiltersComponent {
     this.searchOpen.set(false);
   }
 
-  protected setRole(role: Lane | 'all'): void {
-    this.ui.update({ role });
+  protected setLane(lane: Lane | 'all'): void {
+    this.ui.update({ lane });
   }
 
   protected setOutcome(outcome: string): void {
@@ -632,20 +555,12 @@ export class MatchFiltersComponent {
     this.ui.update({ championId: value === '' ? 'all' : Number(value) });
   }
 
-  protected setSeason(val: string): void {
-    this.ui.update({ season: val || 'all' });
+  protected setPreset(val: string): void {
+    this.ui.update({ preset: (val || 'all') as MatchPreset | 'all' });
   }
 
-  protected setGameMode(val: string): void {
-    this.ui.update({ gameMode: (val || 'all') as MatchGameMode | 'all' });
-  }
-
-  protected setLobbyType(val: string): void {
-    this.ui.update({ lobbyType: (val || 'all') as MatchLobbyType | 'all' });
-  }
-
-  protected setGroup(groupId: string): void {
-    this.ui.update({ groupId: groupId || 'all' });
+  protected setLeague(val: string): void {
+    this.ui.update({ leagueId: val || 'all' });
   }
 
   protected setSort(sortBy: string): void {
@@ -664,8 +579,4 @@ export class MatchFiltersComponent {
  */
 const normalize = normalizeForSearch;
 
-/** `Pix3lQueen#LAN` → `PI`. Marca al jugador en la sugerencia con su propio dato. */
-function initialsOf(riotId: string): string {
-  const name = riotId.split('#')[0] ?? riotId;
-  return name.slice(0, 2).toUpperCase();
-}
+

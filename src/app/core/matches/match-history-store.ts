@@ -1,356 +1,368 @@
-import { Injectable, computed, signal } from '@angular/core';
-import {
-  GroupMatchHistorySummary,
-  Lane,
-  Match,
-  MatchParticipant,
-  UserMatchHistorySummary,
-} from './models';
-import { kdaRatio } from './match-view';
-import {
-  CrossMatch,
-  CrossPartner,
-  buildCrossMatches,
-  buildCrossPartners,
-  participantKey,
-} from './cross-history';
-
-/** Rendimiento del usuario con un campeón concreto, para comparar contra una partida suelta. */
-export interface ChampionAverages {
-  games: number;
-  wins: number;
-  winrate: number;
-  avgKills: number;
-  avgDeaths: number;
-  avgAssists: number;
-  avgKdaRatio: string;
-  avgCsPerMin: number;
-}
-
-/** Récord del usuario contra un rival concreto, global y en el duelo de línea. */
-export interface HeadToHead {
-  riotId: string;
-  /** Partidas en las que os habéis enfrentado (bandos opuestos). */
-  games: number;
-  wins: number;
-  losses: number;
-  /** De esas, las que además jugasteis en la misma línea. */
-  laneGames: number;
-  laneWins: number;
-}
-
-/** El cruce contra otro jugador, ya repartido por relación. */
-export interface CrossWith {
-  all: CrossMatch[];
-  allies: CrossMatch[];
-  enemies: CrossMatch[];
-}
-
 /**
- * Estado de dominio del historial. Solo datos y derivaciones sobre ellos.
+ * El historial de partidas contra el backend real.
  *
- * BACKEND NOTE: Cuando exista `GET /matches` este store pasa al patrón `Session`
- * (status/ensureLoaded/reload/clear) y carga directamente del servidor.
+ * Patrón `Session` (`status` / `ensureLoaded` / `reload` / `clear`), una vez por superficie:
+ * la lista del grupo, la lista personal —que es también la del cruce, porque el cruce es un
+ * filtro y no un endpoint—, los dos resúmenes y el detalle.
+ *
+ * ## Lo que este store ya NO hace
+ *
+ * Con la paginación en servidor **el store deja de tener la lista entera**, así que nada de lo
+ * que se derivaba de tenerla sigue existiendo: `personalSummary` y `groupSummary` son ahora
+ * endpoints (por eso son endpoints y no `computed`), y filtrar, ordenar y buscar los hace el
+ * servidor. Sumar «cuántas victorias llevo» sobre las seis filas de la página en pantalla es
+ * exactamente el error que esa separación evita.
+ *
+ * ## Una petición por superficie, y las obsoletas se tiran
+ *
+ * Cada carga lleva número de secuencia: al cambiar de filtro, de página o de `:id` la respuesta
+ * que llegue tarde ya no escribe en la signal. Sin eso, teclear en el buscador deja la lista en
+ * el resultado de la penúltima letra.
  */
+import { Injectable, computed, inject, signal } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
+import { Session } from '../auth';
+import { PageResponse } from '../http';
+import { MatchesApi } from './matches-api';
+import {
+  GroupMatchQuery,
+  MAX_PAGE_SIZE,
+  PersonalMatchQuery,
+  PersonalSummaryQuery,
+  sortParam,
+} from './match-filtering';
+import { GroupHistorySummary, Match, MatchDetail, PersonalHistorySummary } from './models';
+import { MatchMappingContext } from './match-mapper';
+
+export type MatchHistoryStatus = 'idle' | 'loading' | 'ready' | 'error';
+
+/** Una página vacía: lo que se pinta antes de la primera carga y tras un `clear()`. */
+const EMPTY_PAGE: PageResponse<Match> = {
+  content: [],
+  page: 0,
+  size: 0,
+  totalElements: 0,
+  totalPages: 0,
+};
+
 @Injectable({ providedIn: 'root' })
 export class MatchHistoryStore {
-  /** Estado de carga del store de historial de partidas. */
-  readonly status = signal<'loading' | 'ready'>('ready');
+  private readonly api = inject(MatchesApi);
+  private readonly session = inject(Session);
 
+  // ── Historial personal (y el del cruce, que es el mismo con `with`) ────────
+  private readonly _personal = signal<PageResponse<Match>>(EMPTY_PAGE);
+  private readonly _personalStatus = signal<MatchHistoryStatus>('idle');
+  private personalKey: string | null = null;
+  private personalSeq = 0;
+
+  readonly personal = this._personal.asReadonly();
+  readonly personalStatus = this._personalStatus.asReadonly();
+  readonly personalMatches = computed(() => this._personal().content);
+  readonly personalTotal = computed(() => this._personal().totalElements);
+
+  // ── Historial de un grupo ─────────────────────────────────────────────────
+  private readonly _group = signal<PageResponse<Match>>(EMPTY_PAGE);
+  private readonly _groupStatus = signal<MatchHistoryStatus>('idle');
+  private groupKey: string | null = null;
+  private groupSeq = 0;
+
+  readonly group = this._group.asReadonly();
+  readonly groupStatus = this._groupStatus.asReadonly();
+  readonly groupMatches = computed(() => this._group().content);
+  readonly groupTotal = computed(() => this._group().totalElements);
+
+  // ── Muestra de un grupo (superficies analíticas) ──────────────────────────
   /**
-   * Todas las partidas del sistema (0 partidas por defecto hasta conexión con backend real).
-   */
-  readonly allMatches = signal<Match[]>([]);
-
-  /** Partidas en las que participó el usuario actual. */
-  readonly allPersonalMatches = computed(() => this.allMatches().filter((m) => !!m.userParticipant));
-
-  /**
-   * Todos los jugadores con los que has coincidido, con sus dos listas. Es de donde salen el
-   * mejor aliado y la némesis del perfil: antes cada uno se sembraba por su cuenta, así que la
-   * tarjeta de «mejor aliado» podía anunciar un winrate que su propia página desmentía.
-   */
-  readonly crossPartners = computed<CrossPartner[]>(() =>
-    buildCrossPartners(this.allPersonalMatches()),
-  );
-
-  /** Resumen analítico de las partidas del usuario actual. */
-  readonly personalSummary = computed<UserMatchHistorySummary>(() => {
-    const matches = this.allPersonalMatches();
-    const total = matches.length;
-    if (total === 0) return EMPTY_PERSONAL_SUMMARY;
-
-    let wins = 0;
-    let totalKills = 0;
-    let totalDeaths = 0;
-    let totalAssists = 0;
-    const roleCounts = new Map<Lane, number>();
-    const champCounts = new Map<number, { count: number; name: string }>();
-
-    for (const m of matches) {
-      if (m.userOutcome === 'win') wins++;
-      const p = m.userParticipant;
-      if (!p) continue;
-
-      totalKills += p.stats.kills;
-      totalDeaths += p.stats.deaths;
-      totalAssists += p.stats.assists;
-
-      roleCounts.set(p.role, (roleCounts.get(p.role) ?? 0) + 1);
-      const current = champCounts.get(p.championId);
-      champCounts.set(p.championId, {
-        count: (current?.count ?? 0) + 1,
-        name: current?.name ?? p.championName,
-      });
-    }
-
-    const [mostPlayedRole, mostPlayedRoleCount] = topEntry(roleCounts, (v) => v);
-    const [mostPlayedChampionId] = topEntry(champCounts, (v) => v.count);
-
-    return {
-      totalMatches: total,
-      wins,
-      losses: total - wins,
-      winrate: Math.round((wins / total) * 100),
-      avgKills: round1(totalKills / total),
-      avgDeaths: round1(totalDeaths / total),
-      avgAssists: round1(totalAssists / total),
-      avgKdaRatio: ratioOf(totalKills, totalDeaths, totalAssists),
-      mostPlayedRole,
-      mostPlayedRoleCount,
-      mostPlayedChampionId,
-      mostPlayedChampionName:
-        mostPlayedChampionId === null ? null : champCounts.get(mostPlayedChampionId)!.name,
-    };
-  });
-
-  /** IDs únicos de campeones que el usuario actual ha jugado. */
-  readonly playedChampionIdsInPersonal = computed(() => {
-    const ids = new Set<number>();
-    for (const m of this.allPersonalMatches()) {
-      if (m.userParticipant) ids.add(m.userParticipant.championId);
-    }
-    return Array.from(ids);
-  });
-
-  /** IDs únicos de campeones jugados en las partidas de un grupo concreto. */
-  playedChampionIdsInGroup(groupId: string): number[] {
-    const ids = new Set<number>();
-    for (const m of this.matchesByGroup(groupId)) {
-      for (const p of participantsOf(m)) ids.add(p.championId);
-    }
-    return Array.from(ids);
-  }
-
-  /** Partidas de un grupo específico. */
-  matchesByGroup(groupId: string): Match[] {
-    const target = (groupId || '').toLowerCase();
-    const isChiringuito =
-      target.includes('chiringuito') ||
-      target.includes('chatarra') ||
-      target === 'a0000000-0000-0000-0000-000000000001';
-
-    return this.allMatches().filter((m) => {
-      if (m.groupId === groupId) return true;
-      if (isChiringuito) {
-        return (
-          m.groupId === 'a0000000-0000-0000-0000-000000000001' ||
-          m.groupId === 'chiringuito-chatarra' ||
-          m.group.name.toLowerCase().includes('chiringuito')
-        );
-      }
-      return false;
-    });
-  }
-
-  /** Resumen de métricas de un grupo específico. */
-  groupSummary(groupId: string): GroupMatchHistorySummary {
-    const matches = this.matchesByGroup(groupId);
-    const total = matches.length;
-    if (total === 0) return EMPTY_GROUP_SUMMARY;
-
-    let blueWins = 0;
-    let totalDuration = 0;
-    const mvpCounts = new Map<string, number>();
-
-    for (const m of matches) {
-      if (m.winningTeam === 'blue') blueWins++;
-      totalDuration += m.durationSeconds;
-
-      const mvp = participantsOf(m).find((p) => p.id === m.mvpParticipantId);
-      if (mvp) mvpCounts.set(mvp.riotId, (mvpCounts.get(mvp.riotId) ?? 0) + 1);
-    }
-
-    const [topMvpName, topMvpCount] = topEntry(mvpCounts, (v) => v);
-
-    const blueWinrate = total === 0 ? 0 : Math.round((blueWins / total) * 100);
-    const redWinrate = total === 0 ? 0 : 100 - blueWinrate;
-
-    return {
-      totalMatches: total,
-      blueSideWins: blueWins,
-      redSideWins: total - blueWins,
-      blueWinrate,
-      redWinrate,
-      avgDurationMinutes: Math.round(totalDuration / total / 60),
-      topMvpName,
-      topMvpCount,
-    };
-  }
-
-  /** Busca una partida por ID. */
-  matchById(id: string): Match | undefined {
-    return this.allMatches().find((m) => m.id === id);
-  }
-
-  /**
-   * Partida anterior y siguiente dentro del mismo contexto, en el orden natural del historial
-   * (más reciente primero). Sin esto, la página de detalle es una vía muerta: para ver la
-   * partida de al lado había que volver a la lista y buscarla.
-   */
-  neighboursOf(matchId: string, groupId?: string): { prev: Match | null; next: Match | null } {
-    const scope = groupId ? this.matchesByGroup(groupId) : this.allPersonalMatches();
-    const ordered = [...scope].sort(
-      (a, b) => new Date(b.decidedAt).getTime() - new Date(a.decidedAt).getTime(),
-    );
-    const i = ordered.findIndex((m) => m.id === matchId);
-    if (i === -1) return { prev: null, next: null };
-    return { prev: ordered[i - 1] ?? null, next: ordered[i + 1] ?? null };
-  }
-
-  /**
-   * Medias del usuario con un campeón. Es lo que convierte «12/3/8» en un juicio: un KDA
-   * suelto no dice si fue una buena partida, comparado con tu media sí.
-   */
-  championAverages(championId: number): ChampionAverages | null {
-    const matches = this.allPersonalMatches().filter(
-      (m) => m.userParticipant?.championId === championId,
-    );
-    if (matches.length === 0) return null;
-
-    let wins = 0;
-    let kills = 0;
-    let deaths = 0;
-    let assists = 0;
-    let csPerMin = 0;
-
-    for (const m of matches) {
-      if (m.userOutcome === 'win') wins++;
-      const stats = m.userParticipant!.stats;
-      kills += stats.kills;
-      deaths += stats.deaths;
-      assists += stats.assists;
-      csPerMin += stats.csPerMin;
-    }
-
-    const games = matches.length;
-    return {
-      games,
-      wins,
-      winrate: Math.round((wins / games) * 100),
-      avgKills: round1(kills / games),
-      avgDeaths: round1(deaths / games),
-      avgAssists: round1(assists / games),
-      avgKdaRatio: ratioOf(kills, deaths, assists),
-      avgCsPerMin: round1(csPerMin / games),
-    };
-  }
-
-  /**
-   * Récord del usuario contra un rival, calculado sobre las partidas reales del historial y
-   * no con un generador aparte: si la lista enseña que perdiste esas dos partidas, la tarjeta
-   * de rivalidad no puede decir otra cosa.
-   */
-  headToHead(opponent: MatchParticipant): HeadToHead {
-    const key = participantKey(opponent);
-    let games = 0;
-    let wins = 0;
-    let laneGames = 0;
-    let laneWins = 0;
-
-    for (const m of this.allPersonalMatches()) {
-      const me = m.userParticipant!;
-      const rival = participantsOf(m).find((p) => participantKey(p) === key);
-      // Solo cuentan los enfrentamientos: coincidir en el mismo equipo no es una rivalidad.
-      if (!rival || rival.team === me.team) continue;
-
-      const won = m.userOutcome === 'win';
-      games++;
-      if (won) wins++;
-      if (rival.role === me.role) {
-        laneGames++;
-        if (won) laneWins++;
-      }
-    }
-
-    return { riotId: opponent.riotId, games, wins, losses: games - wins, laneGames, laneWins };
-  }
-
-  /**
-   * Todas las partidas que el usuario ha compartido con otro jugador, separadas por relación.
+   * Las últimas partidas de un grupo, en una sola página del tamaño máximo que admite el
+   * servidor.
    *
-   * Es la ÚNICA fuente del historial cruzado, de las medias en contra, de las medias juntos y
-   * del detalle de una partida cruzada. Antes cada superficie contaba lo suyo —una desde una
-   * semilla y otra desde estas partidas— y las cifras no coincidían entre pantallas contiguas.
+   * Existe porque hay pantallas que no son una lista —la tier list de campeones, el cajón de
+   * partidas recientes de un jugador en el ranking— y necesitan un CORPUS, no una página de
+   * seis. Es una muestra acotada y se dice en pantalla: «sobre las últimas N partidas». Lo que
+   * NO es: el historial entero. Esa vuelta ya no existe en el cliente, y llamar «tier list del
+   * grupo» a lo que sale de seis filas sería peor que no darla.
+   *
+   * Va en su propio hueco para que abrir la tier list no le pise la página al historial, que
+   * consulta el mismo endpoint con otros parámetros.
+   *
+   * BACKEND NOTE: estas agregaciones son regla de negocio y acabarán siendo del servidor, que
+   * es quien puede recorrer el grupo entero. Cuando existan sus endpoints, esta muestra se borra.
    */
-  crossWith(playerKey: string): CrossWith {
-    const all = buildCrossMatches(this.allPersonalMatches(), playerKey);
-    return {
-      all,
-      allies: all.filter((c) => c.relation === 'ally'),
-      enemies: all.filter((c) => c.relation === 'enemy'),
-    };
+  private readonly _groupSample = signal<PageResponse<Match>>(EMPTY_PAGE);
+  private readonly _groupSampleStatus = signal<MatchHistoryStatus>('idle');
+  private groupSampleKey: string | null = null;
+  private groupSampleSeq = 0;
+
+  readonly groupSampleStatus = this._groupSampleStatus.asReadonly();
+  readonly groupSample = computed(() => this._groupSample().content);
+  /** Cuántas hay en el grupo en total, para poder decir sobre cuántas se ha calculado. */
+  readonly groupSampleTotal = computed(() => this._groupSample().totalElements);
+
+  ensureGroupSample(group: { id: string; name: string }): Promise<void> {
+    if (group.id === this.groupSampleKey && this._groupSampleStatus() === 'ready') {
+      return Promise.resolve();
+    }
+    return this.loadGroupSample(group);
   }
-}
 
-function participantsOf(m: Match): MatchParticipant[] {
-  return [...m.blueTeam.participants, ...m.redTeam.participants];
-}
-
-/** La entrada con mayor puntuación de un mapa, o `[null, 0]` si está vacío. */
-function topEntry<K, V>(map: Map<K, V>, score: (value: V) => number): [K | null, number] {
-  let bestKey: K | null = null;
-  let bestScore = 0;
-  for (const [key, value] of map) {
-    const s = score(value);
-    if (s > bestScore) {
-      bestKey = key;
-      bestScore = s;
+  private async loadGroupSample(group: { id: string; name: string }): Promise<void> {
+    const seq = ++this.groupSampleSeq;
+    this.groupSampleKey = group.id;
+    this._groupSampleStatus.set('loading');
+    try {
+      const page = await firstValueFrom(
+        this.api.groupMatches(
+          group.id,
+          { page: 0, size: MAX_PAGE_SIZE, sort: sortParam('date-desc') },
+          this.ctx(),
+        ),
+      );
+      if (seq !== this.groupSampleSeq) return;
+      this._groupSample.set(page);
+      this._groupSampleStatus.set('ready');
+    } catch {
+      if (seq !== this.groupSampleSeq) return;
+      this.groupSampleKey = null;
+      this._groupSample.set(EMPTY_PAGE);
+      this._groupSampleStatus.set('error');
     }
   }
-  return [bestKey, bestScore];
+
+  // ── Resúmenes ─────────────────────────────────────────────────────────────
+  /**
+   * Los resúmenes personales pedidos, **por consulta**.
+   *
+   * Es un mapa y no un solo valor porque la pantalla del cruce enseña TRES a la vez —todas,
+   * juntos y enfrentados— y son la misma llamada con distinta relación. Con un único hueco, las
+   * tres pestañas acababan enseñando el número de la última que se pidió.
+   */
+  private readonly _personalSummaries = signal<ReadonlyMap<string, PersonalHistorySummary>>(
+    new Map(),
+  );
+  private readonly _personalSummaryStatus = signal<MatchHistoryStatus>('idle');
+  private readonly personalSummaryKeys = new Set<string>();
+  private personalSummarySeq = 0;
+
+  readonly personalSummaryStatus = this._personalSummaryStatus.asReadonly();
+
+  /** El resumen de una consulta concreta, o `null` si todavía no ha llegado. */
+  personalSummaryFor(query: PersonalSummaryQuery): PersonalHistorySummary | null {
+    return this._personalSummaries().get(keyOf(query)) ?? null;
+  }
+
+  private readonly _groupSummary = signal<GroupHistorySummary | null>(null);
+  private readonly _groupSummaryStatus = signal<MatchHistoryStatus>('idle');
+  private groupSummaryKey: string | null = null;
+  private groupSummarySeq = 0;
+
+  readonly groupSummary = this._groupSummary.asReadonly();
+  readonly groupSummaryStatus = this._groupSummaryStatus.asReadonly();
+
+  // ── Detalle ───────────────────────────────────────────────────────────────
+  private readonly _detail = signal<MatchDetail | null>(null);
+  private readonly _detailStatus = signal<MatchHistoryStatus>('idle');
+  /** `true` cuando el backend respondió 404: la partida no existe, o no es de un grupo tuyo. */
+  private readonly _detailNotFound = signal(false);
+  private detailKey: string | null = null;
+  private detailSeq = 0;
+
+  readonly detail = this._detail.asReadonly();
+  readonly detailStatus = this._detailStatus.asReadonly();
+  readonly detailNotFound = this._detailNotFound.asReadonly();
+  readonly detailMatch = computed(() => this._detail()?.match ?? null);
+
+  /** El contexto con el que se mapea cada fila: quién soy, para resolver mi asiento. */
+  private ctx(): MatchMappingContext {
+    return { currentUserId: this.session.user()?.userId ?? null };
+  }
+
+  // ── Cargas ────────────────────────────────────────────────────────────────
+
+  /** La página pedida del historial personal. Idempotente: repetir la misma consulta no refetch. */
+  ensurePersonal(query: PersonalMatchQuery): Promise<void> {
+    const key = keyOf(query);
+    if (key === this.personalKey && this._personalStatus() === 'ready') return Promise.resolve();
+    return this.loadPersonal(query, key);
+  }
+
+  reloadPersonal(query: PersonalMatchQuery): Promise<void> {
+    return this.loadPersonal(query, keyOf(query));
+  }
+
+  private async loadPersonal(query: PersonalMatchQuery, key: string): Promise<void> {
+    const seq = ++this.personalSeq;
+    this.personalKey = key;
+    this._personalStatus.set('loading');
+    try {
+      const page = await firstValueFrom(this.api.myMatches(query, this.ctx()));
+      if (seq !== this.personalSeq) return;
+      this._personal.set(page);
+      this._personalStatus.set('ready');
+    } catch {
+      if (seq !== this.personalSeq) return;
+      this.personalKey = null;
+      this._personal.set(EMPTY_PAGE);
+      this._personalStatus.set('error');
+    }
+  }
+
+  /** La página pedida del historial de un grupo. */
+  ensureGroup(
+    group: { id: string; name: string },
+    query: GroupMatchQuery,
+  ): Promise<void> {
+    const key = group.id + '|' + keyOf(query);
+    if (key === this.groupKey && this._groupStatus() === 'ready') return Promise.resolve();
+    return this.loadGroup(group, query, key);
+  }
+
+  reloadGroup(group: { id: string; name: string }, query: GroupMatchQuery): Promise<void> {
+    return this.loadGroup(group, query, group.id + '|' + keyOf(query));
+  }
+
+  private async loadGroup(
+    group: { id: string; name: string },
+    query: GroupMatchQuery,
+    key: string,
+  ): Promise<void> {
+    const seq = ++this.groupSeq;
+    this.groupKey = key;
+    this._groupStatus.set('loading');
+    try {
+      const page = await firstValueFrom(this.api.groupMatches(group.id, query, this.ctx()));
+      if (seq !== this.groupSeq) return;
+      this._group.set(page);
+      this._groupStatus.set('ready');
+    } catch {
+      if (seq !== this.groupSeq) return;
+      this.groupKey = null;
+      this._group.set(EMPTY_PAGE);
+      this._groupStatus.set('error');
+    }
+  }
+
+  /**
+   * El resumen personal. Acepta los mismos filtros que el listado, así que el recuento del
+   * cruce sale de aquí: sin `with`, «cómo me ha ido»; con él, «cómo nos ha ido cuando
+   * coincidimos»; con la relación encima, «juntos» o «enfrentados».
+   */
+  ensurePersonalSummary(query: PersonalSummaryQuery): Promise<void> {
+    const key = keyOf(query);
+    if (this.personalSummaryKeys.has(key)) return Promise.resolve();
+    this.personalSummaryKeys.add(key);
+    return this.loadPersonalSummary(query, key);
+  }
+
+  private async loadPersonalSummary(query: PersonalSummaryQuery, key: string): Promise<void> {
+    const seq = ++this.personalSummarySeq;
+    this._personalSummaryStatus.set('loading');
+    try {
+      const summary = await firstValueFrom(this.api.mySummary(query));
+      const next = new Map(this._personalSummaries());
+      next.set(key, summary);
+      this._personalSummaries.set(next);
+      // El estado global solo lo mueve la ÚLTIMA petición: con tres resúmenes en vuelo, la
+      // primera en volver dejaría la pantalla en 'ready' con las otras dos sin llegar.
+      if (seq === this.personalSummarySeq) this._personalSummaryStatus.set('ready');
+    } catch {
+      this.personalSummaryKeys.delete(key);
+      if (seq === this.personalSummarySeq) this._personalSummaryStatus.set('error');
+    }
+  }
+
+  /** El resumen del grupo. No acepta filtros: describe el grupo entero. */
+  ensureGroupSummary(groupId: string): Promise<void> {
+    if (groupId === this.groupSummaryKey && this._groupSummaryStatus() === 'ready') {
+      return Promise.resolve();
+    }
+    return this.loadGroupSummary(groupId);
+  }
+
+  private async loadGroupSummary(groupId: string): Promise<void> {
+    const seq = ++this.groupSummarySeq;
+    this.groupSummaryKey = groupId;
+    this._groupSummaryStatus.set('loading');
+    try {
+      const summary = await firstValueFrom(this.api.groupSummary(groupId));
+      if (seq !== this.groupSummarySeq) return;
+      this._groupSummary.set(summary);
+      this._groupSummaryStatus.set('ready');
+    } catch {
+      if (seq !== this.groupSummarySeq) return;
+      this.groupSummaryKey = null;
+      this._groupSummary.set(null);
+      this._groupSummaryStatus.set('error');
+    }
+  }
+
+  /**
+   * El detalle de una partida. El 404 se distingue del error de red: «no existe» tiene su
+   * propia pantalla, y un fallo de conexión no puede pintarse como una partida inexistente.
+   */
+  ensureDetail(matchId: string): Promise<void> {
+    if (matchId === this.detailKey && this._detailStatus() === 'ready') return Promise.resolve();
+    return this.loadDetail(matchId);
+  }
+
+  reloadDetail(matchId: string): Promise<void> {
+    return this.loadDetail(matchId);
+  }
+
+  private async loadDetail(matchId: string): Promise<void> {
+    const seq = ++this.detailSeq;
+    this.detailKey = matchId;
+    this._detailStatus.set('loading');
+    this._detailNotFound.set(false);
+    try {
+      const detail = await firstValueFrom(this.api.detail(matchId, this.ctx()));
+      if (seq !== this.detailSeq) return;
+      this._detail.set(detail);
+      this._detailStatus.set('ready');
+    } catch (error: unknown) {
+      if (seq !== this.detailSeq) return;
+      this.detailKey = null;
+      this._detail.set(null);
+      this._detailNotFound.set((error as { status?: number })?.status === 404);
+      this._detailStatus.set('error');
+    }
+  }
+
+  /** Al cerrar sesión no debe quedar rastro del historial del usuario anterior. */
+  clear(): void {
+    this.personalSeq++;
+    this.groupSeq++;
+    this.groupSampleSeq++;
+    this.personalSummarySeq++;
+    this.groupSummarySeq++;
+    this.detailSeq++;
+    this.personalKey = null;
+    this.groupKey = null;
+    this.groupSampleKey = null;
+    this.personalSummaryKeys.clear();
+    this.groupSummaryKey = null;
+    this.detailKey = null;
+    this._personal.set(EMPTY_PAGE);
+    this._group.set(EMPTY_PAGE);
+    this._groupSample.set(EMPTY_PAGE);
+    this._personalSummaries.set(new Map());
+    this._groupSummary.set(null);
+    this._detail.set(null);
+    this._personalStatus.set('idle');
+    this._groupStatus.set('idle');
+    this._groupSampleStatus.set('idle');
+    this._personalSummaryStatus.set('idle');
+    this._groupSummaryStatus.set('idle');
+    this._detailStatus.set('idle');
+    this._detailNotFound.set(false);
+  }
 }
 
-function round1(value: number): number {
-  return +value.toFixed(1);
+/** Dos consultas iguales son la misma carga. Las claves van ordenadas para que eso sea cierto. */
+function keyOf(query: object): string {
+  return JSON.stringify(
+    Object.entries(query)
+      .filter(([, v]) => v !== undefined)
+      .sort(([a], [b]) => a.localeCompare(b)),
+  );
 }
-
-function ratioOf(kills: number, deaths: number, assists: number): string {
-  return kdaRatio({ kills, deaths, assists }).toFixed(2);
-}
-
-const EMPTY_PERSONAL_SUMMARY: UserMatchHistorySummary = {
-  totalMatches: 0,
-  wins: 0,
-  losses: 0,
-  winrate: 0,
-  avgKills: 0,
-  avgDeaths: 0,
-  avgAssists: 0,
-  avgKdaRatio: '0.00',
-  mostPlayedRole: null,
-  mostPlayedRoleCount: 0,
-  mostPlayedChampionId: null,
-  mostPlayedChampionName: null,
-};
-
-const EMPTY_GROUP_SUMMARY: GroupMatchHistorySummary = {
-  totalMatches: 0,
-  blueSideWins: 0,
-  redSideWins: 0,
-  blueWinrate: 0,
-  redWinrate: 0,
-  avgDurationMinutes: 0,
-  topMvpName: null,
-  topMvpCount: 0,
-};

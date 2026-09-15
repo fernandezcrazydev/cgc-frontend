@@ -1,71 +1,99 @@
 import { describe, expect, it } from 'vitest';
-import { Member } from '../../../../core/lobby';
-import { buildCrossMatches } from '../../../../core/matches';
+import { toCrossMatches } from '../../../../core/matches';
 import { matchFixture, participantFixture } from '../../../../core/matches/match-fixtures';
 import { avatarGradient, nameOf, resolveCrossPlayer } from './cross-player';
 
 /**
- * `resolveCrossPlayer` decide si una de las cuatro vistas del cruce enseña a alguien o su 404,
- * y no tenía ninguna prueba. Distinguir «no existe» de «existe pero no habéis coincidido» es
- * justo lo que separa un 404 de un estado vacío, así que es lo que se afirma aquí.
+ * `resolveCrossPlayer` decide si las vistas del cruce enseñan a alguien o su 404. Distinguir
+ * «no existe» de «existe pero no habéis coincidido» es justo lo que separa un 404 de un estado
+ * vacío, así que es lo que se afirma aquí.
+ *
+ * La identidad es el `userId`, que es lo que entiende el parámetro `with=` del endpoint, y el
+ * nombre sale del propio asiento: desde el contrato nuevo cada uno de los diez trae su nombre de
+ * Discord y su avatar haya subida o no, así que no hace falta ningún censo.
  */
-const roster: Member[] = [
-  {
-    userId: 'UUID-Con-Mayusculas',
-    name: 'Pix3lQueen',
-    tag: 'Pix3lQueen#LAN',
-    role: 'Miembro',
-    initials: 'PQ',
-    owner: false,
-    hue: 200,
-  },
-];
+const RIVAL = '22222222-2222-2222-2222-222222222222';
+const ME = '11111111-1111-1111-1111-111111111111';
 
-/** Una partida en la que el usuario y `riotId` coinciden en bandos opuestos. */
-function cruce(riotId: string) {
-  const me = participantFixture({ id: 'me', team: 'blue', riotId: 'Yo#LAN' });
-  const other = participantFixture({ id: 'ellos', team: 'red', riotId });
-  return buildCrossMatches(
-    [matchFixture({ id: 'p1', blue: [me], red: [other], userParticipant: me })],
-    riotId,
+/** Una partida en la que el usuario y el rival coinciden en bandos opuestos. */
+function cruce(over: { riotId?: string | null; discordUsername?: string | null } = {}) {
+  const me = participantFixture({ userId: ME, slot: 'A', riotId: 'Yo#LAN' });
+  const other = participantFixture({
+    userId: RIVAL,
+    slot: 'B',
+    riotId: over.riotId === undefined ? 'Pix3lQueen#LAN' : over.riotId,
+    discordUsername: over.discordUsername === undefined ? 'pix3lqueen' : over.discordUsername,
+    avatarUrl: 'https://cdn/avatar.png',
+  });
+  return toCrossMatches(
+    [matchFixture({ id: 'p1', a: [me], b: [other], userParticipant: me })],
+    RIVAL,
   );
 }
 
 describe('resolveCrossPlayer', () => {
-  it('resuelve por el tag completo, sin distinguir mayúsculas', () => {
-    expect(resolveCrossPlayer('pix3lqueen#lan', roster, [])?.name).toBe('Pix3lQueen');
+  it('sale del asiento del cruce, con su nombre y su avatar', () => {
+    const quien = resolveCrossPlayer(RIVAL, cruce());
+
+    expect(quien?.name).toBe('Pix3lQueen');
+    expect(quien?.userId).toBe(RIVAL);
+    expect(quien?.avatarUrl).toBe('https://cdn/avatar.png');
   });
 
   /*
-   * El id estable se comparaba contra la clave ya pasada a minúsculas, así que esta rama no
-   * podía acertar nunca con un id que llevase mayúsculas: se caía al tag sin que se notase.
+   * Sin subida no hay Riot ID —el de hoy podría ser ya de otra persona— pero el nombre de
+   * Discord llega igual. Es el caso que antes dejaba la cabecera muda.
    */
-  it('resuelve también por el id estable, respetando sus mayúsculas', () => {
-    expect(resolveCrossPlayer('UUID-Con-Mayusculas', roster, [])?.name).toBe('Pix3lQueen');
+  it('sin subida lo nombra por su Discord', () => {
+    const quien = resolveCrossPlayer(RIVAL, cruce({ riotId: null }));
+
+    expect(quien?.name).toBe('pix3lqueen');
   });
 
-  it('resuelve a quien ya no está en el roster pero sí en vuestras partidas', () => {
-    const quien = resolveCrossPlayer('Antiguo#LAN', [], cruce('Antiguo#LAN'));
+  /** Solo cuando la cuenta se borró: la partida siguió pasando, y su hueco se pinta igual. */
+  it('sin ninguna de las dos identidades lo dice, en vez de dejar el hueco en blanco', () => {
+    const quien = resolveCrossPlayer(RIVAL, cruce({ riotId: null, discordUsername: null }));
 
-    expect(quien).not.toBeNull();
-    expect(quien!.name).toBe('Antiguo');
-    expect(quien!.tag).toBe('Antiguo#LAN');
+    expect(quien?.name).toBe('Sin identificar');
   });
 
-  it('devuelve null —que es el 404— cuando no está en ninguna de las dos fuentes', () => {
-    expect(resolveCrossPlayer('NoExiste#EUW', roster, [])).toBeNull();
+  it('devuelve null —que es el 404— cuando no habéis coincidido', () => {
+    expect(resolveCrossPlayer(RIVAL, [])).toBeNull();
+    expect(resolveCrossPlayer('otro-uuid', cruce())).toBeNull();
   });
 
   it('un parámetro vacío o en blanco es un 404, no el primer jugador que haya', () => {
-    expect(resolveCrossPlayer('', roster, cruce('Antiguo#LAN'))).toBeNull();
-    expect(resolveCrossPlayer('   ', roster, cruce('Antiguo#LAN'))).toBeNull();
+    expect(resolveCrossPlayer('', cruce())).toBeNull();
+    expect(resolveCrossPlayer('   ', cruce())).toBeNull();
+  });
+});
+
+describe('toCrossMatches', () => {
+  it('lee la relación de los dos huecos de equipo, no la adivina', () => {
+    const me = participantFixture({ userId: ME, slot: 'A' });
+    const aliado = participantFixture({ userId: RIVAL, slot: 'A' });
+    const rival = participantFixture({ userId: RIVAL, slot: 'B' });
+
+    const juntos = toCrossMatches(
+      [matchFixture({ id: 'j', a: [me, aliado], b: [], userParticipant: me })],
+      RIVAL,
+    );
+    const contra = toCrossMatches(
+      [matchFixture({ id: 'c', a: [me], b: [rival], userParticipant: me })],
+      RIVAL,
+    );
+
+    expect(juntos[0].relation).toBe('ally');
+    expect(contra[0].relation).toBe('enemy');
   });
 
-  it('el roster manda sobre las partidas: es donde vive la identidad visual', () => {
-    const quien = resolveCrossPlayer('Pix3lQueen#LAN', roster, cruce('Pix3lQueen#LAN'));
+  it('una partida en la que el otro no aparece se descarta, no se pinta a medias', () => {
+    const me = participantFixture({ userId: ME, slot: 'A' });
+    const ajeno = participantFixture({ userId: 'tercero', slot: 'B' });
 
-    expect(quien!.hue).toBe(200);
-    expect(quien!.tag).toBe('Pix3lQueen#LAN');
+    expect(
+      toCrossMatches([matchFixture({ id: 'x', a: [me], b: [ajeno], userParticipant: me })], RIVAL),
+    ).toEqual([]);
   });
 });
 

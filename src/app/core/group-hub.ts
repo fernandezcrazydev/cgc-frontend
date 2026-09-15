@@ -17,7 +17,6 @@
  */
 import { hash, seeded } from './group-ranking';
 import { Member } from './lobby';
-import { SEEDED_MATCH_COUNT, seedMatchId } from './seed-matches';
 
 // ===================== Evolución de LP =====================
 
@@ -101,10 +100,16 @@ export interface HubComment {
   /**
    * Id real de la partida comentada: la tarjeta entera lleva a `/app/historial/:matchId`, así
    * que tiene que existir de verdad en el historial y no ser un número decorativo.
+   *
+   * `null` desde que se borró la semilla: estos comentarios los sigue inventando el cliente
+   * (no hay tabla ni endpoint de comentarios), y ya no existe ninguna partida local a la que
+   * apuntar. Un id inventado llevaría a un 404, así que la píldora no se pinta.
+   *
+   * BACKEND NOTE: con el endpoint de comentarios, el id lo manda el propio comentario.
    */
-  matchId: string;
-  /** Cómo se nombra esa partida en la píldora ("Partida 12"). */
-  matchLabel: string;
+  matchId: string | null;
+  /** Cómo se nombra esa partida en la píldora ("Partida 12"); `null` si no hay partida. */
+  matchLabel: string | null;
   text: string;
   reactions: HubReaction[];
 }
@@ -131,15 +136,13 @@ export function hubCommentsFor(groupId: string, roster: readonly Member[]): HubC
     const reactions = REACTION_EMOJIS.map((emoji) => ({ emoji, count: Math.floor(rnd() * 15) })).filter(
       (r) => r.count > 0,
     );
-    // BACKEND NOTE: con el dominio de partidas real, el id lo manda el comentario.
-    const matchNumber = 1 + Math.floor(rnd() * SEEDED_MATCH_COUNT);
     return {
       id: groupId + '-c' + i,
       author: member.name,
       avatar: member.avatar,
       hue: member.hue,
-      matchId: seedMatchId(matchNumber),
-      matchLabel: 'Partida ' + matchNumber,
+      matchId: null,
+      matchLabel: null,
       text: COMMENT_TEXTS[Math.floor(rnd() * COMMENT_TEXTS.length)],
       reactions,
     };

@@ -501,43 +501,19 @@
                               class="rk-match__champ"
                               [src]="m.champIcon"
                               [fallback]="m.champName"
-                              [tint]="m.champId"
+                              [tint]="m.champId ?? 0"
                               [size]="34"
                               shape="square"
                               [title]="m.champName"
                             />
 
-                            <div class="rk-match__spells">
-                              @for (sId of m.spells; track $index) {
-                                <nf-avatar
-                                  class="rk-match__spell-slot"
-                                  [src]="spellIcon(sId)"
-                                  [fallback]="spellName(sId)"
-                                  [size]="16"
-                                  shape="square"
-                                  [title]="spellName(sId)"
-                                />
-                              }
-                            </div>
-
-                            <div class="rk-match__runes">
-                              <nf-avatar
-                                class="rk-match__rune-slot rk-match__rune-slot--primary"
-                                [src]="runeIcon(m.primaryRuneId)"
-                                [fallback]="runeName(m.primaryRuneId)"
-                                [size]="16"
-                                shape="round"
-                                [title]="runeName(m.primaryRuneId)"
-                              />
-                              <nf-avatar
-                                class="rk-match__rune-slot rk-match__rune-slot--secondary"
-                                [src]="runeIcon(m.secondaryRuneTreeId)"
-                                [fallback]="runeName(m.secondaryRuneTreeId)"
-                                [size]="14"
-                                shape="round"
-                                [title]="runeName(m.secondaryRuneTreeId)"
-                              />
-                            </div>
+                            <!--
+                              Aquí iban los hechizos y las runas. No se sirven: están guardados
+                              en el backend, pero con nombres de campo sacados de la
+                              documentación del cliente de LoL que nadie ha visto en un payload
+                              medido. Lo que se pintaba era una tabla de reserva por línea —el
+                              jungla siempre con Smite azul— que no describía ninguna partida.
+                            -->
                           </div>
 
                           <div class="rk-match__vs-block">
@@ -547,7 +523,7 @@
                                 class="rk-match__foe-champ"
                                 [src]="m.foeChampIcon"
                                 [fallback]="m.foeChampName"
-                                [tint]="m.foeChampId"
+                                [tint]="m.foeChampId ?? 0"
                                 [size]="30"
                                 shape="square"
                                 [title]="m.foeChampName"
@@ -562,36 +538,21 @@
                           </div>
 
                           <div class="rk-match__kda">
-                            <span class="rk-match__kda-line nf-mono">
-                              {{ m.kills }} / <span class="rk-match__deaths">{{ m.deaths }}</span> / {{ m.assists }}
-                            </span>
-                            <span class="rk-match__kda-sub nf-mono">{{ m.cs }} CS ({{ m.csPerMin }}/min)</span>
-                          </div>
-
-                          <div class="rk-match__build">
-                            @for (it of m.items; track $index) {
-                              @if (it) {
-                                <nf-avatar
-                                  class="rk-item"
-                                  [class.rk-item--trinket]="$index === (m.lane === 'ADC' ? 7 : 6)"
-                                  [src]="it.iconUrl ?? null"
-                                  [fallback]="it.name"
-                                  [size]="22"
-                                  shape="square"
-                                  [title]="it.name"
-                                />
-                              } @else {
-                                <span
-                                  class="rk-item rk-item--empty"
-                                  [class.rk-item--trinket]="$index === (m.lane === 'ADC' ? 7 : 6)"
-                                ></span>
-                              }
+                            @if (m.kills !== null) {
+                              <span class="rk-match__kda-line nf-mono">
+                                {{ m.kills }} / <span class="rk-match__deaths">{{ m.deaths }}</span> / {{ m.assists }}
+                              </span>
+                            }
+                            @if (m.csLabel; as cs) {
+                              <span class="rk-match__kda-sub nf-mono">{{ cs }}</span>
                             }
                           </div>
 
-                          <span class="rk-match__lp nf-mono" [class.is-gain]="m.lpDelta > 0">
-                            {{ m.lpDelta > 0 ? '+' : '' }}{{ m.lpDelta }} LP
-                          </span>
+                          @if (m.lpDelta !== null) {
+                            <span class="rk-match__lp nf-mono" [class.is-gain]="m.lpDelta > 0">
+                              {{ m.lpDelta > 0 ? '+' : '' }}{{ m.lpDelta }} LP
+                            </span>
+                          }
                         </a>
                       }
                     </div>

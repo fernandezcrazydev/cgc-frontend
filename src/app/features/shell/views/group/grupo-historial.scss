@@ -16,3 +16,24 @@
   font-size: var(--fs-label);
 }
 
+
+/*
+  El denominador, dicho en voz baja pero dicho.
+
+  Las tres tarjetas de arriba sirven cuentas, no medias, y cada porcentaje se divide entre un
+  total distinto: el winrate por bando entre las partidas CON bando, la duración media entre las
+  que están subidas. Sin estas dos líneas los números parecen contradecirse entre tarjetas
+  contiguas, que es exactamente lo que pasaba cuando el resumen se calculaba en el cliente.
+*/
+.gh-summary__note {
+  margin-top: 6px;
+  color: var(--nf-text-dim);
+  font-size: var(--fs-label);
+}
+
+/* El resumen NO sigue a los filtros: el endpoint no los acepta. Se dice en vez de disimularlo. */
+.gh-summary__scope {
+  margin: -4px 0 12px;
+  color: var(--nf-text-dim);
+  font-size: var(--fs-label);
+}

@@ -170,43 +170,6 @@
   flex-shrink: 0;
 }
 
-.rk-match__spells,
-.rk-match__runes {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  align-items: center;
-  justify-content: center;
-}
-
-.rk-match__spell-slot {
-  width: 16px;
-  height: 16px;
-  border-radius: 2px;
-  border: 1px solid var(--nf-border);
-  overflow: hidden;
-  flex-shrink: 0;
-  display: flex;
-}
-
-.rk-match__rune-slot {
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: var(--nf-inset);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  flex-shrink: 0;
-
-  &--secondary {
-    width: 14px;
-    height: 14px;
-    opacity: 0.85;
-  }
-}
-
 .rk-match__vs-block {
   display: flex;
   align-items: center;
@@ -279,35 +242,6 @@
   font-size: var(--fs-label);
   color: var(--nf-text-dim);
   white-space: nowrap;
-}
-
-.rk-match__build {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  width: 198px;
-  justify-content: flex-start;
-  flex-shrink: 0;
-}
-
-.rk-item {
-  width: 22px;
-  height: 22px;
-  border-radius: 3px;
-  border: 1px solid var(--nf-border);
-  flex-shrink: 0;
-  display: flex;
-
-  &--empty {
-    background: var(--nf-inset);
-    opacity: 0.35;
-    border-style: dashed;
-  }
-
-  &--trinket {
-    border-radius: 50%;
-    margin-left: auto;
-  }
 }
 
 .rk-match__lp {
@@ -495,33 +429,6 @@
     white-space: nowrap;
   }
 /* Fila 3 - Tira de Objetos + Trinket */
-.rk-match__build {
-    grid-area: build;
-    display: flex !important;
-    align-items: center;
-    gap: 4px;
-    padding-top: 6px;
-    margin-top: 2px;
-    border-top: 1px dashed color-mix(in srgb, var(--nf-border) 70%, transparent);
-    width: 100%;
-    box-sizing: border-box;
-  }
-.rk-match__build .rk-item {
-    width: 22px;
-    height: 22px;
-    border-radius: 5px;
-    border: 1px solid var(--nf-border);
-    flex-shrink: 0;
-  }
-.rk-match__build .rk-item--empty {
-    background: var(--nf-inset);
-    opacity: 0.55;
-  }
-.rk-match__build .rk-item--trinket {
-    border-radius: 50%;
-    margin-left: 6px;
-    border-color: color-mix(in srgb, var(--nf-secondary) 50%, var(--nf-border));
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {

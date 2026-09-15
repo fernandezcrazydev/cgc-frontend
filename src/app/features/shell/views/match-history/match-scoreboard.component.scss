@@ -183,12 +183,8 @@
     color: var(--nf-danger);
   }
 }
-
-.m-team-table__objectives { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font-size: var(--fs-label); color: var(--nf-text-mid); }
 .m-team-stat-item { display: inline-flex; align-items: center; gap: 4px; color: var(--nf-text); strong { color: var(--nf-text); font-weight: 700; } }
-.m-team-stat-item--drakes { display: inline-flex; align-items: center; gap: 3px; }
 .m-team-obj-icon { width: 16px; height: 16px; object-fit: contain; }
-.m-team-obj-icon--drake { width: 17px; height: 17px; border-radius: 50%; border: 1px solid var(--nf-border); background: var(--nf-void); }
 .m-team-obj-svg { width: 13px; height: 13px; color: #f43f5e; }
 
 .m-player-grid { display: flex; flex-direction: column; overflow-x: auto; }
@@ -202,11 +198,6 @@
 
 .m-player-row__identity { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .m-player-row__champ-wrap { position: relative; flex: none; }
-.m-player-row__lvl { position: absolute; bottom: -2px; right: -2px; font-size: var(--fs-label); font-weight: 700; background: var(--nf-void); border: 1px solid var(--nf-border); border-radius: 3px; padding: 0 2px; color: var(--nf-text); line-height: 1; }
-.m-player-row__spells-runes { display: flex; align-items: center; gap: 3px; flex: none; }
-.m-player-row__spells, .m-player-row__runes { display: flex; flex-direction: column; gap: 2px; }
-.m-player-row__spell-slot { display: block; border-radius: 2px; overflow: hidden; }
-.m-player-row__rune-slot { display: block; border-radius: 50%; background: var(--nf-void); border: 1px solid var(--nf-border); }
 .m-player-row__meta { display: flex; flex-direction: column; min-width: 0; }
 .m-player-row__name-wrap { display: flex; align-items: center; gap: 5px; min-width: 0; }
 .m-player-row__role-ico { font-size: var(--fs-caption); flex-shrink: 0; }
@@ -281,31 +272,6 @@
 .m-cs-text {
   font-size: var(--fs-label);
   color: var(--nf-text);
-}
-
-.m-player-row__items {
-  display: flex;
-  align-items: center;
-}
-
-.m-items-grid {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-}
-
-.m-item-slot {
-  width: 20px;
-  height: 20px;
-  border-radius: 3px;
-  border: 1px solid var(--nf-border);
-  background-size: cover;
-
-  &--empty {
-    background: var(--nf-inset);
-    border-style: dashed;
-    opacity: 0.5;
-  }
 }
 
 .m-player-row__lp {
@@ -593,15 +559,7 @@
 .m-player-row__kda { grid-area: kda; }
 .m-player-row__cs { grid-area: cs; justify-self: end; text-align: right; }
 .m-player-row__damage { grid-area: damage; }
-.m-player-row__items {
-    grid-area: items;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 5px;
-  }
 .m-player-row__champ-wrap nf-avatar { --nf-avatar-size-override: 44px; }
-.m-items-grid { display: flex; align-items: center; gap: 4px; }
-.m-item-slot { width: 22px; height: 22px; aspect-ratio: 1; flex-shrink: 0; }
 /* Sin cabecera de tabla a la vista, tras cinco fichas se pierde de qué bando son. El
      filo del color del bando lo dice en cada una. `:not(.is-current-user)` porque la fila
      del usuario ya usa ese filo para marcarse, y esa marca gana. */
@@ -614,7 +572,6 @@
 /* Cinco datos en un flex sin `wrap`, dentro de una cabecera con `space-between`: se
      salían de la tarjeta. */
 .m-team-table__header { flex-wrap: wrap; gap: 8px; padding: 10px 14px; }
-.m-team-table__objectives { flex-wrap: wrap; gap: 4px 14px; width: 100%; }
 /* ---- Duelos de línea ----
      Apilados en una columna (rol / azul / VS / rojo) el duelo dejaba de leerse como un
      duelo. El rol pasa a cabecera y los dos jugadores vuelven a enfrentarse. */
@@ -663,4 +620,33 @@
 .m-scoreboard__share-btn { width: $touch; height: $touch; }
 .m-rank-head { gap: 12px; }
 .m-rank-lead { min-width: 0; }
+}
+
+/*
+  Lo que se pinta cuando la partida no está subida, y el ancla del selector de emojis.
+
+  `ms-no-stats` sustituye a lo que antes eran diez filas de ceros. El aviso va una vez por
+  pestaña y no por jugador: repetido diez veces sería el texto más largo del marcador.
+*/
+.ms-no-stats {
+  margin: 12px 0 0;
+  color: var(--nf-text-dim);
+  font-size: var(--fs-label);
+  line-height: 1.45;
+}
+
+/* El hueco del campeón sin subida. Vacío a propósito: ni silueta genérica ni icono prestado. */
+.ms-row__no-champ {
+  display: block;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--nf-radius-sm);
+  border: var(--bw-1) dashed var(--nf-border);
+  background: var(--nf-inset);
+}
+
+/* El selector de emojis se posiciona contra este ancla; antes iba en un `style` suelto. */
+.ms-row__react-anchor {
+  position: relative;
+  display: inline-flex;
 }

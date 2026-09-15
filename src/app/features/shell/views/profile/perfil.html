@@ -228,81 +228,15 @@
 
         <!-- ── Columna Lateral (40%) ── -->
         <div class="pf-bento__col pf-bento__col--side">
-          <!-- Cara a cara (Aliado & Némesis) -->
-          <section class="pf-card">
-            <div class="pf-card__header">
-              <span class="pf-card__title nf-mono">Rivalidades y sinergias</span>
-            </div>
+          <!--
+            Aquí iban «Mejor aliado» y «Némesis». Se retiraron al conectar el historial: los dos
+            salían de recorrer TODAS tus partidas en el cliente y agrupar por compañero, y con la
+            paginación en servidor esa vuelta ya no existe. Sacarlos de la última página sería
+            nombrar aliado a quien aparezca en seis partidas.
 
-            <div class="pf-h2h-stack">
-              @if (bestAlly(); as a) {
-                <a
-                  class="pf-h2h-compact pf-h2h-compact--ally"
-                  [routerLink]="['/app', 'synergy', a.tag]"
-                  [attr.aria-label]="'Ver las estadísticas de dúo con ' + a.name"
-                  [title]="'Ver las estadísticas de dúo con ' + a.name"
-                >
-                  <div class="pf-h2h-compact__head nf-mono">
-                    <span>Mejor aliado</span>
-                    <span class="pf-pos">{{ a.wr }}% WR juntos</span>
-                  </div>
-                  <div class="pf-h2h-compact__body">
-                    <nf-avatar
-                      class="pf-h2h-compact__avatar"
-                      [src]="a.avatarUrl"
-                      [fallback]="a.name"
-                      [tint]="a.hue"
-                      [size]="32"
-                      shape="square"
-                    />
-                    <div class="pf-h2h-compact__info">
-                      <div class="pf-h2h-compact__name">{{ a.name }}</div>
-                      <div class="pf-h2h-compact__sub nf-mono">
-                        {{ a.wins }}V - {{ a.losses }}D juntos
-                      </div>
-                    </div>
-                  </div>
-                </a>
-              }
-
-              @if (nemesis(); as n) {
-                <a
-                  class="pf-h2h-compact pf-h2h-compact--nemesis"
-                  [routerLink]="['/app', 'versus', n.tag]"
-                  [attr.aria-label]="'Ver el cara a cara contra ' + n.name"
-                  [title]="'Ver el cara a cara contra ' + n.name"
-                >
-                  <div class="pf-h2h-compact__head nf-mono">
-                    <span>Némesis</span>
-                    <span class="pf-neg">{{ n.wr }}% WR en duelo</span>
-                  </div>
-                  <div class="pf-h2h-compact__body">
-                    <nf-avatar
-                      class="pf-h2h-compact__avatar"
-                      [src]="n.avatarUrl"
-                      [fallback]="n.name"
-                      [tint]="n.hue"
-                      [size]="32"
-                      shape="square"
-                    />
-                    <div class="pf-h2h-compact__info">
-                      <div class="pf-h2h-compact__name">{{ n.name }}</div>
-                      <div class="pf-h2h-compact__sub nf-mono">
-                        {{ n.wins }}V - {{ n.losses }}D rivales
-                      </div>
-                    </div>
-                  </div>
-                </a>
-              }
-
-              @if (!bestAlly() && !nemesis()) {
-                <p class="pf-h2h-empty">
-                  Aún no hay suficientes partidas con nadie para nombrar un aliado o una
-                  némesis. Hacen falta al menos {{ minSample }} con la misma persona.
-                </p>
-              }
-            </div>
-          </section>
+            BACKEND NOTE: es una superficie analítica propia y se sirve aparte (issue #69, §8).
+            Cuando exista su endpoint, la tarjeta vuelve tal cual estaba.
+          -->
 
           <app-profile-groups-card [groups]="p.groups" title="Tus grupos" />
         </div>

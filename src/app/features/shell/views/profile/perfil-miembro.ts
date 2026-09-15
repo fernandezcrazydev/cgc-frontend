@@ -1,4 +1,12 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  signal,
+  untracked,
+} from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
@@ -17,8 +25,15 @@ import { Session } from '../../../../core/auth';
 import { GroupStore } from '../../../../core/group-store';
 import { GameDataStore } from '../../../../core/game-data';
 import { RoleSample, buildMemberProfile } from '../../../../core/player-profile';
-import { MatchHistoryStore, aggregateCross, itemBg } from '../../../../core/matches';
-import { aggregateMetricRows } from '../cross/cross-compare';
+import {
+  EMPTY_FILTERS,
+  MAX_PAGE_SIZE,
+  MatchHistoryStore,
+  itemBg,
+  personalMatchQuery,
+  personalSummaryQuery,
+  toCrossMatches,
+} from '../../../../core/matches';
 import { ProfileGroupsCard } from './profile-groups-card.component';
 import { ProfileStreakCard } from './profile-streak-card.component';
 
@@ -142,7 +157,7 @@ type MiembroTab = (typeof MIEMBRO_TABS)[number];
                     <span class="pf-card__title nf-mono">Cara a cara directo · tú y {{ p.name }}</span>
                     <a
                       class="pf-meta-chip pf-meta-chip--action nf-mono"
-                      [routerLink]="['/app', 'historial-cruzado', p.tag]"
+                      [routerLink]="['/app', 'jugador', userId()]"
                       [title]="'Ver el historial cruzado completo'"
                     >
                       Historial cruzado
@@ -157,36 +172,36 @@ type MiembroTab = (typeof MIEMBRO_TABS)[number];
                   <div class="pf-vs-grid">
                     <a
                       class="pf-vs-tile pf-vs-tile--synergy pf-vs-tile--interactive"
-                      [routerLink]="['/app', 'synergy', p.tag]"
+                      [routerLink]="['/app', 'jugador', userId(), 'juntos']"
                       [attr.aria-label]="'Ver las estadísticas de dúo con ' + p.name"
                       [title]="'Ver las estadísticas de dúo con ' + p.name"
                     >
                       <div class="pf-vs-tile__head nf-mono">
                         <span>Como compañeros</span>
-                        <span class="pf-pos">{{ together().games }} partidas</span>
+                        <span class="pf-pos">{{ together()?.totalMatches ?? 0 }} partidas</span>
                       </div>
-                      <div class="pf-vs-tile__val nf-mono" [class.pf-pos]="together().winrate >= 50">
-                        {{ together().games > 0 ? together().winrate + ' % WR' : 'Ninguna aún' }}
+                      <div class="pf-vs-tile__val nf-mono" [class.pf-pos]="togetherWinrate() >= 50">
+                        {{ (together()?.totalMatches ?? 0) > 0 ? togetherWinrate() + ' % WR' : 'Ninguna aún' }}
                       </div>
                       <div class="pf-vs-tile__sub nf-mono">
                         <span>
-                          {{ together().wins }}V · {{ together().losses }}D juntos en el equipo
+                          {{ together()?.wins ?? 0 }}V · {{ together()?.losses ?? 0 }}D juntos en el equipo
                         </span>
                       </div>
                     </a>
 
                     <a
                       class="pf-vs-tile pf-vs-tile--rivalry pf-vs-tile--interactive"
-                      [routerLink]="['/app', 'versus', p.tag]"
+                      [routerLink]="['/app', 'jugador', userId(), 'contra']"
                       [attr.aria-label]="'Ver los duelos directos contra ' + p.name"
                       [title]="'Ver los duelos directos contra ' + p.name"
                     >
                       <div class="pf-vs-tile__head nf-mono">
                         <span>Duelos directos</span>
-                        <span>{{ against().games }} partidas</span>
+                        <span>{{ against()?.totalMatches ?? 0 }} partidas</span>
                       </div>
                       <div class="pf-vs-tile__val nf-mono">
-                        {{ against().wins }} - {{ against().losses }}
+                        {{ against()?.wins ?? 0 }} - {{ against()?.losses ?? 0 }}
                       </div>
                       <div class="pf-vs-tile__sub nf-mono">
                         @if (lead() > 0) {
@@ -200,34 +215,15 @@ type MiembroTab = (typeof MIEMBRO_TABS)[number];
                     </a>
                   </div>
 
-                  <!-- Medias de los dos, sobre TODAS vuestras partidas en común -->
-                  <div class="pf-compare-compact">
-                    <div class="pf-compare-compact__head nf-mono">
-                      <span class="pf-compare-compact__col pf-compare-compact__col--me">Tú</span>
-                      <span class="pf-compare-compact__col pf-compare-compact__col--metric">
-                        Medias en vuestras {{ cross().length }} partidas en común
-                      </span>
-                      <span class="pf-compare-compact__col pf-compare-compact__col--foe">{{ p.name }}</span>
-                    </div>
+                  <!--
+                    Aquí iban vuestras medias enfrentadas —KDA acumulado, cuota de daño, CS por
+                    minuto, visión—. Se calculaban recorriendo TODAS vuestras partidas en común
+                    en el cliente, y con la paginación en servidor esa vuelta ya no existe.
+                    Promediar la página que hay cargada y llamarlo «vuestras medias» sería una
+                    cifra inventada con aspecto de medida.
 
-                    @for (r of compareRows(); track r.key) {
-                      <div class="pf-compare-compact__row nf-mono">
-                        <span
-                          class="pf-compare-compact__val pf-compare-compact__val--me"
-                          [class.pf-pos]="r.winner === 'me'"
-                        >
-                          {{ r.mineText }}
-                        </span>
-                        <span class="pf-compare-compact__label">{{ r.label }}</span>
-                        <span
-                          class="pf-compare-compact__val pf-compare-compact__val--foe"
-                          [class.pf-pos]="r.winner === 'them'"
-                        >
-                          {{ r.theirsText }}
-                        </span>
-                      </div>
-                    }
-                  </div>
+                    BACKEND NOTE: superficie analítica propia, se sirve aparte (issue #69, §8).
+                  -->
                 </section>
               } @else {
                 <section class="pf-card pf-vs-card">
@@ -537,6 +533,29 @@ export class PerfilMiembro {
   private readonly matchHistory = inject(MatchHistoryStore);
   protected readonly session = inject(Session);
 
+  constructor() {
+    // Vuestro cruce: `GET /me/matches?with={userId}` con una muestra amplia para el desglose
+    // por posición, más los dos recuentos que sí cubren todas las partidas. Las tres consultas
+    // están deduplicadas en el store, así que volver a entrar en la ficha no repite ninguna.
+    effect(() => {
+      const id = this.userId();
+      if (!id) return;
+      // `untracked` no es decorativo: los métodos del store LEEN sus propias signals de
+      // estado, así que llamarlos dentro del efecto lo suscribiría a lo que él mismo escribe.
+      // Las únicas dependencias del efecto deben ser la consulta y el id.
+      untracked(() => {
+        void this.matchHistory.ensurePersonal(
+          personalMatchQuery(EMPTY_FILTERS, 0, MAX_PAGE_SIZE, { with: id, relation: 'all' }),
+        );
+        for (const relation of ['ally', 'enemy'] as const) {
+          void this.matchHistory.ensurePersonalSummary(
+            personalSummaryQuery(EMPTY_FILTERS, { with: id, relation }),
+          );
+        }
+      });
+    });
+  }
+
   // Sin valor de relleno: un parámetro vacío es un jugador que no existe, y eso lo resuelve el
   // 404 de abajo. Caer a 'Jugador' hacía que la ruta sin id pintase el perfil de alguien.
   readonly userId = toSignal(
@@ -551,15 +570,20 @@ export class PerfilMiembro {
    * como «sin datos» en vez de con un porcentaje inventado.
    */
   private readonly roleSamples = computed<RoleSample[]>(() =>
-    this.crossWith().all.map((c) => ({
+    this.cross().map((c) => ({
       role: c.them.role,
-      won: c.them.team === c.match.winningTeam,
-      wonLane: c.them.stats.wonLane,
+      won: c.them.slot === c.match.winningSlot,
+      // `wonLane` ya no viaja: el backend no sirve ese juicio y derivarlo necesita el oro del
+      // minuto 14, que solo llega al abrir cada partida.
+      wonLane: undefined,
     })),
   );
 
-  /** Mientras el historial se reproyecta no se puede afirmar todavía si este jugador existe. */
-  readonly loading = computed(() => this.matchHistory.status() === 'loading');
+  /** Mientras el cruce viaja no se puede afirmar todavía si este jugador existe. */
+  readonly loading = computed(() => {
+    const status = this.matchHistory.personalStatus();
+    return status === 'idle' || status === 'loading';
+  });
 
   readonly profile = computed(() => {
     const targetTag = this.userId();
@@ -571,31 +595,45 @@ export class PerfilMiembro {
       this.roleSamples(),
       // Alguien que ya no comparte grupo contigo pero con quien sí has jugado existe: sus
       // partidas lo prueban. Solo es 404 cuando no aparece por ninguna de las dos vías.
-      this.crossWith().all.length > 0,
+      this.cross().length > 0,
     );
   });
 
   // ── Cara a cara ───────────────────────────────────────────────────
-  // Sale del historial real, no de una semilla propia: es el mismo `crossWith()` que alimenta
-  // el historial cruzado y las dos páginas de medias, así que las cifras de esta ficha y las
-  // de la pantalla que abre no pueden discrepar.
-  private readonly crossWith = computed(() => this.matchHistory.crossWith(this.userId()));
+  // El cruce es un filtro del historial personal: `GET /me/matches?with={userId}`. Los récords
+  // salen de `GET /me/matches/summary` con los mismos parámetros, no de contar la lista: la
+  // lista es una muestra y el resumen sí cuenta todas.
 
-  /** Todas vuestras partidas en común; su longitud decide si la ficha tiene algo que decir. */
-  readonly cross = computed(() => this.crossWith().all);
+  /** Vuestras partidas en común que hay cargadas; decide si la ficha tiene algo que decir. */
+  readonly cross = computed(() =>
+    toCrossMatches(this.matchHistory.personalMatches(), this.userId()),
+  );
 
-  readonly together = computed(() => aggregateCross(this.crossWith().allies));
-  readonly against = computed(() => aggregateCross(this.crossWith().enemies));
+  readonly together = computed(() =>
+    this.matchHistory.personalSummaryFor(
+      personalSummaryQuery(EMPTY_FILTERS, { with: this.userId(), relation: 'ally' }),
+    ),
+  );
+
+  readonly against = computed(() =>
+    this.matchHistory.personalSummaryFor(
+      personalSummaryQuery(EMPTY_FILTERS, { with: this.userId(), relation: 'enemy' }),
+    ),
+  );
+
+  /** Sobre partidas decididas: una anulada no cuenta ni como victoria ni como derrota. */
+  readonly togetherWinrate = computed(() => {
+    const s = this.together();
+    if (!s) return 0;
+    const decided = s.wins + s.losses;
+    return decided > 0 ? Math.round((s.wins / decided) * 100) : 0;
+  });
 
   /** Positivo = vas ganando tú el marcador de los duelos directos. */
-  readonly lead = computed(() => this.against().wins - this.against().losses);
-
-  /**
-   * Las medias de los dos sobre TODAS vuestras partidas en común, juntos y enfrentados. Es el
-   * conjunto más grande y por tanto el más estable: partir la comparativa por relación dejaría
-   * medias de dos y tres partidas, que no comparan nada.
-   */
-  readonly compareRows = computed(() => aggregateMetricRows(aggregateCross(this.cross())));
+  readonly lead = computed(() => {
+    const a = this.against();
+    return a ? a.wins - a.losses : 0;
+  });
 
   // ── Pestañas de Navegación ────────────────────────────────────────
   readonly activeTab = signal<MiembroTab>('resumen');

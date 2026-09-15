@@ -3,8 +3,10 @@ import {
   Component,
   afterNextRender,
   computed,
+  effect,
   inject,
   signal,
+  untracked,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
@@ -13,6 +15,14 @@ import { map } from 'rxjs';
 import { GameDataStore } from '../../../../core/game-data';
 import { GroupsStore } from '../../../../core/groups';
 import { MatchHistoryStore } from '../../../../core/matches/match-history-store';
+import {
+  csPerMin,
+  damageShare,
+  participantName,
+  participantsOf,
+  teamOf,
+  wonLane,
+} from '../../../../core/matches/match-view';
 import { Lane, Match, MatchParticipant } from '../../../../core/matches/models';
 import { ViewMemoryService } from '../../../../shared/view-memory';
 import { NfAvatar, NfButton, NfLaneIcon } from '../../../../ui';
@@ -155,8 +165,18 @@ const ROLE_FILTERS: readonly { id: Lane | 'ALL'; label: string; glyph: string }[
             }
           </div>
 
+          <!--
+            Sobre cuántas partidas se ha calculado, siempre. Es una MUESTRA —las últimas del
+            grupo, hasta el tope del servidor—, y una tier list que no dice su tamaño de muestra
+            se lee como si describiera el grupo entero.
+          -->
           <div class="tierlist-meta-count nf-mono">
             <span>{{ totalMatches() }} {{ totalMatches() === 1 ? 'partida analizada' : 'partidas analizadas' }}</span>
+            @if (isSample()) {
+              <span class="tierlist-meta-count__scope">
+                · las más recientes de {{ totalInGroup() }}
+              </span>
+            }
           </div>
         </div>
 
@@ -557,18 +577,27 @@ export class Tierlist {
   readonly group = computed(() => this.groups.byId(this.groupId()));
   readonly groupName = computed(() => this.group()?.name ?? 'Grupo');
 
-  /** Partidas disputadas en este grupo (con fallback a partidas disponibles en desarrollo). */
-  readonly groupMatches = computed<Match[]>(() => {
-    const id = this.groupId();
-    if (!id) return [];
-    const directMatches = this.matchHistory.matchesByGroup(id);
-    if (directMatches.length > 0) return directMatches;
-    // En desarrollo: si el grupo específico no tiene partidas registradas con su ID exacto,
-    // usamos las partidas disponibles en el store para permitir previsualizar el metagame y la tabla.
-    return this.matchHistory.allMatches();
-  });
+  /**
+   * La muestra sobre la que se calcula el metagame: las últimas partidas del grupo, hasta el
+   * tope que admite el servidor.
+   *
+   * **No es el historial entero del grupo**, y por eso la cabecera dice sobre cuántas se ha
+   * calculado. Con la paginación en servidor esa vuelta ya no existe en el cliente, y llamar
+   * «tier list del grupo» a lo que sale de una página de seis sería peor que no darla.
+   *
+   * Solo entran las partidas SUBIDAS: sin campeón no hay nada que atribuir a ningún campeón.
+   *
+   * BACKEND NOTE: esta agregación es regla de negocio y acabará siendo del servidor, que es
+   * quien puede recorrer el grupo entero. Entonces esto se sustituye por su endpoint.
+   */
+  readonly groupMatches = computed<Match[]>(() =>
+    this.matchHistory.groupSample().filter((m) => m.hasStats && !m.voided),
+  );
 
   readonly totalMatches = computed(() => this.groupMatches().length);
+  /** Cuántas hay en el grupo, para poder decir que la muestra es una muestra. */
+  readonly totalInGroup = this.matchHistory.groupSampleTotal;
+  readonly isSample = computed(() => this.totalInGroup() > this.totalMatches());
 
   /** Estado de filtros locales con signals */
   readonly searchQuery = signal('');
@@ -584,6 +613,14 @@ export class Tierlist {
   constructor() {
     void this.groups.ensureLoaded();
     void this.gameData.ensureLoaded();
+
+    effect(() => {
+      const g = this.group();
+      // `untracked` no es decorativo: los métodos del store LEEN sus propias signals de
+      // estado, así que llamarlos dentro del efecto lo suscribiría a lo que él mismo escribe.
+      // Las únicas dependencias del efecto deben ser la consulta y el id.
+      if (g) untracked(() => void this.matchHistory.ensureGroupSample({ id: g.id, name: g.name }));
+    });
 
     const paramChamp = this.route.snapshot?.queryParamMap?.get('campeon');
     if (paramChamp) {
@@ -660,20 +697,20 @@ export class Tierlist {
     const accumulators = new Map<number, ChampAccumulator>();
 
     for (const match of matches) {
-      const durationMin = Math.max(1, Math.round(match.durationSeconds / 60));
-      const winningTeam = match.winningTeam;
-      const participants: MatchParticipant[] = [
-        ...match.blueTeam.participants,
-        ...match.redTeam.participants,
-      ];
+      const durationMin = Math.max(1, Math.round((match.durationSeconds ?? 0) / 60));
+      const participants: MatchParticipant[] = participantsOf(match);
 
       for (const p of participants) {
+        // Sin campeón no hay nada que atribuir. Pasa en una partida a medio subir, y meterla
+        // bajo un campeón cualquiera contaminaría su winrate.
+        if (p.championId == null) continue;
+
         let acc = accumulators.get(p.championId);
         if (!acc) {
           const info = champMap.get(p.championId);
           acc = {
             championId: p.championId,
-            name: info?.name ?? p.championName,
+            name: info?.name ?? `Campeón ${p.championId}`,
             title: info?.title ?? '',
             iconUrl: info?.iconUrl ?? null,
             tags: info?.tags ?? [],
@@ -697,33 +734,34 @@ export class Tierlist {
           accumulators.set(p.championId, acc);
         }
 
-        const isWin = p.team === winningTeam;
+        const isWin = p.slot === match.winningSlot;
         acc.games++;
         if (isWin) acc.wins++;
-        acc.kills += p.stats.kills;
-        acc.deaths += p.stats.deaths;
-        acc.assists += p.stats.assists;
-        acc.damageTotal += p.stats.totalDamageToChampions ?? 0;
+        acc.kills += p.stats.kills ?? 0;
+        acc.deaths += p.stats.deaths ?? 0;
+        acc.assists += p.stats.assists ?? 0;
+        acc.damageTotal += p.stats.damageToChampions ?? 0;
         acc.goldTotal += p.stats.gold ?? 0;
         acc.goldAt14Total += p.stats.goldAt14 ?? 0;
         acc.csAt14Total += p.stats.csAt14 ?? 0;
-        acc.csPerMinTotal += p.stats.csPerMin ?? 0;
+        acc.csPerMinTotal += csPerMin(p.stats, match.durationSeconds) ?? 0;
         acc.visionTotal += p.stats.visionScore ?? 0;
-        acc.damageShareTotal += p.stats.damageSharePercentage ?? 0;
-        if (p.stats.wonLane) acc.wonLaneCount++;
+        acc.damageShareTotal += damageShare(p, teamOf(match, p)) ?? 0;
+        if (wonLane(match, p)) acc.wonLaneCount++;
         acc.durationMinutesTotal += durationMin;
 
         acc.roleCounts.set(p.role, (acc.roleCounts.get(p.role) ?? 0) + 1);
 
-        // Player tracking
-        const key = p.riotId || p.discordUsername || 'Jugador';
-        const displayName = p.discordUsername ?? p.riotId.split('#')[0] ?? p.riotId;
+        // El jugador se acumula por `userId`, que es su identidad estable: el Riot ID es el del
+        // día que se jugó y puede haber cambiado entre dos partidas del mismo corpus.
+        const key = p.userId;
+        const displayName = participantName(p);
         let pAcc = acc.playerStats.get(key);
         if (!pAcc) {
           pAcc = {
             name: displayName,
-            riotId: key,
-            avatarUrl: p.avatarUrl ?? null,
+            riotId: p.riotId ?? displayName,
+            avatarUrl: null,
             games: 0,
             wins: 0,
             kills: 0,
@@ -734,9 +772,9 @@ export class Tierlist {
         }
         pAcc.games++;
         if (isWin) pAcc.wins++;
-        pAcc.kills += p.stats.kills;
-        pAcc.deaths += p.stats.deaths;
-        pAcc.assists += p.stats.assists;
+        pAcc.kills += p.stats.kills ?? 0;
+        pAcc.deaths += p.stats.deaths ?? 0;
+        pAcc.assists += p.stats.assists ?? 0;
       }
     }
 

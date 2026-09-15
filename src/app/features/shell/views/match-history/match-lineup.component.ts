@@ -8,8 +8,14 @@ import {
   signal,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { DragonType, Lane, Match, MatchItemSlot, MatchParticipant, TeamSide } from '../../../../core/matches/models';
-import { computeMatchScores, formatKda } from '../../../../core/matches/match-view';
+import { Lane, Match, MatchParticipant } from '../../../../core/matches/models';
+import {
+  LANE_ORDER,
+  computeMatchScores,
+  formatKda,
+  participantName,
+  teamLabel,
+} from '../../../../core/matches/match-view';
 import { GameDataStore } from '../../../../core/game-data';
 import { NfAvatar, NfEmojiPicker, NfLaneIcon } from '../../../../ui';
 import { ReactionsStore, ReactionTally } from '../../../../core/reactions';
@@ -20,11 +26,20 @@ import { MatchHistoryUiState } from './match-history-ui';
  * Alineación de la partida: lo que se abre al desplegar una fila del historial.
  *
  * Deliberadamente MÍNIMA y distinta de `<app-match-scoreboard>` (la página de análisis):
- * responde a una sola pregunta —"¿quién jugaba y cómo le fue?"— con los diez jugadores,
- * su campeón, su línea y su KDA, y nada más. Objetos, oro, daño, runas, duelos de línea
- * y pestañas viven en `/app/historial/:id`, porque una fila desplegada que repite la
- * página entera convierte la lista en una pared de datos y deja la página sin motivo
- * para existir: el desplegable se ojea, la página se estudia.
+ * responde a una sola pregunta —«¿quién jugaba y cómo le fue?»— con los diez jugadores, su
+ * campeón, su línea y su KDA, y nada más. Oro, daño, duelos de línea y objetivos viven en
+ * `/app/historial/:id`, porque una fila desplegada que repite la página entera convierte la
+ * lista en una pared de datos y deja la página sin motivo para existir: el desplegable se
+ * ojea, la página se estudia.
+ *
+ * ## Lo que ya no pinta, y por qué no volverá aquí
+ *
+ * Objetos, runas, hechizos, nivel de campeón y objetivos del equipo. Los tres primeros el
+ * backend **no los sirve**: están guardados, pero con nombres de campo sacados de la
+ * documentación del cliente de LoL que nadie ha visto en un payload medido. Los objetivos sí
+ * existen, pero **solo en el detalle** y solo si la sala decidió lados. Mientras tanto esto se
+ * pintaba con una tabla de reserva por línea —el jungla siempre con Smite azul, el soporte
+ * siempre con Protector— que no describía ninguna partida real.
  */
 @Component({
   selector: 'app-match-lineup',
@@ -39,7 +54,7 @@ import { MatchHistoryUiState } from './match-history-ui';
   template: `
     <div class="m-lineup">
       <div class="m-lineup__teams">
-        @for (team of teams(); track team.side) {
+        @for (team of teams(); track team.slot) {
           <div
             class="m-lineup__team"
             [class.m-lineup__team--blue]="team.side === 'blue'"
@@ -49,54 +64,15 @@ import { MatchHistoryUiState } from './match-history-ui';
               <span class="m-lineup__team-outcome nf-mono" [class.is-win]="team.won" [class.is-loss]="!team.won">
                 {{ team.won ? 'Victoria' : 'Derrota' }}
               </span>
-
-              <div class="m-lineup__team-objs">
-                @if (team.voidgrubs > 0) {
-                  <span class="m-lineup__obj" [title]="'Larvas del Vacío: ' + team.voidgrubs">
-                    <img
-                      src="https://raw.communitydragon.org/latest/game/assets/ux/minimap/icons/grub.png"
-                      alt="Larvas"
-                      class="m-lineup__obj-icon"
-                    />
-                    <span class="m-lineup__obj-num nf-mono">{{ team.voidgrubs }}</span>
-                  </span>
-                }
-                @if (team.barons > 0) {
-                  <span class="m-lineup__obj" [title]="'Barones: ' + team.barons">
-                    <img
-                      src="https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-match-history/global/default/baron-100.png"
-                      alt="Barón"
-                      class="m-lineup__obj-icon"
-                    />
-                    <span class="m-lineup__obj-num nf-mono">{{ team.barons }}</span>
-                  </span>
-                }
-                @if (team.elderDragons > 0) {
-                  <span class="m-lineup__obj" [title]="'Dragones anciano: ' + team.elderDragons">
-                    <img
-                      src="https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-match-history/global/default/elder-100.png"
-                      alt="Dragón Anciano"
-                      class="m-lineup__obj-icon"
-                    />
-                    <span class="m-lineup__obj-num nf-mono">{{ team.elderDragons }}</span>
-                  </span>
-                }
-                @if (team.dragonTypes.length > 0) {
-                  <span class="m-lineup__drakes">
-                    @for (d of team.dragonTypes; track $index) {
-                      <img
-                        [src]="drakeIcon(d)"
-                        [alt]="d"
-                        [title]="drakeTitle(d)"
-                        class="m-lineup__drake-icon"
-                      />
-                    }
-                  </span>
-                }
-              </div>
+              <!--
+                El equipo se nombra siempre, y con color solo cuando lo tiene. «Equipo A» no es
+                un texto de reserva: es el nombre correcto de un equipo cuya sala nunca eligió
+                bando, y ponerle uno aquí sería inventárselo.
+              -->
+              <span class="ml-team__name nf-mono">{{ team.label }}</span>
             </div>
 
-            @for (p of team.participants; track p.id) {
+            @for (p of team.participants; track p.userId) {
               <div
                 class="m-lineup__row"
                 [class.is-you]="isCurrentUser(p)"
@@ -106,55 +82,26 @@ import { MatchHistoryUiState } from './match-history-ui';
 
                 <div class="m-lineup__champ-col">
                   <div class="m-lineup__champ-wrap">
-                    <a
-                      class="m-lineup__champ-link"
-                      [routerLink]="['/app', 'tierlist']"
-                      [title]="'Ver estadísticas de ' + championName(p)"
-                      (click)="$event.stopPropagation()"
-                    >
-                      <nf-avatar
-                        class="m-lineup__champ"
-                        [loading]="champsLoading()"
-                        [src]="champion(p.championId)?.iconUrl ?? null"
-                        [fallback]="p.championName"
-                        [tint]="p.championId"
-                        [size]="28"
-                        shape="square"
-                      />
-                    </a>
-                    <span class="m-player-row__lvl nf-mono">{{ p.championLevel }}</span>
-                  </div>
-
-                  <div class="m-lineup__spells-col">
-                    @for (sId of participantSpells(p); track $index) {
-                      <nf-avatar
-                        class="m-lineup__spell-slot"
-                        [src]="spellIcon(sId)"
-                        [fallback]="spellName(sId)"
-                        [size]="13"
-                        shape="square"
-                        [title]="spellName(sId)"
-                      />
+                    @if (p.championId; as champId) {
+                      <a
+                        class="m-lineup__champ-link"
+                        [routerLink]="['/app', 'tierlist']"
+                        [title]="'Ver estadísticas de ' + championName(p)"
+                        (click)="$event.stopPropagation()"
+                      >
+                        <nf-avatar
+                          class="m-lineup__champ"
+                          [loading]="champsLoading()"
+                          [src]="championIcon(champId)"
+                          [fallback]="championName(p)"
+                          [tint]="champId"
+                          [size]="28"
+                          shape="square"
+                        />
+                      </a>
+                    } @else {
+                      <span class="ml-row__no-champ" aria-hidden="true"></span>
                     }
-                  </div>
-
-                  <div class="m-lineup__runes-col">
-                    <nf-avatar
-                      class="m-lineup__rune-slot m-lineup__rune-slot--primary"
-                      [src]="runeIcon(participantPrimaryRune(p))"
-                      [fallback]="runeName(participantPrimaryRune(p))"
-                      [size]="13"
-                      shape="round"
-                      [title]="runeName(participantPrimaryRune(p))"
-                    />
-                    <nf-avatar
-                      class="m-lineup__rune-slot m-lineup__rune-slot--secondary"
-                      [src]="runeIcon(participantSecondaryRune(p))"
-                      [fallback]="runeName(participantSecondaryRune(p))"
-                      [size]="12"
-                      shape="round"
-                      [title]="runeName(participantSecondaryRune(p))"
-                    />
                   </div>
                 </div>
 
@@ -163,36 +110,40 @@ import { MatchHistoryUiState } from './match-history-ui';
                     <a
                       class="m-lineup__player"
                       [routerLink]="isCurrentUser(p) ? ['/app', 'perfil'] : ['/app', 'perfil', p.userId]"
-                      [title]="p.riotId"
+                      [title]="playerName(p)"
                       (click)="$event.stopPropagation()"
                     >
-                      {{ p.riotId }}
+                      {{ playerName(p) }}
                     </a>
                     @if (isCurrentUser(p)) {
                       <span class="m-lineup__tag nf-mono">Tú</span>
                     }
                   </div>
-                  <a
-                    class="m-lineup__champ-name nf-mono"
-                    [routerLink]="['/app', 'tierlist']"
-                    [title]="'Ver estadísticas de ' + championName(p)"
-                    (click)="$event.stopPropagation()"
-                  >
-                    {{ championName(p) }}
-                  </a>
+                  @if (p.championId) {
+                    <a
+                      class="m-lineup__champ-name nf-mono"
+                      [routerLink]="['/app', 'tierlist']"
+                      [title]="'Ver estadísticas de ' + championName(p)"
+                      (click)="$event.stopPropagation()"
+                    >
+                      {{ championName(p) }}
+                    </a>
+                  }
                 </div>
 
-                <div class="m-lineup__score-col">
-                  <span
-                    class="m-lineup__tag m-lineup__tag--score nf-mono"
-                    [class.is-mvp]="p.id === match().mvpParticipantId"
-                    [class.is-ace]="p.id === match().aceParticipantId"
-                    [class.is-podium]="playerRank(p) <= 3"
-                    [title]="'Nota de partida: ' + playerRankScore(p)"
-                  >
-                    {{ playerRankScore(p) }}
-                  </span>
-                </div>
+                @if (playerRankScore(p); as score) {
+                  <div class="m-lineup__score-col">
+                    <span
+                      class="m-lineup__tag m-lineup__tag--score nf-mono"
+                      [class.is-mvp]="p.userId === match().mvpUserId"
+                      [class.is-ace]="p.userId === match().aceUserId"
+                      [class.is-podium]="playerRank(p) <= 3"
+                      [title]="'Nota de partida: ' + score"
+                    >
+                      {{ score }}
+                    </span>
+                  </div>
+                }
 
                 @if (reactionScope(); as scope) {
                   <!-- Reacciones sobre el jugador. En la fila se enseña SOLO la más votada: diez
@@ -206,7 +157,7 @@ import { MatchHistoryUiState } from './match-history-ui';
                         class="m-lineup__reaction"
                         [class.is-mine]="r.mine"
                         [attr.aria-pressed]="r.mine"
-                        [attr.aria-label]="(r.mine ? 'Quitar tu reacción ' : 'Reaccionar con ') + r.emoji + ' a ' + p.riotId"
+                        [attr.aria-label]="(r.mine ? 'Quitar tu reacción ' : 'Reaccionar con ') + r.emoji + ' a ' + playerName(p)"
                         (click)="toggleReaction(p, r.emoji, $event)"
                       >
                         <span aria-hidden="true">{{ r.emoji }}</span>
@@ -217,31 +168,31 @@ import { MatchHistoryUiState } from './match-history-ui';
                       <button
                         type="button"
                         class="m-lineup__reaction m-lineup__reaction--more nf-mono"
-                        [attr.aria-label]="'Ver las ' + extra + ' reacciones restantes de ' + p.riotId"
-                        (mouseenter)="peek(p.id)"
-                        (focus)="peek(p.id)"
-                        (click)="openPanel(p.id, $event)"
+                        [attr.aria-label]="'Ver las ' + extra + ' reacciones restantes de ' + playerName(p)"
+                        (mouseenter)="peek(p.userId)"
+                        (focus)="peek(p.userId)"
+                        (click)="openPanel(p.userId, $event)"
                       >+{{ extra }}</button>
                     }
                     <button
                       type="button"
                       class="m-lineup__react-add"
                       aria-haspopup="menu"
-                      [attr.aria-expanded]="panelFor() === p.id"
-                      [attr.aria-label]="'Reaccionar a ' + p.riotId"
-                      (click)="openPanel(p.id, $event)"
+                      [attr.aria-expanded]="panelFor() === p.userId"
+                      [attr.aria-label]="'Reaccionar a ' + playerName(p)"
+                      (click)="openPanel(p.userId, $event)"
                     >＋</button>
 
-                    @if (panelFor() === p.id || peekFor() === p.id) {
+                    @if (panelFor() === p.userId || peekFor() === p.userId) {
                       <div
                         class="m-lineup__react-panel"
                         role="menu"
-                        (mouseenter)="peek(p.id)"
+                        (mouseenter)="peek(p.userId)"
                         (click)="$event.stopPropagation()"
                       >
                         @if (allReactions(p).length) {
                           <div class="m-lineup__react-panel-title nf-mono">Reacciones</div>
-                          <div class="m-lineup__react-panel-list" [class.is-peek]="panelFor() !== p.id">
+                          <div class="m-lineup__react-panel-list" [class.is-peek]="panelFor() !== p.userId">
                             @for (r of allReactions(p); track r.emoji) {
                               <button
                                 type="button"
@@ -257,7 +208,7 @@ import { MatchHistoryUiState } from './match-history-ui';
                         }
                         <!-- El selector solo aparece cuando se ha PEDIDO reaccionar; asomarse a lo
                              que votaron los demás no tiene por qué abrir un teclado de emojis. -->
-                        @if (panelFor() === p.id) {
+                        @if (panelFor() === p.userId) {
                           <nf-emoji-picker
                             [quick]="quickEmojis()"
                             [selected]="myReaction(p)"
@@ -270,34 +221,27 @@ import { MatchHistoryUiState } from './match-history-ui';
                 }
 
                 <div class="m-lineup__kda-col">
-                  <span class="m-lineup__kda nf-mono">
-                    {{ p.stats.kills }}<span class="m-lineup__slash">/</span
-                    ><span class="m-lineup__deaths">{{ p.stats.deaths }}</span
-                    ><span class="m-lineup__slash">/</span>{{ p.stats.assists }}
-                  </span>
-                  <span class="m-lineup__ratio nf-mono">{{ kdaRatio(p) }}</span>
-                </div>
-
-                <div class="m-lineup__items">
-                  @for (it of participantItems(p); track $index) {
-                    @if (it) {
-                      <nf-avatar
-                        class="m-lineup__item-slot"
-                        [class.m-lineup__item-slot--trinket]="$index === 6"
-                        [class.m-lineup__item-slot--quest]="$index === 7"
-                        [src]="it.iconUrl ?? null"
-                        [fallback]="it.name"
-                        [size]="19"
-                        shape="square"
-                        [title]="$index === 7 ? 'Misión: ' + it.name : ($index === 6 ? 'Accesorio: ' + it.name : it.name)"
-                      />
-                    } @else {
-                      <span
-                        class="m-lineup__item-slot m-lineup__item-slot--empty"
-                        [class.m-lineup__item-slot--trinket]="$index === 6"
-                        [class.m-lineup__item-slot--quest]="$index === 7"
-                      ></span>
+                  @if (p.stats.kills != null) {
+                    <span class="m-lineup__kda nf-mono">
+                      {{ p.stats.kills }}<span class="m-lineup__slash">/</span
+                      ><span class="m-lineup__deaths">{{ p.stats.deaths }}</span
+                      ><span class="m-lineup__slash">/</span>{{ p.stats.assists }}
+                    </span>
+                    @if (kdaRatio(p); as ratio) {
+                      <span class="m-lineup__ratio nf-mono">{{ ratio }}</span>
                     }
+                  } @else if (p.lpDelta != null) {
+                    <!--
+                      Sin subida no hay marcador, pero sí hay lo que la partida movió en la
+                      clasificación: es lo único medido que queda, y es lo que se pinta.
+                    -->
+                    <span
+                      class="m-lineup__kda nf-mono"
+                      [class.is-gain]="p.lpDelta > 0"
+                      [class.is-loss]="p.lpDelta < 0"
+                    >
+                      {{ p.lpDelta > 0 ? '+' : '' }}{{ p.lpDelta }} LP
+                    </span>
                   }
                 </div>
               </div>
@@ -305,6 +249,13 @@ import { MatchHistoryUiState } from './match-history-ui';
           </div>
         }
       </div>
+
+      @if (!match().hasStats) {
+        <p class="ml-no-stats">
+          Nadie subió esta partida desde el cliente de LoL, así que no hay campeones ni marcador
+          que enseñar. Contó para la clasificación igual.
+        </p>
+      }
 
       <div class="m-lineup__actions">
         @if (crossContext(); as ctx) {
@@ -353,11 +304,11 @@ export class MatchLineupComponent {
 
   /**
    * Cuántas reacciones se pintan en la fila. Solo la más votada: el marcador es una tabla densa
-   * de diez filas, y cada emoji de más resta sitio al nombre y a los objetos.
+   * de diez filas, y cada emoji de más resta sitio al nombre.
    */
   private static readonly VISIBLE_REACTIONS = 1;
 
-  /** Panel de reacciones abierto, por id de participante. Estado de interfaz. */
+  /** Panel de reacciones abierto, por `userId`. Estado de interfaz. */
   readonly panelFor = signal<string | null>(null);
   /** Fila cuyo «+N» tiene el cursor encima: asoma las reacciones sin abrir nada. */
   readonly peekFor = signal<string | null>(null);
@@ -374,9 +325,9 @@ export class MatchLineupComponent {
       const scope = this.reactionScope();
       if (!scope) return;
       const match = this.match();
-      for (const team of [match.blueTeam, match.redTeam]) {
+      for (const team of match.teams) {
         for (const p of team.participants) {
-          this.reactions.seed(scope, match.id + ':' + p.id, playerReactionsFor(match.id, p.id));
+          this.reactions.seed(scope, match.id + ':' + p.userId, playerReactionsFor(match.id, p.userId));
         }
       }
     });
@@ -384,7 +335,7 @@ export class MatchLineupComponent {
 
   /** Clave del objetivo: la reacción es a ESTE jugador en ESTA partida, no al jugador en general. */
   private targetOf(p: MatchParticipant): string {
-    return this.match().id + ':' + p.id;
+    return this.match().id + ':' + p.userId;
   }
 
   /** Todas las reacciones del jugador, de la más repetida a la menos y, a empate, por antigüedad. */
@@ -413,16 +364,16 @@ export class MatchLineupComponent {
     this.reactions.toggle(this.reactionScope() ?? '', this.targetOf(p), emoji);
   }
 
-  openPanel(participantId: string, event: Event): void {
+  openPanel(userId: string, event: Event): void {
     event.stopPropagation();
     this.peekFor.set(null);
-    this.panelFor.update((open) => (open === participantId ? null : participantId));
+    this.panelFor.update((open) => (open === userId ? null : userId));
   }
 
   /** Asomar las reacciones al pasar el cursor por el «+N», sin abrir el selector. */
-  peek(participantId: string): void {
+  peek(userId: string): void {
     if (this.panelFor()) return;
-    this.peekFor.set(participantId);
+    this.peekFor.set(userId);
   }
 
   clearPeek(): void {
@@ -447,233 +398,63 @@ export class MatchLineupComponent {
     return to ? { volver: to } : {};
   });
 
-  protected readonly teams = computed(() => {
-    const m = this.match();
-    return [m.blueTeam, m.redTeam].map((t) => ({
-      side: t.side as TeamSide,
+  /** Los dos equipos en orden de hueco, cada uno con su alineación ordenada por línea. */
+  protected readonly teams = computed(() =>
+    this.match().teams.map((t) => ({
+      slot: t.slot,
+      side: t.side,
       won: t.won,
-      kills: t.totalKills,
-      barons: t.barons ?? 0,
-      elderDragons: t.elderDragons ?? 0,
-      voidgrubs: t.voidgrubs ?? 0,
-      dragonTypes: t.dragonTypes ?? [],
+      label: teamLabel(t),
       participants: [...t.participants].sort(
-        (a, b) => LANE_ORDER.indexOf(a.role) - LANE_ORDER.indexOf(b.role),
+        (a, b) => laneIndex(a.role) - laneIndex(b.role),
       ),
-    }));
-  });
+    })),
+  );
 
-  protected champion(id: number) {
-    return this.gameData.championById().get(id);
+  protected championIcon(id: number): string | null {
+    return this.gameData.championById().get(id)?.iconUrl ?? null;
   }
 
   /**
-   * Mientras el catálogo carga no hay nombre real que enseñar, y el del participante es
-   * el que grabó la partida: se pinta ese en vez de un hueco, y se sustituye por el del
-   * catálogo cuando llega (mismo texto en la práctica, cero salto de layout).
+   * El nombre del campeón sale del catálogo, que es la única fuente: el asiento solo trae el id.
+   * Sin campeón registrado no hay nombre que dar, y el hueco se pinta como hueco.
    */
   protected championName(p: MatchParticipant): string {
-    return this.champion(p.championId)?.name ?? p.championName;
+    if (p.championId == null) return 'Campeón sin registrar';
+    return this.gameData.championById().get(p.championId)?.name ?? `Campeón ${p.championId}`;
+  }
+
+  protected playerName(p: MatchParticipant): string {
+    return participantName(p);
   }
 
   /**
-   * Por id de participante, no por `riotId`: la partida ya trae resuelto quién es el
-   * usuario de la sesión (`userParticipant`), así que la vista no tiene que conocer
-   * ninguna identidad.
+   * Por `userId`, no por nombre: la partida ya trae resuelto quién es el usuario de la sesión
+   * (`userParticipant`), así que la vista no tiene que conocer ninguna identidad.
    */
   protected isCurrentUser(p: MatchParticipant): boolean {
-    return p.id === this.match().userParticipant?.id;
+    return p.userId === this.match().userParticipant?.userId;
   }
 
-  protected kdaRatio(p: MatchParticipant): string {
-    return `${formatKda(p.stats, 1)} KDA`;
+  protected kdaRatio(p: MatchParticipant): string | null {
+    const ratio = formatKda(p.stats, 1);
+    return ratio === null ? null : `${ratio} KDA`;
   }
 
-  protected participantItems(p: MatchParticipant): (MatchItemSlot | null)[] {
-    return (p.stats.items ?? []).slice(0, 8);
-  }
-
-  protected drakeIcon(type: DragonType): string {
-    const map: Record<DragonType, string> = {
-      infernal: 'https://raw.communitydragon.org/latest/game/assets/ux/minimap/icons/dragon_infernal.png',
-      mountain: 'https://raw.communitydragon.org/latest/game/assets/ux/minimap/icons/dragon_mountain.png',
-      ocean: 'https://raw.communitydragon.org/latest/game/assets/ux/minimap/icons/dragon_ocean.png',
-      cloud: 'https://raw.communitydragon.org/latest/game/assets/ux/minimap/icons/dragon_cloud.png',
-      hextech: 'https://raw.communitydragon.org/latest/game/assets/ux/minimap/icons/dragon_hextech.png',
-      chemtech: 'https://raw.communitydragon.org/latest/game/assets/ux/minimap/icons/dragon_chemtech.png',
-    };
-    return map[type] ?? map.infernal;
-  }
-
-  protected drakeTitle(type: DragonType): string {
-    const map: Record<DragonType, string> = {
-      infernal: 'Dragón de fuego',
-      mountain: 'Dragón de montaña',
-      ocean: 'Dragón de océano',
-      cloud: 'Dragón de nube',
-      hextech: 'Dragón hextech',
-      chemtech: 'Dragón tecnoquímico',
-    };
-    return map[type] ?? 'Dragón elemental';
-  }
-
+  /** Vacío si la partida no está subida: una nota sobre un KDA que nadie exportó es un invento. */
   private readonly playerScores = computed(() => computeMatchScores(this.match()));
 
-  protected playerRankScore(p: MatchParticipant): string {
-    return this.playerScores().get(p.id)?.display ?? '';
+  protected playerRankScore(p: MatchParticipant): string | null {
+    return this.playerScores().get(p.userId)?.display ?? null;
   }
 
   protected playerRank(p: MatchParticipant): number {
-    return this.playerScores().get(p.id)?.rank ?? 10;
-  }
-
-  protected participantSpells(p: MatchParticipant): number[] {
-    if (p.role === 'JUNGLA') {
-      if (p.stats?.smiteVariant === 'blue') return [p.stats.spells?.[0] ?? 4, 1102];
-      if (p.stats?.smiteVariant === 'red') return [p.stats.spells?.[0] ?? 4, 1101];
-      if (p.stats?.smiteVariant === 'green') return [p.stats.spells?.[0] ?? 4, 1103];
-      if (p.stats?.smiteVariant === 'unevolved') return [p.stats.spells?.[0] ?? 4, 11];
-      if (p.stats?.spells && [11, 1101, 1102, 1103].includes(p.stats.spells[1])) {
-        return p.stats.spells;
-      }
-      return [p.stats?.spells?.[0] ?? 4, 1102];
-    }
-    if (p.stats?.spells && p.stats.spells.length >= 2) return p.stats.spells;
-    const second: Record<Lane, number> = {
-      TOP: 12,
-      JUNGLA: 1102,
-      MID: 14,
-      ADC: 7,
-      SUPPORT: 3,
-    };
-    return [4, second[p.role] ?? 14];
-  }
-
-  protected participantPrimaryRune(p: MatchParticipant): number {
-    return p.stats?.primaryRuneId ?? RUNES_FALLBACK[p.role]?.primary ?? 8010;
-  }
-
-  protected participantSecondaryRune(p: MatchParticipant): number {
-    return p.stats?.secondaryRuneTreeId ?? RUNES_FALLBACK[p.role]?.secondary ?? 8300;
-  }
-
-  protected spellIcon(id: number): string | null {
-    if (id === 1102) {
-      return 'https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/data/spells/icons2d/1102_smite.png';
-    }
-    if (id === 1101) {
-      return 'https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/data/spells/icons2d/1101_smite.png';
-    }
-    if (id === 1103) {
-      return 'https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/data/spells/icons2d/1103_smite.png';
-    }
-    if (id === 11) {
-      return 'https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/data/spells/icons2d/summoner_smite.png';
-    }
-
-    const fromStore = typeof this.gameData.summonerSpellById === 'function'
-      ? this.gameData.summonerSpellById().get(id)?.iconUrl
-      : null;
-    if (fromStore) return fromStore;
-    const names: Record<number, string> = {
-      4: 'SummonerFlash',
-      12: 'SummonerTeleport',
-      11: 'SummonerSmite',
-      14: 'SummonerDot',
-      7: 'SummonerHeal',
-      21: 'SummonerBarrier',
-      3: 'SummonerExhaust',
-      6: 'SummonerHaste',
-    };
-    const key = names[id] ?? 'SummonerFlash';
-    return `https://ddragon.leagueoflegends.com/cdn/14.24.1/img/spell/${key}.png`;
-  }
-
-  protected spellName(id: number): string {
-    if (id === 1102) return 'Smite Desatado (Azul - Caminavientos)';
-    if (id === 1101) return 'Smite de Furia (Rojo - Garramélica)';
-    if (id === 1103) return 'Smite de Vitalidad (Verde - Brincamusgo)';
-    if (id === 11) return 'Smite (Sin evolucionar)';
-
-    const fromStore = typeof this.gameData.summonerSpellById === 'function'
-      ? this.gameData.summonerSpellById().get(id)?.name
-      : null;
-    if (fromStore) return fromStore;
-    const names: Record<number, string> = {
-      4: 'Destello',
-      12: 'Teleportar',
-      11: 'Smite',
-      14: 'Ignición',
-      7: 'Curar',
-      21: 'Barrera',
-      3: 'Extenuación',
-      6: 'Fantasmal',
-    };
-    return names[id] ?? `Hechizo ${id}`;
-  }
-
-  protected runeIcon(id: number | undefined): string | null {
-    if (!id) return null;
-    const fromStore = typeof this.gameData.perkById === 'function'
-      ? this.gameData.perkById().get(id)?.iconUrl
-      : null;
-    if (fromStore) return fromStore;
-    const icons: Record<number, string> = {
-      8010: 'https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Precision/Conqueror/Conqueror.png',
-      8008: 'https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Precision/LethalTempo/LethalTempoTemp.png',
-      8021: 'https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Precision/FleetFootwork/FleetFootwork.png',
-      8005: 'https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Precision/PressTheAttack/PressTheAttack.png',
-      8112: 'https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Domination/Electrocute/Electrocute.png',
-      8128: 'https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Domination/DarkHarvest/DarkHarvest.png',
-      8214: 'https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Sorcery/SummonAery/SummonAery.png',
-      8229: 'https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Sorcery/ArcaneComet/ArcaneComet.png',
-      8437: 'https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Resolve/GraspOfTheUndying/GraspOfTheUndying.png',
-      8465: 'https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Resolve/Guardian/Guardian.png',
-      8351: 'https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Inspiration/GlacialAugment/GlacialAugment.png',
-      8000: 'https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/7201_Precision.png',
-      8100: 'https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/7200_Domination.png',
-      8200: 'https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/7202_Sorcery.png',
-      8300: 'https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/7203_Whimsy.png',
-      8400: 'https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/7204_Resolve.png',
-    };
-    return icons[id] ?? null;
-  }
-
-  protected runeName(id: number | undefined): string {
-    if (!id) return 'Runa';
-    const fromStore = typeof this.gameData.perkById === 'function'
-      ? this.gameData.perkById().get(id)?.name
-      : null;
-    if (fromStore) return fromStore;
-    const names: Record<number, string> = {
-      8010: 'Conquistador',
-      8008: 'Compás Letal',
-      8021: 'Pies Veloces',
-      8005: 'Ataque Intensificado',
-      8112: 'Electrocutar',
-      8128: 'Cosecha Oscura',
-      8214: 'Invocar a Aery',
-      8229: 'Cometa Arcano',
-      8437: 'Garras del Inmortal',
-      8465: 'Protector',
-      8351: 'Mejora Glacial',
-      8000: 'Precisión',
-      8100: 'Dominación',
-      8200: 'Brujería',
-      8300: 'Inspiración',
-      8400: 'Valor',
-    };
-    return names[id] ?? `Runa ${id}`;
+    return this.playerScores().get(p.userId)?.rank ?? 10;
   }
 }
 
 /** Orden de lectura de una alineación de LoL, de calle superior a soporte. */
-const LANE_ORDER: Lane[] = ['TOP', 'JUNGLA', 'MID', 'ADC', 'SUPPORT'];
-
-const RUNES_FALLBACK: Record<Lane, { primary: number; secondary: number }> = {
-  TOP: { primary: 8437, secondary: 8000 },
-  JUNGLA: { primary: 8010, secondary: 8300 },
-  MID: { primary: 8112, secondary: 8200 },
-  ADC: { primary: 8008, secondary: 8300 },
-  SUPPORT: { primary: 8465, secondary: 8400 },
-};
+function laneIndex(lane: Lane): number {
+  const i = LANE_ORDER.indexOf(lane);
+  return i === -1 ? LANE_ORDER.length : i;
+}
