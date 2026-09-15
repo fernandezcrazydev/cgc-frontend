@@ -16,6 +16,7 @@ const MOCK_TELEMETRY: MapTelemetry = {
     killsPerMinute: 2.1,
     totalKillsPerGame: 60,
     firstBloodWinrate: 68,
+    firstBloodGames: 38,
   },
   objectives: [
     {
@@ -55,15 +56,6 @@ const MOCK_TELEMETRY: MapTelemetry = {
       iconUrl: '/assets/objectives/baron.png',
     },
     {
-      id: 'elder',
-      label: 'Dragón anciano',
-      winrate: 91,
-      wins: 10,
-      games: 11,
-      impact: 'Decisivo',
-      iconUrl: '/assets/objectives/dragon_elder.png',
-    },
-    {
       id: 'tower',
       label: 'Primera torre',
       winrate: 78,
@@ -85,14 +77,14 @@ function createComponent(telemetry: MapTelemetry | null, loading = false) {
 }
 
 describe('StatsRadarComponent', () => {
-  it('dibuja el radar hexagonal con 6 vértices de objetivos', () => {
+  it('dibuja un vértice por objetivo que el cliente de LoL publica', () => {
     const { fixture } = createComponent(MOCK_TELEMETRY);
 
     const svg = fixture.nativeElement.querySelector('.st-radar__svg');
     expect(svg).not.toBeNull();
 
     const nodes = fixture.nativeElement.querySelectorAll('.st-radar__node');
-    expect(nodes).toHaveLength(6);
+    expect(nodes).toHaveLength(5);
 
     const polygon = fixture.nativeElement.querySelector('.st-radar__data-poly');
     expect(polygon).not.toBeNull();

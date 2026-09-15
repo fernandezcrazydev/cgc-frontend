@@ -5,7 +5,7 @@
   "views-scss-size": 2651,
   "dead-css": 0,
   "orphan-stylesheet": 0,
-  "css-total-size": 19224,
+  "css-total-size": 19236,
   "inline-template-size": 0,
   "font-floor": 37,
   "font-size-raw": 285,
@@ -110,6 +110,13 @@
       "de": 19142,
       "a": 19224,
       "motivo": "mapa de presencia de una partida y desglose de dragones (cgc-backend#96): un componente nuevo con su hoja"
+    },
+    {
+      "fecha": "2026-09-15",
+      "regla": "css-total-size",
+      "de": 19224,
+      "a": 19236,
+      "motivo": "el bloque de afinidades de la tabla de lideres vuelve a ser un enlace (hover + foco) y estrena su estado vacio, al servirlo ya el backend por userId"
     }
   ]
 }

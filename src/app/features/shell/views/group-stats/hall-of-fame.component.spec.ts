@@ -1,22 +1,8 @@
 import { TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { HallOfFameComponent } from './hall-of-fame.component';
-import { MEDALS, MedalBoard, medalBoardsFor } from '../../../../core/group-medals';
-import { Member } from '../../../../core/lobby';
-
-function member(name: string, overrides: Partial<Member> = {}): Member {
-  return {
-    name,
-    tag: `${name}#EUW`,
-    initials: name.slice(0, 2),
-    role: 'MID',
-    owner: false,
-    hue: 200,
-    ...overrides,
-  };
-}
-
-const ROSTER = [member('EduUC'), member('Adri'), member('Victor'), member('DaniG')];
+import { MEDALS, MedalBoard, medalBoardsOf, playersOf } from '../../../../core/group-stats';
+import { groupStats } from './stats-fixture';
 
 function createComponent(boards: readonly MedalBoard[], loading = false) {
   TestBed.configureTestingModule({});
@@ -31,14 +17,19 @@ describe('HallOfFameComponent', () => {
   let boards: MedalBoard[];
 
   beforeEach(() => {
-    boards = medalBoardsFor('grp-1', ROSTER, 'temporada', ROSTER[0].tag);
+    boards = medalBoardsOf(playersOf(groupStats()), 'u-1');
   });
 
-  it('pinta las veinte medallas del catálogo', () => {
+  /**
+   * Diecinueve y no veinte: «El ladrón» premiaba objetivos épicos robados con el Smite, y el
+   * volcado de fin de partida del cliente de LoL no publica esa cifra en ninguna forma. Se retiró
+   * del catálogo en vez de dejarla en gris para siempre.
+   */
+  it('pinta las diecinueve medallas del catálogo', () => {
     const { fixture } = createComponent(boards);
 
     expect(boards).toHaveLength(MEDALS.length);
-    expect(fixture.nativeElement.querySelectorAll('.hof-medal')).toHaveLength(20);
+    expect(fixture.nativeElement.querySelectorAll('.hof-medal')).toHaveLength(19);
   });
 
   it('agrupa por familia respetando el orden del catálogo', () => {
@@ -48,7 +39,7 @@ describe('HallOfFameComponent', () => {
     expect(familias).toEqual(['combate', 'objetivos', 'economia', 'equipo', 'constancia', 'humor']);
     // Ninguna medalla se pierde por el camino.
     const total = component['groups']().reduce((n, g) => n + g.boards.length, 0);
-    expect(total).toBe(20);
+    expect(total).toBe(MEDALS.length);
   });
 
   it('pide abrir la medalla que se pulsa, sin navegar por su cuenta', () => {

@@ -1,7 +1,8 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { NfAvatar, NfSkeleton } from '../../../../ui';
 import { GameDataStore } from '../../../../core/game-data';
-import { MemberStats, playerTiles } from '../../../../core/group-stats';
+import { PlayerStatsView, playerTiles } from '../../../../core/group-stats';
 import { StatsTileIconComponent } from './stats-tile-icon.component';
 
 export type LeaderSortKey = 'rating' | 'name' | 'kda' | 'cs' | 'vision' | 'damage' | 'games';
@@ -28,15 +29,18 @@ const LEADER_COLUMNS = [
   selector: 'app-stats-leaders',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [NfAvatar, NfSkeleton, StatsTileIconComponent],
+  imports: [RouterLink, NfAvatar, NfSkeleton, StatsTileIconComponent],
   templateUrl: './stats-leaders.component.html',
   styleUrls: ['./stats-card.scss', './stats-leaders.component.scss'],
 })
 export class StatsLeadersComponent {
-  readonly players = input<readonly MemberStats[]>([]);
+  readonly players = input<readonly PlayerStatsView[]>([]);
   readonly loading = input(false);
-  /** Tag del jugador cuya fila está desplegada, si hay alguna. */
-  readonly expandedTag = input<string | null>(null);
+  /**
+   * Id del jugador cuya fila está desplegada, si hay alguna. El `userId` y no el Riot ID: es la
+   * clave estable del backend, y además es lo que el enlace del cruce necesita.
+   */
+  readonly expandedUserId = input<string | null>(null);
 
   /** Pide abrir o cerrar la fila de un jugador; decide la vista. */
   readonly toggle = output<string>();
@@ -61,7 +65,7 @@ export class StatsLeadersComponent {
     return list.sort((a, b) => {
       switch (col) {
         case 'name':
-          return mult * a.member.name.localeCompare(b.member.name);
+          return mult * a.person.name.localeCompare(b.person.name);
         case 'kda':
           return mult * (a.kda - b.kda);
         case 'cs':
@@ -74,7 +78,9 @@ export class StatsLeadersComponent {
           return mult * (a.games - b.games || a.wr - b.wr);
         case 'rating':
         default:
-          return mult * (a.rating - b.rating);
+          // Sin fila de rating no es "el peor": es que no esta puntuado. Va al final en el orden
+          // descendente, que es el que la tabla abre por defecto, en vez de colarse arriba.
+          return mult * ((a.rating ?? -Infinity) - (b.rating ?? -Infinity));
       }
     });
   });

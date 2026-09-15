@@ -54,7 +54,7 @@ import {
   StatModality,
   groupModalitiesConfig,
   modalitySlug,
-} from '../../../../core/group-stats';
+} from '../../../../core/group-stats-mock';
 import { formatDurationMinutes, formatMatchDate } from '../../../../shared/date-format';
 import { SanctionDialogComponent } from '../group-sanctions/sanction-dialog.component';
 

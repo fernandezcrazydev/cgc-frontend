@@ -16,6 +16,7 @@ const MOCK_TELEMETRY: MapTelemetry = {
     killsPerMinute: 2.1,
     totalKillsPerGame: 60,
     firstBloodWinrate: 68,
+    firstBloodGames: 38,
   },
   objectives: [
     {
@@ -55,15 +56,6 @@ const MOCK_TELEMETRY: MapTelemetry = {
       iconUrl: '/assets/objectives/baron.png',
     },
     {
-      id: 'elder',
-      label: 'Dragón anciano',
-      winrate: 91,
-      wins: 10,
-      games: 11,
-      impact: 'Decisivo',
-      iconUrl: '/assets/objectives/dragon_elder.png',
-    },
-    {
       id: 'tower',
       label: 'Primera torre',
       winrate: 78,
@@ -95,11 +87,17 @@ describe('StatsMapTelemetryComponent', () => {
     expect(text).not.toContain('Bando rojo');
   });
 
-  it('muestra los seis objetivos incluyendo larvas y dragón anciano con sus iconos', () => {
+  /**
+   * Cinco y no seis: el dragón anciano se cayó de la pantalla al conectar el backend, porque el
+   * volcado de fin de partida del cliente de LoL trae un `dragonKills` plano y ningún anciano —
+   * solo existen como eventos del timeline. Pintar el eje con el recuento normal etiquetaría una
+   * cifra como algo que no es.
+   */
+  it('muestra los cinco objetivos que el cliente de LoL sí publica, con sus iconos', () => {
     const { fixture } = createComponent(MOCK_TELEMETRY);
     const items = fixture.nativeElement.querySelectorAll('.tm-objective');
 
-    expect(items).toHaveLength(6);
+    expect(items).toHaveLength(5);
 
     const labels = Array.from(items).map(
       (el) => (el as HTMLElement).querySelector('.tm-objective__label')?.textContent?.trim(),
@@ -109,12 +107,11 @@ describe('StatsMapTelemetryComponent', () => {
       'Larvas del vacío',
       'Heraldo de la grieta',
       'Primer barón',
-      'Dragón anciano',
       'Primera torre',
     ]);
 
     const images = fixture.nativeElement.querySelectorAll('.tm-objective__icon');
-    expect(images).toHaveLength(6);
+    expect(images).toHaveLength(5);
   });
 
   it('muestra esqueletos de carga mientras loading es true', () => {

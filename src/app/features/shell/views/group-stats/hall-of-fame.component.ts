@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import { NfAvatar, NfSkeleton } from '../../../../ui';
-import { MEDAL_FAMILY_LABELS, MedalBoard, MedalFamily } from '../../../../core/group-medals';
+import { MEDAL_FAMILY_LABELS, MedalBoard, MedalFamily } from '../../../../core/group-stats';
 import { MedalIconComponent } from './medal-icon.component';
 
 /** Una familia con sus medallas, tal y como se pinta la rejilla. */
@@ -59,15 +59,15 @@ interface MedalGroup {
                       <div class="hof-medal__center">
                         <div class="hof-medal__avatar-wrap">
                           <nf-avatar
-                            [src]="leader.member.avatar ?? null"
-                            [fallback]="leader.member.name"
-                            [tint]="leader.member.hue"
+                            [src]="leader.person.avatar"
+                            [fallback]="leader.person.name"
+                            [tint]="leader.person.hue"
                             [size]="28"
                             shape="round"
                           />
                           <span class="hof-medal__crown" aria-hidden="true">👑</span>
                         </div>
-                        <span class="hof-medal__leader-name">{{ leader.member.name }}</span>
+                        <span class="hof-medal__leader-name">{{ leader.person.name }}</span>
                         <span class="hof-medal__leader-val nf-mono">{{ leader.value }}</span>
                       </div>
                     } @else {

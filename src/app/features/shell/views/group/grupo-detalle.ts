@@ -26,7 +26,13 @@ import {
   leagueSeriesFor,
   triviaFor,
 } from '../../../../core/group-hub';
-import { SHOWCASE_MEDAL_IDS, medalBoardsFor } from '../../../../core/group-medals';
+import {
+  GroupStatsStore,
+  SHOWCASE_MEDAL_IDS,
+  defaultScopeOf,
+  medalBoardsOf,
+  playersOf,
+} from '../../../../core/group-stats';
 import { GroupMemberLite, GroupVotesStore } from '../../../../core/group-votes';
 import { ToastService } from '../../../../core/toast';
 import { GroupActionsService } from '../../group-actions/group-actions.service';
@@ -89,6 +95,8 @@ export class GrupoDetalle {
   private readonly groupActions = inject(GroupActionsService);
   /** Roster completo del grupo, sembrado por el puente: es lo que alimenta la maqueta del hub. */
   private readonly groupStore = inject(GroupStore);
+  /** Las cifras de verdad del grupo: es de donde sale la vitrina de trofeos. */
+  private readonly stats = inject(GroupStatsStore);
   private readonly votes = inject(GroupVotesStore);
   private readonly destroyRef = inject(DestroyRef);
 
@@ -236,19 +244,19 @@ export class GrupoDetalle {
    * Los cuatro hitos de la vitrina salen del catálogo de medallas del Hall of Fame
    * (§5.5.5), no de una lista propia: al pulsar uno se abre exactamente esa medalla.
    * Se ordenan como `SHOWCASE_MEDAL_IDS`, que es el orden acordado de la vitrina.
+   *
+   * **Sobre el MISMO alcance que abre el Hall of Fame** (`defaultScopeOf`), y esa es la parte que
+   * no se puede relajar: la tarjeta de aquí y la medalla de allí tienen que decir lo mismo, porque
+   * al pulsar esta se abre exactamente aquella. Dos alcances distintos serían dos líderes distintos
+   * para la misma medalla, y quien lo viera no tendría forma de saber cuál mirar.
    */
   readonly trophies = computed(() => {
-    const boards = medalBoardsFor(this.routeId(), this.hubRoster(), 'temporada', this.myTag());
+    const stats = this.stats.stats();
+    if (!stats) return [];
+    const boards = medalBoardsOf(playersOf(stats), this.myUserId());
     return SHOWCASE_MEDAL_IDS.map((id) => boards.find((b) => b.medal.id === id)).filter(
       (b) => b !== undefined,
     );
-  });
-
-  /** El tag del usuario dentro de este roster, para que la vitrina sepa si la medalla es suya. */
-  private readonly myTag = computed(() => {
-    const myId = this.myUserId();
-    if (!myId) return null;
-    return this.hubRoster().find((m) => m.userId === myId)?.tag ?? null;
   });
   readonly comments = computed(() => hubCommentsFor(this.routeId(), this.hubRoster()));
   readonly duels = computed(() => duelsFor(this.routeId(), this.hubRoster()));
@@ -340,6 +348,21 @@ export class GrupoDetalle {
     effect(() => {
       const id = this.routeId();
       if (id) void this.bridge.reload(id);
+    });
+
+    // La vitrina de trofeos, sobre el mismo alcance que abre el Hall of Fame. Dos efectos porque
+    // son dos peticiones encadenadas: hasta que no se sabe QUE ha jugado el grupo no se puede
+    // pedir un alcance, y adivinar uno enseñaría una vitrina vacía de una modalidad que nadie ha
+    // tocado.
+    effect(() => {
+      const id = this.routeId();
+      if (id) void this.stats.ensureScopes(id);
+    });
+
+    effect(() => {
+      const id = this.routeId();
+      const scope = defaultScopeOf(this.stats.scopes());
+      if (id && scope) void this.stats.ensure(id, scope);
     });
 
     // Invitaciones pendientes del grupo: solo owner/admin las ve, y su contador vive en el pie del

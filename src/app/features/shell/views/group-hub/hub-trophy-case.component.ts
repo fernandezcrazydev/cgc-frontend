@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { NfSkeleton } from '../../../../ui';
-import { MedalBoard } from '../../../../core/group-medals';
+import { MedalBoard } from '../../../../core/group-stats';
 import { MedalIconComponent } from '../group-stats/medal-icon.component';
 
 /**
@@ -49,7 +49,7 @@ import { MedalIconComponent } from '../group-stats/medal-icon.component';
                 <span class="hub-trophy__meta">
                   <span class="hub-trophy__title nf-mono">{{ t.medal.title }}</span>
                   @if (t.leader; as leader) {
-                    <span class="hub-trophy__holder">{{ leader.member.name }}</span>
+                    <span class="hub-trophy__holder">{{ leader.person.name }}</span>
                     <span class="hub-trophy__value nf-mono">{{ leader.value }}</span>
                   } @else {
                     <span class="hub-trophy__holder hub-trophy__holder--vacant">

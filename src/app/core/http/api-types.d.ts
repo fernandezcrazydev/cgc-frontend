@@ -820,6 +820,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/groups/{groupId}/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["groupStats_stats"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/groups/{groupId}/stats/scopes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["groupStats_scopes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/invitations/{invitationId}/accept": {
         parameters: {
             query?: never;
@@ -1538,6 +1570,16 @@ export interface components {
             tags?: string[];
             title?: string;
         };
+        ChampionTallyResponse: {
+            /** Format: int32 */
+            bans?: number;
+            /** Format: int32 */
+            championId?: number;
+            /** Format: int32 */
+            picks?: number;
+            /** Format: int32 */
+            wins?: number;
+        };
         ChangeRoleRequest: {
             /** @enum {string} */
             role: "OWNER" | "ADMIN" | "MEMBER";
@@ -1612,6 +1654,17 @@ export interface components {
             };
             reservations?: components["schemas"]["ReservationResponse"][];
             rules?: components["schemas"]["RuleResponse"][];
+        };
+        DuoTallyResponse: {
+            /** Format: uuid */
+            a?: string;
+            allies?: boolean;
+            /** Format: uuid */
+            b?: string;
+            /** Format: int32 */
+            games?: number;
+            /** Format: int32 */
+            wins?: number;
         };
         Entry: {
             /** Format: int64 */
@@ -1768,6 +1821,23 @@ export interface components {
             name?: string;
             region?: string;
         };
+        GroupStatsResponse: {
+            champions?: components["schemas"]["ChampionTallyResponse"][];
+            duos?: components["schemas"]["DuoTallyResponse"][];
+            lanes?: components["schemas"]["LaneTallyResponse"][];
+            /** Format: int32 */
+            matches?: number;
+            /** Format: int32 */
+            matchesWithStats?: number;
+            objectives?: components["schemas"]["ObjectiveTallyResponse"][];
+            players?: components["schemas"]["PlayerStatsResponse"][];
+            records?: components["schemas"]["StatRecordResponse"][];
+            side?: components["schemas"]["SideBalanceResponse"];
+            /** Format: int64 */
+            totalKills?: number;
+            /** Format: int64 */
+            totalSeconds?: number;
+        };
         ImportReportResponse: {
             /** Format: int32 */
             champions?: number;
@@ -1855,6 +1925,16 @@ export interface components {
             lopsided?: boolean;
             /** Format: uuid */
             outmatched?: string;
+        };
+        LaneTallyResponse: {
+            /** Format: int32 */
+            decisive?: number;
+            /** Format: int32 */
+            games?: number;
+            /** Format: int64 */
+            goldLead?: number;
+            /** @enum {string} */
+            lane?: "TOP" | "JUNGLA" | "MID" | "ADC" | "SUPPORT";
         };
         LeaderboardEntryResponse: {
             avatarUrl?: string;
@@ -2104,6 +2184,14 @@ export interface components {
             read?: boolean;
             type?: string;
         };
+        ObjectiveTallyResponse: {
+            /** Format: int32 */
+            games?: number;
+            /** @enum {string} */
+            objective?: "FIRST_BLOOD" | "FIRST_TOWER" | "FIRST_DRAGON" | "FIRST_BARON" | "GRUBS" | "HERALD";
+            /** Format: int32 */
+            wins?: number;
+        };
         PageResponseFeedbackSummaryResponse: {
             content?: components["schemas"]["FeedbackSummaryResponse"][];
             /** Format: int32 */
@@ -2285,6 +2373,85 @@ export interface components {
             };
             /** Format: uuid */
             userId?: string;
+        };
+        PlayerStatsResponse: {
+            /** Format: int64 */
+            assists?: number;
+            avatarUrl?: string;
+            /** Format: int32 */
+            barons?: number;
+            /** Format: int32 */
+            bestStreak?: number;
+            /** Format: int64 */
+            cs?: number;
+            /** Format: int32 */
+            currentStreak?: number;
+            /** Format: int64 */
+            damageMitigated?: number;
+            /** Format: int64 */
+            damageTaken?: number;
+            /** Format: int64 */
+            damageToChampions?: number;
+            /** Format: int32 */
+            deathlessGames?: number;
+            /** Format: int64 */
+            deaths?: number;
+            discordUsername?: string;
+            /** Format: int32 */
+            doubles?: number;
+            /** Format: int32 */
+            dragons?: number;
+            /** Format: int32 */
+            firstBloods?: number;
+            /** Format: int32 */
+            games?: number;
+            /** Format: int32 */
+            gamesWithStats?: number;
+            /** Format: int64 */
+            gold?: number;
+            /** Format: int64 */
+            healed?: number;
+            /** Format: int64 */
+            kills?: number;
+            /** Format: int32 */
+            losses?: number;
+            /** Format: int32 */
+            mainChampionGames?: number;
+            /** Format: int32 */
+            mainChampionId?: number;
+            /** Format: int32 */
+            mainChampionWins?: number;
+            /** Format: int32 */
+            mvps?: number;
+            /** Format: int32 */
+            pentas?: number;
+            /** Format: int32 */
+            quadras?: number;
+            /** Format: double */
+            rating?: number;
+            /** Format: int32 */
+            ratingRank?: number;
+            riotId?: string;
+            /** Format: int64 */
+            seconds?: number;
+            /** Format: int64 */
+            timeCcingOthers?: number;
+            /** Format: int32 */
+            towers?: number;
+            /** Format: int32 */
+            triples?: number;
+            /** Format: uuid */
+            userId?: string;
+            /** Format: int64 */
+            visionScore?: number;
+            /** Format: int64 */
+            wardsKilled?: number;
+            /** Format: int64 */
+            wardsPlaced?: number;
+            /** Format: int32 */
+            wins?: number;
+            /** Format: int32 */
+            worstStreak?: number;
         };
         PositionResponse: {
             /** Format: int32 */
@@ -2566,6 +2733,14 @@ export interface components {
             reservations?: components["schemas"]["ReservationRequest"][];
             rules: components["schemas"]["RuleRequest"][];
         };
+        SideBalanceResponse: {
+            /** Format: int32 */
+            blueWins?: number;
+            /** Format: int32 */
+            games?: number;
+            /** Format: int32 */
+            redWins?: number;
+        };
         SoftResetResponse: {
             /** Format: date-time */
             at?: string;
@@ -2575,6 +2750,33 @@ export interface components {
         SseEmitter: {
             /** Format: int64 */
             timeout?: number;
+        };
+        StatRecordResponse: {
+            /** Format: int32 */
+            championId?: number;
+            /** @enum {string} */
+            id?: "MOST_KILLS" | "BIGGEST_SPREE" | "MOST_DAMAGE" | "MOST_DAMAGE_TAKEN" | "MOST_GOLD" | "MOST_MONSTERS" | "LONGEST_GAME" | "SHORTEST_GAME";
+            /** Format: uuid */
+            matchId?: string;
+            /** Format: uuid */
+            userId?: string;
+            /** Format: int64 */
+            value?: number;
+        };
+        StatsScopeResponse: {
+            /** Format: int32 */
+            matches?: number;
+            /** @enum {string} */
+            preset?: "BALANCED" | "PRECISION" | "CHAOS";
+            seasons?: components["schemas"]["StatsSeasonResponse"][];
+        };
+        StatsSeasonResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: int32 */
+            matches?: number;
+            name?: string;
+            status?: string;
         };
         SubmitFeedbackRequest: {
             kind: string;
@@ -2603,6 +2805,7 @@ export interface components {
             dragonKills?: number;
             firstBaron?: boolean;
             firstBlood?: boolean;
+            firstDargon?: boolean;
             firstDragon?: boolean;
             firstInhibitor?: boolean;
             firstTower?: boolean;
@@ -4125,6 +4328,53 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    groupStats_stats: {
+        parameters: {
+            query?: {
+                preset?: "BALANCED" | "PRECISION" | "CHAOS";
+                leagueId?: string;
+            };
+            header?: never;
+            path: {
+                groupId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GroupStatsResponse"];
+                };
+            };
+        };
+    };
+    groupStats_scopes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                groupId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StatsScopeResponse"][];
+                };
             };
         };
     };

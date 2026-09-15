@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { NfAvatar } from '../../../../ui';
-import { MedalBoard } from '../../../../core/group-medals';
+import { MedalBoard } from '../../../../core/group-stats';
 import { MedalIconComponent } from './medal-icon.component';
 
 /**
@@ -38,15 +38,15 @@ import { MedalIconComponent } from './medal-icon.component';
                 height="24"
               />
               <nf-avatar
-                [src]="leader.member.avatar ?? null"
-                [fallback]="leader.member.name"
-                [tint]="leader.member.hue"
+                [src]="leader.person.avatar"
+                [fallback]="leader.person.name"
+                [tint]="leader.person.hue"
                 [size]="38"
                 shape="square"
               />
               <span class="md__leader-meta">
-                <span class="md__leader-name">{{ leader.member.name }}</span>
-                <span class="md__leader-tag nf-mono">{{ leader.member.tag }}</span>
+                <span class="md__leader-name">{{ leader.person.name }}</span>
+                <span class="md__leader-tag nf-mono">{{ leader.person.tag }}</span>
               </span>
               <span class="md__leader-value nf-mono">{{ leader.value }}</span>
             </div>
@@ -61,7 +61,7 @@ import { MedalIconComponent } from './medal-icon.component';
           <section class="md__podium">
             <span class="md__label">Podio del grupo</span>
             <ol class="md__podium-list">
-              @for (row of b.podium; track row.member.tag) {
+              @for (row of b.podium; track row.person.userId) {
                 <li class="md__podium-row" [attr.data-podium]="row.rank">
                   @if (row.rank <= 3) {
                     <img
@@ -75,13 +75,13 @@ import { MedalIconComponent } from './medal-icon.component';
                     <span class="md__podium-rank nf-mono">{{ row.rank }}</span>
                   }
                   <nf-avatar
-                    [src]="row.member.avatar ?? null"
-                    [fallback]="row.member.name"
-                    [tint]="row.member.hue"
+                    [src]="row.person.avatar"
+                    [fallback]="row.person.name"
+                    [tint]="row.person.hue"
                     [size]="26"
                     shape="square"
                   />
-                  <span class="md__podium-name">{{ row.member.name }}</span>
+                  <span class="md__podium-name">{{ row.person.name }}</span>
                   <span class="md__podium-value nf-mono">{{ row.value }}</span>
                 </li>
               }
@@ -113,7 +113,7 @@ import { MedalIconComponent } from './medal-icon.component';
             @if (b.gap && b.leader) {
               <p class="md__me-gap">
                 Te faltan {{ b.gap }} para arrebatarle el primer puesto a
-                {{ b.leader.member.name }}.
+                {{ b.leader.person.name }}.
               </p>
             } @else {
               <p class="md__me-gap md__me-gap--first">

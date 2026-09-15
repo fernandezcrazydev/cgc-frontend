@@ -16,7 +16,7 @@
  *   - `GET /groups/{id}/profile`             → ficha pública del grupo.
  */
 import { hash, seeded } from './group-ranking';
-import { StatModality } from './group-stats';
+import { StatModality } from './group-stats-mock';
 import { Member } from './lobby';
 
 // ===================== Evolución de LP =====================

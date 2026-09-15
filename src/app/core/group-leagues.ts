@@ -12,7 +12,7 @@
  */
 import { leagueSeriesFor } from './group-hub';
 import { hash, seeded } from './group-ranking';
-import { StatModality } from './group-stats';
+import { StatModality } from './group-stats-mock';
 
 export type LeagueSeasonState = 'NOT_STARTED' | 'IN_PROGRESS';
 

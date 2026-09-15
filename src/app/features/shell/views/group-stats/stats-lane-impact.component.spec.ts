@@ -5,11 +5,11 @@ import { LaneImpact } from '../../../../core/group-stats';
 
 describe('StatsLaneImpactComponent', () => {
   const LANES: LaneImpact[] = [
-    { lane: 'MID', label: 'Mid', winrate: 78, impactOrder: 1, description: 'Control de mapa' },
-    { lane: 'JUNGLA', label: 'Jungla', winrate: 74, impactOrder: 2, description: 'Presión en objetivos' },
-    { lane: 'ADC', label: 'Bot (ADC)', winrate: 69, impactOrder: 3, description: 'Poder de fuego' },
-    { lane: 'TOP', label: 'Top', winrate: 65, impactOrder: 4, description: 'Presión dividida' },
-    { lane: 'SUPPORT', label: 'Soporte', winrate: 62, impactOrder: 5, description: 'Visión aliada' },
+    { lane: 'MID', label: 'Mid', winrate: 78, games: 32, impactOrder: 1, description: '+1.2k de oro al min. 14 · 32 duelos' },
+    { lane: 'JUNGLA', label: 'Jungla', winrate: 74, games: 30, impactOrder: 2, description: '+0.9k de oro al min. 14 · 30 duelos' },
+    { lane: 'ADC', label: 'Bot (ADC)', winrate: 69, games: 28, impactOrder: 3, description: '+0.7k de oro al min. 14 · 28 duelos' },
+    { lane: 'TOP', label: 'Top', winrate: 65, games: 27, impactOrder: 4, description: '+1.6k de oro al min. 14 · 27 duelos' },
+    { lane: 'SUPPORT', label: 'Soporte', winrate: 62, games: 25, impactOrder: 5, description: '+0.3k de oro al min. 14 · 25 duelos' },
   ];
 
   function createComponent(lanes: LaneImpact[] = LANES, loading = false) {
