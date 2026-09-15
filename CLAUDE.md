@@ -58,7 +58,9 @@ el IdP), `groups`, `leagues`, `lobbies`, `matches`, `game-data`, `notifications`
 **Sigue siendo mock en memoria**, sembrado con constantes y generadores deterministas
 (`seeded`/`hash`): `core/lobby.ts` y `lobby-extras.ts` (el God-module legacy), `group-store.ts`,
 `group-hub.ts`, `group-stats.ts`, `group-medals.ts`, `group-ranking.ts`, `member-detail.ts`,
-`player-profile.ts` y `reactions` (que además es local del navegador: no hay tabla ni endpoint).
+`player-profile.ts`, `champions` (tiene su `*-api.ts`, pero el store se alimenta del mock hasta
+que exista el endpoint) y `reactions` (que además es local del navegador: no hay tabla ni
+endpoint).
 Los comentarios `BACKEND NOTE:` marcan cada punto de integración.
 
 **El backend será el dueño de TODA la regla de negocio**: matchmaking, cálculo de MMR/elo,
@@ -485,10 +487,15 @@ La regla que queda: **cualquier cifra que describa «tu historial» o «el grupo
 un endpoint de resumen, no de sumar lo que hay en pantalla.** Sumar seis filas y llamarlo
 «vuestro récord» es peor que no darlo, y no se distingue mirando.
 
-Cuando una superficie de verdad necesita un corpus (la tier list de campeones, el cajón de
-partidas recientes del ranking), se pide una **muestra acotada** —`MatchHistoryStore.groupSample()`,
+Cuando una superficie de verdad necesita un corpus (el cajón de partidas recientes del ranking,
+la tarjeta de MVP de Inicio), se pide una **muestra acotada** —`MatchHistoryStore.groupSample()`,
 una sola página del tamaño máximo— y **la pantalla dice que es una muestra**: «sobre las últimas
 N partidas». Lo que no puede es llamarse «del grupo» a secas.
+
+La tier list de campeones **ya no usa esa muestra**: tiene su propio dominio (`core/champions`,
+`ChampionStatsStore`), que hoy se alimenta de `champion-stats-mock.ts` y muere con su endpoint.
+Es el camino bueno para una agregación de este tipo, y es preferible a la muestra: esta última es
+el apaño para las superficies que todavía no tienen endpoint propio.
 
 ### Dos tipos de consulta, porque un filtro no significa lo mismo en las dos listas
 
@@ -927,9 +934,10 @@ check falla solo si una regla **empeora**. Así se adopta con el repo como está
   Es placeholder del backend: **no la refactorices**, se adelgazará sola al migrar MMR y
   resultados a endpoints. Sacar **plantilla y CSS**, en cambio, no es refactorizar negocio: es
   gratis, es mecánico y sobrevive a la migración. Hazlo cuando toques una vista que aún no lo
-  tenga (`inline-template-size` va por 14; las mayores que quedan son `group/grupos.ts` y
-  `profile/perfil-miembro.ts`). `match-scoreboard.component.ts` salió de esa lista al conectar el
-  historial: su plantilla vive ahora en su `.html`.
+  tenga. **`inline-template-size` ya está en 0**, así que dejó de ser un trinquete y es un muro:
+  una plantilla inline de más de 150 líneas ahora rompe el check en vez de caber en el
+  presupuesto. `match-scoreboard.component.ts` salió de esa lista al conectar el historial, y el
+  resto cayó con la extracción de plantillas que llegó por `main`.
   Las otras dos que estaban aquí —el asistente `grupo-crear-partida.ts` y la sala mock
   `grupo-sala.ts`— **ya no existen**: ver § "La zona de juego del grupo". Y `partida-detalle.ts`
   tampoco: eran 552 líneas + 429 de SCSS que **ninguna ruta abría**, así que se borró en vez de
@@ -950,11 +958,12 @@ check falla solo si una regla **empeora**. Así se adopta con el repo como está
   `provideZonelessChangeDetection` explícito. El objetivo es activarlos — no escribas código
   nuevo que lo impida.
 - `environment.prod.ts` tiene `apiBaseUrl` placeholder (`TODO`).
-- Advertencia de bundle budget en producción: `Initial total 852,80 kB vs 500 kB`. Venía de
-  976,88 kB (el CSS del monolito global a los chunks lazy) y subió ~14 kB al conectar el historial:
-  el cliente HTTP, el mapeo y el store entran en el paquete inicial porque el shell los usa. Lo que
-  queda por soltar son los generadores y semillas deterministas que siguen en `core/lobby.ts` y
-  compañía, que se borran al migrar los dominios que aún son mock.
+- Advertencia de bundle budget en producción: `Initial total 877,92 kB vs 500 kB`. Venía de
+  976,88 kB (el CSS del monolito global a los chunks lazy); el historial le sumó ~14 kB —el cliente
+  HTTP, el mapeo y el store entran en el paquete inicial porque el shell los usa— y el resto lo
+  pusieron los dominios que entraron a la vez. Lo que queda por soltar son los generadores y
+  semillas deterministas que siguen en `core/lobby.ts` y compañía, que se borran al migrar los
+  dominios que aún son mock.
 - **Deuda heredada de la Fase 5.5**, anotada en `scripts/arch-budgets.json` al integrarla y
   pendiente de pagar. No la metió la migración del CSS; venía en el código nuevo:
   - `font-floor` +19 (23 → 42): declaraciones nuevas por debajo de 11px, sobre todo en la barra
@@ -962,8 +971,10 @@ check falla solo si una regla **empeora**. Así se adopta con el repo como está
   - `font-size-raw` +71 (390 → 461): `font-size` en px crudos en vez de la escala `--fs-*`.
   - `inline-template-size` +1 (21 → 22).
 
-  Al conectar el historial los tres bajaron solos, por borrado y no por arreglo: `font-floor` 39,
-  `font-size-raw` 308 e `inline-template-size` 14. Lo que quedaba de esas declaraciones en las
-  pantallas que se retiraron se fue con ellas; lo que sigue en pie sigue sin pagarse.
+  Los tres han bajado, y ninguno por haberse arreglado: `font-floor` 37, `font-size-raw` 285 e
+  `inline-template-size` 0. Lo que quedaba de esas declaraciones en las pantallas que retiró el
+  historial se fue con ellas, y las plantillas las extrajo otra tarea. **Lo que sigue en pie
+  sigue sin pagarse**: el suelo de 11px y la escala `--fs-*` sólo bajan cuando alguien toca esos
+  textos a propósito, que es una decisión visual.
   No se corrigieron aquí a propósito: subir esos textos cambia el aspecto de features recién
   revisadas, y esa es una decisión visual, no mecánica.
