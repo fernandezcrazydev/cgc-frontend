@@ -35,6 +35,7 @@ let panelSeq = 0;
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [MatchLineupComponent],
+  styleUrl: './match-card-shell.component.scss',
   template: `
     <div
       class="m-card"
@@ -64,7 +65,7 @@ let panelSeq = 0;
         <div class="m-card__end">
           <div class="m-card__end-meta">
             @if (leagueName(); as l) {
-              <span class="m-card__league nf-mono">{{ l }}</span>
+              <span class="m-card__league nf-mono" [title]="l">{{ l }}</span>
             }
             @if (modeLabel(); as m) {
               <span class="m-card__mode nf-mono">{{ m }}</span>
@@ -136,22 +137,31 @@ let panelSeq = 0;
       }
 
       @if (isExpanded()) {
-        <div class="m-card__accordion" [id]="panelId" role="region" [attr.aria-label]="panelLabel()">
-          <!--
-            Ranura con contenido por defecto: quien no proyecte nada obtiene la alineación de
-            siempre —el historial personal y el de grupo no cambian—, y el historial cruzado
-            proyecta su comparativa cara a cara, que responde a otra pregunta. Es una ranura y
-            no un @if sobre un modo por lo mismo que este componente existe: ese if ya estuvo
-            aquí una vez y convertía dos vistas distintas en un solo componente disfrazado.
-          -->
-          <ng-content select="[matchAccordion]">
-            <app-match-lineup
-              [match]="match()"
-              [returnTo]="returnTo()"
-              [crossContext]="crossContext()"
-              [reactionScope]="reactionScope()"
-            />
-          </ng-content>
+        <div
+          class="m-card__accordion"
+          [id]="panelId"
+          role="region"
+          [attr.aria-label]="panelLabel()"
+          animate.enter="is-entering"
+          animate.leave="is-leaving"
+        >
+          <div class="m-card__accordion-inner">
+            <!--
+              Ranura con contenido por defecto: quien no proyecte nada obtiene la alineación de
+              siempre —el historial personal y el de grupo no cambian—, y el historial cruzado
+              proyecta su comparativa cara a cara, que responde a otra pregunta. Es una ranura y
+              no un @if sobre un modo por lo mismo que este componente existe: ese if ya estuvo
+              aquí una vez y convertía dos vistas distintas en un solo componente disfrazado.
+            -->
+            <ng-content select="[matchAccordion]">
+              <app-match-lineup
+                [match]="match()"
+                [returnTo]="returnTo()"
+                [crossContext]="crossContext()"
+                [reactionScope]="reactionScope()"
+              />
+            </ng-content>
+          </div>
         </div>
       }
     </div>

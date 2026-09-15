@@ -21,7 +21,7 @@ import {
   toCrossMatches,
   wonLane,
 } from '../../../../core/matches';
-import { formatDuration, formatLongDate, formatNumber } from '../../../../shared/date-format';
+import { formatDurationUnits, formatLongDate, formatNumber } from '../../../../shared/date-format';
 import { NfButton, NfSkeleton } from '../../../../ui';
 import { crossMetricRows } from './cross-compare';
 import { CrossViewState } from './cross-view-state';
@@ -130,7 +130,7 @@ export class CrossMatchDetail {
     const c = this.cross();
     if (!c) return [];
     const parts = [matchOutcomeLabel(c.match.userOutcome)];
-    if (c.match.durationSeconds != null) parts.push(formatDuration(c.match.durationSeconds));
+    if (c.match.durationSeconds != null) parts.push(formatDurationUnits(c.match.durationSeconds));
     if (c.match.decidedAt) parts.push(formatLongDate(c.match.decidedAt));
     if (c.match.group?.name) parts.push(c.match.group.name);
     return parts;

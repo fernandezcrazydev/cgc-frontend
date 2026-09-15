@@ -7,7 +7,7 @@ import {
   matchOutcomeLabel,
   participantName,
 } from '../../../../core/matches';
-import { formatDuration } from '../../../../shared/date-format';
+import { formatDurationUnits } from '../../../../shared/date-format';
 import { NfAvatar, NfLaneIcon, NfSkeleton } from '../../../../ui';
 import { MatchCardShellComponent } from '../match-history/match-card-shell.component';
 import { nameOf } from './cross-player';
@@ -157,7 +157,7 @@ export class CrossMatchCardComponent {
   /** `null` sin subida: no hay duración, y «0:00» sería una partida instantánea. */
   protected readonly duration = computed(() => {
     const seconds = this.cross().match.durationSeconds;
-    return seconds == null ? null : formatDuration(seconds);
+    return seconds == null ? null : formatDurationUnits(seconds);
   });
 
   protected readonly theirName = computed(() => nameOf(participantName(this.cross().them)));

@@ -60,7 +60,7 @@ el IdP), `groups`, `leagues`, `lobbies`, `matches`, `game-data`, `notifications`
 `group-hub.ts`, `group-stats.ts`, `group-medals.ts`, `group-ranking.ts`, `member-detail.ts`,
 `player-profile.ts`, `champions` (tiene su `*-api.ts`, pero el store se alimenta del mock hasta
 que exista el endpoint) y `reactions` (que además es local del navegador: no hay tabla ni
-endpoint).
+endpoint — pedido en `cgc-backend#95`, con el contrato propuesto).
 Los comentarios `BACKEND NOTE:` marcan cada punto de integración.
 
 **El backend será el dueño de TODA la regla de negocio**: matchmaking, cálculo de MMR/elo,

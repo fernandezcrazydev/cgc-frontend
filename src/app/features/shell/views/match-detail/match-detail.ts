@@ -16,7 +16,7 @@ import { presetLabel, teamBySide, teamLabel } from '../../../../core/matches/mat
 import { GameDataStore } from '../../../../core/game-data';
 import { NfButton, NfSkeleton } from '../../../../ui';
 import { MatchScoreboardComponent } from '../match-history/match-scoreboard.component';
-import { formatDuration, formatMatchDate } from '../../../../shared/date-format';
+import { formatDurationUnits, formatMatchDate } from '../../../../shared/date-format';
 
 /** Una fila del bloque «Dominio de la grieta»: un objetivo y cómo se repartió. */
 export interface ObjectiveRow {
@@ -222,7 +222,7 @@ export class MatchDetail {
     const m = this.match();
     if (!m) return [];
     const parts: string[] = [formatMatchDate(m.decidedAt), presetLabel(m.preset)];
-    if (m.durationSeconds != null) parts.push(formatDuration(m.durationSeconds));
+    if (m.durationSeconds != null) parts.push(formatDurationUnits(m.durationSeconds));
     if (m.leagueName) parts.push(m.leagueName);
     const version = this.gameVersion();
     if (version) parts.push(`Parche ${version}`);

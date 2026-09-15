@@ -1,4 +1,4 @@
-import { formatRelativeTime } from './date-format';
+import { formatDurationUnits, formatRelativeTime } from './date-format';
 
 /**
  * El "último acceso" de la pantalla de sesiones. Se prueba con un `now` fijo porque el valor es
@@ -42,5 +42,29 @@ describe('formatRelativeTime', () => {
   it('una fecha inválida no rompe la fila: devuelve cadena vacía', () => {
     expect(formatRelativeTime('no-es-una-fecha', NOW)).toBe('');
     expect(formatRelativeTime('', NOW)).toBe('');
+  });
+});
+
+/**
+ * La duración lleva unidades porque comparte fila con la hora de juego: «31:01» al lado de
+ * «14 sept · 23:22» se lee como otra hora, y eso ya hizo creer que la duración media del grupo
+ * estaba mal calculada cuando no lo estaba.
+ */
+describe('formatDurationUnits', () => {
+  it('escribe minutos y segundos con su unidad', () => {
+    expect(formatDurationUnits(1861)).toBe('31m 01s');
+  });
+
+  it('rellena el segundo a dos cifras, para que las filas se alineen', () => {
+    expect(formatDurationUnits(1805)).toBe('30m 05s');
+  });
+
+  it('una partida de menos de un minuto sigue diciendo los minutos', () => {
+    expect(formatDurationUnits(42)).toBe('0m 42s');
+  });
+
+  it('una duración imposible no rompe la fila', () => {
+    expect(formatDurationUnits(-1)).toBe('0m 00s');
+    expect(formatDurationUnits(Number.NaN)).toBe('0m 00s');
   });
 });

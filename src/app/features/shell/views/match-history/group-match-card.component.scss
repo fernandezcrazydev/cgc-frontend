@@ -25,3 +25,25 @@
   font-size: var(--fs-label);
   font-weight: var(--fw-bold);
 }
+
+/*
+  El nombre del MVP es un Riot ID entero («CrazyDragon#EUW»), y con `white-space: nowrap` la
+  pastilla se salía de su columna y se montaba encima del nombre de la liga, que desbordaba en
+  sentido contrario. Recorta dentro de su sitio; el nombre completo queda en el `title`.
+*/
+.m-card__mvp-block {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.m-card__mvp-chip {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* La tira de los diez tampoco puede empujar a sus vecinas cuando la fila se estrecha. */
+.m-card__vs-block {
+  min-width: 0;
+}

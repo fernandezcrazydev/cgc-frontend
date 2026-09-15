@@ -201,23 +201,38 @@
         }
 
         <!-- ============================== BANEOS =========================== -->
+        <!--
+          Con rótulo y con tachón. Sin ellos la sección era «Equipo Azul» y «Equipo Rojo»
+          seguidos de cinco iconos apagados, y se leía como una alineación más: nada decía que
+          esos campeones son precisamente los que NO se jugaron. El gris no basta —es la misma
+          señal que usa un icono deshabilitado— y la diagonal es la marca que ya usa el cliente
+          de LoL para lo mismo.
+        -->
         @if (bans().length > 0) {
           <section class="md-bans">
-            @for (team of bans(); track team.label) {
-              <div class="md-bans__team">
-                <span class="md-bans__label nf-mono">{{ team.label }}</span>
-                <div class="md-bans__list">
-                  @for (championId of team.champions; track $index) {
-                    <img
-                      class="md-bans__champ"
-                      [src]="championIcon(championId)"
-                      [alt]="championName(championId)"
-                      [title]="'Baneo: ' + championName(championId)"
-                    />
-                  }
+            <h2 class="md-bans__heading nf-mono">Baneos</h2>
+            <div class="md-bans__teams">
+              @for (team of bans(); track team.label) {
+                <div class="md-bans__team">
+                  <span class="md-bans__label nf-mono">{{ team.label }}</span>
+                  <div class="md-bans__list">
+                    @for (championId of team.champions; track $index) {
+                      <span
+                        class="md-bans__champ-wrap"
+                        [title]="championName(championId) + ', baneado'"
+                      >
+                        <img
+                          class="md-bans__champ"
+                          [src]="championIcon(championId)"
+                          [alt]="championName(championId) + ', baneado'"
+                        />
+                        <span class="md-bans__slash" aria-hidden="true"></span>
+                      </span>
+                    }
+                  </div>
                 </div>
-              </div>
-            }
+              }
+            </div>
           </section>
         }
 

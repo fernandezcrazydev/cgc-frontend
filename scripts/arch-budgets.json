@@ -4,7 +4,7 @@
   "api-url": 0,
   "views-scss-size": 2651,
   "dead-css": 0,
-  "css-total-size": 18830,
+  "css-total-size": 18922,
   "inline-template-size": 0,
   "font-floor": 37,
   "font-size-raw": 285,
@@ -53,6 +53,20 @@
       "de": 19922,
       "a": 19945,
       "motivo": "slider interno de sanciones historicas [F5.5-22a]"
+    },
+    {
+      "fecha": "2026-09-15",
+      "regla": "css-total-size",
+      "de": 18830,
+      "a": 18919,
+      "motivo": "hoja nueva del armazon del historial: animacion del acordeon y la marca de baneo del detalle"
+    },
+    {
+      "fecha": "2026-09-15",
+      "regla": "css-total-size",
+      "de": 18919,
+      "a": 18922,
+      "motivo": "hoja nueva del armazon del historial: animacion del acordeon y la marca de baneo del detalle"
     }
   ]
 }

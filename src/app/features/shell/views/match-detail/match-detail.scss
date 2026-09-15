@@ -125,6 +125,22 @@
 
 .md-bans {
   display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* El rótulo de la sección. Sin él, los dos nombres de equipo eran lo único que se leía y la
+   tira parecía otra alineación. */
+.md-bans__heading {
+  margin: 0;
+  font-size: var(--fs-label);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--nf-text-dim);
+}
+
+.md-bans__teams {
+  display: flex;
   flex-wrap: wrap;
   gap: 18px;
 }
@@ -143,6 +159,13 @@
 
 .md-bans__list { display: flex; gap: 4px; }
 
+/* Envoltorio porque el tachón va encima del icono y el icono lo recorta. */
+.md-bans__champ-wrap {
+  position: relative;
+  display: inline-flex;
+  line-height: 0;
+}
+
 /* Los baneos se pintan apagados: son campeones que NO se jugaron. */
 .md-bans__champ {
   width: 24px;
@@ -150,6 +173,22 @@
   border-radius: 4px;
   filter: grayscale(0.7);
   opacity: 0.8;
+}
+
+/* La diagonal de prohibido, de esquina a esquina. Es un degradado y no un borde rotado para
+   que siga cuadrando sola si el icono cambia de tamaño. */
+.md-bans__slash {
+  position: absolute;
+  inset: 0;
+  border-radius: 4px;
+  border: var(--bw-1) solid color-mix(in srgb, var(--nf-danger) 55%, transparent);
+  background: linear-gradient(
+    to bottom right,
+    transparent calc(50% - 1px),
+    var(--nf-danger) calc(50% - 1px),
+    var(--nf-danger) calc(50% + 1px),
+    transparent calc(50% + 1px)
+  );
 }
 
 /* ── Esqueleto de carga, con la forma final para que no salte nada al llegar el dato ── */
