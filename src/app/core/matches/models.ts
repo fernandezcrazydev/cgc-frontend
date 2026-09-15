@@ -272,6 +272,122 @@ export interface MatchComment {
   createdAt: string;
 }
 
+/**
+ * Lo que pasó durante una partida, minuto a minuto (`GET /matches/{id}/timeline/summary`).
+ *
+ * Sale de la timeline que el cliente de LoL manda dentro de la subida y que el backend guarda en
+ * crudo desde la `V60` (`cgc-backend#96`).
+ *
+ * **`available: false` es un estado real**, igual que `hasStats: false`: la partida existe y se abre,
+ * lo que falta es que alguien la exportara. No es un error y no es «no pasó nada».
+ *
+ * **Lo que NO trae, y está medido, no pendiente:** el control de visión (wards) y los objetos
+ * comprados. La timeline del cliente lleva exactamente tres tipos de evento —muertes, edificios y
+ * monstruos grandes— y la visión no es uno. La de `match-v5` de Riot sí los trae, pero esa API no
+ * indexa customs. Cualquier pantalla de wards construida sobre esto sería la maqueta otra vez.
+ */
+export interface MatchTimelineSummary {
+  available: boolean;
+  frameCount: number;
+  kills: readonly TimelineKill[];
+  buildings: readonly TimelineBuilding[];
+  monsters: readonly TimelineMonster[];
+  /** Cuántos dragones se llevó cada equipo, desglosados por elemento. Ver `TeamDragons`. */
+  dragons: readonly TeamDragons[];
+}
+
+/** Una muerte. `killerUserId` es `null` cuando ejecutó el mapa (una torre, un monstruo). */
+export interface TimelineKill {
+  minute: number;
+  killerUserId: string | null;
+  victimUserId: string | null;
+  teamSlot: TeamSlot | null;
+  assistUserIds: readonly string[];
+  x: number;
+  y: number;
+}
+
+/**
+ * Un edificio cayendo.
+ *
+ * Los dos equipos con su nombre porque el payload del cliente solo trae el segundo, bajo un `teamId`
+ * a secas, y es el campo que todo el mundo lee al revés exactamente una vez: **`lostByTeamSlot` es
+ * quien lo tenía**, `killerTeamSlot` quien lo tiró.
+ */
+export interface TimelineBuilding {
+  minute: number;
+  killerUserId: string | null;
+  killerTeamSlot: TeamSlot | null;
+  lostByTeamSlot: TeamSlot | null;
+  /** `TOWER_BUILDING` o `INHIBITOR_BUILDING`, tal y como lo escribe el cliente. */
+  buildingType: string | null;
+  /** `OUTER_TURRET`, `INNER_TURRET`, `BASE_TURRET`, `NEXUS_TURRET`; `null` en un inhibidor. */
+  towerType: string | null;
+  laneType: string | null;
+  x: number;
+  y: number;
+}
+
+/**
+ * Un dragón, un barón, un heraldo o unas larvas.
+ *
+ * `monsterSubType` es el elemento del dragón (`FIRE_DRAGON`, `EARTH_DRAGON`, `AIR_DRAGON`,
+ * `HEXTECH_DRAGON`, `CHEMTECH_DRAGON` están todos medidos) y es `null` para todo lo demás.
+ */
+export interface TimelineMonster {
+  minute: number;
+  killerUserId: string | null;
+  teamSlot: TeamSlot | null;
+  monsterType: string | null;
+  monsterSubType: string | null;
+  x: number;
+  y: number;
+}
+
+/**
+ * Los dragones de un equipo, por elemento.
+ *
+ * **Es lo que destapa el contador de dragones que esta app tenía escondido.** Ya no hace falta saber
+ * qué cuenta `TeamObjectives.dragonKills`: esto dice qué dragones cayeron y de qué tipo.
+ *
+ * **No hay alma**, y no es un olvido: la timeline medida no tiene evento de alma, y deducirla de
+ * «cuatro dragones» sería afirmar una regla del juego que nadie ha medido aquí.
+ */
+export interface TeamDragons {
+  teamSlot: TeamSlot;
+  total: number;
+  /** Cuántos de cada elemento, en el orden en que cayeron. */
+  bySubType: Readonly<Record<string, number>>;
+}
+
+/**
+ * Dónde estaban los diez, una foto por minuto (`GET /matches/{id}/timeline/positions`).
+ *
+ * **Las coordenadas son las del juego, sin normalizar**, con el origen abajo a la izquierda: sobre
+ * las exportaciones medidas van de 130 a 14589 en `x` y de 135 a 14673 en `y`. Quien las dibuje
+ * sobre una imagen **tiene que voltear la `y`**. El backend no las normaliza a propósito: el número
+ * que importa para dibujar es el de la imagen, y la imagen es de este lado.
+ */
+export interface MatchTimelinePositions {
+  available: boolean;
+  frames: readonly TimelinePositionFrame[];
+}
+
+export interface TimelinePositionFrame {
+  minute: number;
+  positions: readonly ParticipantPosition[];
+}
+
+/** Un jugador en ese minuto. Viene por `userId`, no por el número de participante del cliente. */
+export interface ParticipantPosition {
+  userId: string;
+  teamSlot: TeamSlot | null;
+  x: number;
+  y: number;
+  totalGold: number | null;
+  level: number | null;
+}
+
 /** Resumen del historial del usuario (`GET /me/matches/summary`). */
 export interface PersonalHistorySummary {
   totalMatches: number;

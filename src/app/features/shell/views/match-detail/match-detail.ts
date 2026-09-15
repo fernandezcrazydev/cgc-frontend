@@ -12,10 +12,13 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
 import { MatchHistoryStore } from '../../../../core/matches/match-history-store';
+import { MatchTimelineStore } from '../../../../core/matches';
 import {
   Match,
   MatchParticipant,
+  MatchTimelineSummary,
   TeamObjectives,
+  TeamSlot,
   TeamSummary,
 } from '../../../../core/matches/models';
 import {
@@ -33,6 +36,7 @@ import { GameDataStore } from '../../../../core/game-data';
 import { NfAvatar, NfButton, NfSkeleton } from '../../../../ui';
 import { MatchScoreboardComponent } from '../match-history/match-scoreboard.component';
 import { MatchCommentsComponent } from './match-comments.component';
+import { MatchMapComponent } from './match-map.component';
 import {
   formatCompact,
   formatDurationUnits,
@@ -114,12 +118,22 @@ export interface SplitSlide {
   aPct: number;
 }
 
-/** Quién se llevó un «primero» de la partida. */
+/**
+ * Quién se llevó un «primero» de la partida.
+ *
+ * `minute` y `playerName` llegan **solo con la timeline** (`cgc-backend#96`): el bloque de equipo
+ * dice QUÉ bando y nada más. Sin timeline se pintan las pastillas de siempre, con el equipo, que es
+ * lo que se podía decir hasta ahora.
+ */
 export interface FirstRow {
   id: string;
   label: string;
   teamLabel: string;
   side: 'blue' | 'red' | null;
+  /** `null` sin timeline. Nunca 0: el minuto 0 es un minuto real y muy común en una primera sangre. */
+  minute: number | null;
+  /** Quién lo hizo. `null` sin timeline, y también cuando lo ejecutó el mapa (una torre). */
+  playerName: string | null;
 }
 
 /** Una fila del bloque «Dominio de la grieta»: un objetivo y cómo se repartió. */
@@ -130,6 +144,50 @@ export interface ObjectiveRow {
   blueScore: number;
   redScore: number;
 }
+
+/**
+ * Los dragones de un bando, desglosados por elemento.
+ *
+ * Existe desde que la timeline dice de qué tipo era cada uno (`cgc-backend#96`). Antes solo había un
+ * total del que nadie sabía qué contaba, y por eso no se pintaba ninguno.
+ */
+export interface DragonBreakdownRow {
+  slot: TeamSlot;
+  label: string;
+  side: 'blue' | 'red' | null;
+  total: number;
+  elements: readonly { subType: string; count: number; name: string; icon: string }[];
+}
+
+/**
+ * Los elementos que el cliente escribe, con su nombre en español.
+ *
+ * Los cinco están **medidos** en exportaciones reales. El anciano no aparece en ninguna de ellas,
+ * pero se cataloga igual: cuando salga, más vale que tenga nombre a que se pinte «Dragón» a secas.
+ */
+const DRAGON_NAMES: Readonly<Record<string, string>> = {
+  FIRE_DRAGON: 'Dragón de fuego',
+  EARTH_DRAGON: 'Dragón de tierra',
+  AIR_DRAGON: 'Dragón de viento',
+  WATER_DRAGON: 'Dragón de agua',
+  HEXTECH_DRAGON: 'Dragón hextech',
+  CHEMTECH_DRAGON: 'Dragón quimtech',
+  ELDER_DRAGON: 'Dragón ancestral',
+};
+
+/**
+ * El icono de cada elemento. **`CHEMTECH_DRAGON` no tiene el suyo** en `public/assets/objectives/`
+ * y cae al genérico: es un elemento medido en una partida real, así que la alternativa sería no
+ * pintarlo. Cuando alguien añada el icono, esta línea se borra.
+ */
+const DRAGON_ICONS: Readonly<Record<string, string>> = {
+  FIRE_DRAGON: '/assets/objectives/dragon_fire.png',
+  EARTH_DRAGON: '/assets/objectives/dragon_earth.png',
+  AIR_DRAGON: '/assets/objectives/dragon_air.png',
+  WATER_DRAGON: '/assets/objectives/dragon_water.png',
+  HEXTECH_DRAGON: '/assets/objectives/dragon_hextech.png',
+  ELDER_DRAGON: '/assets/objectives/dragon_elder.png',
+};
 
 /** Un vértice de la huella táctica: dónde cae cada bando sobre ese eje y dónde va el icono. */
 export interface RadarAxis {
@@ -272,6 +330,7 @@ export function tacticalRadarOf(objectives: readonly ObjectiveRow[]): TacticalRa
     NfSkeleton,
     MatchScoreboardComponent,
     MatchCommentsComponent,
+    MatchMapComponent,
   ],
   templateUrl: './match-detail.html',
   styleUrls: ['./match-detail.scss'],
@@ -280,6 +339,7 @@ export class MatchDetail {
   private readonly route = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
   private readonly store = inject(MatchHistoryStore);
+  private readonly timeline = inject(MatchTimelineStore);
   private readonly gameData = inject(GameDataStore);
 
   private readonly routeId = toSignal(this.route.paramMap.pipe(map((p) => p.get('id'))), {
@@ -294,6 +354,23 @@ export class MatchDetail {
 
   readonly match = computed<Match | null>(() => this.store.detailMatch());
   readonly gameVersion = computed(() => this.store.detail()?.gameVersion ?? null);
+
+  /**
+   * La timeline de esta partida (`cgc-backend#96`).
+   *
+   * **No entra en `status()`**, y es deliberado: la pantalla se pinta igual sin ella. Una partida
+   * sin exportar tiene marcador y no tiene timeline, así que bloquear el detalle entero esperándola
+   * sería dejar en blanco lo que sí se sabe. Lo que depende de ella aparece cuando llega.
+   */
+  readonly timelineSummary = computed<MatchTimelineSummary>(() => this.timeline.summary());
+
+  /**
+   * Si esta partida tiene timeline, que es lo que decide si se ofrece el bloque del mapa.
+   *
+   * Mientras el resumen viaja esto es `false` y el bloque no aparece: es mejor que salga un poco
+   * después a que aparezca un hueco que a lo mejor nunca se llena.
+   */
+  readonly hasTimeline = computed(() => this.timeline.available());
 
   /**
    * Los cuatro estados que exige el proyecto, distinguidos: cargando, error de red, «no existe»
@@ -361,9 +438,19 @@ export class MatchDetail {
     if (!m) return [];
     const blue = teamBySide(m, 'blue');
     const red = teamBySide(m, 'red');
-    if (!blue?.objectives || !red?.objectives) return [];
+    // Sin lados decididos no hay nada que colgar de «azul» y «rojo». Es la única condición que
+    // tumba la lista entera: el resto se decide fila a fila.
+    if (!blue || !red) return [];
 
     const rows: ObjectiveRow[] = [];
+    // Los dragones van los PRIMEROS, y **no dependen del bloque de equipo**: salen de la timeline,
+    // que es otra fuente. Una partida puede tener recorrido y no tener bloque de objetivos —son dos
+    // trozos distintos del mismo payload— y entonces esta fila es la única que se puede pintar.
+    const dragons = this.dragonRow(blue, red);
+    if (dragons) rows.push(dragons);
+
+    if (!blue.objectives || !red.objectives) return rows;
+
     for (const spec of OBJECTIVE_SPECS) {
       const blueScore = spec.pick(blue.objectives);
       const redScore = spec.pick(red.objectives);
@@ -374,6 +461,72 @@ export class MatchDetail {
         icon: spec.icon,
         blueScore: blueScore ?? 0,
         redScore: redScore ?? 0,
+      });
+    }
+    return rows;
+  });
+
+  /**
+   * La fila de dragones, que **solo existe con timeline** (`cgc-backend#96`).
+   *
+   * Es la que llevaba ausente desde que se conectó esta pantalla: `TeamObjectives.dragonKills`
+   * llegaba a secas y nadie había medido si incluye a los ancianos, así que enseñarlo bajo la
+   * etiqueta «Dragones» afirmaba qué cuenta. Ahora el backend sirve el desglose por elemento, que
+   * es una medición y no una interpretación, y la cifra vuelve.
+   *
+   * `null` sin timeline: esa fila no se rellena desde el bloque de equipo ni aunque el dato esté
+   * ahí. Lo que cambió no es que haya un número nuevo, es que por fin se sabe qué cuenta.
+   */
+  private dragonRow(blue: TeamSummary, red: TeamSummary): ObjectiveRow | null {
+    const timeline = this.timelineSummary();
+    if (!timeline.available) return null;
+
+    const totalOf = (team: TeamSummary) =>
+      timeline.dragons.find((d) => d.teamSlot === team.slot)?.total ?? 0;
+    const blueScore = totalOf(blue);
+    const redScore = totalOf(red);
+    if (blueScore === 0 && redScore === 0) return null;
+
+    return {
+      id: 'dragons',
+      name: 'Dragones',
+      icon: '/assets/objectives/dragon.png',
+      blueScore,
+      redScore,
+    };
+  }
+
+  /**
+   * Los dragones de cada bando, con el icono de su elemento y en el orden en que cayeron.
+   *
+   * Se pinta debajo de la fila de dragones, y es lo que la cifra sola no dice: cuatro dragones de
+   * fuego y cuatro surtidos no son la misma partida. Los elementos son los que escribe el cliente
+   * (`FIRE_DRAGON`, `EARTH_DRAGON`, `AIR_DRAGON`, `HEXTECH_DRAGON`, `CHEMTECH_DRAGON`, todos
+   * medidos); uno sin icono propio cae al icono genérico en vez de desaparecer.
+   *
+   * **No dice nada del alma**: la timeline no trae ningún evento de alma, y deducirla de «cuatro
+   * dragones» sería afirmar una regla del juego que nadie ha medido aquí.
+   */
+  readonly dragonBreakdown = computed<DragonBreakdownRow[]>(() => {
+    const m = this.match();
+    const timeline = this.timelineSummary();
+    if (!m || !timeline.available) return [];
+
+    const rows: DragonBreakdownRow[] = [];
+    for (const team of m.teams) {
+      const dragons = timeline.dragons.find((d) => d.teamSlot === team.slot);
+      if (!dragons || dragons.total === 0) continue;
+      rows.push({
+        slot: team.slot,
+        label: teamLabel(team),
+        side: team.side,
+        total: dragons.total,
+        elements: Object.entries(dragons.bySubType).map(([subType, count]) => ({
+          subType,
+          count,
+          name: DRAGON_NAMES[subType] ?? 'Dragón',
+          icon: DRAGON_ICONS[subType] ?? '/assets/objectives/dragon.png',
+        })),
       });
     }
     return rows;
@@ -638,6 +791,9 @@ export class MatchDetail {
     const m = this.match();
     if (!m) return [];
 
+    const fromTimeline = this.firstsFromTimeline(m);
+    if (fromTimeline.length > 0) return fromTimeline;
+
     const SPECS: readonly { id: string; label: string; pick: (o: TeamObjectives) => boolean | null }[] = [
       { id: 'blood', label: 'Primera sangre', pick: (o) => o.firstBlood },
       { id: 'tower', label: 'Primera torre', pick: (o) => o.firstTower },
@@ -649,11 +805,88 @@ export class MatchDetail {
     for (const spec of SPECS) {
       const winner = m.teams.find((t) => t.objectives && spec.pick(t.objectives) === true);
       if (winner) {
-        rows.push({ id: spec.id, label: spec.label, teamLabel: teamLabel(winner), side: winner.side });
+        rows.push({
+          id: spec.id,
+          label: spec.label,
+          teamLabel: teamLabel(winner),
+          side: winner.side,
+          minute: null,
+          playerName: null,
+        });
       }
     }
     return rows;
   });
+
+  /**
+   * Los «primeros» leídos de la timeline: con su minuto y con quién lo hizo.
+   *
+   * Es la mitad que el bloque de equipo no puede dar — dice QUÉ bando y nada más— y la razón por la
+   * que el issue #96 existía. Cada uno es sencillamente el PRIMER evento de su clase: la timeline
+   * llega ordenada por frame y, dentro de un frame, por el instante del evento.
+   *
+   * **Trae uno que antes no existía: el primer dragón.** `firstDragon` no llega nunca en el bloque
+   * de equipo, porque el cliente lo escribe con una errata (`firstDargon`) y solo dentro del bloque
+   * crudo. Aquí no hace falta: se ve caer.
+   *
+   * Vacío cuando no hay timeline, y entonces manda el camino de siempre.
+   */
+  private firstsFromTimeline(m: Match): FirstRow[] {
+    const timeline = this.timelineSummary();
+    if (!timeline.available) return [];
+
+    const rows: FirstRow[] = [];
+    const push = (
+      id: string,
+      label: string,
+      minute: number,
+      slot: string | null,
+      userId: string | null,
+    ) => {
+      const team = m.teams.find((t) => t.slot === slot);
+      rows.push({
+        id,
+        label,
+        teamLabel: team ? teamLabel(team) : 'Sin equipo',
+        side: team?.side ?? null,
+        minute,
+        playerName: userId ? this.nameOf(userId) : null,
+      });
+    };
+
+    const firstKill = timeline.kills[0];
+    if (firstKill) {
+      push('blood', 'Primera sangre', firstKill.minute, firstKill.teamSlot, firstKill.killerUserId);
+    }
+    const firstTower = timeline.buildings.find((b) => b.buildingType === 'TOWER_BUILDING');
+    if (firstTower) {
+      push('tower', 'Primera torre', firstTower.minute, firstTower.killerTeamSlot,
+        firstTower.killerUserId);
+    }
+    const firstDragon = timeline.monsters.find((o) => o.monsterType === 'DRAGON');
+    if (firstDragon) {
+      push('dragon', 'Primer dragón', firstDragon.minute, firstDragon.teamSlot,
+        firstDragon.killerUserId);
+    }
+    const firstBaron = timeline.monsters.find((o) => o.monsterType === 'BARON_NASHOR');
+    if (firstBaron) {
+      push('baron', 'Primer barón', firstBaron.minute, firstBaron.teamSlot, firstBaron.killerUserId);
+    }
+    const firstInhibitor = timeline.buildings.find((b) => b.buildingType === 'INHIBITOR_BUILDING');
+    if (firstInhibitor) {
+      push('inhibitor', 'Primer inhibidor', firstInhibitor.minute, firstInhibitor.killerTeamSlot,
+        firstInhibitor.killerUserId);
+    }
+    return rows;
+  }
+
+  /** El nombre corto de quien hizo algo, buscado entre los diez del marcador. */
+  private nameOf(userId: string): string | null {
+    const m = this.match();
+    if (!m) return null;
+    const player = participantsOf(m).find((p) => p.userId === userId);
+    return player ? participantShortName(player) : null;
+  }
 
   readonly hoveredObjectiveId = signal<string | null>(null);
 
@@ -666,7 +899,14 @@ export class MatchDetail {
       // `untracked` no es decorativo: los métodos del store LEEN sus propias signals de
       // estado, así que llamarlos dentro del efecto lo suscribiría a lo que él mismo escribe.
       // Las únicas dependencias del efecto deben ser la consulta y el id.
-      if (id) untracked(() => void this.store.ensureDetail(id));
+      if (id) {
+        untracked(() => {
+          void this.store.ensureDetail(id);
+          // Solo el RESUMEN. Las posiciones las pide el mapa cuando alguien lo abre: son diez
+          // coordenadas por minuto y no las mira quien viene a leer el marcador.
+          void this.timeline.ensureSummary(id);
+        });
+      }
     });
   }
 

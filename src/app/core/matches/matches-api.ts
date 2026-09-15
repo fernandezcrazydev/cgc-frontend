@@ -22,6 +22,8 @@ import {
   Match,
   MatchComment,
   MatchDetail,
+  MatchTimelinePositions,
+  MatchTimelineSummary,
   PersonalHistorySummary,
 } from './models';
 import {
@@ -125,6 +127,30 @@ export class MatchesApi {
   deleteComment(matchId: string, commentId: string): Observable<void> {
     return this.http.delete<void>(
       `${environment.apiUrl}/matches/${matchId}/comments/${commentId}`,
+    );
+  }
+
+  /**
+   * `GET /matches/{matchId}/timeline/summary` — los eventos con su minuto y su autor.
+   *
+   * Una partida sin timeline responde 200 con `available: false`, así que esto **no lanza** por no
+   * haber datos: lo que no hay se distingue mirando ese flag, no capturando un 404.
+   */
+  timelineSummary(matchId: string): Observable<MatchTimelineSummary> {
+    return this.http.get<MatchTimelineSummary>(
+      `${environment.apiUrl}/matches/${matchId}/timeline/summary`,
+    );
+  }
+
+  /**
+   * `GET /matches/{matchId}/timeline/positions` — una posición por jugador por minuto.
+   *
+   * Petición aparte del resumen y no un campo suyo, que es como la sirve el backend: es la mitad que
+   * pesa (diez coordenadas por minuto) y solo la pide la pantalla que dibuja el mapa.
+   */
+  timelinePositions(matchId: string): Observable<MatchTimelinePositions> {
+    return this.http.get<MatchTimelinePositions>(
+      `${environment.apiUrl}/matches/${matchId}/timeline/positions`,
     );
   }
 }

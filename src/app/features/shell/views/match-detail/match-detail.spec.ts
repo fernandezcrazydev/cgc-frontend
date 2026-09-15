@@ -5,7 +5,7 @@ import { of } from 'rxjs';
 import { describe, expect, it } from 'vitest';
 import { GameDataStore } from '../../../../core/game-data';
 import { GroupDetailStore } from '../../../../core/groups';
-import { MatchHistoryStore } from '../../../../core/matches';
+import { MatchCommentsStore, MatchHistoryStore, MatchTimelineStore } from '../../../../core/matches';
 import { ToastService } from '../../../../core/toast';
 import { ReactionsStore } from '../../../../core/reactions';
 import { Viewport } from '../../../../shared/viewport';
@@ -16,7 +16,11 @@ import {
   participantFixture,
   statsFixture,
 } from '../../../../core/matches/match-fixtures';
-import { Match, TeamObjectives } from '../../../../core/matches/models';
+import {
+  Match,
+  MatchTimelineSummary,
+  TeamObjectives,
+} from '../../../../core/matches/models';
 import { MatchDetail, ObjectiveRow, tacticalRadarOf } from './match-detail';
 
 const ME = 'me-uuid';
@@ -32,10 +36,21 @@ function partida(over: Partial<Parameters<typeof matchFixture>[0]> = {}): Match 
   });
 }
 
+/** Una timeline vacía: lo que se ve mientras nadie la ha pedido, y en una partida sin exportar. */
+const SIN_TIMELINE: MatchTimelineSummary = {
+  available: false,
+  frameCount: 0,
+  kills: [],
+  buildings: [],
+  monsters: [],
+  dragons: [],
+};
+
 async function montar(opciones: {
   detail?: Match | null;
   detailStatus?: 'loading' | 'ready' | 'error';
   notFound?: boolean;
+  timeline?: MatchTimelineSummary;
 } = {}) {
   TestBed.resetTestingModule();
   await TestBed.configureTestingModule({
@@ -76,6 +91,34 @@ async function montar(opciones: {
         useValue: { mostUsed: () => [], tally: () => [], mine: () => null, toggle: () => {}, seed: () => {} },
       },
       { provide: Viewport, useValue: { isMobile: signal(false) } },
+      {
+        provide: MatchTimelineStore,
+        useValue: (() => {
+          const summary = signal(opciones.timeline ?? SIN_TIMELINE);
+          return {
+            summary,
+            summaryStatus: signal('ready'),
+            positions: signal({ available: false, frames: [] }),
+            positionsStatus: signal('idle'),
+            available: () => summary().available,
+            ensureSummary: () => Promise.resolve(),
+            ensurePositions: () => Promise.resolve(),
+            reloadPositions: () => Promise.resolve(),
+          };
+        })(),
+      },
+      {
+        provide: MatchCommentsStore,
+        useValue: {
+          comments: signal([]),
+          status: signal('ready'),
+          saving: signal(false),
+          deleting: signal(null),
+          alreadyCommented: signal(false),
+          ensureLoaded: () => Promise.resolve(),
+          reload: () => Promise.resolve(),
+        },
+      },
     ],
   }).compileComponents();
 
@@ -511,5 +554,199 @@ describe('MatchDetail · los primeros objetivos', () => {
     const { component } = await montar({ detail: partida({ sided: false }) });
 
     expect(component.firsts()).toEqual([]);
+  });
+});
+
+/**
+ * Lo que desbloquea la timeline (`cgc-backend#96`).
+ *
+ * Las dos cosas que este bloque protege son las que estaban escondidas a propósito hasta ahora: la
+ * cifra de dragones —que no se pintaba porque nadie sabía qué contaba `dragonKills`— y el minuto y
+ * el autor de cada «primero», que el bloque de equipo no puede dar.
+ */
+describe('MatchDetail · con timeline', () => {
+  const timeline = (over: Partial<MatchTimelineSummary> = {}): MatchTimelineSummary => ({
+    ...SIN_TIMELINE,
+    available: true,
+    frameCount: 31,
+    ...over,
+  });
+
+  it('sin timeline la fila de dragones no aparece', async () => {
+    const { component } = await montar({ detail: partida() });
+
+    expect(component.objectives().some((o: ObjectiveRow) => o.id === 'dragons')).toBe(false);
+    expect(component.dragonBreakdown()).toEqual([]);
+  });
+
+  /**
+   * **La cifra vuelve, y vuelve medida.** Antes existía `dragonKills` y aun así no se pintaba,
+   * porque enseñar un total del que no se sabe si incluye a los ancianos afirma qué cuenta.
+   */
+  it('con timeline aparece la fila de dragones, con el reparto por bando', async () => {
+    const { component } = await montar({
+      detail: partida(),
+      timeline: timeline({
+        dragons: [
+          { teamSlot: 'A', total: 1, bySubType: { HEXTECH_DRAGON: 1 } },
+          { teamSlot: 'B', total: 3, bySubType: { AIR_DRAGON: 2, EARTH_DRAGON: 1 } },
+        ],
+      }),
+    });
+
+    const dragons = component.objectives().find((o: ObjectiveRow) => o.id === 'dragons');
+    expect(dragons).toBeDefined();
+    expect(dragons?.blueScore).toBe(1);
+    expect(dragons?.redScore).toBe(3);
+  });
+
+  /** Y el desglose dice de qué elemento era cada uno, que es lo que la cifra sola no dice. */
+  it('el desglose nombra cada elemento y le pone su icono', async () => {
+    const { component } = await montar({
+      detail: partida(),
+      timeline: timeline({
+        dragons: [{ teamSlot: 'A', total: 2, bySubType: { FIRE_DRAGON: 1, EARTH_DRAGON: 1 } }],
+      }),
+    });
+
+    const [team] = component.dragonBreakdown();
+    expect(team.total).toBe(2);
+    expect(team.elements.map((e) => e.name))
+      .toEqual(['Dragón de fuego', 'Dragón de tierra']);
+    expect(team.elements[0].icon).toBe('/assets/objectives/dragon_fire.png');
+  });
+
+  /**
+   * `CHEMTECH_DRAGON` está medido en una partida real y **no tiene icono propio** en el proyecto.
+   * Cae al genérico en vez de desaparecer: un dragón que existió y no se pinta es peor que uno con
+   * el icono equivocado, porque el segundo se ve.
+   */
+  it('un elemento sin icono propio cae al genérico en vez de perderse', async () => {
+    const { component } = await montar({
+      detail: partida(),
+      timeline: timeline({
+        dragons: [{ teamSlot: 'A', total: 1, bySubType: { CHEMTECH_DRAGON: 1 } }],
+      }),
+    });
+
+    expect(component.dragonBreakdown()[0].elements[0].icon)
+      .toBe('/assets/objectives/dragon.png');
+  });
+
+  /** Un equipo sin dragones no sale con un cero: sale fuera del desglose. */
+  it('un bando que no cogió ninguno no aparece en el desglose', async () => {
+    const { component } = await montar({
+      detail: partida(),
+      timeline: timeline({
+        dragons: [{ teamSlot: 'A', total: 1, bySubType: { FIRE_DRAGON: 1 } }],
+      }),
+    });
+
+    expect(component.dragonBreakdown()).toHaveLength(1);
+    expect(component.dragonBreakdown()[0].slot).toBe('A');
+  });
+
+  // ── Los «primeros» ────────────────────────────────────────────────────
+
+  /**
+   * **El minuto y el autor, que es la mitad que faltaba.** El bloque de equipo dice QUÉ bando y
+   * nada más; con la timeline se ve quién y cuándo.
+   */
+  it('los primeros salen con su minuto y con quién lo hizo', async () => {
+    const { component } = await montar({
+      detail: partida(),
+      timeline: timeline({
+        kills: [{
+          minute: 3,
+          killerUserId: ME,
+          victimUserId: 'rival',
+          teamSlot: 'A',
+          assistUserIds: [],
+          x: 5086,
+          y: 9550,
+        }],
+      }),
+    });
+
+    const blood = component.firsts().find((f) => f.id === 'blood');
+    expect(blood?.minute).toBe(3);
+    expect(blood?.playerName).toBe('Yo');
+  });
+
+  /**
+   * **El primer dragón es nuevo.** No estaba en las pastillas porque `firstDragon` no llega nunca:
+   * el cliente lo escribe con una errata (`firstDargon`) y solo dentro del bloque crudo. Aquí no
+   * hace falta el campo — se ve caer.
+   */
+  it('aparece el primer dragón, que el bloque de equipo no podía dar', async () => {
+    const { component } = await montar({
+      detail: partida(),
+      timeline: timeline({
+        monsters: [{
+          minute: 8,
+          killerUserId: 'rival',
+          teamSlot: 'B',
+          monsterType: 'DRAGON',
+          monsterSubType: 'EARTH_DRAGON',
+          x: 10234,
+          y: 4940,
+        }],
+      }),
+    });
+
+    const dragon = component.firsts().find((f) => f.id === 'dragon');
+    expect(dragon?.minute).toBe(8);
+  });
+
+  /**
+   * El minuto 0 es un minuto real y muy común en una primera sangre. Si se pintara con un `if`
+   * sobre el número en vez de sobre el null, la primera sangre del minuto 0 se quedaría sin minuto.
+   */
+  it('el minuto cero se pinta, no se confunde con no tener minuto', async () => {
+    const { component } = await montar({
+      detail: partida(),
+      timeline: timeline({
+        kills: [{
+          minute: 0,
+          killerUserId: ME,
+          victimUserId: 'rival',
+          teamSlot: 'A',
+          assistUserIds: [],
+          x: 0,
+          y: 0,
+        }],
+      }),
+    });
+
+    expect(component.firsts().find((f) => f.id === 'blood')?.minute).toBe(0);
+  });
+
+  /** Ejecutado por el mapa: sin autor, y entonces se cae al nombre del bando en vez de mentir. */
+  it('una muerte sin autor deja el nombre en null', async () => {
+    const { component } = await montar({
+      detail: partida(),
+      timeline: timeline({
+        kills: [{
+          minute: 2,
+          killerUserId: null,
+          victimUserId: ME,
+          teamSlot: null,
+          assistUserIds: [],
+          x: 0,
+          y: 0,
+        }],
+      }),
+    });
+
+    expect(component.firsts().find((f) => f.id === 'blood')?.playerName).toBeNull();
+  });
+
+  /** El bloque del mapa solo se ofrece cuando la partida tiene timeline. */
+  it('el mapa solo se pinta si hay timeline', async () => {
+    const sin = await montar({ detail: partida() });
+    expect(sin.el.querySelector('app-match-map')).toBeNull();
+
+    const con = await montar({ detail: partida(), timeline: timeline() });
+    expect(con.el.querySelector('app-match-map')).not.toBeNull();
   });
 });

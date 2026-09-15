@@ -179,4 +179,25 @@ describe('MatchesApi', () => {
     expect(req.request.method).toBe('DELETE');
     req.flush(null);
   });
+  // ── La timeline ─────────────────────────────────────────────────────────
+
+  it('pide el resumen de la timeline sin parametros', () => {
+    let summary: { available?: boolean } | undefined;
+    api.timelineSummary('m1').subscribe((res) => (summary = res));
+
+    const req = http.expectOne(`${environment.apiUrl}/matches/m1/timeline/summary`);
+    expect(req.request.method).toBe('GET');
+    req.flush({ available: true, frameCount: 31, kills: [], buildings: [], monsters: [], dragons: [] });
+
+    expect(summary?.available).toBe(true);
+  });
+
+  /** Peticion aparte de la del resumen: es la mitad que pesa y solo la pide el mapa. */
+  it('pide las posiciones por su propia URL', () => {
+    api.timelinePositions('m1').subscribe();
+
+    const req = http.expectOne(`${environment.apiUrl}/matches/m1/timeline/positions`);
+    expect(req.request.method).toBe('GET');
+    req.flush({ available: true, frames: [] });
+  });
 });

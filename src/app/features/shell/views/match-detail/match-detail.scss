@@ -497,6 +497,36 @@
 .c-first--red { border-color: color-mix(in srgb, var(--nf-team-red) 45%, transparent); }
 .c-first--red .c-first__team { color: var(--nf-team-red); }
 
+/* Quien lo hizo, cuando la timeline lo dice. Ocupa el sitio del nombre del equipo, asi que hereda
+   su peso; el color del bando lo lleva ya el borde de la pastilla. */
+.c-first__who { font-weight: var(--fw-bold); color: var(--nf-text); }
+.c-first--blue .c-first__who { color: var(--nf-team-blue); }
+.c-first--red .c-first__who { color: var(--nf-team-red); }
+
+/* El minuto va apagado y detrás: es la coordenada del hecho, no el hecho. */
+.c-first__minute { color: var(--nf-text-dim); opacity: 0.85; }
+
+/* El desglose de dragones por elemento. Debajo de la lista de objetivos y separado con una línea:
+   es la explicación de la cifra de arriba, no otro objetivo más. */
+.c-dragons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: var(--bw-1) solid var(--nf-border);
+}
+
+.c-dragons__team { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.c-dragons__label { font-size: var(--fs-label); color: var(--nf-text-dim); }
+.c-dragons__team--blue .c-dragons__label { color: var(--nf-team-blue); }
+.c-dragons__team--red .c-dragons__label { color: var(--nf-team-red); }
+
+.c-dragons__list { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.c-dragons__el { display: inline-flex; align-items: center; gap: 3px; }
+.c-dragons__icon { width: 22px; height: 22px; object-fit: contain; }
+.c-dragons__count { font-size: var(--fs-label); color: var(--nf-text-dim); }
+
 /* El campeón del podio de daño. Sin insignia de nivel: el backend no sirve ese campo, y un
    número inventado ahí se lee como medido. */
 .c-podium-champ { width: 24px; height: 24px; border-radius: var(--nf-radius-sm); flex: none; }
