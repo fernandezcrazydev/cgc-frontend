@@ -3,3 +3,13 @@
 .setting-title { font-size: var(--fs-body); font-weight: var(--fw-bold); color: var(--nf-text); }
 .setting-sub { font-size: var(--fs-label); color: var(--nf-text-dim); margin-top: 3px; }
 .setting-sub--help { font-size: var(--fs-caption); letter-spacing: 0; line-height: 1.45; margin-top: 5px; max-width: 48ch; }
+
+/* El segundo bloque de la tarjeta necesita separarse del primero: sin la línea, «Perfil» se lee
+   como un subtítulo de la fila de invitaciones que tiene justo encima. El `.settings-eyebrow` que
+   trae el margen inferior es global (`views.scss`, congelado), así que lo de arriba va aquí. */
+.setting-row + .settings-eyebrow { margin-top: 10px; padding-top: 20px; border-top: 1px solid var(--nf-border); }
+
+/* La mitad del mensaje que dice lo que NO hace el interruptor. Va más apagada porque es la
+   matización, no la promesa — pero va, porque alguien que lo enciende creyendo que desaparece del
+   historial ha entendido justo lo contrario. */
+.setting-sub--caveat { color: var(--nf-text-dim); opacity: 0.85; }

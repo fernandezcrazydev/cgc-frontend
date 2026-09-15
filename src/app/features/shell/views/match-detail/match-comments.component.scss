@@ -1,0 +1,76 @@
+@use 'breakpoints' as *;
+
+.mc {
+  margin-top: 26px;
+  padding: 20px;
+  border-radius: var(--nf-radius);
+  border: 1px solid var(--nf-border);
+  background: var(--nf-surface);
+}
+
+.mc__head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.mc__heading { font-size: var(--fs-h3); color: var(--nf-text); margin: 0; }
+.mc__count { font-size: var(--fs-label); color: var(--nf-text-dim); }
+
+.mc__list { display: flex; flex-direction: column; gap: 14px; margin: 0 0 18px; padding: 0; list-style: none; }
+.mc__row { display: flex; align-items: flex-start; gap: 12px; }
+
+/* El propio se marca en frío, sin color de estado: no es un éxito ni un aviso, solo «este es
+   tuyo». Un borde lateral basta y sobrevive a los dos temas sin decidir nada de paleta. */
+.mc__row--mine .mc__body { border-left: 2px solid var(--nf-primary); padding-left: 10px; }
+
+.mc__body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+.mc__meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.mc__author { font-size: var(--fs-body); font-weight: var(--fw-bold); color: var(--nf-text); }
+.mc__when { font-size: var(--fs-label); color: var(--nf-text-dim); }
+
+/* El borrado es de admin y no es la acción principal de la fila: se aparta al final y solo
+   recupera contraste al pasar por encima. */
+.mc__delete { margin-left: auto; opacity: 0.6; &:hover { opacity: 1; } }
+
+/* `pre-wrap` porque el texto es plano y llega tal cual se escribió: los saltos de línea del autor
+   son parte de lo que dijo. `overflow-wrap` para que una palabra sin espacios no desborde la caja. */
+.mc__text {
+  margin: 0;
+  font-size: var(--fs-body);
+  color: var(--nf-text);
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.mc__empty { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
+.mc__empty-text { margin: 0 0 4px; font-size: var(--fs-caption); color: var(--nf-text-dim); line-height: 1.5; max-width: 60ch; }
+
+.mc__compose { display: flex; flex-direction: column; gap: 8px; padding-top: 16px; border-top: 1px solid var(--nf-border); }
+.mc__label { font-size: var(--fs-label); color: var(--nf-text-dim); }
+
+.mc__input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: var(--nf-radius-sm);
+  border: 1px solid var(--nf-border);
+  background: var(--nf-surface-2);
+  color: var(--nf-text);
+  font: inherit;
+  font-size: var(--fs-body);
+  line-height: 1.5;
+  resize: vertical;
+
+  &:focus { outline: none; border-color: var(--nf-primary); }
+  &:disabled { opacity: 0.6; }
+}
+
+.mc__compose-foot { display: flex; align-items: center; justify-content: flex-end; gap: 12px; }
+.mc__counter { font-size: var(--fs-label); color: var(--nf-text-dim); }
+
+/* Se enciende solo cuando de verdad queda poco. Un contador siempre en rojo deja de avisar. */
+.mc__counter--tight { color: var(--nf-warning); }
+
+.mc__note { margin: 0; font-size: var(--fs-caption); color: var(--nf-text-dim); line-height: 1.45; max-width: 60ch; }
+.mc__note--standalone { padding-top: 16px; border-top: 1px solid var(--nf-border); }
+
+@media (max-width: $bp-mobile) {
+  .mc { padding: 16px; }
+  .mc__compose-foot { justify-content: space-between; }
+}

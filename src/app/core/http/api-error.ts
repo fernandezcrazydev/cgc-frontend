@@ -96,6 +96,14 @@ const MESSAGES_BY_CODE: Record<ApiErrorCode, string> = {
   CURRENT_SESSION_NOT_REVOCABLE:
     'Esta es la sesión que estás usando ahora mismo. Para salir de este dispositivo, usa cerrar sesión.',
   DISCORD_API_UNAVAILABLE: 'No hemos podido hablar con Discord ahora mismo. Prueba en un minuto.',
+  // Los tres del hilo de comentarios de una partida. Los dos primeros no son fallos del usuario
+  // sino reglas de producto, y el texto tiene que decir la regla: «no tienes permiso» no explica
+  // por qué no aparece la caja, y «ya existe» no dice que es a propósito que no haya un segundo.
+  COMMENT_ALREADY_EXISTS:
+    'Ya has comentado esta partida. Solo se puede dejar un comentario, y no se puede editar.',
+  COMMENT_DELETE_NOT_ALLOWED:
+    'Los comentarios no se borran: solo puede retirarlos un administrador del grupo.',
+  COMMENT_TOO_LONG: 'Ese comentario es demasiado largo. Caben 500 caracteres.',
   DISCORD_AUTH_CANCELLED: 'Has cancelado en Discord, así que no se ha conectado nada.',
   DISCORD_AUTH_FAILED: 'Discord no ha confirmado la autorización. Vuelve a intentarlo.',
   DISCORD_AUTH_FORBIDDEN: 'Ya no administras este grupo, así que no puedes cambiar su Discord.',
@@ -179,6 +187,8 @@ const MESSAGES_BY_CODE: Record<ApiErrorCode, string> = {
   LOBBY_SLOT_NOT_FOUND: 'Esa hora ya no está disponible. Puede que se haya cerrado otra.',
   MATCH_ALREADY_RECORDED:
     'Esta partida ya tiene resultado guardado. Si el que hay es el equivocado, corrígelo en vez de volver a guardarlo.',
+  MATCH_COMMENT_NOT_FOUND:
+    'Ese comentario ya no existe: puede que otro administrador lo haya retirado antes.',
   MATCH_DID_NOT_FINISH:
     'Esa partida no llegó a terminar, así que no hay nada que subir de ella.',
   // Cubre a la vez «no existe» y «es de un grupo del que no eres», y es a proposito: un 403
@@ -189,11 +199,18 @@ const MESSAGES_BY_CODE: Record<ApiErrorCode, string> = {
   NOTHING_TO_RESET: 'Esta modalidad todavía no tiene ratings, así que no hay nada que resetear.',
   NOTIFICATION_NOT_FOUND: 'Esa notificación ya no existe.',
   NOT_A_PARTICIPANT: 'No apareces en esa partida, así que no puedes subirla.',
+  // Distinto de NOT_A_PARTICIPANT, que es el de subir una partida. Este es el de comentarla, y
+  // normalmente no llega: la caja de texto no se pinta para quien no jugó.
+  NOT_MATCH_PARTICIPANT: 'Esta partida no la jugaste, así que no puedes comentarla.',
   NO_ROOM_FOR_UPLOAD:
     'No hay ninguna sala a la que corresponda esa partida, así que no se puede asociar.',
   NO_SOFT_RESET_TO_UNDO: 'Esta modalidad no tiene ningún reseteo que deshacer.',
   OWNER_CANNOT_LEAVE:
     'Eres el propietario del grupo. Antes de salir, pásaselo a otra persona o bórralo.',
+  // 403 de PRODUCTO, no de permisos: esa persona lo ha elegido. El texto dice las dos mitades, o
+  // se lee como que has dejado de ver sus partidas — y esas siguen ahí, son del grupo.
+  PROFILE_PRIVATE:
+    'Esta persona tiene el perfil privado: sus estadísticas solo las ven los administradores de sus grupos. Vuestras partidas siguen en el historial.',
   PAIRING_CODE_ALREADY_USED: 'Ese código ya lo ha usado otra cuenta. Pide uno nuevo desde la web.',
   PAIRING_CODE_NOT_FOUND:
     'Ese código no vale: o no existe o ha caducado. Pide uno nuevo desde la web.',

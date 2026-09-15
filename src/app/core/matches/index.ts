@@ -6,4 +6,5 @@ export * from './match-view';
 export * from './match-filtering';
 export * from './cross-history';
 export { MatchHistoryStore, type MatchHistoryStatus } from './match-history-store';
+export { MatchCommentsStore, type MatchCommentsStatus } from './match-comments-store';
 export { type MatchMappingContext } from './match-mapper';

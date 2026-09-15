@@ -113,20 +113,33 @@ export class CrossViewState {
   }
 
   /**
-   * Los cuatro estados que `CLAUDE.md` exige distinguir, en una sola señal.
+   * Los estados que `CLAUDE.md` exige distinguir, en una sola señal, más uno propio de esta
+   * pantalla: `private`, que no es ni un error ni un vacío sino una puerta cerrada a propósito.
    *
    * Mira también al catálogo de campeones: la lista no está lista para enseñarse sin los
    * nombres, y pintarla y cambiarla un instante después es el salto que los esqueletos existen
    * para evitar. Un fallo de red del catálogo tiene que salir como error y no como «jugador no
    * encontrado», que es lo que pasaba cuando esta señal solo miraba a `gameData.status()`.
    */
-  readonly status = computed<'loading' | 'error' | 'ready'>(() => {
+  readonly status = computed<'loading' | 'error' | 'private' | 'ready'>(() => {
     const champs = this.gameData.status();
+    // Antes que el error, porque viaja DENTRO de uno: el 403 llega por el mismo `catch` que un
+    // fallo de red, y pintarlo como error ofrecería un «Reintentar» que no puede funcionar nunca.
+    if (this.store.personalProfilePrivate()) return 'private';
     if (champs === 'error' || this.store.personalStatus() === 'error') return 'error';
     if (champs === 'idle' || champs === 'loading') return 'loading';
     const own = this.store.personalStatus();
     return own === 'idle' || own === 'loading' ? 'loading' : 'ready';
   });
+
+  /**
+   * Esa persona tiene el perfil privado y quien mira no puede verlo (`403 PROFILE_PRIVATE`).
+   *
+   * Es una respuesta correcta y no un fallo: el backend decide, y esta pantalla existía dibujada
+   * desde antes de que hubiera nada que la disparara — su estado era `tag.includes('secret')`.
+   * Ahora sale de una preferencia de verdad (`cgc-backend#98`).
+   */
+  readonly profilePrivate = computed(() => this.status() === 'private');
 
   /** Azúcar para las plantillas: no hay nada firme que pintar todavía. */
   readonly loading = computed(() => this.status() === 'loading');

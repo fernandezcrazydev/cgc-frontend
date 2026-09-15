@@ -1012,6 +1012,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/matches/{matchId}/comments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["matchComment_list"];
+        put?: never;
+        post: operations["matchComment_leave"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/matches/{matchId}/comments/{commentId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["matchComment_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me": {
         parameters: {
             query?: never;
@@ -1884,6 +1916,17 @@ export interface components {
             /** Format: date-time */
             startsAt?: string;
         };
+        MatchCommentResponse: {
+            avatarUrl?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            discordUsername?: string;
+            /** Format: uuid */
+            id?: string;
+            text?: string;
+            /** Format: uuid */
+            userId?: string;
+        };
         MatchDetailResponse: {
             gameVersion?: string;
             stats?: {
@@ -2150,6 +2193,9 @@ export interface components {
             };
             /** Format: uuid */
             userId?: string;
+        };
+        PostMatchCommentRequest: {
+            text: string;
         };
         ProposalBody: {
             alternatives?: string;
@@ -2490,6 +2536,8 @@ export interface components {
         UpdateUserSettingsRequest: {
             allowGroupInvites: boolean;
             discordNotifications: boolean;
+            /** @enum {string} */
+            profileVisibility: "PUBLIC" | "GROUP_ADMINS";
         };
         UploadMatchRequest: {
             endOfGameResult?: string;
@@ -2539,6 +2587,8 @@ export interface components {
         UserSettingsResponse: {
             allowGroupInvites?: boolean;
             discordNotifications?: boolean;
+            /** @enum {string} */
+            profileVisibility?: "PUBLIC" | "GROUP_ADMINS";
         };
         VerifiedAccountResponse: {
             profileIconUrl?: string;
@@ -4344,6 +4394,75 @@ export interface operations {
                 content: {
                     "*/*": components["schemas"]["MatchDetailResponse"];
                 };
+            };
+        };
+    };
+    matchComment_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                matchId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MatchCommentResponse"][];
+                };
+            };
+        };
+    };
+    matchComment_leave: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                matchId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PostMatchCommentRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MatchCommentResponse"];
+                };
+            };
+        };
+    };
+    matchComment_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                matchId: string;
+                commentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

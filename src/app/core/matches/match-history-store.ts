@@ -22,7 +22,7 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { Session } from '../auth';
-import { PageResponse } from '../http';
+import { PageResponse, parseApiError } from '../http';
 import { MatchesApi } from './matches-api';
 import {
   GroupMatchQuery,
@@ -56,8 +56,20 @@ export class MatchHistoryStore {
   private personalKey: string | null = null;
   private personalSeq = 0;
 
+  /**
+   * `true` cuando el backend respondió `403 PROFILE_PRIVATE`: la persona del `with=` tiene el
+   * perfil privado y quien mira no es ella ni administra un grupo con ella.
+   *
+   * Signal propia y no un `status: 'forbidden'` porque no es un fallo del que haya que
+   * reintentar: es una respuesta correcta a la que le corresponde una pantalla entera —la del
+   * candado—, igual que el 404 del detalle tiene la suya. Mezclarla con `error` haría que el
+   * cruce ofreciera un botón de «Reintentar» que no puede funcionar nunca.
+   */
+  private readonly _personalProfilePrivate = signal(false);
+
   readonly personal = this._personal.asReadonly();
   readonly personalStatus = this._personalStatus.asReadonly();
+  readonly personalProfilePrivate = this._personalProfilePrivate.asReadonly();
   readonly personalMatches = computed(() => this._personal().content);
   readonly personalTotal = computed(() => this._personal().totalElements);
 
@@ -194,15 +206,17 @@ export class MatchHistoryStore {
     const seq = ++this.personalSeq;
     this.personalKey = key;
     this._personalStatus.set('loading');
+    this._personalProfilePrivate.set(false);
     try {
       const page = await firstValueFrom(this.api.myMatches(query, this.ctx()));
       if (seq !== this.personalSeq) return;
       this._personal.set(page);
       this._personalStatus.set('ready');
-    } catch {
+    } catch (error: unknown) {
       if (seq !== this.personalSeq) return;
       this.personalKey = null;
       this._personal.set(EMPTY_PAGE);
+      this._personalProfilePrivate.set(isProfilePrivate(error));
       this._personalStatus.set('error');
     }
   }
@@ -349,6 +363,7 @@ export class MatchHistoryStore {
     this._groupSummary.set(null);
     this._detail.set(null);
     this._personalStatus.set('idle');
+    this._personalProfilePrivate.set(false);
     this._groupStatus.set('idle');
     this._groupSampleStatus.set('idle');
     this._personalSummaryStatus.set('idle');
@@ -356,6 +371,17 @@ export class MatchHistoryStore {
     this._detailStatus.set('idle');
     this._detailNotFound.set(false);
   }
+}
+
+/**
+ * Si ese fallo es el 403 con el que el backend tapa un perfil privado.
+ *
+ * Se mira el `code` y no solo el status: un 403 sin code es «no tienes permiso» a secas, y la
+ * pantalla del candado afirma algo más concreto —que esa persona lo ha elegido— que sería mentira
+ * pintar sobre cualquier otro 403.
+ */
+function isProfilePrivate(error: unknown): boolean {
+  return parseApiError(error).code === 'PROFILE_PRIVATE';
 }
 
 /** Dos consultas iguales son la misma carga. Las claves van ordenadas para que eso sea cierto. */

@@ -53,8 +53,16 @@ class ApiStub {
   }
 }
 
-const OPEN: UserSettings = { allowGroupInvites: true, discordNotifications: true };
-const CLOSED: UserSettings = { allowGroupInvites: false, discordNotifications: true };
+const OPEN: UserSettings = {
+  allowGroupInvites: true,
+  discordNotifications: true,
+  profileVisibility: 'PUBLIC',
+};
+const CLOSED: UserSettings = {
+  allowGroupInvites: false,
+  discordNotifications: true,
+  profileVisibility: 'PUBLIC',
+};
 
 describe('SettingsStore', () => {
   let store: SettingsStore;
@@ -169,6 +177,37 @@ describe('SettingsStore', () => {
     await api.settleUpdate(CLOSED);
     await first;
     expect(api.updateCalls).toBe(1);
+  });
+
+  /**
+   * `patch` existe para que el PUT completo no dependa de que cada pantalla se acuerde de mandar
+   * los otros dos campos. El día que entró el tercero, un componente que siguiera mandando dos
+   * lo habría apagado sin que nadie lo pidiera — y eso no se ve en su diff.
+   */
+  it('patch completa el PUT con lo último que confirmó el servidor', async () => {
+    const load = store.ensureLoaded();
+    await api.settleGet(OPEN);
+    await load;
+
+    const saving = store.patch({ profileVisibility: 'GROUP_ADMINS' });
+    await api.settleUpdate({ ...OPEN, profileVisibility: 'GROUP_ADMINS' });
+    await saving;
+
+    expect(api.lastUpdate).toEqual({
+      allowGroupInvites: true,
+      discordNotifications: true,
+      profileVisibility: 'GROUP_ADMINS',
+    });
+  });
+
+  /**
+   * Sin ajustes cargados no hay base que completar, así que un `patch` escribiría los valores por
+   * defecto encima de lo que el usuario tenga guardado. Se niega en vez de adivinar.
+   */
+  it('patch se niega si los ajustes todavía no están cargados', async () => {
+    await expect(store.patch({ allowGroupInvites: false })).rejects.toThrow();
+
+    expect(api.updateCalls).toBe(0);
   });
 
   it('clear borra el rastro del usuario anterior', async () => {

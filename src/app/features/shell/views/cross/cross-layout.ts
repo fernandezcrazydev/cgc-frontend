@@ -40,6 +40,32 @@ import { CrossViewState } from './cross-view-state';
           </div>
           <nf-skeleton width="100%" height="42px" radius="10px" />
         </div>
+      } @else if (state.profilePrivate()) {
+        <!--
+          La pantalla que existía dibujada desde antes de que hubiera nada que la disparara: su
+          estado era un includes('secret') sobre el Riot ID, o sea que eras privado si tu tag
+          llevaba esa palabra. Ahora la dispara un 403 del servidor sobre una preferencia de
+          verdad (cgc-backend#98).
+
+          Sin «Reintentar»: no es un fallo, es una respuesta. Y sin el nombre de esa persona, que
+          precisamente no se ha servido.
+        -->
+        <div class="cx-private">
+          <svg class="cx-private__lock" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M7 10V7a5 5 0 0 1 10 0v3h1a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h1Zm2 0h6V7a3 3 0 0 0-6 0v3Z"
+              fill="currentColor"
+            />
+          </svg>
+          <h1 class="cx-private__title">Este perfil es privado</h1>
+          <p class="cx-private__lead">
+            Esta persona ha decidido que sus estadísticas solo las vean los administradores de sus
+            grupos. Las partidas que habéis jugado juntos siguen estando en el historial.
+          </p>
+          <button nfButton variant="primary" size="md" [routerLink]="['/app', 'historial']">
+            Ir al historial
+          </button>
+        </div>
       } @else if (state.status() === 'error') {
         <div class="view__head">
           <div class="view__eyebrow nf-mono">Error de carga</div>

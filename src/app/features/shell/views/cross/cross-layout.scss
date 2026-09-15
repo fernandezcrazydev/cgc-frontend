@@ -36,3 +36,39 @@
   flex-direction: column;
   gap: 6px;
 }
+
+/* «Este perfil es privado». Ocupa el sitio de la pantalla entera —cabecera, pestañas e historial
+   cruzado incluidos— porque no hay nada de ese cruce que se pueda enseñar: el servidor no lo ha
+   servido. Un bloque dentro del layout normal dejaría unas pestañas con recuentos vacíos que se
+   leerían como un fallo de carga. */
+.cx-private {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+  padding: 56px 24px;
+  border-radius: 14px;
+  background: var(--nf-surface-2);
+  border: 1px solid var(--nf-border);
+}
+
+.cx-private__lock {
+  width: 44px;
+  height: 44px;
+  color: var(--nf-text-dim);
+}
+
+.cx-private__title {
+  margin: 0;
+  font-size: var(--fs-h2);
+  color: var(--nf-text);
+}
+
+.cx-private__lead {
+  margin: 0 0 8px;
+  max-width: 52ch;
+  font-size: var(--fs-body);
+  line-height: 1.55;
+  color: var(--nf-text-dim);
+}
